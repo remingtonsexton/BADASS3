@@ -9,7 +9,7 @@ BADASS is an open-source spectral analysis tool designed for detailed decomposit
 - AGN power-law continuum. 
 - "Blue-wing" outflow emission components found in narrow-line emission. 
 
-All spectral components can be turned off and on via the [Jupyter Notebook](https://jupyter.org/) interface, from which all fitting options can be easily changed to fit non-AGN-host galaxies (or even stars!).  BADASS uses multiprocessing to fit multiple spectra simultaneously depending on your hardware configuration.  The code was originally written in Python 2.7 to fit Keck Low-Resolution Imaging Spectrometer (LRIS) data ([Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract)), but because BADASS is open-source and *not* written in an expensive proprietary language, one can easily contribute to or modify the code to fit data from other instruments.  BADASS is now available for Python 3 [here](https://github.com/remingtonsexton/BADASS3).
+All spectral components can be turned off and on via the [Jupyter Notebook](https://jupyter.org/) interface, from which all fitting options can be easily changed to fit non-AGN-host galaxies (or even stars!).  BADASS uses multiprocessing to fit multiple spectra simultaneously depending on your hardware configuration.  The code was originally written in Python 2.7 to fit Keck Low-Resolution Imaging Spectrometer (LRIS) data ([Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract)), but because BADASS is open-source and *not* written in an expensive proprietary language, one can easily contribute to or modify the code to fit data from other instruments.
 
 <b>  
 If you use BADASS for any of your fits, I'd be interested to know what you're doing and what version of Python you are using, please let me know via email at remington.sexton-at-email.ucr.edu.
@@ -42,22 +42,19 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
 
 The easiest way to get started is to simply clone the repository. 
 
-As of BADASS v7.6.0, the following packages are required (Python 2.7.17):
-- `astropy 2.0.9`
-- `astroquery 0.3.9`
-- `corner 2.2.1`
-- `emcee 2.2.1`
-- `ipython 5.8.0`
-- `jupyter-client 5.3.4`
-- `matplotlib 2.2.3`
-- `multiprocessing 0.70a1`
-- `natsort 5.5.0`
-- `numpy 1.16.6`
-- `pandas 0.23.4`
-- `psutil 5.6.7`
-- `scipy 1.2.1`
-
-**Note**: because Python 2 will no longer be supported past 2020, version 7.6.0 will be the last version of BADASS for Python 2 and will only receive minor updates for bug fixes.  
+As of BADASS v7.6.0, the following packages are required (Python 3.6.10):
+- `astropy 4.0.1`
+- `astroquery 0.4`
+- `corner 2.0.1`
+- `emcee 0.0.0`
+- `ipython 7.14.0`
+- `jupyter-client 6.1.3`
+- `matplotlib 3.1.3`
+- `natsort 7.0.1`
+- `numpy 1.18.1`
+- `pandas 1.0.3`
+- `psutil 5.7.0`
+- `scipy 1.4.1` 
 
 The code is run entirely through the Jupyter Notebook interface, and is set up to run on the included SDSS spectrum file in the ".../examples/" folder.  If one wants to fit multiple spectra consecutively, simply add folders for each spectrum to the folder.  This is the recommended directory structure:
 
