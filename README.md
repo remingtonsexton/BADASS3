@@ -35,6 +35,7 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
   * [Best-fit Parameters & Uncertainties](#best-fit-parameters---uncertainties)
   * [Autocorrelation Time & Tolerance History](#autocorrelation-time---tolerance-history)
 - [How to...](#how-to)
+- [Known Issues](#known-issues)
 - [Contributing](#contributing)
 - [Credits](#credits)
 - [License](#license)
@@ -557,6 +558,14 @@ The first `if` statement check to see if the parameters needed to create the emi
 And thats it!
 
 If you wanted to tie the width of your line to another line, simply replace the with with the dictionary parameter width of the other line.  All of this can be done similarly for other components, such as a continuum model.  
+
+# Known Issues
+
+### "BADASS only fits one spectra using Multiprocessing and hangs up on the others"
+
+When running BADASS for multiple spectra using the multiprocessing notebook, BADASS will hangup when trying to fit spectra it has not previously obtained E(B-V) values for via Astroquery's [IRSA Dust Extinction Service Query](https://astroquery.readthedocs.io/en/latest/irsa/irsa_dust.html).  This is a known issue (see [this](https://github.com/astropy/astroquery/issues/684).  The problem stems from the fact that `IrsaDust. get_query_table()` treats multiple Python subprocesses as a single-process. For example, if you are running 4 subprocesses (fitting 4 spectra simultaneously), it will only query the last process of the four, and leave the first three hanging.  
+
+Luckily there is a workaround.  `IrsaDust. get_query_table()` stores previous queries on your local machine so they can be accessed without looking them up every single time.  The solution is to simply query E(B-V) values for all of your objects before fitting, which seems dumb but it's the only workaround and its quick.   In the [badass_tools](https://github.com/remingtonsexton/BADASS3/tree/master/badass_tools) directory there is a notebook called `Fetch IRSA Dust E(B-V).ipynb`.  Simply run this notebook before your fitting run with BADASS to pre-fetch all E(B-V) valuees.
 
 
 # Contributing
