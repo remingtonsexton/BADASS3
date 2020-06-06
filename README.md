@@ -11,6 +11,8 @@ BADASS is an open-source spectral analysis tool designed for detailed decomposit
 
 All spectral components can be turned off and on via the [Jupyter Notebook](https://jupyter.org/) interface, from which all fitting options can be easily changed to fit non-AGN-host galaxies (or even stars!).  BADASS uses multiprocessing to fit multiple spectra simultaneously depending on your hardware configuration.  The code was originally written in Python 2.7 to fit Keck Low-Resolution Imaging Spectrometer (LRIS) data ([Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract)), but because BADASS is open-source and *not* written in an expensive proprietary language, one can easily contribute to or modify the code to fit data from other instruments.
 
+Before getting started you should [read the wiki](https://github.com/remingtonsexton/BADASS3/wiki) or the readme below.
+
 <b>  
 If you use BADASS for any of your fits, I'd be interested to know what you're doing and what version of Python you are using, please let me know via email at remington.sexton-at-email.ucr.edu.
 </b>
@@ -32,6 +34,7 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
   * [Best-fit Model Components](#best-fit-model-components)
   * [Best-fit Parameters & Uncertainties](#best-fit-parameters---uncertainties)
   * [Autocorrelation Time & Tolerance History](#autocorrelation-time---tolerance-history)
+- [How to...](#how-to)
 - [Contributing](#contributing)
 - [Credits](#credits)
 - [License](#license)
@@ -471,6 +474,89 @@ tau = autocorr_dict.item().get('na_oiii5007_core_voff').get('tau')
 tol = autocorr_dict.item().get('na_oiii5007_core_voff').get('tol')
 
 ```
+
+# How to
+## How to add an emission line to BADASS
+
+This may look complicated, but its really just a lot of copy, pasting, and changing a few variable names.  
+
+If one wishes to add (or remove) an emission line for BADASS to fit, one must modify the source code (`.py` file) in two places:
+1. **`initialize_mcmc()`** - to define the parameters to be fit, for example, amplitude, width, velocity offset, etc.  For example, if we want to add a broad H-beta emission line, 
+```python
+# Br. H-beta amplitude
+mcmc_input['br_Hb_amp'] = ({'name':'br_Hb_amp',
+			    'label':'$A_{\mathrm{Br.\;Hb}}$' ,
+			    'init':(hb_amp_init-total_flux_init)/2.0  ,
+			    'plim':(1.0e-3,max_flux),
+			    'pcolor':'steelblue',
+			   })
+# Br. H-beta FWHM
+mcmc_input['br_Hb_fwhm'] = ({'name':'br_Hb_fwhm',				   	   			 
+                             'label':'$\mathrm{FWHM}_{\mathrm{Br.\;Hb}}$',
+			     'init':2500.,
+			     'plim':(500.,10000.),
+			     'pcolor':'royalblue',
+			     'min_width':min_fwhm,
+			    })
+# Br. H-beta VOFF
+mcmc_input['br_Hb_voff'] = ({'name':'br_Hb_voff',					   	   		 	 
+                             'label':'$\mathrm{VOFF}_{\mathrm{Br.\;Hb}}$',
+			     'init':0.,
+			     'plim':(-1000.,1000.),
+			     'pcolor':'turquoise',
+			    })
+```
+The dictionary values for each parameter defined above are described below:
+`name`: a unique identifiable name for the parameter.
+
+**`label`**: a LaTeX label used for plot labelling on chain/histogram plots.
+
+**`init`**: initial value of parameter, which is used by maximum likelihood routine for finding a better initial position (units of km/s)
+
+**`plim`**: parameter limits; the lower and upper bounds of allowed parameter values. (units of km/s)
+
+**`pcolor`**: plot color for histogram.
+
+**`min_width`**: minimum valid width for emission lines.  This already takes into account the instrumental dispersion, so we instead set the minimum to the typical uncertainty in width measurements ~15 km/s (units of km/s)
+
+**Note**: the only parameter dictionary value that needs to be unique is `name`.  The others do not need to be unique but there still needs to be a valid value (for example, a valid `matplotlib` color) for color.  Also, make sure that the `init` value is between the lower and upper bounds of `plim`.
+
+2. **`fit_model()`** - add the component to the model; this is where we specify if component parameters are tied to other components, are constant, etc.
+
+```python 
+if all(comp in param_names for comp in ['br_Hb_amp','br_Hb_fwhm','br_Hb_voff'])==True:
+     br_hb_center       = 4862.68 # Angstroms
+     br_hb_amp	        = p['br_Hb_amp'] # flux units
+     br_hb_fwhm_res     = get_fwhm_res(fwhm_gal_ftn,br_hb_center,p['br_Hb_voff'])
+     br_hb_fwhm	        = np.sqrt(p['br_Hb_fwhm']**2+(br_hb_fwhm_res)**2) # km/s
+     br_hb_voff	        = p['br_Hb_voff']  # km/s
+     br_Hb	        = gaussian(lam_gal,br_hb_center,br_hb_amp,br_hb_fwhm,br_hb_voff,velscale)
+     host_model	        = host_model - br_Hb
+     comp_dict['br_Hb'] = {'comp':br_Hb,'pcolor':'xkcd:turquoise','linewidth':1.0}
+	
+```
+
+The first `if` statement check to see if the parameters needed to create the emission line component were added to the list of parameters to be fit using `initialize_mcmc()` (because without them you can't create the line model).  The following lines define components of the line.  These lines in the source code were written to be readable - not pythonic - so they could be understood by anybody seeing the code for the first time.
+
+**`br_hb_center`**: the rest wavelength of the line in units of Angstroms.
+
+**`br_hb_amp`**: the amplitude parameter in units of flux density.
+
+**`br_hb_fwhm_res`**: the SDSS instrumental resolution interpolated at the rest wavelength of the emission line.
+
+**`br_hb_fwhm`**: the width (FWHM) parameter in units of km/s. We add this in quadrature to the instrumental resolution of the line so that BADASS returns the intrinsic width of the line.
+
+**`br_hb_voff`**: the velocity offset in units of km/s from rest wavelength.
+
+**`br_Hb`**: the above parameters are sent to the `gaussian()` function to return a model for the line.
+
+**`host_model`**: the line model is then subtracted from the data.  At the end the only thing should be left is stellar continuum (if any), which is then fit by pPXF.  All components are then added back to subtract from the data in the likelihood function.
+
+**`comp_dict['br_Hb']`**: stores the line model in the component dictionary so it can be plot and stored later as output. Again, this require a valid `matplotlib` color.
+
+And thats it!
+
+If you wanted to tie the width of your line to another line, simply replace the with with the dictionary parameter width of the other line.  All of this can be done similarly for other components, such as a continuum model.  
 
 
 # Contributing
