@@ -46,7 +46,7 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
 
 The easiest way to get started is to simply clone the repository. 
 
-As of BADASS v7.6.0, the following packages are required (Python 3.6.10):
+As of BADASS v7.7.1, the following packages are required (Python 3.6.10):
 - `astropy 4.0.1`
 - `astroquery 0.4`
 - `corner 2.0.1`
@@ -84,18 +84,24 @@ spec_loc = natsort.natsorted( glob.glob(spec_dir+'*') )
 ## Fitting Options
  
 ```python 
-#################################### Options ###################################
+################################## Fit Options #################################
 # Fitting Parameters
-fit_reg       = (4400,5800) # Fitting region; Indo-US Library=(3460,9464)
-good_thresh   = 0.0 # percentage of "good" pixels required in fig_reg for fit.
-interp_bad    = False # interpolate over pixels SDSS flagged as 'bad' (careful!)
+fit_options={
+'fit_reg'    : (4400,5500), # Fitting region; Indo-US Library=(3460,9464)
+'good_thresh': 0.0, # percentage of "good" pixels required in fig_reg for fit.
+'interp_bad' : False, # interpolate over pixels SDSS flagged as 'bad' (careful!)
+# Number of consecutive basinhopping thresholds before solution achieved
+'n_basinhop': 5,
 # Outflow Testing Parameters
-test_outflows      = True 
-outflow_test_niter = 10 # number of monte carlo iterations for outflows
+'test_outflows': True, 
+'outflow_test_niter': 10, # number of monte carlo iterations for outflows
 # Maximum Likelihood Fitting for Final Model Parameters
-max_like_niter = 10 # number of maximum likelihood iterations
+'max_like_niter': 10, # number of maximum likelihood iterations
 # LOSVD parameters
-min_sn_losvd  = 20  # minimum S/N threshold for fitting the LOSVD
+'min_sn_losvd': 5,  # minimum S/N threshold for fitting the LOSVD
+# Emission line profile parameters
+'line_profile':'G' # Gaussian (G) or Lorentzian (L)
+}
 ################################################################################
 ```
 
@@ -108,13 +114,18 @@ the cutoff for minimum fraction of "good" pixels (determined by SDSS) within the
 **`interp_bad`**: *bool*; *Default: False*
 Interpolate over pixels which SDSS flagged as bad due to sky line subtraction or cosmic rays.  Warning: if large portions of the fitting region are marked as bad pixels, this can cause BADASS to crash.  One should only use this if only a few pixels are affected by contamination.  
 
+**`n_basinhop`**: *int*; *Default: 5*
+Number of successive `niter_success` times the basinhopping alogirhtm needs to achieve a solution.  The fit becomes much better with more success times, however this can increase the time to a solution by a lot.  Recommended 3-5. 
+
 **`test_outflows`**: *bool*; *Default: True*  
 if *False*, BADASS does not test for outflows and instead does whatever you tell it to. If *True*, BADASS performs maximum likelihood fitting of outflows, using monte carlo bootstrap resampling to determine uncertainties, and uses the BADASS prescription for determining the presence of outflows.  Testing for outflows requires the region from 4400 Å - 5800 Å included in the fitting region to accurately account for possible FeII emission.  This region is also required since [OIII] is used to constrain outflow parameters of the H-alpha/[NII]/[SII] outflows.  If all of the BADASS outflow criteria are satisfied, the final model includes outflow components.  The BADASS outflow criteria to justify the inclusion of outflow components are the following:
 
 1. Amplitude metric: ![\cfrac{A_{\rm{outflow}}}{\left(\sigma^2_{\rm{noise}} + \delta A^2_{\rm{outflow}}\right)^{1/2}} > 3.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7BA_%7B%5Crm%7Boutflow%7D%7D%7D%7B%5Cleft(%5Csigma%5E2_%7B%5Crm%7Bnoise%7D%7D%20%2B%20%5Cdelta%20A%5E2_%7B%5Crm%7Boutflow%7D%7D%5Cright)%5E%7B1%2F2%7D%7D%20%3E%203.0)
 2. Width metric: ![\cfrac{\sigma_{\rm{outflow}}- \sigma_{\rm{core}}}{\left(\delta \sigma^2_{\rm{outflow}}+\delta \sigma^2_{\rm{core}}\right)^{1/2}} > 1.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7B%5Csigma_%7B%5Crm%7Boutflow%7D%7D-%20%5Csigma_%7B%5Crm%7Bcore%7D%7D%7D%7B%5Cleft(%5Cdelta%20%5Csigma%5E2_%7B%5Crm%7Boutflow%7D%7D%2B%5Cdelta%20%5Csigma%5E2_%7B%5Crm%7Bcore%7D%7D%5Cright)%5E%7B1%2F2%7D%7D%20%3E%201.0)
 3. Velocity offset metric: ![\cfrac{v_{\rm{core}}- v_{\rm{outflow}}}{\left(\delta v^2_{\rm{core}}+\delta v^2_{\rm{outflow}}\right)^{1/2}} > 1.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7Bv_%7B%5Crm%7Bcore%7D%7D-%20v_%7B%5Crm%7Boutflow%7D%7D%7D%7B%5Cleft(%5Cdelta%20v%5E2_%7B%5Crm%7Bcore%7D%7D%2B%5Cdelta%20v%5E2_%7B%5Crm%7Boutflow%7D%7D%5Cright)%5E%7B1%2F2%7D%7D%20%3E%201.0)
-4. Residual Improvement (ratio-of-variances or "f-test"): ![\cfrac{\rm{Var}^2_{\rm{no\;outflow}}}{\rm{Var}^2_{\rm{outflow}}} > 2.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7B%5Crm%7BVar%7D%5E2_%7B%5Crm%7Bno%5C%3Boutflow%7D%7D%7D%7B%5Crm%7BVar%7D%5E2_%7B%5Crm%7Boutflow%7D%7D%7D%20%3E%202.0)
+4. F-statistic (model comparison): ![F-\textrm{statistic:}\quad\cfrac{\left(\cfrac{\textrm{RSS}_{\textrm{no}\;\textrm{outflow}}-\textrm{RSS}_{\textrm{outflow}}}{k_2-k_1}\right)}{\left(\cfrac{\textrm{RSS}_{\textrm{outflow}}}{N-k_2}\right)}](https://render.githubusercontent.com/render/math?math=%5Cdisplaystyle+F-%5Ctextrm%7Bstatistic%3A%7D%5Cquad%5Ccfrac%7B%5Cleft%28%5Ccfrac%7B%5Ctextrm%7BRSS%7D_%7B%5Ctextrm%7Bno%7D%5C%3B%5Ctextrm%7Boutflow%7D%7D-%5Ctextrm%7BRSS%7D_%7B%5Ctextrm%7Boutflow%7D%7D%7D%7Bk_2-k_1%7D%5Cright%29%7D%7B%5Cleft%28%5Ccfrac%7B%5Ctextrm%7BRSS%7D_%7B%5Ctextrm%7Boutflow%7D%7D%7D%7BN-k_2%7D%5Cright%29%7D)
+
+
 5. Bounds metric: parameters are within their allowed parameter limits.
 
 **`outflow_test_niter`**: *int*; *Default: 10*  
@@ -125,6 +136,9 @@ Maximum likelihood fitting of the region defined by `fit_reg`, which can be larg
 
 **`min_sn_losvd`**: *int*; *Default: 10*  
 minimum S/N threshold for fitting the LOSVD.  Below this threshold, BADASS does not perform template fitting with pPXF and instead uses a 5.0 Gyr SSP galaxy template as a stand-in for the stellar continuum.
+
+**`line_profile`**: *str*; *Default: G*  
+Broad line profile shape.  Narrow lines are unaffected and still fit with a Gaussian profile.  Choose 'G' for Gaussian, or 'L' for Lorentzian profile (used for NLS1 type AGNs).
 
 # MCMC & Autocorrelation/Convergence Options
 
