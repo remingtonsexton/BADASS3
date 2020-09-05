@@ -23,6 +23,7 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
   * [Fitting Options](#fitting-options)
 - [MCMC & Autocorrelation/Convergence Options](#mcmc---autocorrelation-convergence-options)
   * [Model Options](#model-options)
+  * [FeII Options](#feii-options)
   * [Outflow Testing Options](#outflow-testing-options)
   * [Plotting & Output Options](#plotting---output-options)
   * [Output Options](#output-options)
