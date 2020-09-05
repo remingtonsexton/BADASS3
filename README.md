@@ -25,6 +25,7 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
   * [Model Options](#model-options)
   * [Outflow Testing Options](#outflow-testing-options)
   * [Plotting & Output Options](#plotting---output-options)
+  * [Output Options](#output-options)
   * [Multiprocessing Options](#multiprocessing-options)
   * [The Main Function](#the-main-function)
 - [Output](#output)
