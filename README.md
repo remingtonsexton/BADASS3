@@ -143,19 +143,21 @@ Broad line profile shape.  Narrow lines are unaffected and still fit with a Gaus
 # MCMC & Autocorrelation/Convergence Options
 
 ```python
-######################### MCMC algorithm parameters ############################
-mcmc_fit      = True # Perform robust fitting using emcee
-nwalkers      = 100  # Number of emcee walkers; min = 2 x N_parameters
-auto_stop     = True # Automatic stop using autocorrelation analysis
-conv_type     = 'median' # 'median', 'mean', 'all', or (tuple) of parameters
-min_samp      = 2500  # min number of iterations for sampling post-convergence
-ncor_times    = 10.0  # number of autocorrelation times for convergence
-autocorr_tol  = 10.0  # percent tolerance between checking autocorr. times
-write_iter    = 100   # write/check autocorrelation times interval
-write_thresh  = 100   # when to start writing/checking parameters
-burn_in       = 17500 # burn-in if max_iter is reached
-min_iter      = 100   # min number of iterations before stopping
-max_iter      = 20000 # max number of MCMC iterations
+########################### MCMC algorithm parameters ##########################
+mcmc_options={
+'mcmc_fit'    : True, # Perform robust fitting using emcee
+'nwalkers'    : 100,  # Number of emcee walkers; min = 2 x N_parameters
+'auto_stop'   : True, # Automatic stop using autocorrelation analysis
+'conv_type'   : 'median', # 'median', 'mean', 'all', or (tuple) of parameters
+'min_samp'    : 2500,  # min number of iterations for sampling post-convergence
+'ncor_times'  : 5.0,  # number of autocorrelation times for convergence
+'autocorr_tol': 10.0,  # percent tolerance between checking autocorr. times
+'write_iter'  : 100,   # write/check autocorrelation times interval
+'write_thresh': 100,   # when to start writing/checking parameters
+'burn_in'     : 17500, # burn-in if max_iter is reached
+'min_iter'    : 2500, # min number of iterations before stopping
+'max_iter'    : 20000, # max number of MCMC iterations
+}
 ################################################################################
 ```
 
@@ -198,15 +200,17 @@ the maximum number of iterations BADASS performs before stopping.  This value is
 ## Model Options
 
 ```python
-######################## Fit component options #################################
-fit_feii      = True # fit broad and narrow FeII emission
-fit_losvd     = True # fit LOSVD (stellar kinematics) in final model
-fit_host      = True # fit host-galaxy using template (if fit_LOSVD turned off)
-fit_power     = True # fit AGN power-law continuum
-fit_broad     = True # fit broad lines (Type 1 AGN)
-fit_narrow    = True # fit narrow lines
-fit_outflows  = True # fit outflows;
-tie_narrow    = False  # tie narrow widths (don't do this)
+############################ Fit component options #############################
+comp_options={
+'fit_feii'    : True, # fit broad and narrow FeII emission
+'fit_losvd'   : True, # fit LOSVD (stellar kinematics) in final model
+'fit_host'    : True, # fit host-galaxy using template (if fit_LOSVD turned off)
+'fit_power'   : True, # fit AGN power-law continuum
+'fit_broad'   : True, # fit broad lines (Type 1 AGN)
+'fit_narrow'  : True, # fit narrow lines
+'fit_outflows': True, # fit outflows;
+'tie_narrow'  : False,  # tie narrow widths (don't do this)
+}
 ################################################################################
 ```
 
@@ -240,6 +244,43 @@ Examples of the aforementioned spectral components can be seen in the example fi
 
 ![](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_model_options.png)
 
+## FeII Options
+
+There are two FeII templates built into BADASS.  The default is the broad and narrow templates from Veron-Cetty et al. (2004) (VC04).  This model allows the user to have amplitude, FWHM, and velocity offset as free-parameters, with options to constrain them to constant values during the fit.  BADASS can also use the temperature-dependent template from Kovacevic et al. (2010) (K10), which allows for the fitting of indidual F, S, G, and IZw1 atomic transitions, as well as temperature.  The K10 template is best suited for modelling FeII in NLS1 objects with strong FeII emission.
+
+```python
+############################### FeII Fit options ###############################
+# Below are options for fitting FeII.  For most objects, you don't need to 
+# perform detailed fitting on FeII (only fit for amplitudes) use the 
+# Veron-Cetty 2004 template ('VC04') (2-6 free parameters)
+# However in NLS1 objects, FeII is much stronger, and sometimes more detailed 
+# fitting is necessary, use the Kovacevic 2010 template 
+# ('K10'; 7 free parameters).
+
+# The options are:
+# template   : VC04 (Veron-Cetty 2004) or K10 (Kovacevic 2010)
+# amp_const  : constant amplitude (default False)
+# fwhm_const : constant fwhm (default True)
+# voff_const : constant velocity offset (default True)
+# temp_const : constant temp ('K10' only)
+
+feii_options={
+'template'  :{'type':'VC04'}, 
+'amp_const' :{'bool':False,'br_feii_val':1.0,'na_feii_val':1.0},
+'fwhm_const':{'bool':True,'br_feii_val':3000.0,'na_feii_val':500.0},
+'voff_const':{'bool':True,'br_feii_val':0.0,'na_feii_val':0.0},
+}
+# or
+# feii_options={
+# 'template'  :{'type':'K10'},
+# 'amp_const' :{'bool':False,'f_feii_val':1.0,'s_feii_val':1.0,'g_feii_val':1.0,'z_feii_val':1.0},
+# 'fwhm_const':{'bool':False,'val':1500.0},
+# 'voff_const':{'bool':False,'val':0.0},
+# 'temp_const':{'bool':False,'val':10000.0} 
+# }
+################################################################################
+```
+
 ## Outflow Testing Options
 
 ```python
@@ -252,11 +293,11 @@ Examples of the aforementioned spectral components can be seen in the example fi
 # Resid. test : there must be a measurable difference in residuals by N-sigma
 # Bounds. test: if paramters of fit reach bounds by N-sigma, 
 #               consider it a bad fit.
-outflow_test_pars={
+outflow_test_options={
 'amp_test':{'test':True,'nsigma':3.0}, # Amplitude-over-noise by n-sigma
 'fwhm_test':{'test':True,'nsigma':1.0}, # FWHM difference by n-sigma
-'voff_test':{'test':False,'nsigma':1.0}, # blueshift voff from core by n-sigma
-'resid_test':{'test':True,'nsigma':2.0}, # residual difference by n-sigma
+'voff_test':{'test':True,'nsigma':1.0}, # blueshift voff from core by n-sigma
+'outflow_confidence':{'test':True,'conf':0.95}, # outflow confidence acceptance
 'bounds_test':{'test':True,'nsigma':1.0} # within bounds by n-sigma
 }
 ################################################################################
@@ -267,21 +308,19 @@ outflow_test_pars={
 ## Plotting & Output Options
 
 ```python
-plot_param_hist = True  # Plot MCMC histograms and chains for each parameter
-plot_flux_hist  = True  # Plot MCMC hist. and chains for component fluxes
-plot_lum_hist   = True  # Plot MCMC hist. and chains for component luminosities
-plot_mbh_hist   = True  # Plot MCMC hist. for estimated AGN lum. and BH masses
-plot_corner     = False # Plot corner plot of relevant parameters; Corner plots 
-                        # of free paramters can be quite large require a PDF 
-                        # output, and have significant time and space overhead, 
-                        # so we set this to False by default. 
-plot_bpt        = True  # Plot BPT diagram 
-write_chain     = False # Write MCMC chains for all paramters, fluxes, and
-                        # luminosities to a FITS table We set this to false 
-                        # because MCMC_chains.FITS file can become very large, 
-                        # especially  if you are running multiple objects.  
-                        # You only need this if you want to reconstruct chains 
-                        # and histograms. 
+############################### Plotting options ###############################
+plot_options={
+'plot_param_hist': True,# Plot MCMC histograms and chains for each parameter
+'plot_flux_hist' : True,# Plot MCMC hist. and chains for component fluxes
+'plot_lum_hist'  : True,# Plot MCMC hist. and chains for component luminosities
+'plot_mbh_hist'  : True,# Plot MCMC hist. for estimated AGN lum. and BH masses
+'plot_corner'    : False,# Plot corner plot of relevant parameters; Corner plots 
+                         # of free paramters can be quite large require a PDF 
+                         # output, and have significant time and space overhead, 
+                         # so we set this to False by default. 
+'plot_bpt'      : True,  # Plot BPT diagram 
+}
+################################################################################
 ```
 
 **`plot_param_hist`**: *Default: True*  
@@ -311,11 +350,34 @@ If marrow H![$\alpha$](https://render.githubusercontent.com/render/math?math=%24
 **`write_chain`**: *Default: False* 
 Write the full flattened MCMC chain (# walkers x # iterations) to a FITS file.  We set this to *False*, because the file can get quite large, and takes up a lot of space if one is fitting many spectra.  One should only need this file if one wants to reconstruct chains and re-compute histograms. 
 
+## Output Options
+
+```python
+################################ Output options ################################
+output_options={
+'write_chain'   : False, # Write MCMC chains for all paramters, fluxes, and
+                         # luminosities to a FITS table We set this to false 
+                         # because MCMC_chains.FITS file can become very large, 
+                         # especially  if you are running multiple objects.  
+                         # You only need this if you want to reconstruct chains 
+                         # and histograms. 
+'print_output'  : True,  # prints steps of fitting process in Jupyter output
+}
+################################################################################
+
+```
+
 ## Multiprocessing Options
 
 ```python
-######################## Multiprocessing options ###############################
-threads = 4 # number of processes per object
+############################ Multiprocessing options ###########################
+# If fitting single object at a time (no for loops!) then one can set threads>1
+# If one wants to fit objects sequentially (one after another), it must be set 
+# to threads=1, and must use multiprocessing to spawn subprocesses without 
+# significant memory leaks. 
+mp_options={
+'threads' : 4 # number of processes per object
+}
 ################################################################################
 
 ```
@@ -329,44 +391,18 @@ emcee is capable of multiprocessing however performance is system dependent.  Fo
 All of the above options are fed into the `run_BADASS()` function as such:
 
 ```python
- # Call the main function in BADASS
-    badass.run_BADASS(file,run_dir,temp_dir,
-                      fit_reg=fit_reg, 
-                      good_thresh=good_thresh,
-                      interp_bad=interp_bad,
-                      test_outflows=test_outflows, 
-                      outflow_test_niter=outflow_test_niter,
-                      max_like_niter=max_like_niter, 
-                      min_sn_losvd=min_sn_losvd,
-                      mcmc_fit=mcmc_fit, 
-                      nwalkers=nwalkers, 
-                      auto_stop=auto_stop, 
-                      conv_type=conv_type, 
-                      min_samp=min_samp, 
-                      ncor_times=ncor_times, 
-                      autocorr_tol=autocorr_tol,
-                      write_iter=write_iter, 
-                      write_thresh=write_thresh, 
-                      burn_in=burn_in, 
-                      min_iter=min_iter, 
-                      max_iter=max_iter,
-                      fit_feii=fit_feii, 
-                      fit_losvd=fit_losvd, 
-                      fit_host=fit_host, 
-                      fit_power=fit_power, 
-                      fit_broad=fit_broad, 
-                      fit_narrow=fit_narrow, 
-                      fit_outflows=fit_outflows, 
-                      tie_narrow=tie_narrow,
-                      outflow_test_pars=outflow_test_pars,
-                      plot_param_hist=plot_param_hist, 
-                      plot_flux_hist=plot_flux_hist, 
-                      plot_lum_hist=plot_lum_hist,
-                      plot_mbh_hist=plot_mbh_hist, 
-                      plot_corner=plot_corner,
-                      plot_bpt=plot_bpt,
-                      write_chain=write_chain,
-                      threads=threads)
+# Call the main function in BADASS
+badass.run_BADASS(file,run_dir,temp_dir,
+                  fit_options,
+                  mcmc_options,
+                  comp_options,
+                  feii_options,
+                  outflow_test_options,
+                  plot_options,
+                  output_options,
+                  mp_options,
+                 )
+    #
 ```
 
 
