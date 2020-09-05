@@ -613,6 +613,18 @@ If you wanted to tie the width of your line to another line, simply replace the 
 
 # Known Issues
 
+### `ValueError: x0 violates bound constraints.`
+
+There is a critical defect with scipy version 1.5.1 that will cause an error during the initial fitting process when `scipy.optimize.minimize()` is used:
+
+`ValueError: `x0` violates bound constraints.`
+
+This is an open issue on GitHub ([https://github.com/scipy/scipy/issues/11403](https://github.com/scipy/scipy/issues/11403)) and it is labeled a defect.  As of Septempber 2020, this issue still has not been fixed.  The solution to this problem is to downgrade scipy to version 1.4.1.  If you are using the Anaconda distribution of Python, do the following:
+
+`conda install scipy=1.4.1`
+
+We will update BADASS to fix this problem as soon as the issue is fixed.
+
 ### "BADASS only fits one spectra using Multiprocessing and hangs up on the others"
 
 When running BADASS for multiple spectra using the multiprocessing notebook, BADASS will hangup when trying to fit spectra it has not previously obtained E(B-V) values for via Astroquery's [IRSA Dust Extinction Service Query](https://astroquery.readthedocs.io/en/latest/irsa/irsa_dust.html).  This is a known issue (see [this](https://github.com/astropy/astroquery/issues/684).  The problem stems from the fact that `IrsaDust. get_query_table()` treats multiple Python subprocesses as a single-process. For example, if you are running 4 subprocesses (fitting 4 spectra simultaneously), it will only query the last process of the four, and leave the first three hanging.  
