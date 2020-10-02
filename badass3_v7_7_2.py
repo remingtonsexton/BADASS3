@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3), Version 7.7.1, Python 3.6 Version
+"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3), Version 7.7.2, Python 3.6 Version
 
 BADASS is an open-source spectral analysis tool designed for detailed decomposition
 of Sloan Digital Sky Survey (SDSS) spectra, and specifically designed for the 
@@ -59,7 +59,7 @@ __author__ = "Remington O. Sexton (UCR), William Matzko (GMU), Nicholas Darden (
 __copyright__ = "Copyright (c) 2020 Remington Oliver Sexton"
 __credits__ = ["Remington O. Sexton (UCR)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__ = "MIT"
-__version__ = "7.7.1"
+__version__ = "7.7.2"
 __maintainer__ = "Remington O. Sexton"
 __email__ = "remington.sexton@email.ucr.edu"
 __status__ = "Release"
@@ -183,6 +183,11 @@ __status__ = "Release"
 #	basinhopping success iterations before a solution is achieved.  This can 
 #	drastically reduce the basinhopping fit time, at the expense of fit quality.
 # - Bug fixes.
+
+# Version 7.7.2 
+# - Fixed problem with FeII emission lines at the edge of the fitting region
+#   This is done by setting the variable edge_pad=0.
+# = Fixed F-test NaN confidence bug
 
 ##########################################################################################################
 
@@ -2021,7 +2026,7 @@ def initialize_mcmc(lam_gal,galaxy,line_profile,fwhm_gal,velscale,feii_options,r
 		mcmc_input['stel_disp'] = ({'name':'stel_disp',
 						   			'label':'$\sigma_*$',
 						   			'init':100.0,
-						   			'plim':(15.0,400.),
+						   			'plim':(15.0,500.),
 						   			'pcolor':'dodgerblue',
 						   			'min_width':min_fwhm,
 						   			})
@@ -2655,10 +2660,6 @@ def f_test(resid_outflow,resid_no_outflow,run_dir):
 
 	outflow_conf, outflow_conf_err = 1.0-np.median(f_pval),(1.0-np.median(f_pval))-(1-(np.median(f_pval)+np.std(f_pval)))
 
-	if outflow_conf == np.nan:
-		outflow_conf = 0.0
-		outflow_conf_err = 0.0
-
 	return np.median(f_stat), np.std(f_stat), np.median(f_pval), np.std(f_pval), outflow_conf, outflow_conf_err
 
 
@@ -2731,17 +2732,28 @@ def outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_op
 	med_outflow_voff = np.median(mcpars_outflow['na_oiii5007_outflow_voff'])
 	med_core_fwhm    = np.median(mcpars_outflow['na_oiii5007_core_fwhm'])
 	med_core_voff    = np.median(mcpars_outflow['na_oiii5007_core_voff'])
-	min_wave = ref_wave + np.min([(med_outflow_voff - (3.0*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff - (3.0*med_core_fwhm/2.3548))/c*ref_wave])
-	max_wave = ref_wave + np.max([(med_outflow_voff + (3.0*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff + (3.0*med_core_fwhm/2.3548))/c*ref_wave])
+
+	sigma_inc = 3.0 # number of sigmas to include
+	min_wave = ref_wave + np.min([(med_outflow_voff - (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff - (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
+	max_wave = ref_wave + np.max([(med_outflow_voff + (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff + (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
+	# Get indices where we perform f-test
+	eval_ind = np.where((lam_gal >= min_wave) & (lam_gal <= max_wave))[0]
 	# number of channels in the [OIII] test region 
-	nchannel = len( mccomps_outflow['resid'][:,0][(lam_gal >= min_wave) & (lam_gal <= max_wave)] )
+	nchannel = len( mccomps_outflow['resid'][:,0][eval_ind])
+	# if the number of channels < 6 (number of degrees of freedom for double-Gaussian model), then the calculated f-statistic
+	# will be zero.  To resolve this, we extend the range by one pixel on each side, i.e. nchannel = 8.
+	if nchannel <= 6: 
+		add_chan = 7 - nchannel# number of channels to add to each side; minimum is 7 channels since deg. of freedom  = 6
+		eval_ind = np.pad(eval_ind, add_chan, mode='constant', constant_values=(eval_ind[0]-1,eval_ind[-1]+1))
+		nchannel = len( mccomps_outflow['resid'][:,0][eval_ind])
+
 	# storage arrays for residuals in [OIII] test region
 	resid_outflow    = np.empty((outflow_test_niter,nchannel))
 	resid_no_outflow = np.empty((outflow_test_niter,nchannel))
 	resid_total      = np.empty((outflow_test_niter,len(lam_gal)))
 	for i in range(outflow_test_niter):
-		resid_outflow[i,:]    = mccomps_outflow['resid'][:,i][(lam_gal >= min_wave) & (lam_gal <= max_wave)]
-		resid_no_outflow[i,:] = mccomps_no_outflow['resid'][:,i][(lam_gal >= min_wave) & (lam_gal <= max_wave)]
+		resid_outflow[i,:]    = mccomps_outflow['resid'][:,i][eval_ind]
+		resid_no_outflow[i,:] = mccomps_no_outflow['resid'][:,i][eval_ind]
 		resid_total[i,:]      = mccomps_outflow['resid'][:,i]
 
 	# Calculate sum-of-square of residuals and its uncertainty
@@ -3173,18 +3185,28 @@ def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_opt
 	med_outflow_voff = np.median(mcpars_outflow['na_Ha_outflow_voff'])
 	med_core_fwhm    = np.median(mcpars_outflow['na_Ha_core_fwhm'])
 	med_core_voff    = np.median(mcpars_outflow['na_Ha_core_voff'])
-	min_wave = ref_wave + np.min([(med_outflow_voff - (3.0*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff - (3.0*med_core_fwhm/2.3548))/c*ref_wave])
-	max_wave = ref_wave + np.max([(med_outflow_voff + (3.0*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff + (3.0*med_core_fwhm/2.3548))/c*ref_wave])
-
+	
+	sigma_inc = 3.0 # number of sigmas to include
+	min_wave = ref_wave + np.min([(med_outflow_voff - (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff - (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
+	max_wave = ref_wave + np.max([(med_outflow_voff + (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff + (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
+	# Get indices where we perform f-test
+	eval_ind = np.where((lam_gal >= min_wave) & (lam_gal <= max_wave))[0]
 	# number of channels in the [OIII] test region 
-	nchannel = len( mccomps_outflow['resid'][:,0][(lam_gal >= min_wave) & (lam_gal <= max_wave)] )
+	nchannel = len( mccomps_outflow['resid'][:,0][eval_ind])
+	# if the number of channels < 6 (number of degrees of freedom for double-Gaussian model), then the calculated f-statistic
+	# will be zero.  To resolve this, we extend the range by one pixel on each side, i.e. nchannel = 8.
+	if nchannel <= 6: 
+		add_chan = 7 - nchannel# number of channels to add to each side; minimum is 7 channels since deg. of freedom  = 6
+		eval_ind = np.pad(eval_ind, add_chan, mode='constant', constant_values=(eval_ind[0]-1,eval_ind[-1]+1))
+		nchannel = len( mccomps_outflow['resid'][:,0][eval_ind])
+
 	# storage arrays for residuals in [OIII] test region
 	resid_outflow    = np.empty((outflow_test_niter,nchannel))
 	resid_no_outflow = np.empty((outflow_test_niter,nchannel))
 	resid_total      = np.empty((outflow_test_niter,len(lam_gal)))
 	for i in range(outflow_test_niter):
-		resid_outflow[i,:]    = mccomps_outflow['resid'][:,i][(lam_gal >= min_wave) & (lam_gal <= max_wave)]
-		resid_no_outflow[i,:] = mccomps_no_outflow['resid'][:,i][(lam_gal >= min_wave) & (lam_gal <= max_wave)]
+		resid_outflow[i,:]    = mccomps_outflow['resid'][:,i][eval_ind]
+		resid_no_outflow[i,:] = mccomps_no_outflow['resid'][:,i][eval_ind]
 		resid_total[i,:]      = mccomps_outflow['resid'][:,i]
 
 	# Calculate sum-of-square of residuals and its uncertainty
@@ -5418,7 +5440,7 @@ def initialize_feii(lam_gal,feii_options):
 		br_feii_rel_int  = np.array(br_feii_table['br_relative_intensity'])
 		br_feii_center   = np.array(br_feii_table['br_wavelength'])
 		# Prune templates 25 angstroms from edges
-		edge_pad = 25 # angstroms
+		edge_pad = 0 # angstroms
 		na_feii_rel_int = na_feii_rel_int[(na_feii_center>=(lam_gal[0]+edge_pad)) & (na_feii_center<=(lam_gal[-1]-edge_pad))]
 		na_feii_center_  = na_feii_center[(na_feii_center>=(lam_gal[0]+edge_pad)) & (na_feii_center<=(lam_gal[-1]-edge_pad))]
 		br_feii_rel_int = br_feii_rel_int[(br_feii_center>=(lam_gal[0]+edge_pad)) & (br_feii_center<=(lam_gal[-1]-edge_pad))]
@@ -5447,7 +5469,7 @@ def initialize_feii(lam_gal,feii_options):
 		z_trans_center  = np.array(IZe1_trans_table['wavelength'])
 		z_trans_rel_int = np.array(IZe1_trans_table['rel_int']) # IZw1 NOT temperature dependent
 		# Prune templates 25 angstroms from edges
-		edge_pad = 25 # angstroms
+		edge_pad = 0 # angstroms
 		f_trans_center_  = f_trans_center[(f_trans_center>=(lam_gal[0]+edge_pad)) & (f_trans_center<=(lam_gal[-1]-edge_pad))]
 		f_trans_gf      = f_trans_gf[(f_trans_center>=(lam_gal[0]+edge_pad)) & (f_trans_center<=(lam_gal[-1]-edge_pad))]
 		f_trans_e2      = f_trans_e2[(f_trans_center>=(lam_gal[0]+edge_pad)) & (f_trans_center<=(lam_gal[-1]-edge_pad))]
@@ -5668,6 +5690,9 @@ def gaussian(x,center,amp,fwhm,voff,velscale):
 
 	# Make sure edges of gaussian are zero to avoid wierd things
 	g[g<1.0e-6] = 0.0
+	# Replace the ends with the same value 
+	g[0]  = g[1]
+	g[-1] = g[-2]
 	# print("--- %s seconds ---" % (time.time() - start_time))
 
 	return g
@@ -7091,7 +7116,7 @@ def write_log(output_val,output_type,run_dir):
 		os.mkdir(run_dir+'/log/')
 		# Create log file 
 		logfile = open(run_dir+'log/log_file.txt','a')
-		logfile.write('\n############################### BADASS v7.7.1 LOGFILE ####################################\n')
+		logfile.write('\n############################### BADASS v7.7.2 LOGFILE ####################################\n')
 		logfile.close()
 
 
