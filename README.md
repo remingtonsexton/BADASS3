@@ -23,8 +23,10 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
   * [Fitting Options](#fitting-options)
 - [MCMC & Autocorrelation/Convergence Options](#mcmc---autocorrelation-convergence-options)
   * [Model Options](#model-options)
+  * [FeII Options](#feii-options)
   * [Outflow Testing Options](#outflow-testing-options)
   * [Plotting & Output Options](#plotting---output-options)
+  * [Output Options](#output-options)
   * [Multiprocessing Options](#multiprocessing-options)
   * [The Main Function](#the-main-function)
 - [Output](#output)
@@ -46,7 +48,7 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
 
 The easiest way to get started is to simply clone the repository. 
 
-As of BADASS v7.6.0, the following packages are required (Python 3.6.10):
+As of BADASS v7.7.1, the following packages are required (Python 3.6.10):
 - `astropy 4.0.1`
 - `astroquery 0.4`
 - `corner 2.0.1`
@@ -84,18 +86,24 @@ spec_loc = natsort.natsorted( glob.glob(spec_dir+'*') )
 ## Fitting Options
  
 ```python 
-#################################### Options ###################################
+################################## Fit Options #################################
 # Fitting Parameters
-fit_reg       = (4400,5800) # Fitting region; Indo-US Library=(3460,9464)
-good_thresh   = 0.0 # percentage of "good" pixels required in fig_reg for fit.
-interp_bad    = False # interpolate over pixels SDSS flagged as 'bad' (careful!)
+fit_options={
+'fit_reg'    : (4400,5500), # Fitting region; Indo-US Library=(3460,9464)
+'good_thresh': 0.0, # percentage of "good" pixels required in fig_reg for fit.
+'interp_bad' : False, # interpolate over pixels SDSS flagged as 'bad' (careful!)
+# Number of consecutive basinhopping thresholds before solution achieved
+'n_basinhop': 5,
 # Outflow Testing Parameters
-test_outflows      = True 
-outflow_test_niter = 10 # number of monte carlo iterations for outflows
+'test_outflows': True, 
+'outflow_test_niter': 10, # number of monte carlo iterations for outflows
 # Maximum Likelihood Fitting for Final Model Parameters
-max_like_niter = 10 # number of maximum likelihood iterations
+'max_like_niter': 10, # number of maximum likelihood iterations
 # LOSVD parameters
-min_sn_losvd  = 20  # minimum S/N threshold for fitting the LOSVD
+'min_sn_losvd': 5,  # minimum S/N threshold for fitting the LOSVD
+# Emission line profile parameters
+'line_profile':'G' # Gaussian (G) or Lorentzian (L)
+}
 ################################################################################
 ```
 
@@ -108,13 +116,18 @@ the cutoff for minimum fraction of "good" pixels (determined by SDSS) within the
 **`interp_bad`**: *bool*; *Default: False*
 Interpolate over pixels which SDSS flagged as bad due to sky line subtraction or cosmic rays.  Warning: if large portions of the fitting region are marked as bad pixels, this can cause BADASS to crash.  One should only use this if only a few pixels are affected by contamination.  
 
+**`n_basinhop`**: *int*; *Default: 5*
+Number of successive `niter_success` times the basinhopping alogirhtm needs to achieve a solution.  The fit becomes much better with more success times, however this can increase the time to a solution by a lot.  Recommended 3-5. 
+
 **`test_outflows`**: *bool*; *Default: True*  
 if *False*, BADASS does not test for outflows and instead does whatever you tell it to. If *True*, BADASS performs maximum likelihood fitting of outflows, using monte carlo bootstrap resampling to determine uncertainties, and uses the BADASS prescription for determining the presence of outflows.  Testing for outflows requires the region from 4400 Å - 5800 Å included in the fitting region to accurately account for possible FeII emission.  This region is also required since [OIII] is used to constrain outflow parameters of the H-alpha/[NII]/[SII] outflows.  If all of the BADASS outflow criteria are satisfied, the final model includes outflow components.  The BADASS outflow criteria to justify the inclusion of outflow components are the following:
 
 1. Amplitude metric: ![\cfrac{A_{\rm{outflow}}}{\left(\sigma^2_{\rm{noise}} + \delta A^2_{\rm{outflow}}\right)^{1/2}} > 3.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7BA_%7B%5Crm%7Boutflow%7D%7D%7D%7B%5Cleft(%5Csigma%5E2_%7B%5Crm%7Bnoise%7D%7D%20%2B%20%5Cdelta%20A%5E2_%7B%5Crm%7Boutflow%7D%7D%5Cright)%5E%7B1%2F2%7D%7D%20%3E%203.0)
 2. Width metric: ![\cfrac{\sigma_{\rm{outflow}}- \sigma_{\rm{core}}}{\left(\delta \sigma^2_{\rm{outflow}}+\delta \sigma^2_{\rm{core}}\right)^{1/2}} > 1.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7B%5Csigma_%7B%5Crm%7Boutflow%7D%7D-%20%5Csigma_%7B%5Crm%7Bcore%7D%7D%7D%7B%5Cleft(%5Cdelta%20%5Csigma%5E2_%7B%5Crm%7Boutflow%7D%7D%2B%5Cdelta%20%5Csigma%5E2_%7B%5Crm%7Bcore%7D%7D%5Cright)%5E%7B1%2F2%7D%7D%20%3E%201.0)
 3. Velocity offset metric: ![\cfrac{v_{\rm{core}}- v_{\rm{outflow}}}{\left(\delta v^2_{\rm{core}}+\delta v^2_{\rm{outflow}}\right)^{1/2}} > 1.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7Bv_%7B%5Crm%7Bcore%7D%7D-%20v_%7B%5Crm%7Boutflow%7D%7D%7D%7B%5Cleft(%5Cdelta%20v%5E2_%7B%5Crm%7Bcore%7D%7D%2B%5Cdelta%20v%5E2_%7B%5Crm%7Boutflow%7D%7D%5Cright)%5E%7B1%2F2%7D%7D%20%3E%201.0)
-4. Residual Improvement (ratio-of-variances or "f-test"): ![\cfrac{\rm{Var}^2_{\rm{no\;outflow}}}{\rm{Var}^2_{\rm{outflow}}} > 2.0](https://render.githubusercontent.com/render/math?math=%5Ccfrac%7B%5Crm%7BVar%7D%5E2_%7B%5Crm%7Bno%5C%3Boutflow%7D%7D%7D%7B%5Crm%7BVar%7D%5E2_%7B%5Crm%7Boutflow%7D%7D%7D%20%3E%202.0)
+4. F-statistic (model comparison): ![F-\textrm{statistic:}\quad\cfrac{\left(\cfrac{\textrm{RSS}_{\textrm{no}\;\textrm{outflow}}-\textrm{RSS}_{\textrm{outflow}}}{k_2-k_1}\right)}{\left(\cfrac{\textrm{RSS}_{\textrm{outflow}}}{N-k_2}\right)}](https://render.githubusercontent.com/render/math?math=%5Cdisplaystyle+F-%5Ctextrm%7Bstatistic%3A%7D%5Cquad%5Ccfrac%7B%5Cleft%28%5Ccfrac%7B%5Ctextrm%7BRSS%7D_%7B%5Ctextrm%7Bno%7D%5C%3B%5Ctextrm%7Boutflow%7D%7D-%5Ctextrm%7BRSS%7D_%7B%5Ctextrm%7Boutflow%7D%7D%7D%7Bk_2-k_1%7D%5Cright%29%7D%7B%5Cleft%28%5Ccfrac%7B%5Ctextrm%7BRSS%7D_%7B%5Ctextrm%7Boutflow%7D%7D%7D%7BN-k_2%7D%5Cright%29%7D)
+
+
 5. Bounds metric: parameters are within their allowed parameter limits.
 
 **`outflow_test_niter`**: *int*; *Default: 10*  
@@ -126,22 +139,27 @@ Maximum likelihood fitting of the region defined by `fit_reg`, which can be larg
 **`min_sn_losvd`**: *int*; *Default: 10*  
 minimum S/N threshold for fitting the LOSVD.  Below this threshold, BADASS does not perform template fitting with pPXF and instead uses a 5.0 Gyr SSP galaxy template as a stand-in for the stellar continuum.
 
+**`line_profile`**: *str*; *Default: G*  
+Broad line profile shape.  Narrow lines are unaffected and still fit with a Gaussian profile.  Choose 'G' for Gaussian, or 'L' for Lorentzian profile (used for NLS1 type AGNs).
+
 # MCMC & Autocorrelation/Convergence Options
 
 ```python
-######################### MCMC algorithm parameters ############################
-mcmc_fit      = True # Perform robust fitting using emcee
-nwalkers      = 100  # Number of emcee walkers; min = 2 x N_parameters
-auto_stop     = True # Automatic stop using autocorrelation analysis
-conv_type     = 'median' # 'median', 'mean', 'all', or (tuple) of parameters
-min_samp      = 2500  # min number of iterations for sampling post-convergence
-ncor_times    = 10.0  # number of autocorrelation times for convergence
-autocorr_tol  = 10.0  # percent tolerance between checking autocorr. times
-write_iter    = 100   # write/check autocorrelation times interval
-write_thresh  = 100   # when to start writing/checking parameters
-burn_in       = 17500 # burn-in if max_iter is reached
-min_iter      = 100   # min number of iterations before stopping
-max_iter      = 20000 # max number of MCMC iterations
+########################### MCMC algorithm parameters ##########################
+mcmc_options={
+'mcmc_fit'    : True, # Perform robust fitting using emcee
+'nwalkers'    : 100,  # Number of emcee walkers; min = 2 x N_parameters
+'auto_stop'   : True, # Automatic stop using autocorrelation analysis
+'conv_type'   : 'median', # 'median', 'mean', 'all', or (tuple) of parameters
+'min_samp'    : 2500,  # min number of iterations for sampling post-convergence
+'ncor_times'  : 5.0,  # number of autocorrelation times for convergence
+'autocorr_tol': 10.0,  # percent tolerance between checking autocorr. times
+'write_iter'  : 100,   # write/check autocorrelation times interval
+'write_thresh': 100,   # when to start writing/checking parameters
+'burn_in'     : 17500, # burn-in if max_iter is reached
+'min_iter'    : 2500, # min number of iterations before stopping
+'max_iter'    : 20000, # max number of MCMC iterations
+}
 ################################################################################
 ```
 
@@ -184,15 +202,17 @@ the maximum number of iterations BADASS performs before stopping.  This value is
 ## Model Options
 
 ```python
-######################## Fit component options #################################
-fit_feii      = True # fit broad and narrow FeII emission
-fit_losvd     = True # fit LOSVD (stellar kinematics) in final model
-fit_host      = True # fit host-galaxy using template (if fit_LOSVD turned off)
-fit_power     = True # fit AGN power-law continuum
-fit_broad     = True # fit broad lines (Type 1 AGN)
-fit_narrow    = True # fit narrow lines
-fit_outflows  = True # fit outflows;
-tie_narrow    = False  # tie narrow widths (don't do this)
+############################ Fit component options #############################
+comp_options={
+'fit_feii'    : True, # fit broad and narrow FeII emission
+'fit_losvd'   : True, # fit LOSVD (stellar kinematics) in final model
+'fit_host'    : True, # fit host-galaxy using template (if fit_LOSVD turned off)
+'fit_power'   : True, # fit AGN power-law continuum
+'fit_broad'   : True, # fit broad lines (Type 1 AGN)
+'fit_narrow'  : True, # fit narrow lines
+'fit_outflows': True, # fit outflows;
+'tie_narrow'  : False,  # tie narrow widths (don't do this)
+}
 ################################################################################
 ```
 
@@ -226,6 +246,43 @@ Examples of the aforementioned spectral components can be seen in the example fi
 
 ![](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_model_options.png)
 
+## FeII Options
+
+There are two FeII templates built into BADASS.  The default is the broad and narrow templates from Veron-Cetty et al. (2004) (VC04).  This model allows the user to have amplitude, FWHM, and velocity offset as free-parameters, with options to constrain them to constant values during the fit.  BADASS can also use the temperature-dependent template from Kovacevic et al. (2010) (K10), which allows for the fitting of indidual F, S, G, and IZw1 atomic transitions, as well as temperature.  The K10 template is best suited for modelling FeII in NLS1 objects with strong FeII emission.
+
+```python
+############################### FeII Fit options ###############################
+# Below are options for fitting FeII.  For most objects, you don't need to 
+# perform detailed fitting on FeII (only fit for amplitudes) use the 
+# Veron-Cetty 2004 template ('VC04') (2-6 free parameters)
+# However in NLS1 objects, FeII is much stronger, and sometimes more detailed 
+# fitting is necessary, use the Kovacevic 2010 template 
+# ('K10'; 7 free parameters).
+
+# The options are:
+# template   : VC04 (Veron-Cetty 2004) or K10 (Kovacevic 2010)
+# amp_const  : constant amplitude (default False)
+# fwhm_const : constant fwhm (default True)
+# voff_const : constant velocity offset (default True)
+# temp_const : constant temp ('K10' only)
+
+feii_options={
+'template'  :{'type':'VC04'}, 
+'amp_const' :{'bool':False,'br_feii_val':1.0,'na_feii_val':1.0},
+'fwhm_const':{'bool':True,'br_feii_val':3000.0,'na_feii_val':500.0},
+'voff_const':{'bool':True,'br_feii_val':0.0,'na_feii_val':0.0},
+}
+# or
+# feii_options={
+# 'template'  :{'type':'K10'},
+# 'amp_const' :{'bool':False,'f_feii_val':1.0,'s_feii_val':1.0,'g_feii_val':1.0,'z_feii_val':1.0},
+# 'fwhm_const':{'bool':False,'val':1500.0},
+# 'voff_const':{'bool':False,'val':0.0},
+# 'temp_const':{'bool':False,'val':10000.0} 
+# }
+################################################################################
+```
+
 ## Outflow Testing Options
 
 ```python
@@ -238,11 +295,11 @@ Examples of the aforementioned spectral components can be seen in the example fi
 # Resid. test : there must be a measurable difference in residuals by N-sigma
 # Bounds. test: if paramters of fit reach bounds by N-sigma, 
 #               consider it a bad fit.
-outflow_test_pars={
+outflow_test_options={
 'amp_test':{'test':True,'nsigma':3.0}, # Amplitude-over-noise by n-sigma
 'fwhm_test':{'test':True,'nsigma':1.0}, # FWHM difference by n-sigma
-'voff_test':{'test':False,'nsigma':1.0}, # blueshift voff from core by n-sigma
-'resid_test':{'test':True,'nsigma':2.0}, # residual difference by n-sigma
+'voff_test':{'test':True,'nsigma':1.0}, # blueshift voff from core by n-sigma
+'outflow_confidence':{'test':True,'conf':0.95}, # outflow confidence acceptance
 'bounds_test':{'test':True,'nsigma':1.0} # within bounds by n-sigma
 }
 ################################################################################
@@ -253,21 +310,19 @@ outflow_test_pars={
 ## Plotting & Output Options
 
 ```python
-plot_param_hist = True  # Plot MCMC histograms and chains for each parameter
-plot_flux_hist  = True  # Plot MCMC hist. and chains for component fluxes
-plot_lum_hist   = True  # Plot MCMC hist. and chains for component luminosities
-plot_mbh_hist   = True  # Plot MCMC hist. for estimated AGN lum. and BH masses
-plot_corner     = False # Plot corner plot of relevant parameters; Corner plots 
-                        # of free paramters can be quite large require a PDF 
-                        # output, and have significant time and space overhead, 
-                        # so we set this to False by default. 
-plot_bpt        = True  # Plot BPT diagram 
-write_chain     = False # Write MCMC chains for all paramters, fluxes, and
-                        # luminosities to a FITS table We set this to false 
-                        # because MCMC_chains.FITS file can become very large, 
-                        # especially  if you are running multiple objects.  
-                        # You only need this if you want to reconstruct chains 
-                        # and histograms. 
+############################### Plotting options ###############################
+plot_options={
+'plot_param_hist': True,# Plot MCMC histograms and chains for each parameter
+'plot_flux_hist' : True,# Plot MCMC hist. and chains for component fluxes
+'plot_lum_hist'  : True,# Plot MCMC hist. and chains for component luminosities
+'plot_mbh_hist'  : True,# Plot MCMC hist. for estimated AGN lum. and BH masses
+'plot_corner'    : False,# Plot corner plot of relevant parameters; Corner plots 
+                         # of free paramters can be quite large require a PDF 
+                         # output, and have significant time and space overhead, 
+                         # so we set this to False by default. 
+'plot_bpt'      : True,  # Plot BPT diagram 
+}
+################################################################################
 ```
 
 **`plot_param_hist`**: *Default: True*  
@@ -297,11 +352,34 @@ If marrow H![$\alpha$](https://render.githubusercontent.com/render/math?math=%24
 **`write_chain`**: *Default: False* 
 Write the full flattened MCMC chain (# walkers x # iterations) to a FITS file.  We set this to *False*, because the file can get quite large, and takes up a lot of space if one is fitting many spectra.  One should only need this file if one wants to reconstruct chains and re-compute histograms. 
 
+## Output Options
+
+```python
+################################ Output options ################################
+output_options={
+'write_chain'   : False, # Write MCMC chains for all paramters, fluxes, and
+                         # luminosities to a FITS table We set this to false 
+                         # because MCMC_chains.FITS file can become very large, 
+                         # especially  if you are running multiple objects.  
+                         # You only need this if you want to reconstruct chains 
+                         # and histograms. 
+'print_output'  : True,  # prints steps of fitting process in Jupyter output
+}
+################################################################################
+
+```
+
 ## Multiprocessing Options
 
 ```python
-######################## Multiprocessing options ###############################
-threads = 4 # number of processes per object
+############################ Multiprocessing options ###########################
+# If fitting single object at a time (no for loops!) then one can set threads>1
+# If one wants to fit objects sequentially (one after another), it must be set 
+# to threads=1, and must use multiprocessing to spawn subprocesses without 
+# significant memory leaks. 
+mp_options={
+'threads' : 4 # number of processes per object
+}
 ################################################################################
 
 ```
@@ -315,44 +393,18 @@ emcee is capable of multiprocessing however performance is system dependent.  Fo
 All of the above options are fed into the `run_BADASS()` function as such:
 
 ```python
- # Call the main function in BADASS
-    badass.run_BADASS(file,run_dir,temp_dir,
-                      fit_reg=fit_reg, 
-                      good_thresh=good_thresh,
-                      interp_bad=interp_bad,
-                      test_outflows=test_outflows, 
-                      outflow_test_niter=outflow_test_niter,
-                      max_like_niter=max_like_niter, 
-                      min_sn_losvd=min_sn_losvd,
-                      mcmc_fit=mcmc_fit, 
-                      nwalkers=nwalkers, 
-                      auto_stop=auto_stop, 
-                      conv_type=conv_type, 
-                      min_samp=min_samp, 
-                      ncor_times=ncor_times, 
-                      autocorr_tol=autocorr_tol,
-                      write_iter=write_iter, 
-                      write_thresh=write_thresh, 
-                      burn_in=burn_in, 
-                      min_iter=min_iter, 
-                      max_iter=max_iter,
-                      fit_feii=fit_feii, 
-                      fit_losvd=fit_losvd, 
-                      fit_host=fit_host, 
-                      fit_power=fit_power, 
-                      fit_broad=fit_broad, 
-                      fit_narrow=fit_narrow, 
-                      fit_outflows=fit_outflows, 
-                      tie_narrow=tie_narrow,
-                      outflow_test_pars=outflow_test_pars,
-                      plot_param_hist=plot_param_hist, 
-                      plot_flux_hist=plot_flux_hist, 
-                      plot_lum_hist=plot_lum_hist,
-                      plot_mbh_hist=plot_mbh_hist, 
-                      plot_corner=plot_corner,
-                      plot_bpt=plot_bpt,
-                      write_chain=write_chain,
-                      threads=threads)
+# Call the main function in BADASS
+badass.run_BADASS(file,run_dir,temp_dir,
+                  fit_options,
+                  mcmc_options,
+                  comp_options,
+                  feii_options,
+                  outflow_test_options,
+                  plot_options,
+                  output_options,
+                  mp_options,
+                 )
+    #
 ```
 
 
@@ -560,6 +612,18 @@ And thats it!
 If you wanted to tie the width of your line to another line, simply replace the with with the dictionary parameter width of the other line.  All of this can be done similarly for other components, such as a continuum model.  
 
 # Known Issues
+
+### `ValueError: x0 violates bound constraints.`
+
+There is a critical defect with scipy version 1.5.1 that will cause an error during the initial fitting process when `scipy.optimize.minimize()` is used:
+
+`ValueError: `x0` violates bound constraints.`
+
+This is an open issue on GitHub ([https://github.com/scipy/scipy/issues/11403](https://github.com/scipy/scipy/issues/11403)) and it is labeled a defect.  As of Septempber 2020, this issue still has not been fixed.  The solution to this problem is to downgrade scipy to version 1.4.1.  If you are using the Anaconda distribution of Python, do the following:
+
+`conda install scipy=1.4.1`
+
+We will update BADASS to fix this problem as soon as the issue is fixed.
 
 ### "BADASS only fits one spectra using Multiprocessing and hangs up on the others"
 
