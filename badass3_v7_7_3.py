@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3), Version 7.7.2, Python 3.6 Version
+"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3), Version 7.7.3, Python 3.6 Version
 
 BADASS is an open-source spectral analysis tool designed for detailed decomposition
 of Sloan Digital Sky Survey (SDSS) spectra, and specifically designed for the 
@@ -59,7 +59,7 @@ __author__ = "Remington O. Sexton (UCR), William Matzko (GMU), Nicholas Darden (
 __copyright__ = "Copyright (c) 2020 Remington Oliver Sexton"
 __credits__ = ["Remington O. Sexton (UCR)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__ = "MIT"
-__version__ = "7.7.2"
+__version__ = "7.7.3"
 __maintainer__ = "Remington O. Sexton"
 __email__ = "remington.sexton@email.ucr.edu"
 __status__ = "Release"
@@ -184,10 +184,11 @@ __status__ = "Release"
 #	drastically reduce the basinhopping fit time, at the expense of fit quality.
 # - Bug fixes.
 
-# Version 7.7.2 
+# Version 7.7.2  - 7.7.3
 # - Fixed problem with FeII emission lines at the edge of the fitting region
 #   This is done by setting the variable edge_pad=0.
-# = Fixed F-test NaN confidence bug
+# - Fixed F-test NaN confidence bug
+# - Bug fixes
 
 ##########################################################################################################
 
@@ -2744,7 +2745,9 @@ def outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_op
 	# will be zero.  To resolve this, we extend the range by one pixel on each side, i.e. nchannel = 8.
 	if nchannel <= 6: 
 		add_chan = 7 - nchannel# number of channels to add to each side; minimum is 7 channels since deg. of freedom  = 6
-		eval_ind = np.pad(eval_ind, add_chan, mode='constant', constant_values=(eval_ind[0]-1,eval_ind[-1]+1))
+		lower_pad = range(eval_ind[0]-add_chan,eval_ind[0],1)#np.arange(eval_ind[0]-add_chan,eval_ind[0],1)
+		upper_pad = range(eval_ind[-1]+1,eval_ind[-1]+1+add_chan,1)
+		eval_ind = np.concatenate([lower_pad, eval_ind, upper_pad],axis=0)
 		nchannel = len( mccomps_outflow['resid'][:,0][eval_ind])
 
 	# storage arrays for residuals in [OIII] test region
@@ -3197,7 +3200,9 @@ def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_opt
 	# will be zero.  To resolve this, we extend the range by one pixel on each side, i.e. nchannel = 8.
 	if nchannel <= 6: 
 		add_chan = 7 - nchannel# number of channels to add to each side; minimum is 7 channels since deg. of freedom  = 6
-		eval_ind = np.pad(eval_ind, add_chan, mode='constant', constant_values=(eval_ind[0]-1,eval_ind[-1]+1))
+		lower_pad = range(eval_ind[0]-add_chan,eval_ind[0],1)#np.arange(eval_ind[0]-add_chan,eval_ind[0],1)
+		upper_pad = range(eval_ind[-1]+1,eval_ind[-1]+1+add_chan,1)
+		eval_ind = np.concatenate([lower_pad, eval_ind, upper_pad],axis=0)
 		nchannel = len( mccomps_outflow['resid'][:,0][eval_ind])
 
 	# storage arrays for residuals in [OIII] test region
@@ -7116,7 +7121,7 @@ def write_log(output_val,output_type,run_dir):
 		os.mkdir(run_dir+'/log/')
 		# Create log file 
 		logfile = open(run_dir+'log/log_file.txt','a')
-		logfile.write('\n############################### BADASS v7.7.2 LOGFILE ####################################\n')
+		logfile.write('\n############################### BADASS v7.7.3 LOGFILE ####################################\n')
 		logfile.close()
 
 
