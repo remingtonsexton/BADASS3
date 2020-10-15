@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3), Version 7.7.3, Python 3.6 Version
+"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3), Version 7.7.4, Python 3.6 Version
 
 BADASS is an open-source spectral analysis tool designed for detailed decomposition
 of Sloan Digital Sky Survey (SDSS) spectra, and specifically designed for the 
@@ -59,7 +59,7 @@ __author__ = "Remington O. Sexton (UCR), William Matzko (GMU), Nicholas Darden (
 __copyright__ = "Copyright (c) 2020 Remington Oliver Sexton"
 __credits__ = ["Remington O. Sexton (UCR)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__ = "MIT"
-__version__ = "7.7.3"
+__version__ = "7.7.4"
 __maintainer__ = "Remington O. Sexton"
 __email__ = "remington.sexton@email.ucr.edu"
 __status__ = "Release"
@@ -184,7 +184,7 @@ __status__ = "Release"
 #	drastically reduce the basinhopping fit time, at the expense of fit quality.
 # - Bug fixes.
 
-# Version 7.7.2  - 7.7.3
+# Version 7.7.2  - 7.7.4
 # - Fixed problem with FeII emission lines at the edge of the fitting region
 #   This is done by setting the variable edge_pad=0.
 # - Fixed F-test NaN confidence bug
@@ -272,7 +272,7 @@ def run_BADASS(file,run_dir,temp_dir,
 
 	# Determine fitting region
 	fit_reg,good_frac = determine_fit_reg(file,good_thresh,run_dir,fit_reg)
-	if (fit_reg is None) or ((fit_reg[1]-fit_reg[0])<500.):
+	if (fit_reg is None) or ((fit_reg[1]-fit_reg[0])<100.):
 		print('\n Fit region too small! Moving to next object...')
 		cleanup(run_dir)
 		return None
@@ -299,9 +299,13 @@ def run_BADASS(file,run_dir,temp_dir,
 
 	# Testing for outflows
 	# Issue a warning to the user about independently fitting outflows in the Ha/[NII]/[SII] region
-	if ( (fit_reg[0]>=5008.) and (fit_reg[1] >= 6800.) and (fit_outflows==True) and (print_output==True)):
+	if ( (fit_reg[0]>=5008.) and (fit_reg[1] >= 6750.) and (fit_outflows==True) and (print_output==True)):
 		print('\n *WARNING* Not including Hb/[OIII] region for fitting outflows will lead to poorly constrained outflows in Ha/[NII]/[SII] region! \
 				  \n		   For best results, include the Hb/[OIII] region to constrain outflows in Ha/[NII]/[SII].\n')
+
+	# We store the user-defined fit component options in an array that we pass to the outflow testing functions.  This allows the user to fit for outflows
+	# with or without broad lines, FeII, or power-law components.  All other components are included in the fit by default.
+	fit_comp_options = {'fit_feii':fit_feii, 'fit_power':fit_power, 'fit_broad':fit_broad}
 
 	if (test_outflows==True) & (fit_outflows==True) & (outflow_test_niter>0) & (fit_reg[1]>4600.): # 
 		if print_output:
@@ -311,18 +315,18 @@ def run_BADASS(file,run_dir,temp_dir,
 			if print_output:
 				print(' Testing the Hb/[OIII] region...')
 			fit_outflows,outflow_res,res_sigma = outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_options,
-																   velscale,n_basinhop,outflow_test_niter,outflow_test_options,print_output)
+																   velscale,n_basinhop,outflow_test_niter,outflow_test_options,fit_comp_options,print_output)
 			if fit_outflows==True:
 				if print_output:
 					print('\n Outflows detected: including outflow components in fit.')
 			elif fit_outflows==False:
 				if print_output:
 					print('\n Outflows not detected: disabling outflow components from fit.')
-		elif ( (fit_reg[0]>=5008.+5.) & (fit_reg[1]>6800.0) ): # if Hb/[OIII] region available
+		elif ( (fit_reg[0]>=5008.+5.) & (fit_reg[1]>=6750.0) ): # if Hb/[OIII] region available
 			if print_output:
 				print(' Testing the Ha/[NII]/[SII] region...')
 			fit_outflows,outflow_res,res_sigma = outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_options,
-																  velscale,n_basinhop,outflow_test_niter,outflow_test_options,print_output)
+																  velscale,n_basinhop,outflow_test_niter,outflow_test_options,fit_comp_options,print_output)
 			if fit_outflows==True:
 				if print_output:
 					print('\n Outflows detected: including outflow components in fit.')
@@ -1451,6 +1455,8 @@ def determine_upper_bound(first_good,last_good):
 	elif (last_good-first_good>=500.):
 		print('\n Not enough spectrum to fit! ')
 		auto_upp = None 
+	else:
+		auto_upp = last_good
 	return auto_upp
 
 
@@ -1491,7 +1497,7 @@ def determine_fit_reg(file,good_thresh,run_dir,fit_reg='auto'):
 			print('\n Fitting boundary error. \n')
 			new_fit_reg = None
 			return None, None
-		elif ((fit_reg[1]-fit_reg[0])<500.0): # if fitting region is < 500 A
+		elif ((fit_reg[1]-fit_reg[0])<100.0): # if fitting region is < 500 A
 			print('\n Your fitting region is suspiciously small... \n')
 			new_fit_reg = None
 			return None, None
@@ -1742,6 +1748,8 @@ def sdss_prepare(file,fit_reg,interp_bad,temp_dir,run_dir,plot=False):
 	and_mask = t['and_mask'] # bad pixels 
 	ibad  = np.where(and_mask[mask]!=0)[0]
 
+	### Interpolating over bad pixels ############################
+
 	# Get locations of nan or -inf pixels
 	nan_gal   = np.where(galaxy/galaxy!=1)[0]
 	nan_noise = np.where(noise/noise!=1)[0]
@@ -1749,12 +1757,8 @@ def sdss_prepare(file,fit_reg,interp_bad,temp_dir,run_dir,plot=False):
 
 	# Interpolate over nans and infs if in galaxy or noise
 	if 1: 
-		spec = insert_nan(galaxy,inan)
-		nans, x= nan_helper(galaxy)
-		galaxy[nans]= np.interp(x(nans), x(~nans), galaxy[~nans])
-		noise = insert_nan(noise,inan)
-		nans, x= nan_helper(noise)
-		noise[nans]= np.interp(x(nans), x(~nans), noise[~nans])
+		noise[inan] = np.nan
+		noise[inan] = np.nanmedian(noise)
 
 	# Iterpolate over bad pixels
 	if interp_bad:
@@ -1764,6 +1768,8 @@ def sdss_prepare(file,fit_reg,interp_bad,temp_dir,run_dir,plot=False):
 		noise = insert_nan(noise,ibad)
 		nans, x= nan_helper(noise)
 		noise[nans]= np.interp(x(nans), x(~nans), noise[~nans])
+
+	###############################################################
 
 	c = 299792.458				  # speed of light in km/s
 	frac = lam_gal[1]/lam_gal[0]	# Constant lambda fraction per pixel
@@ -2531,7 +2537,7 @@ def initialize_mcmc(lam_gal,galaxy,line_profile,fwhm_gal,velscale,feii_options,r
 	# is *NOT* recommended.
 	# 
 
-	if ( (fit_narrow==True) and (fit_outflows==True) and (fit_reg[0] >= 5025.) and (fit_reg[1] >= 6800.)):
+	if ( (fit_narrow==True) and (fit_outflows==True) and (fit_reg[0] >= 5025.) and (fit_reg[1] >= 6750.)):
 		if print_output:
 			print('	 - Fitting Ha/[NII]/[SII] outflows independently of Hb/[OIII] outflows (not recommended)')
 		# Br. [OIII]5007 Outflow amplitude
@@ -2641,15 +2647,15 @@ def f_test(resid_outflow,resid_no_outflow,run_dir):
 	f_stat = np.empty(np.shape(resid_outflow)[0])
 	f_pval = np.empty(np.shape(resid_outflow)[0])
 
-	k1 = 3 # nested (simpler) model; single-Gaussian deg. of freedom
-	k2 = 6 # complex model; double-Gaussian model deg. of freedom
+	k1 = 3.0 # nested (simpler) model; single-Gaussian deg. of freedom
+	k2 = 6.0 # complex model; double-Gaussian model deg. of freedom
 
 	for i in range(np.shape(resid_outflow)[0]):
 
-
 		RSS1 = np.sum(resid_no_outflow[i,:]**2) # resid. sum of squares single_Gaussian
 		RSS2 = np.sum(resid_outflow[i,:]**2)    # resid. sum of squares double-Gaussian
-		n = len(resid_outflow[i,:])
+
+		n = float(len(resid_outflow[i,:]))
 		dfn = k2 - k1 # deg. of freedom numerator
 		dfd = n - k2  # deg. of freedom denominator
 
@@ -2664,7 +2670,7 @@ def f_test(resid_outflow,resid_no_outflow,run_dir):
 	return np.median(f_stat), np.std(f_stat), np.median(f_pval), np.std(f_pval), outflow_conf, outflow_conf_err
 
 
-def outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_options,velscale,n_basinhop,outflow_test_niter,outflow_test_options,print_output=True):
+def outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_options,velscale,n_basinhop,outflow_test_niter,outflow_test_options,fit_comp_options,print_output=True):
 	"""
 	Performs outflow tests using the outflow criteria on the [OIII] outflows.
 	"""
@@ -2672,7 +2678,10 @@ def outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_op
 	fit_reg = (np.max([np.min(lam_gal),4400]),np.min([np.max(lam_gal),5800]))
 	# Initialize FeII and host template
 	gal_temp = galaxy_template(lam_gal,age=10.0,print_output=print_output)
-	feii_tab = initialize_feii(lam_gal,feii_options)#,line_profile,fwhm_gal,velscale,fit_reg,feii_options,run_dir)
+	if fit_comp_options['fit_feii']:
+		feii_tab = initialize_feii(lam_gal,feii_options)#,line_profile,fwhm_gal,velscale,fit_reg,feii_options,run_dir)
+	else: 
+		feii_tab = None	
 	# Create mask to mask out parts of spectrum; should speed things up
 	mask = np.where( (lam_gal > fit_reg[0]) & (lam_gal < fit_reg[1]) )
 	lam_gal	      = lam_gal[mask]
@@ -2704,8 +2713,8 @@ def outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_op
 	if print_output:
 		print('\n Fitting with outflow components...')
 	param_dict_outflows = initialize_mcmc(lam_gal,galaxy,line_profile,fwhm_gal,velscale,feii_options,run_dir,fit_reg=fit_reg,fit_type='init',
-								 fit_feii=True,fit_losvd=True,
-								 fit_power=True,fit_broad=True,
+								 fit_feii=fit_comp_options['fit_feii'],fit_losvd=True,
+								 fit_power=fit_comp_options['fit_power'],fit_broad=fit_comp_options['fit_broad'],
 								 fit_narrow=True,fit_outflows=True,tie_narrow=False,print_output=print_output)
 
 	mcpars_outflow, mccomps_outflow = max_likelihood(param_dict_outflows,lam_gal,galaxy,noise,gal_temp,feii_tab,feii_options,
@@ -2715,8 +2724,8 @@ def outflow_test_oiii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_op
 	if print_output:
 		print('\n Fitting without outflow components...')
 	param_dict_no_outflows = initialize_mcmc(lam_gal,galaxy,line_profile,fwhm_gal,velscale,feii_options,run_dir,fit_reg=fit_reg,fit_type='init',
-								 fit_feii=True,fit_losvd=True,
-								 fit_power=True,fit_broad=True,
+								 fit_feii=fit_comp_options['fit_feii'],fit_losvd=True,
+								 fit_power=fit_comp_options['fit_power'],fit_broad=fit_comp_options['fit_broad'],
 								 fit_narrow=True,fit_outflows=False,tie_narrow=False,print_output=print_output)
 
 	mcpars_no_outflow, mccomps_no_outflow = max_likelihood(param_dict_no_outflows,lam_gal,galaxy,noise,gal_temp,feii_tab,feii_options,
@@ -3006,7 +3015,8 @@ def outflow_test_plot_oiii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['data']['comp']            , color='xkcd:white'      , linewidth=0.5, linestyle='-' , label='Data'         )  
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['model']['comp']           , color='xkcd:red'        , linewidth=1.0, linestyle='-' , label='Model'        ) 
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['host_galaxy']['comp']     , color='xkcd:lime green' , linewidth=1.0, linestyle='-' , label='Galaxy'       )
-	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['power']['comp']           , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'    )
+	if ('power' in comp_dict_no_outflow):
+		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['power']['comp']           , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'    )
 	if ('na_feii_template' in comp_dict_no_outflow) and ('br_feii_template' in comp_dict_no_outflow):
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_feii_template']['comp'], color='xkcd:yellow'     , linewidth=1.0, linestyle='-' , label='Na. FeII'     )
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='Br. FeII'     )
@@ -3015,7 +3025,8 @@ def outflow_test_plot_oiii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['S_feii_template']['comp'], color='xkcd:mustard'     , linewidth=1.0, linestyle='-' , label='S_transition FeII'     )
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['G_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='G_transition FeII'     )
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['Z_feii_template']['comp'], color='xkcd:rust'     , linewidth=1.0, linestyle='-' , label='Z_transition FeII'     )
-	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_Hb']['comp']           , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. Hb'       )
+	if ('br_Hb' in comp_dict_no_outflow):
+		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_Hb']['comp']           , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. H-beta'       )
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_Hb_core']['comp']      , color='xkcd:dodger blue', linewidth=1.0, linestyle='-' , label='Core comp.'   )
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_oiii4959_core']['comp'], color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                        )
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_oiii5007_core']['comp'], color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                        )
@@ -3051,7 +3062,8 @@ def outflow_test_plot_oiii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['data']['comp']               , color='xkcd:white'      , linewidth=0.5, linestyle='-' , label='Data'         )  
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['model']['comp']              , color='xkcd:red'        , linewidth=1.0, linestyle='-' , label='Model'        ) 
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['host_galaxy']['comp']        , color='xkcd:lime green' , linewidth=1.0, linestyle='-' , label='Galaxy'       )
-	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['power']['comp']              , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'    )
+	if ('power' in comp_dict_outflow):
+		ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['power']['comp']              , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'    )
 	if ('na_feii_template' in comp_dict_outflow) and ('br_feii_template' in comp_dict_outflow):
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_feii_template']['comp'], color='xkcd:yellow'     , linewidth=1.0, linestyle='-' , label='Na. FeII'     )
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='Br. FeII'     )
@@ -3060,7 +3072,8 @@ def outflow_test_plot_oiii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['S_feii_template']['comp'], color='xkcd:mustard'     , linewidth=1.0, linestyle='-' , label='S_transition FeII'     )
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['G_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='G_transition FeII'     )
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['Z_feii_template']['comp'], color='xkcd:rust'     , linewidth=1.0, linestyle='-' , label='Z_transition FeII'     )
-	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['br_Hb']['comp']              , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. Hb'       )
+	if ('br_Hb' in comp_dict_outflow):
+		ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['br_Hb']['comp']              , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. H-beta'       )
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['na_Hb_core']['comp']         , color='xkcd:dodger blue', linewidth=1.0, linestyle='-' , label='Core comp.'   )
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['na_oiii4959_core']['comp']   , color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                        )
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['na_oiii5007_core']['comp']   , color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                        )
@@ -3113,7 +3126,7 @@ def outflow_test_plot_oiii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 
 ##################################################################################
 
-def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_options,velscale,n_basinhop,outflow_test_niter,outflow_test_options,print_output=True):
+def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_options,velscale,n_basinhop,outflow_test_niter,outflow_test_options,fit_comp_options,print_output=True):
 	"""
 	Performs outflow tests using the outflow criteria on the [OIII] outflows.
 	"""
@@ -3123,7 +3136,10 @@ def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_opt
 
 	# Initialize FeII and host template
 	gal_temp = galaxy_template(lam_gal,age=10.0,print_output=print_output)
-	feii_tab = initialize_feii(lam_gal,feii_options)#,line_profile,fwhm_gal,velscale,fit_reg,feii_options,run_dir)
+	if fit_comp_options['fit_feii']:
+		feii_tab = initialize_feii(lam_gal,feii_options)#,line_profile,fwhm_gal,velscale,fit_reg,feii_options,run_dir)
+	else: 
+		feii_tab = None
 	# Create mask to mask out parts of spectrum; should speed things up
 	mask = np.where( (lam_gal > fit_reg[0]) & (lam_gal < fit_reg[1]) )
 	lam_gal	      = lam_gal[mask]
@@ -3156,8 +3172,8 @@ def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_opt
 	if print_output:
 		print('\n Fitting with outflow components...')
 	param_dict_outflows = initialize_mcmc(lam_gal,galaxy,line_profile,fwhm_gal,velscale,feii_options,run_dir,fit_reg=fit_reg,fit_type='init',
-								 fit_feii=True,fit_losvd=True,
-								 fit_power=True,fit_broad=True,
+								 fit_feii=fit_comp_options['fit_feii'],fit_losvd=True,
+								 fit_power=fit_comp_options['fit_power'],fit_broad=fit_comp_options['fit_broad'],
 								 fit_narrow=True,fit_outflows=True,tie_narrow=False,print_output=print_output)
 
 	mcpars_outflow, mccomps_outflow = max_likelihood(param_dict_outflows,lam_gal,galaxy,noise,gal_temp,
@@ -3169,15 +3185,14 @@ def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_opt
 	if print_output:
 		print('\n Fitting without outflow components...')
 	param_dict_no_outflows = initialize_mcmc(lam_gal,galaxy,line_profile,fwhm_gal,velscale,feii_options,run_dir,fit_reg=fit_reg,fit_type='init',
-								 fit_feii=True,fit_losvd=True,
-								 fit_power=True,fit_broad=True,
+								 fit_feii=fit_comp_options['fit_feii'],fit_losvd=True,
+								 fit_power=fit_comp_options['fit_power'],fit_broad=fit_comp_options['fit_broad'],
 								 fit_narrow=True,fit_outflows=False,tie_narrow=False,print_output=print_output)
 
 	mcpars_no_outflow, mccomps_no_outflow = max_likelihood(param_dict_no_outflows,lam_gal,galaxy,noise,gal_temp,
 										feii_tab,feii_options,
 										None,None,None,line_profile,fwhm_gal,velscale,None,None,run_dir,test_outflows=True,n_basinhop=n_basinhop,
 										outflow_test_niter=outflow_test_niter,print_output=print_output)
-
 
 	# Determine if there is a significant improvement in residuals to warrant inclusion of a second component
 	# From the outflow fit parameters, get the median values for the widths and velocity offsets to determine th 
@@ -3190,8 +3205,8 @@ def outflow_test_nii(lam_gal,galaxy,noise,run_dir,line_profile,fwhm_gal,feii_opt
 	med_core_voff    = np.median(mcpars_outflow['na_Ha_core_voff'])
 	
 	sigma_inc = 3.0 # number of sigmas to include
-	min_wave = ref_wave + np.min([(med_outflow_voff - (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff - (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
-	max_wave = ref_wave + np.max([(med_outflow_voff + (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff + (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
+	min_wave = 6500. #ref_wave + np.min([(med_outflow_voff - (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff - (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
+	max_wave = 6600. #ref_wave + np.max([(med_outflow_voff + (sigma_inc*med_outflow_fwhm/2.3548))/c*ref_wave,(med_core_voff + (sigma_inc*med_core_fwhm/2.3548))/c*ref_wave])
 	# Get indices where we perform f-test
 	eval_ind = np.where((lam_gal >= min_wave) & (lam_gal <= max_wave))[0]
 	# number of channels in the [OIII] test region 
@@ -3459,7 +3474,8 @@ def outflow_test_plot_nii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['data']['comp']              , color='xkcd:white'      , linewidth=0.5, linestyle='-' , label='Data'        )  
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['model']['comp']             , color='xkcd:red'        , linewidth=1.0, linestyle='-' , label='Model'       ) 
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['host_galaxy']['comp']       , color='xkcd:lime green' , linewidth=1.0, linestyle='-' , label='Galaxy'      )
-	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['power']['comp']             , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'   )
+	if ('power' in comp_dict_no_outflow):
+		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['power']['comp']             , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'   )
 	if ('na_feii_template' in comp_dict_no_outflow) and ('br_feii_template' in comp_dict_no_outflow):
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_feii_template']['comp'], color='xkcd:yellow'     , linewidth=1.0, linestyle='-' , label='Na. FeII'     )
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='Br. FeII'     )
@@ -3468,7 +3484,8 @@ def outflow_test_plot_nii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['S_feii_template']['comp'], color='xkcd:mustard'     , linewidth=1.0, linestyle='-' , label='S_transition FeII'     )
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['G_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='G_transition FeII'     )
 		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['Z_feii_template']['comp'], color='xkcd:rust'     , linewidth=1.0, linestyle='-' , label='Z_transition FeII'     )
-	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_Ha']['comp']             , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. Hb'      )
+	if ('br_Ha' in comp_dict_no_outflow):
+		ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_Ha']['comp']             , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. H-beta'      )
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_Ha_core']['comp']        , color='xkcd:dodger blue', linewidth=1.0, linestyle='-' , label='Core comp.'  )
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_nii6549_core']['comp']   , color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                       )
 	ax1.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_nii6585_core']['comp']   , color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                       )
@@ -3508,7 +3525,8 @@ def outflow_test_plot_nii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['data']['comp']              , color='xkcd:white'      , linewidth=0.5, linestyle='-' , label='Data'        )  
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['model']['comp']             , color='xkcd:red'        , linewidth=1.0, linestyle='-' , label='Model'       ) 
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['host_galaxy']['comp']       , color='xkcd:lime green' , linewidth=1.0, linestyle='-' , label='Galaxy'      )
-	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['power']['comp']             , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'   )
+	if ('power' in comp_dict_outflow):
+		ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['power']['comp']             , color='xkcd:orange red' , linewidth=1.0, linestyle='--', label='AGN Cont.'   )
 	if ('na_feii_template' in comp_dict_outflow) and ('br_feii_template' in comp_dict_outflow):
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['na_feii_template']['comp'], color='xkcd:yellow'     , linewidth=1.0, linestyle='-' , label='Na. FeII'     )
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['br_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='Br. FeII'     )
@@ -3517,7 +3535,8 @@ def outflow_test_plot_nii(comp_dict_outflow,comp_dict_no_outflow,run_dir):
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['S_feii_template']['comp'], color='xkcd:mustard'     , linewidth=1.0, linestyle='-' , label='S_transition FeII'     )
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['G_feii_template']['comp'], color='xkcd:orange'     , linewidth=1.0, linestyle='-' , label='G_transition FeII'     )
 		ax3.plot(comp_dict_no_outflow['wave']['comp'], comp_dict_no_outflow['Z_feii_template']['comp'], color='xkcd:rust'     , linewidth=1.0, linestyle='-' , label='Z_transition FeII'     )
-	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['br_Ha']['comp']             , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. Hb'      )
+	if ('br_Ha' in comp_dict_outflow):
+		ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['br_Ha']['comp']             , color='xkcd:turquoise'  , linewidth=1.0, linestyle='-' , label='Br. H-beta'      )
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['na_Ha_core']['comp']        , color='xkcd:dodger blue', linewidth=1.0, linestyle='-' , label='Core comp.'  )
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['na_nii6549_core']['comp']   , color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                       )
 	ax3.plot(comp_dict_outflow['wave']['comp'], comp_dict_outflow['na_nii6585_core']['comp']   , color='xkcd:dodger blue', linewidth=1.0, linestyle='-'                       )
@@ -7121,7 +7140,7 @@ def write_log(output_val,output_type,run_dir):
 		os.mkdir(run_dir+'/log/')
 		# Create log file 
 		logfile = open(run_dir+'log/log_file.txt','a')
-		logfile.write('\n############################### BADASS v7.7.3 LOGFILE ####################################\n')
+		logfile.write('\n############################### BADASS v7.7.4 LOGFILE ####################################\n')
 		logfile.close()
 
 
