@@ -48,19 +48,19 @@ If you use BADASS for any of your fits, I'd be interested to know what you're do
 
 The easiest way to get started is to simply clone the repository. 
 
-As of BADASS v7.7.1, the following packages are required (Python 3.6.10):
-- `astropy 4.0.1`
-- `astroquery 0.4`
+As of BADASS v7.7.5, the following packages are required (Python 3.8.6):
+- `astropy 4.0.3`
+- `astroquery 0.4.1`
 - `corner 2.0.1`
-- `emcee 0.0.0`
-- `ipython 7.14.0`
-- `jupyter-client 6.1.3`
-- `matplotlib 3.1.3`
+- `emcee 3.0.2`
+- `ipython 7.19.0`
+- `matplotlib 3.3.3`
+- `multiprocess 0.70.11.1`
 - `natsort 7.0.1`
-- `numpy 1.18.1`
-- `pandas 1.0.3`
-- `psutil 5.7.0`
-- `scipy 1.4.1` 
+- `numpy 1.19.4`
+- `pandas 1.1.5`
+- `psutil 5.7.3`
+- `scipy 1.4.1` (this version is required!)  
 
 The code is run entirely through the Jupyter Notebook interface, and is set up to run on the included SDSS spectrum file in the ".../examples/" folder.  If one wants to fit multiple spectra consecutively, simply add folders for each spectrum to the folder.  This is the recommended directory structure:
 
