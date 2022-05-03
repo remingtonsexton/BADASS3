@@ -631,13 +631,35 @@ Note: `auto_stop` must be `True` in order to perform any autocorrelation analysi
 
 ## Single SDSS Spectrum
 
+The [BADASS3_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_single_spectrum.ipynb) notebook illustrates the basics of setting up the fit of a single SDSS spectrum, from defining fit parameters to calling sequence.
+
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/single_sdss_spectrum.png)
+
 ## Single Non-SDSS Spectrum
+
+The [BADASS3_nonSDSS_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_nonSDSS_single_spectrum.ipynb) notebook illustrates the use of BADASS for a non-SDSS spectrum.  The user is expected to provide some basic information such as redshift, FWHM resolution, wavelength scale, and some form of a noise vector.  The FWHM resolution is necessary to accurately correct for instrumental dispersion and estimate the stellar LOSVD.  The noise vector need not be exact, since BADASS will scale the noise appropriately to achieve a reduced chi-squared of 1.
+
+This example performs a fit on a Keck LRIS spectrum of a Seyfert 1 galaxy from [Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract):
+
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/non_sdss_spectrum.png)
 
 ## Multiple Spectra with Multiprocessing
 
+The [BADASS3_multi_spectra.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_multi_spectra.ipynb) notebook shows how to set up BADASS to use Python's multiprocessing capabilities to fit any number of spectra simultaneously.  The number of spectra that can be *efficiently* fit simultaneously ultimately depends on the number of CPUs your machine has.  The number of simultaneous processes is the only parameter the user needs to specify, and BADASS assigns a process (a fit) to each core.
+
 ## MANGA IFU Cube Data
 
+Support for fitting IFU cubes is the newest feature of BADASS, spurred by the increasingly growing interest in studying outflows and AGN feedback using IFU data.  The [BADASS3_ifu_MANGA.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_ifu_MANGA.ipynb) notebook shows how to fit the standardized cubes produced by MANGA.  BADASS can also utilize the voronoi binning [VorBin](https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning) algorithm from [Cappellari & Copin (2003, MNRAS, 342, 345)](https://ui.adsabs.harvard.edu/abs/2003MNRAS.342..345C/abstract), as well as multiprocessing to quickly (for Python at least) fit cubes.
+
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/manga_cube_example.png)
+
 ## Non-MANGA IFU Cube Data
+
+The []() notebook, similarly illustrates how to fit a generic cube data, similar to how non-SDSS spectra are fit in BADASS.  The user must provide some basic information about the data, but BADASS handles the data as standard NumPy arrays. 
+
+Here are some results of the Rodeo Cube (MUSE subcube of NGC 1386) from the [Large-Volume Spectroscopic Analyses of AGN and Star Forming Galaxies in the Era of JWST](https://www.stsci.edu/contents/events/stsci/2022/march/large-volume-spectroscopic-analyses-of-agn-and-star-forming-galaxies-in-the-era-of-jwst) workshop, during which BADASS and its new features were showcased:
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/LVS_rodeo_example.png)
+
 
 # How to
 ## Line Lists
