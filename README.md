@@ -40,6 +40,12 @@ Before getting started you should [read the wiki](https://github.com/remingtonse
   * [Best-fit Model Components](#best-fit-model-components)
   * [Best-fit Parameters and Uncertainties](#best-fit-parameters-and-uncertainties)
   * [Autocorrelation Analysis](#autocorrelation-analysis)
+- [Examples](#examples)
+  * [Single SDSS Spectrum](#single-sdss-spectrum)
+  * [Single Non-SDSS Spectrum](#single-non-sdss-spectrum)
+  * [Multiple Spectra with Multiprocessing](#multiple-spectra-with-multiprocessing)
+  * [MANGA IFU Cube Data](#manga-ifu-cube-data)
+  * [Non-MANGA IFU Cube Data](#non-manga-ifu-cube-data)
 - [How to...](#how-to)
   * [Line Lists](#line-lists)
   * [Hard Constraints](#hard-constraints)
@@ -620,6 +626,18 @@ tau = autocorr_dict.item().get('NA_OIII5007_VOFF').get('tau')
 tol = autocorr_dict.item().get('NA_OIII5007_VOFF').get('tol')
 ```
 Note: `auto_stop` must be `True` in order to perform any autocorrelation analysis and output the autocorrelation files.
+
+# Examples
+
+## Single SDSS Spectrum
+
+## Single Non-SDSS Spectrum
+
+## Multiple Spectra with Multiprocessing
+
+## MANGA IFU Cube Data
+
+## Non-MANGA IFU Cube Data
 
 # How to
 ## Line Lists
