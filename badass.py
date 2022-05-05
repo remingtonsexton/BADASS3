@@ -3799,6 +3799,9 @@ def line_test(param_dict,
 	if verbose:
 		print('\n Fitting without %s...' % test_line["line"])
 
+	# Make copy of original line list, since initialize_pars() will override it.
+	original_line_list = copy.deepcopy(line_list)
+
 	# Generate new parameters
 	param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
 								 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
@@ -3970,6 +3973,9 @@ def line_test(param_dict,
 	"RESID_NOISE_LINE":	   {"best": resid_noise_line, "sigma_low": resid_noise_line_err, "sigma_upp": resid_noise_line_err},
 	}
 	write_test_stats(stats_dict,run_dir)
+
+	# Reinstate the original line list
+	line_list = original_line_list
 
 	# Make plot 
 	# Get best fit model components for each model 
