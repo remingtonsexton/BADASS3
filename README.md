@@ -21,23 +21,36 @@ Before getting started you should [read the wiki](https://github.com/remingtonse
 - [Installation](#installation)
 - [Usage](#usage)
   * [Fitting Options](#fitting-options)
-  * [MCMC & Autocorrelation/Convergence Options](#mcmc---autocorrelation-convergence-options)
-  * [Model Options](#model-options)
+  * [MCMC Options](#mcmc-options)
+  * [Model Component Options](#model-component-options)
+  * [User Lines, Constraints, and Masks](#user-lines-constraints-and-masks)
+  * [Combined Lines](#combined-lines)
+  * [LOSVD Fitting Options (pPXF)](#losvd-fitting-options-ppxf)
+  * [Host Model Options](#host-model-options)
   * [Optical FeII Options](#optical-feii-options)
-  * [Plotting & Output Options](#plotting---output-options)
+  * [UV Iron Options](#uv-iron-options)
+  * [Balmer Pseudo-Continuum Options](#balmer-psuedocontinuum-options)
+  * [Plotting Options](#plotting-options)
   * [Output Options](#output-options)
-  * [Multiprocessing Options](#multiprocessing-options)
-  * [The Main Function](#the-main-function)
+  * [The Main Function and Calling Sequence](#the-main-function-and-calling-sequence)
 - [Output](#output)
   * [Best-fit Model](#best-fit-model)
-  * [Parameter Chains, Histograms, Best-fit Values & Uncertainties](#parameter-chains--histograms--best-fit-values---uncertainties)
+  * [Parameter Chains, Histograms, Best-fit Values and Uncertainties](#parameter-chains-histograms-best-fit-values-and-uncertainties)
   * [Log File](#log-file)
   * [Best-fit Model Components](#best-fit-model-components)
-  * [Best-fit Parameters & Uncertainties](#best-fit-parameters---uncertainties)
-  * [Autocorrelation Time & Tolerance History](#autocorrelation-time---tolerance-history)
+  * [Best-fit Parameters and Uncertainties](#best-fit-parameters-and-uncertainties)
+  * [Autocorrelation Analysis](#autocorrelation-analysis)
+- [Examples](#examples)
+  * [Single SDSS Spectrum](#single-sdss-spectrum)
+  * [Single Non-SDSS Spectrum](#single-non-sdss-spectrum)
+  * [Multiple Spectra with Multiprocessing](#multiple-spectra-with-multiprocessing)
+  * [MANGA IFU Cube Data](#manga-ifu-cube-data)
+  * [Non-MANGA IFU Cube Data](#non-manga-ifu-cube-data)
 - [How to...](#how-to)
+  * [Line Lists](#line-lists)
+  * [Hard Constraints](#hard-constraints)
+  * [Soft Constraints](#soft-constraints)
 - [Known Issues](#known-issues)
-- [Contributing](#contributing)
 - [Credits](#credits)
 - [License](#license)
 
@@ -131,23 +144,23 @@ Convenience feature that prints out all free parameters so the user can check an
 The flat Lambda-CDM cosmology assumed for calculating luminosities from fluxes. 
 
 
-# MCMC & Autocorrelation/Convergence Options
+# MCMC Options
 
 ```python
 ########################### MCMC algorithm parameters ##########################
 mcmc_options={
-  "mcmc_fit"    : False, # Perform robust fitting using emcee
-  "nwalkers"    : 100,  # Number of emcee walkers; min = 2 x N_parameters
-  "auto_stop"   : False, # Automatic stop using autocorrelation analysis
-  "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
-  "min_samp"    : 1000,  # min number of iterations for sampling post-convergence
-  "ncor_times"  : 1.0,  # number of autocorrelation times for convergence
-  "autocorr_tol": 10.0,  # percent tolerance between checking autocorr. times
-  "write_iter"  : 100,   # write/check autocorrelation times interval
-  "write_thresh": 100,   # iteration to start writing/checking parameters
-  "burn_in"     : 1500, # burn-in if max_iter is reached
-  "min_iter"    : 2500, # min number of iterations before stopping
-  "max_iter"    : 2500, # max number of MCMC iterations
+	"mcmc_fit"    : False, # Perform robust fitting using emcee
+	"nwalkers"    : 100,  # Number of emcee walkers; min = 2 x N_parameters
+	"auto_stop"   : False, # Automatic stop using autocorrelation analysis
+	"conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
+	"min_samp"    : 1000,  # min number of iterations for sampling post-convergence
+	"ncor_times"  : 1.0,  # number of autocorrelation times for convergence
+	"autocorr_tol": 10.0,  # percent tolerance between checking autocorr. times
+	"write_iter"  : 100,   # write/check autocorrelation times interval
+	"write_thresh": 100,   # iteration to start writing/checking parameters
+	"burn_in"     : 1500, # burn-in if max_iter is reached
+	"min_iter"    : 2500, # min number of iterations before stopping
+	"max_iter"    : 2500, # max number of MCMC iterations
 }
 ################################################################################
 ```
@@ -193,24 +206,24 @@ the maximum number of iterations BADASS performs before stopping.  This value is
 ```python
 ############################ Fit component options #############################
 comp_options={
-  "fit_opt_feii"     : True, # optical FeII
-  "fit_uv_iron"      : False, # UV Iron 
-  "fit_balmer"       : False, # Balmer continuum (<4000 A)
-  "fit_losvd"        : True, # stellar LOSVD
-  "fit_host"         : False, # host template
-  "fit_power"        : True, # AGN power-law
-  "fit_narrow"       : True, # narrow lines
-  "fit_broad"        : True, # broad lines
-  "fit_outflow"      : True, # outflow lines
-  "fit_absorp"       : False, # absorption lines
-  "tie_line_fwhm"    : False, # tie line widths
-  "tie_line_voff"    : False, # tie line velocity offsets
-  "na_line_profile"  : "G",     # narrow line profile
-  "br_line_profile"  : "V",     # broad line profile
-  "out_line_profile" : "G",     # outflow line profile
-  "abs_line_profile" : "G",     # absorption line profile
-  "n_moments"        : 4, # number of Gauss-Hermite moments for Gauss-Hermite line profiles
-                          # must be >2 and <10 for higher-order moments (default = 4)
+	"fit_opt_feii"     : True, # optical FeII
+	"fit_uv_iron"      : False, # UV Iron 
+	"fit_balmer"       : False, # Balmer continuum (<4000 A)
+	"fit_losvd"        : True, # stellar LOSVD
+	"fit_host"         : False, # host template
+	"fit_power"        : True, # AGN power-law
+	"fit_narrow"       : True, # narrow lines
+	"fit_broad"        : True, # broad lines
+	"fit_outflow"      : True, # outflow lines
+	"fit_absorp"       : False, # absorption lines
+	"tie_line_fwhm"    : False, # tie line widths
+	"tie_line_voff"    : False, # tie line velocity offsets
+	"na_line_profile"  : "G",     # narrow line profile
+	"br_line_profile"  : "V",     # broad line profile
+	"out_line_profile" : "G",     # outflow line profile
+	"abs_line_profile" : "G",     # absorption line profile
+	"n_moments"        : 4, # number of Gauss-Hermite moments for Gauss-Hermite line profiles
+	                        # must be >2 and <10 for higher-order moments (default = 4)
 }
 ################################################################################
 ```
@@ -278,7 +291,7 @@ Additionally, the user can provide additional lines to the default line list dir
 
 ```python
 user_lines = {
-  "na_unknown_1":{"center":6085., "line_type":"na", "line_profile":"G"},
+	"na_unknown_1":{"center":6085., "line_type":"na", "line_profile":"G"},
 }
 ```
 
@@ -286,7 +299,7 @@ Similarly, one can provided additional soft constraints.  For example, if we wan
 
 ```python
 user_constraints = [
-  ("br_MgII_2799_fwhm","na_MgII_2799_fwhm"),
+	("br_MgII_2799_fwhm","na_MgII_2799_fwhm"),
 ]
 ```
 
@@ -309,19 +322,19 @@ Below we define components for the H-beta/[OIII] lines, defined as the sum of th
 
 ```python
 combined_lines = {
-  "OIII_5007_COMP":["NA_OIII_5007","OUT_OIII_5007"],
-  "OIII_4960_COMP":["NA_OIII_4960","OUT_OIII_4960"],
-  "H_BETA_COMP"   :["NA_H_BETA","OUT_H_BETA"],
+	"OIII_5007_COMP":["NA_OIII_5007","OUT_OIII_5007"],
+	"OIII_4960_COMP":["NA_OIII_4960","OUT_OIII_4960"],
+	"H_BETA_COMP"   :["NA_H_BETA","OUT_H_BETA"],
 }
 ```
 
 ## LOSVD Fitting Options (pPXF) 
 ```python
 losvd_options = {
-  "library"   : "IndoUS", # Options: IndoUS, Vazdekis2010, eMILES
-  "vel_const" :  {"bool":False, "val":0.0}, # Hold velocity constant?
-  "disp_const":  {"bool":False, "val":250.0}, # Hold dispersion constant?
-  "losvd_apoly": {"bool":False, "order":3}, # include additive legendre polynomial?
+	"library"   : "IndoUS", # Options: IndoUS, Vazdekis2010, eMILES
+	"vel_const" :  {"bool":False, "val":0.0}, # Hold velocity constant?
+	"disp_const":  {"bool":False, "val":250.0}, # Hold dispersion constant?
+	"losvd_apoly": {"bool":False, "order":3}, # include additive legendre polynomial?
 }
 ```
 
@@ -331,16 +344,16 @@ The host model is used as a simplified placeholder in the event that the stellar
 
 ```python
 host_options = {
-  "age"       : [1.0,5.0,10.0], # Ages to include in Gyr; [0.09 Gyr - 14 Gyr] 
-  "vel_const" : {"bool":False, "val":0.0}, # hold velocity constant?
-  "disp_const": {"bool":False, "val":150.0} # hold dispersion constant?
+	"age"       : [1.0,5.0,10.0], # Ages to include in Gyr; [0.09 Gyr - 14 Gyr] 
+	"vel_const" : {"bool":False, "val":0.0}, # hold velocity constant?
+	"disp_const": {"bool":False, "val":150.0} # hold dispersion constant?
 }
 ```
 
 ## Power-Law Options
 ```python
 power_options = {
-  "type" : "simple" # alternatively, "broken" for smoothly-broken power-law
+	"type" : "simple" # alternatively, "broken" for smoothly-broken power-law
 }
 ```
 
@@ -365,10 +378,10 @@ There are two FeII templates built into BADASS.  The default is the broad and na
 # temp_const : constant temp ('K10' only)
 
 feii_options={
-  'template'  :{'type':'VC04'}, 
-  'amp_const' :{'bool':False,'br_feii_val':1.0,'na_feii_val':1.0},
-  'fwhm_const':{'bool':True,'br_feii_val':3000.0,'na_feii_val':500.0},
-  'voff_const':{'bool':True,'br_feii_val':0.0,'na_feii_val':0.0},
+	'template'  :{'type':'VC04'}, 
+	'amp_const' :{'bool':False,'br_feii_val':1.0,'na_feii_val':1.0},
+	'fwhm_const':{'bool':True,'br_feii_val':3000.0,'na_feii_val':500.0},
+	'voff_const':{'bool':True,'br_feii_val':0.0,'na_feii_val':0.0},
 }
 # or
 # feii_options={
@@ -384,22 +397,22 @@ feii_options={
 ## UV Iron Options
 ```python
 uv_iron_options={
-  "uv_amp_const"  :{"bool":False, "uv_iron_val":1.0}, # hold amplitude constant?
-  "uv_fwhm_const" :{"bool":False, "uv_iron_val":3000.0},  # hold FWHM constant?
-  "uv_voff_const" :{"bool":True,  "uv_iron_val":0.0}, # hold velocity constant?
-  "uv_legendre_p" :{"bool":False, "uv_iron_val":3}, # include additive legendre polynomial?
+	"uv_amp_const"  :{"bool":False, "uv_iron_val":1.0}, # hold amplitude constant?
+	"uv_fwhm_const" :{"bool":False, "uv_iron_val":3000.0},  # hold FWHM constant?
+	"uv_voff_const" :{"bool":True,  "uv_iron_val":0.0}, # hold velocity constant?
+	"uv_legendre_p" :{"bool":False, "uv_iron_val":3}, # include additive legendre polynomial?
 }
 ```
 
 ## Balmer Pseudo-Continuum Options
 ```python
 balmer_options = {
-  "R_const" :{"bool":True,  "R_val":1.0}, # ratio between balmer continuum and higher-order lines
-  "balmer_amp_const" :{"bool":False, "balmer_amp_val":1.0}, # hold amplitude constant?
-  "balmer_fwhm_const" :{"bool":True,  "balmer_fwhm_val":5000.0}, # hold dispersion constant?
-  "balmer_voff_const" :{"bool":True,  "balmer_voff_val":0.0}, # hold velocity constant?
-  "Teff_const" :{"bool":True,  "Teff_val":15000.0}, # effective temperature
-  "tau_const" :{"bool":True,  "tau_val":1.0}, # optical depth
+	"R_const" :{"bool":True,  "R_val":1.0}, # ratio between balmer continuum and higher-order lines
+	"balmer_amp_const" :{"bool":False, "balmer_amp_val":1.0}, # hold amplitude constant?
+	"balmer_fwhm_const" :{"bool":True,  "balmer_fwhm_val":5000.0}, # hold dispersion constant?
+	"balmer_voff_const" :{"bool":True,  "balmer_voff_val":0.0}, # hold velocity constant?
+	"Teff_const" :{"bool":True,  "Teff_val":15000.0}, # effective temperature
+	"tau_const" :{"bool":True,  "tau_val":1.0}, # optical depth
 }
 ```
 
@@ -408,11 +421,11 @@ balmer_options = {
 ```python
 ############################### Plotting options ###############################
 plot_options={
-  "plot_param_hist"    : True,# Plot MCMC histograms and chains for each parameter
-  "plot_flux_hist"     : True,# Plot MCMC hist. and chains for component fluxes
-  "plot_lum_hist"      : True,# Plot MCMC hist. and chains for component luminosities
-  "plot_eqwidth_hist"  : True, # Plot MCMC hist. and chains for equivalent widths 
-  "plot_HTML"          : True,# make interactive plotly HTML best-fit plot
+	"plot_param_hist"    : True,# Plot MCMC histograms and chains for each parameter
+	"plot_flux_hist"     : True,# Plot MCMC hist. and chains for component fluxes
+	"plot_lum_hist"      : True,# Plot MCMC hist. and chains for component luminosities
+	"plot_eqwidth_hist"  : True, # Plot MCMC hist. and chains for equivalent widths 
+	"plot_HTML"          : True,# make interactive plotly HTML best-fit plot
 }
 ################################################################################
 ```
@@ -506,7 +519,7 @@ This is simply a figure that shows the data, model, residuals, and best-fit comp
 
 ![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_output_bestfit.png)
 
-## Parameter Chains, Histograms, Best-fit Values & Uncertainties
+## Parameter Chains, Histograms, Best-fit Values and Uncertainties
 
 For every parameter that is fit, BADASS outputs a figure to visualize the full parameter chain and all walkers, the burn-in, and the final posterior histogram with the best-fit values and uncertainties.  The purpose of these is for visual inspection of the parameter chain to observe its behavior during the fitting process, to get a sense of how well initial parameters were fit, and how walkers behave as the fit progresses.
 
@@ -566,7 +579,7 @@ ColDefs(
 )
 ```
 
-## Best-fit Parameters & Uncertainties 
+## Best-fit Parameters and Uncertainties 
 
 All best-fit parameter values and their upper and lower 1-sigma uncertainties are stored in `par_table.fits` files so they can be more quickly accessed than from a text file.  These are most easily accessed using the (`astropy.table`](https://docs.astropy.org/en/stable/table/pandas.html) module, which can convert a FITS table into a Pandas [DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html):
 
@@ -585,9 +598,9 @@ which shows
 | 1  |       HOST_GALAXY_LUM |      2.993121 |     0.148800 |     0.174937 |...|  0.0 |
 | 2  |        NA_HALPHA_AMP |    458.180511 |     2.664992 |     2.122619 |...|   0.0 |
 | 3  |       NA_HALPHA_FLUX|   2304.035889 |    13.468710 |    19.964769 |...|   0.0 |
-| .  |            .          |     .       |     .      |    .     |...|  .  |
-| .  |            .          |     .       |     .      |    .     |...|  .  |
-| .  |            .          |     .       |     .      |    .     |...|  .  |
+| .  |            .          |  	 .	     |		 .	    |		 .     |...|	.  |
+| .  |            .          |  	 .	     |		 .	    |		 .     |...|	.  |
+| .  |            .          |  	 .	     |		 .	    |		 .     |...|	.  |
 | 57 |             POWER_AMP |     13.716220 |     0.670133 |     0.736425 |...|   0.0 |
 | 58 |            POWER_FLUX |  47760.011719 |  2512.798340 |  2167.185303 |...|   0.0 |
 | 59 |             POWER_LUM |      3.310611 |     0.174181 |     0.150224 |...|  0.0 |
@@ -595,7 +608,7 @@ which shows
 | 61 |             STEL_DISP |     99.216248 |     1.282358 |     0.785158 |...|   0.0 |
 | 62 |              STEL_VEL |     97.768555 |     3.329233 |     2.168582 |...|   0.0 |
 
-## Autocorrelation Time & Tolerance History
+## Autocorrelation Analysis
 
 BADASS will output the full history of parameter autocorrelation times and tolerances for every `write_iter` iterations.  This is done for post-fit analysis to assess how individual parameters behave as MCMC walkers converge on a solution.   Parameter autocorrelation times and tolerances are stored as arrays in a dictionary, which is saved as a numpy `.npy` file named `autocorr_dict.npy`, which can be accessed using the `numpy.load()` function: 
 
@@ -614,6 +627,40 @@ tol = autocorr_dict.item().get('NA_OIII5007_VOFF').get('tol')
 ```
 Note: `auto_stop` must be `True` in order to perform any autocorrelation analysis and output the autocorrelation files.
 
+# Examples
+
+## Single SDSS Spectrum
+
+The [BADASS3_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_single_spectrum.ipynb) notebook illustrates the basics of setting up the fit of a single SDSS spectrum, from defining fit parameters to calling sequence.
+
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/single_sdss_spectrum.png)
+
+## Single Non-SDSS Spectrum
+
+The [BADASS3_nonSDSS_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_nonSDSS_single_spectrum.ipynb) notebook illustrates the use of BADASS for a non-SDSS spectrum.  The user is expected to provide some basic information such as redshift, FWHM resolution, wavelength scale, and some form of a noise vector.  The FWHM resolution is necessary to accurately correct for instrumental dispersion and estimate the stellar LOSVD.  The noise vector need not be exact, since BADASS will scale the noise appropriately to achieve a reduced chi-squared of 1.
+
+This example performs a fit on a Keck LRIS spectrum of a Seyfert 1 galaxy from [Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract):
+
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/non_sdss_spectrum.png)
+
+## Multiple Spectra with Multiprocessing
+
+The [BADASS3_multi_spectra.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_multi_spectra.ipynb) notebook shows how to set up BADASS to use Python's multiprocessing capabilities to fit any number of spectra simultaneously.  The number of spectra that can be *efficiently* fit simultaneously ultimately depends on the number of CPUs your machine has.  The number of simultaneous processes is the only parameter the user needs to specify, and BADASS assigns a process (a fit) to each core.
+
+## MANGA IFU Cube Data
+
+Support for fitting IFU cubes is the newest feature of BADASS, spurred by the increasingly growing interest in studying outflows and AGN feedback using IFU data.  The [BADASS3_ifu_MANGA.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_ifu_MANGA.ipynb) notebook shows how to fit the standardized cubes produced by MANGA.  BADASS can also utilize the voronoi binning [VorBin](https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning) algorithm from [Cappellari & Copin (2003, MNRAS, 342, 345)](https://ui.adsabs.harvard.edu/abs/2003MNRAS.342..345C/abstract), as well as multiprocessing to quickly (for Python at least) fit cubes.
+
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/manga_cube_example.png)
+
+## Non-MANGA IFU Cube Data
+
+The []() notebook, similarly illustrates how to fit a generic cube data, similar to how non-SDSS spectra are fit in BADASS.  The user must provide some basic information about the data, but BADASS handles the data as standard NumPy arrays. 
+
+Here are some results of the Rodeo Cube (MUSE subcube of NGC 1386) from the [Large-Volume Spectroscopic Analyses of AGN and Star Forming Galaxies in the Era of JWST](https://www.stsci.edu/contents/events/stsci/2022/march/large-volume-spectroscopic-analyses-of-agn-and-star-forming-galaxies-in-the-era-of-jwst) workshop, during which BADASS and its new features were showcased:
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/LVS_rodeo_example.png)
+
+
 # How to
 ## Line Lists
 
@@ -621,22 +668,22 @@ The default line list built into BADASS references most of the [standard SDSS li
 
 ```python
 "NA_OIII_5007" :{"center"   :5008.240, # rest-frame wavelength of line
-         "amp"      :"free", # "free" parameter or tied to another valid parameter
-         "amp_init" : float, # initial guess value 
-         "amp_plim" : tuple, # tuple of (lower,upper) bounds of parameter
-         
-         "fwhm"     :"free", # "free" parameter or tied to another valid parameter
-         "fwhm_init": float, # initial guess value 
-         "fwhm_plim": tuple, # tuple of (lower,upper) bounds of parameter
-         
-         "voff"     :"free",  # "free" parameter or tied to another valid parameter
-         "voff_init": float, # initial guess value 
-         "voff_plim": tuple, # tuple of (lower,upper) bounds of parameter
-         
-         "line_type": "na", # line type ["na","br","out","abs", or "user]
-         "line_profile": "G" # Gaussian (G), Lorentzian (L), Voigt (V), or Gauss-Hermite (GH)
-         "label"    : string, # a name for the line for plotting purposes
-         },
+				 "amp"      :"free", # "free" parameter or tied to another valid parameter
+				 "amp_init" : float, # initial guess value 
+				 "amp_plim" : tuple, # tuple of (lower,upper) bounds of parameter
+				 
+				 "fwhm"     :"free", # "free" parameter or tied to another valid parameter
+				 "fwhm_init": float, # initial guess value 
+				 "fwhm_plim": tuple, # tuple of (lower,upper) bounds of parameter
+				 
+				 "voff"     :"free",  # "free" parameter or tied to another valid parameter
+				 "voff_init": float, # initial guess value 
+				 "voff_plim": tuple, # tuple of (lower,upper) bounds of parameter
+				 
+				 "line_type": "na", # line type ["na","br","out","abs", or "user]
+				 "line_profile": "G" # Gaussian (G), Lorentzian (L), Voigt (V), or Gauss-Hermite (GH)
+				 "label"    : string, # a name for the line for plotting purposes
+				 },
 ```
 
 If `_init` or `_plim` keys are not explicitly assigned, BADASS will assume some reasonable values based on the `line_type`.  There are additional keys available when `line_profile` is Voigt (a `shape` key) or Gauss-Hermite (higher orders `h3`, `h4`, etc.).  Keep in mind that BADASS will enforce line profiles defined in the `fit_options` for `line_types` `na`, `br`, `out`, and `abs`; if one wants to define a custom line that isn't the same line profile shape as those defined in `fit_options`, one should use the `user` `line_type`.
@@ -645,27 +692,27 @@ For example:
 
 ```python
 "NA_OIII_5007" :{"center"   : 5008.240, 
-         "amp"      : "free",
-         "fwhm"     : "free",
-         "voff"     : "free",
-         "line_type": "na",
-         "label"    : r"[O III]"
-         },
+				 "amp"      : "free",
+				 "fwhm"     : "free",
+				 "voff"     : "free",
+				 "line_type": "na",
+				 "label"    : r"[O III]"
+				 },
 ```
 
 or in a more general case
 
 ```python
 "RANDOM_USER_LINE" :{"center"      : 3094.394, # some random wavelength 
-             "amp"         : "free",
-             "fwhm"        : "free",
-             "voff"        : "free",
-             "h3"          : "free",
-             "h4"          : "free",
-             "line_type"   : "user",
-             "line_profile": "GH"
-             "label"       : r"User Line"
-         },
+				     "amp"         : "free",
+				     "fwhm"        : "free",
+				     "voff"        : "free",
+				     "h3"          : "free",
+				     "h4"          : "free",
+				     "line_type"   : "user",
+				     "line_profile": "GH"
+				     "label"       : r"User Line"
+				 },
 ```
 
 ## Hard Constraints 
@@ -673,21 +720,21 @@ or in a more general case
 BADASS uses the `numexpr` module to allow for hard constraints on line parameters (i.e., "tying" one line's parameter's to another line's parameters).  To do this, the only requirement is that the constraint be a valid free parameter.  The most common case is tying the [OIII] doublet widths and velocity offsets:
 
 ```python
-    "NA_OIII_4960" :{"center":4960.295,
-             "amp":"(NA_OIII_5007_AMP/2.98)", 
-             "fwhm":"NA_OIII_5007_FWHM", 
-             "voff":"NA_OIII_5007_VOFF", 
-             "line_type":"na" ,
-             "label":r"[O III]"
-             },
-             
-    "NA_OIII_5007" :{"center":5008.240, 
-             "amp":"free", 
-             "fwhm":"free", 
-             "voff":"free", 
-             "line_type":"na" ,
-             "label":r"[O III]"
-             },
+		"NA_OIII_4960" :{"center":4960.295,
+						 "amp":"(NA_OIII_5007_AMP/2.98)", 
+						 "fwhm":"NA_OIII_5007_FWHM", 
+						 "voff":"NA_OIII_5007_VOFF", 
+						 "line_type":"na" ,
+						 "label":r"[O III]"
+						 },
+						 
+		"NA_OIII_5007" :{"center":5008.240, 
+						 "amp":"free", 
+						 "fwhm":"free", 
+						 "voff":"free", 
+						 "line_type":"na" ,
+						 "label":r"[O III]"
+						 },
 
 ```
 This works because when we define `NA_OIII_5007`, free parameters are created for the amplitude (`NA_OIII_5007_AMP`), FWHM (`NA_OIII_5007_FWHM`) and velocity offset (`NA_OIII_5007_VOFF`), because we specified that they are *free* parameters.  These free parameters are the actual parameters that are solved for.  We can then reference those free valid parameters for `NA_OIII_4960`.  The power of the `numexpr` module is that we can also perform mathematical operations on those parameters *during* the fit, for example we can fix the amplitude of [OIII]4960 to be the [OIII]5007 amplitude divided by 2.93.  This makes implementing hard constraints very easy and is a very powerful feature.  With that said, you can do some pretty wild and unrealistic stuff, so use it responsibly.
@@ -695,9 +742,13 @@ This works because when we define `NA_OIII_5007`, free parameters are created fo
 ## Soft Constraints
 
 BADASS also uses the `numexpr` module to implement soft constrains on free parameters.  A soft constraint is defined here as a limit of a free parameter with respect to another free parameter, i.e., soft constraints are inequality constraints.  For example, if we want BADASS to enforce the requirement that broad H-beta has a greater FWHM than narrow [OIII]5007, we would say 
-$$(\rm{broad~H}\beta\rm{~FWHM}) >= (\rm{narrow~[OIII]5007~FWHM})$$
+
+<img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM})&space;>=&space;(\rm{narrow~[OIII]5007~FWHM})" title="https://latex.codecogs.com/png.image?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM}) >= (\rm{narrow~[OIII]5007~FWHM})" />
+
 or in the way the `scipy.optimize()` module requires it
-$$(\rm{broad~H}\beta\rm{~FWHM} )-  (\rm{narrow~[OIII]5007~FWHM}) >= 0$$
+
+<img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM}&space;)-&space;&space;(\rm{narrow~[OIII]5007~FWHM})&space;>=&space;0" title="https://latex.codecogs.com/png.image?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM} )- (\rm{narrow~[OIII]5007~FWHM}) >= 0" />
+
 In BADASS, this soft constraint would be implemented as a tuple of length 2: 
 ```python
 ("BR_H_BETA_FWHM","NA_OIII_5007_FWHM")
@@ -705,10 +756,10 @@ In BADASS, this soft constraint would be implemented as a tuple of length 2:
 By default BADASS includes the following list of soft constraints in the `initialize_pars()` function:
 ```python
 soft_cons = [
-      ("BR_H_BETA_FWHM","NA_OIII_5007_FWHM"), # broad H-beta width > narrow [OIII] width
-      ("BR_H_BETA_FWHM","OUT_OIII_5007_FWHM"), # broad H-beta width > outflow width
-      ("OUT_OIII_5007_FWHM","NA_OIII_5007_FWHM"), # outflow width > narrow [OIII] width
-      ]
+			("BR_H_BETA_FWHM","NA_OIII_5007_FWHM"), # broad H-beta width > narrow [OIII] width
+			("BR_H_BETA_FWHM","OUT_OIII_5007_FWHM"), # broad H-beta width > outflow width
+			("OUT_OIII_5007_FWHM","NA_OIII_5007_FWHM"), # outflow width > narrow [OIII] width
+			]
 ```
 
 
