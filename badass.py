@@ -1003,16 +1003,16 @@ def initialize_walkers(init_params,param_names,bounds,soft_cons,nwalkers,ndim):
 	# Create refereence dictionary for numexpr
 	pdict = {}
 	for k in range(0,len(param_names),1):
-	        pdict[param_names[k]] = init_params[k]
-	        
+		pdict[param_names[k]] = init_params[k]
+		
 	pos = init_params + 1.e-3 * np.random.randn(nwalkers,ndim)
- 	# First iterate through bounds
+	# First iterate through bounds
 	for j in range(np.shape(pos)[1]): # iterate through parameter
-	    for i in range(np.shape(pos)[0]): # iterate through walker
-	        if (pos[i][j]<bounds[j][0]) | (pos[i][j]>bounds[j][1]):
-	            while (pos[i][j]<bounds[j][0]) | (pos[i][j]>bounds[j][1]):
-	                pos[i][j] = init_params[j] + 1.e-3*np.random.randn(1)
-	#    
+		for i in range(np.shape(pos)[0]): # iterate through walker
+			if (pos[i][j]<bounds[j][0]) | (pos[i][j]>bounds[j][1]):
+				while (pos[i][j]<bounds[j][0]) | (pos[i][j]>bounds[j][1]):
+					pos[i][j] = init_params[j] + 1.e-3*np.random.randn(1)
+	
 	return pos
 
 #### Calculate Sysetemic Velocity ################################################
@@ -1041,7 +1041,7 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
 	flat = flat.flat
 
 	# Subsample the data into a manageable size for the kde and HDI
-	subsampled = np.random.choice(flat,size=10000)
+	subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
 	# Histogram; 'Doane' binning produces the best results from tests.
 	hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
@@ -6152,7 +6152,7 @@ def fit_model(params,
 				# conv_host = conv_host/np.median(conv_host) * p["HOST_TEMP_AMP"]
 				conv_host = conv_host * p["HOST_TEMP_AMP"]
 				host_galaxy = conv_host.reshape(-1)
-			elif np.shape(conv_host)[1]>1:
+			# elif np.shape(conv_host)[1]>1:
 				host_model[~np.isfinite(host_model)] = 0
 				conv_host[~np.isfinite(conv_host)]	= 0
 				# host_norm = np.median(host_model)
@@ -8261,21 +8261,21 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
 	# Plot 2: best fit values
 	values = [post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad]
 	labels = [r"$p(\theta|x)_{\rm{max}}$",
-          r"$\rm{CI\;68\%\;low}$",r"$\rm{CI\;68\%\;upp}$",
-          r"$\rm{CI\;95\%\;low}$",r"$\rm{CI\;95\%\;upp}$",
-          r"$\rm{Mean}$",r"$\rm{Std.\;Dev.}$",
-          r"$\rm{Median}$",r"$\rm{Med. Abs. Dev.}$"]
+		r"$\rm{CI\;68\%\;low}$",r"$\rm{CI\;68\%\;upp}$",
+		r"$\rm{CI\;95\%\;low}$",r"$\rm{CI\;95\%\;upp}$",
+		r"$\rm{Mean}$",r"$\rm{Std.\;Dev.}$",
+		r"$\rm{Median}$",r"$\rm{Med. Abs. Dev.}$"]
 	start, step = 1, 0.12
 	vspace = np.linspace(start,1-len(labels)*step,len(labels),endpoint=False)
 	# Plot 2: best fit values
 	for i in range(len(labels)):
-	    ax2.annotate('{0:>30}{1:<2}{2:<30.3f}'.format(labels[i],r"$\qquad=\qquad$",values[i]), 
-	                 xy=(0.5, vspace[i]),  xycoords='axes fraction',
-	                 xytext=(0.95, vspace[i]), textcoords='axes fraction',
-	                 horizontalalignment='right', verticalalignment='top', 
-	                 fontsize=10)
+		ax2.annotate('{0:>30}{1:<2}{2:<30.3f}'.format(labels[i],r"$\qquad=\qquad$",values[i]), 
+					xy=(0.5, vspace[i]),  xycoords='axes fraction',
+					xytext=(0.95, vspace[i]), textcoords='axes fraction',
+					horizontalalignment='right', verticalalignment='top', 
+					fontsize=10)
 	ax2.axis('off')
-	
+
 	# Plot 3: Chain plot
 	for w in range(0,np.shape(chain)[0],1):
 		ax3.plot(range(np.shape(chain)[1]),chain[w,:],color='white',linewidth=0.5,alpha=0.5,zorder=0)
@@ -8318,6 +8318,7 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
 		if verbose:
 			print('		  %s' % key)
 		chain = param_dict[key]['chain'] # shape = (nwalkers,niter)
+		chain[~np.isfinite(chain)] = 0
 		# Burned-in + Flattened (along walker axis) chain
 		# If burn_in is larger than the size of the chain, then 
 		# take 50% of the chain length instead.
@@ -8417,7 +8418,7 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
 	# upp1   = p[2]-p[1]
 
 	# Subsample the data into a manageable size for the kde and HDI
-	subsampled = np.random.choice(flat,size=10000)
+	subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
 	# Histogram; 'Doane' binning produces the best results from tests.
 	hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
@@ -8603,6 +8604,7 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
 		if verbose:
 			print('		  %s' % key)
 		chain = lum_dict[key]['chain'] # shape = (nwalkers,niter)
+		chain[~np.isfinite(chain)] = 0
 
 		# Burned-in + Flattened (along walker axis) chain
 		# If burn_in is larger than the size of the chain, then 
@@ -8700,6 +8702,7 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
 		if verbose:
 			print('		  %s' % key)
 		chain = eqwidth_dict[key]['chain'] # shape = (nwalkers,niter)
+		chain[~np.isfinite(chain)] = 0
 
 		# Burned-in + Flattened (along walker axis) chain
 		# If burn_in is larger than the size of the chain, then 
@@ -8872,6 +8875,7 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
 		if verbose:
 			print('		  %s' % key)
 		chain = cont_lum_dict[key]['chain'] # shape = (nwalkers,niter)
+		chain[~np.isfinite(chain)] = 0
 
 		# Burned-in + Flattened (along walker axis) chain
 		# If burn_in is larger than the size of the chain, then 
@@ -8970,6 +8974,7 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
 		if verbose:
 			print('		  %s' % key)
 		chain = int_vel_disp_dict[key]['chain'] # shape = (nwalkers,niter)
+		chain[~np.isfinite(chain)] = 0
 
 		# Burned-in + Flattened (along walker axis) chain
 		# If burn_in is larger than the size of the chain, then 
