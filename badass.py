@@ -1041,7 +1041,7 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
 	flat = flat.flat
 
 	# Subsample the data into a manageable size for the kde and HDI
-	if length(flat[np.isfinite(flat)]) > 0:
+	if len(flat[np.isfinite(flat)]) > 0:
 		subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
 		# Histogram; 'Doane' binning produces the best results from tests.
@@ -8344,7 +8344,7 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
 		flat = flat.flat
 
 		# Subsample the data into a manageable size for the kde and HDI
-		if length(flat) > 0:
+		if len(flat) > 0:
 			subsampled = np.random.choice(flat,size=10000)
 
 			# Histogram; 'Doane' binning produces the best results from tests.
