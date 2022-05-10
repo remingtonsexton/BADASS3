@@ -6153,8 +6153,8 @@ def fit_model(params,
 				conv_host = conv_host * p["HOST_TEMP_AMP"]
 				host_galaxy = conv_host.reshape(-1)
 			# elif np.shape(conv_host)[1]>1:
-				host_model[~np.isfinite(host_model)] = 0
-				conv_host[~np.isfinite(conv_host)]	= 0
+			host_model[~np.isfinite(host_model)] = 0
+			conv_host[~np.isfinite(conv_host)]	= 0
 				# host_norm = np.median(host_model)
 				# if (host_norm/host_norm!=1):
 				# 	host_norm = 1
