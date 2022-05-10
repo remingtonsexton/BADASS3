@@ -59,17 +59,26 @@ def read_muse_ifu(fits_file,z=0):
             # Variance (sigma2) for the above [NX x NY x NWAVE], convert to 10(-17)
             var = hdu[2].data
             # Wavelength vector must be reconstructed, convert from nm to angstroms
-            # Purposely de-correct the redshift (if one is given) since it will be re-corrected later
-            wave = np.linspace(primary['WAVELMIN'], primary['WAVELMAX'], nz) * 10 * (1+z)
+            wave = np.linspace(primary['WAVELMIN'], primary['WAVELMAX'], nz) * 10
             # Median spectral resolution at (wavelmin + wavelmax)/2
-            cwave = (primary['WAVELMIN'] + primary['WAVELMAX']) / 2
-            dlambda = cwave / primary['SPEC_RES']
+            # dlambda = cwave / primary['SPEC_RES']
+            # specres = wave / dlambda
+            # Default behavior for MUSE data cubes using https://www.aanda.org/articles/aa/pdf/2017/12/aa30833-17.pdf equation 7
+            dlambda = 5.835e-8 * wave**2 - 9.080e-4 * wave + 5.983
             specres = wave / dlambda
+            # Scale by the measured spec_res at the central wavelength
+            spec_cent = primary['SPEC_RES']
+            cwave = (primary['WAVELMIN'] + primary['WAVELMAX']) / 2
+            c_dlambda = 5.835e-8 * cwave**2 - 9.080e-4 * cwave + 5.983
+            scale = 1 + (spec_cent - cwave/c_dlambda)
+            specres *= scale
         except:
             flux = hdu[0].data
             var = (0.1 * flux)**2
             wave = np.arange(primary['CRVAL3'], primary['CRVAL3']+primary['CDELT3']*(nz-1), primary['CDELT3'])
-            specres = wave / 2.6
+            # specres = wave / 2.6
+            dlambda = 5.835e-8 * wave**2 - 9.080e-4 * wave + 5.983
+            specres = wave / dlambda
 
     ivar = 1/var
     mask = np.zeros_like(flux)
@@ -372,9 +381,14 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
     # flux_sum[flux_sum==0] = np.nan
     flux_avg = flux_sum / flux.shape[0]
     noise_sum = np.nanmedian(np.sqrt(1/ivar), axis=0)
+    flux_max_unbinned = np.nanmax(flux, axis=0)
+    noise_max_unbinned = np.nanmax(np.sqrt(1/ivar), axis=0)
+
     if np.any(binnum):
         flux_bin = np.zeros(np.nanmax(binnum)+1)
         noise_bin = np.zeros(np.nanmax(binnum)+1)
+        flux_max = np.zeros(np.nanmax(binnum)+1)
+        noise_max = np.zeros(np.nanmax(binnum)+1)
 
         for bin in range(np.nanmax(binnum)+1):
             _x = xpixbin[bin]
@@ -382,6 +396,8 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
             for i in range(len(_x)):
                 flux_bin[bin] += flux_avg[_y[i], _x[i]]
                 noise_bin[bin] += noise_sum[_y[i], _x[i]]
+                flux_max[bin] = np.nanmax([flux_max[bin], np.nanmax(flux[:, _y[i], _x[i]])])
+                noise_max[bin] = np.nanmax([noise_max[bin], np.nanmax(np.sqrt(1/ivar)[:, _y[i], _x[i]])])
         flux_bin /= npixels
         noise_bin /= npixels
         for bin in range(np.nanmax(binnum)+1):
@@ -390,12 +406,15 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
             for i in range(len(_x)):
                 flux_avg[_y[i], _x[i]] = flux_bin[bin]
                 noise_sum[_y[i], _x[i]] = noise_bin[bin]
+                flux_max_unbinned[_y[i], _x[i]] = flux_max[bin]
+                noise_max_unbinned[_y[i], _x[i]] = noise_max[bin]
 
     # This is rapidly making me lose the will to live
-    cbar_data = ax1.imshow(flux_avg, origin='lower', cmap='cubehelix')
-    cbar_noise = ax2.imshow(np.log10(noise_sum), origin='lower', cmap='cubehelix')
-    cbar = plt.colorbar(cbar_data, ax=ax1, label=r'$\bar{f_\lambda}$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$ spaxel$^{-1}$)')
-    cbar2 = plt.colorbar(cbar_noise, ax=ax2, label=r'$\log{(\sigma_{\rm med})}$')
+    base = 10
+    cbar_data = ax1.imshow(np.log(flux_max_unbinned*base+1)/np.log(base), origin='lower', cmap='cubehelix')
+    cbar_noise = ax2.imshow(np.log(noise_sum*base+1)/np.log(base), origin='lower', cmap='cubehelix')
+    cbar = plt.colorbar(cbar_data, ax=ax1, label=r'$\log_{10}{(f_{\lambda,max})}$ ($10^{-17}$ erg s$^{-1}$ cm$^{-2}$ spaxel$^{-1}$)')
+    cbar2 = plt.colorbar(cbar_noise, ax=ax2, label=r'$\log_{10}{(\Sigma\sigma)}$ ($10^{-17}$ erg s$^{-1}$ cm$^{-2}$ spaxel$^{-1}$)')
 
     if aperture:
         aper = plt.Rectangle((aperture[2]-.5, aperture[0]-.5), aperture[3]-aperture[2]+1, aperture[1]-aperture[0]+1, color='red',
