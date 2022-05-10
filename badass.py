@@ -1041,7 +1041,7 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
 	flat = flat.flat
 
 	# Subsample the data into a manageable size for the kde and HDI
-	if flat[np.isfinite(flat)].size > 0:
+	if length(flat[np.isfinite(flat)]) > 0:
 		subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
 		# Histogram; 'Doane' binning produces the best results from tests.
@@ -8344,7 +8344,7 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
 		flat = flat.flat
 
 		# Subsample the data into a manageable size for the kde and HDI
-		if flat.size > 0:
+		if length(flat) > 0:
 			subsampled = np.random.choice(flat,size=10000)
 
 			# Histogram; 'Doane' binning produces the best results from tests.
@@ -8446,7 +8446,7 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
 	# upp1   = p[2]-p[1]
 
 	# Subsample the data into a manageable size for the kde and HDI
-	if flat[np.isfinite(flat)].size > 0:
+	if length(flat[np.isfinite(flat)]) > 0:
 		subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
 		# Histogram; 'Doane' binning produces the best results from tests.
@@ -8559,7 +8559,7 @@ def flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=True,verbos
 		flat = flat.flat
 
 		# Subsample the data into a manageable size for the kde and HDI
-		if flat.size > 0:
+		if length(flat) > 0:
 			subsampled = np.random.choice(flat,size=10000)
 
 			# Histogram; 'Doane' binning produces the best results from tests.
@@ -8673,7 +8673,7 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
 		flat = flat.flat
 
 		# Subsample the data into a manageable size for the kde and HDI
-		if flat.size > 0:
+		if length(flat) > 0:
 			subsampled = np.random.choice(flat,size=10000)
 
 			# Histogram; 'Doane' binning produces the best results from tests.
@@ -8783,7 +8783,7 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
 		flat = flat.flat
 
 		# Subsample the data into a manageable size for the kde and HDI
-		if flat.size > 0:
+		if length(flat) > 0:
 			subsampled = np.random.choice(flat,size=10000)
 
 			# Histogram; 'Doane' binning produces the best results from tests.
@@ -8969,7 +8969,7 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
 		flat = flat.flat
 
 		# Subsample the data into a manageable size for the kde and HDI
-		if flat.size > 0:
+		if length(flat) > 0:
 			subsampled = np.random.choice(flat,size=10000)
 
 			# Histogram; 'Doane' binning produces the best results from tests.
@@ -9081,7 +9081,7 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
 		flat = flat.flat
 
 		# Subsample the data into a manageable size for the kde and HDI
-		if flat.size > 0:
+		if length(flat) > 0:
 			subsampled = np.random.choice(flat,size=10000)
 
 			# Histogram; 'Doane' binning produces the best results from tests.
