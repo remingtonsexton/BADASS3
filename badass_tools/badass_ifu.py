@@ -72,7 +72,7 @@ def read_muse_ifu(fits_file,z=0):
             spec_cent = primary['SPEC_RES']
             cwave = np.nanmedian(wave)
             c_dlambda = 5.835e-8 * cwave**2 - 9.080e-4 * cwave + 5.983
-            scale = 1 + (spec_cent - cwave/c_dlambda)
+            scale = 1 + (spec_cent - cwave/c_dlambda) / spec_cent
             specres *= scale
         except:
             flux = hdu[0].data

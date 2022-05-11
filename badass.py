@@ -1972,7 +1972,10 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
 	# wdisp = t['wdisp'][mask]		# Intrinsic dispersion of every pixel, in pixels units
 	# fwhm_gal = 2.355*wdisp*dlam_gal # Resolution FWHM of every pixel, in angstroms
 	# velscale = np.log(frac)*c	   # Constant velocity scale in km/s per pixel
-	fwhm_gal = np.interp(lam_gal, lam_gal[:-1], fwhm/frac*dlam_gal[:-1])
+	if type(fwhm) in (list, np.ndarray):
+		fwhm_gal = fwhm
+	else:
+		fwhm_gal = np.full(lam_gal.shape, fill_value=fwhm)
 
 	velscale = velscale[0]
 
@@ -2093,7 +2096,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
 		ebv = 0.04  # average Galactic E(B-V)
 
 	if format != 'MANGA':
-		lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['fwhm_res'][len(t['fwhm_res'])//2],z,ebv,fit_reg,
+		lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['fwhm_res'],z,ebv,fit_reg,
 																					   mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=verbose,plot=plot)
 
 		return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good,binnum,spaxelx,spaxely
