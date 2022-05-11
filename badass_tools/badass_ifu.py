@@ -59,7 +59,9 @@ def read_muse_ifu(fits_file,z=0):
             # Variance (sigma2) for the above [NX x NY x NWAVE], convert to 10(-17)
             var = hdu[2].data
             # Wavelength vector must be reconstructed, convert from nm to angstroms
-            wave = np.linspace(primary['WAVELMIN'], primary['WAVELMAX'], nz) * 10
+            header = hdu[1].header
+            wave = np.array(header['CRVAL3'] + header['CD3_3']*np.arange(header['NAXIS3']))
+            # wave = np.linspace(primary['WAVELMIN'], primary['WAVELMAX'], nz) * 10
             # Median spectral resolution at (wavelmin + wavelmax)/2
             # dlambda = cwave / primary['SPEC_RES']
             # specres = wave / dlambda
@@ -68,7 +70,7 @@ def read_muse_ifu(fits_file,z=0):
             specres = wave / dlambda
             # Scale by the measured spec_res at the central wavelength
             spec_cent = primary['SPEC_RES']
-            cwave = (primary['WAVELMIN'] + primary['WAVELMAX']) / 2
+            cwave = np.nanmedian(wave)
             c_dlambda = 5.835e-8 * cwave**2 - 9.080e-4 * cwave + 5.983
             scale = 1 + (spec_cent - cwave/c_dlambda)
             specres *= scale
