@@ -523,7 +523,6 @@ def run_single_thread(fits_file,
 			   plot_options,output_options),'fit_information',run_dir)
 
 	####################################################################################################################################################################################
-
 	# Generate host-galaxy template
 	if (fit_host==True) & (lam_gal[0]>1680.2):
 		host_template = generate_host_template(lam_gal, host_options, fwhm_gal,fit_mask, velscale, verbose=verbose)
@@ -1973,7 +1972,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
 	# fwhm_gal = 2.355*wdisp*dlam_gal # Resolution FWHM of every pixel, in angstroms
 	# velscale = np.log(frac)*c	   # Constant velocity scale in km/s per pixel
 	if type(fwhm) in (list, np.ndarray):
-		fwhm_gal = fwhm
+		fwhm_gal = fwhm[mask]
 	else:
 		fwhm_gal = np.full(lam_gal.shape, fill_value=fwhm)
 
