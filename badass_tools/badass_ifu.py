@@ -477,11 +477,14 @@ def reconstruct_ifu(fits_file):
     if len(most_recent_mcmc) == 0:
         raise NotADirectoryError(f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
     most_recent_mcmc = sorted(most_recent_mcmc)[-1]
-    par_table = os.path.join(most_recent_mcmc, 'log', 'par_table.fits')
-    best_model_components = os.path.join(most_recent_mcmc, 'log', 'best_model_components.fits')
-    if not os.path.isfile(par_table) or not os.path.isfile(best_model_components):
-        raise FileNotFoundError(f"The FITS files for {par_table} and/or {best_model_components} do not exist! Fit before calling reconstruct")
-
+    par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
+    best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
+    if len(par_table) < 1 or len(best_model_components) < 1:
+        raise FileNotFoundError(
+            f"The FITS files for {par_table} and/or {best_model_components} do not exist! Fit before calling reconstruct")
+    par_table = par_table[0]
+    best_model_components = best_model_components[0]
+    
     # Load in the FITS files
     with fits.open(par_table) as parhdu, fits.open(best_model_components) as bmchdu:
         # Get the bin number and x/y coord(s)
