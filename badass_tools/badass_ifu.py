@@ -575,6 +575,11 @@ def reconstruct_ifu(fits_file):
 
     iterable = enumerate(subdirs) if tqdm is None else tqdm.tqdm(enumerate(subdirs), total=len(subdirs))
     Parallel(n_jobs=-1, require='sharedmem')(delayed(append_spaxel)(i, subdir) for i, subdir in iterable)
+    for i in range(len(xpixbin)):
+        if type(xpixbin[i]) in (float, np.float_) and np.isnan(xpixbin[i]):
+            xpixbin[i] = []
+        if type(ypixbin[i]) in (float, np.float_) and np.isnan(ypixbin[i]):
+            ypixbin[i] = []
 
     maxx = -np.inf
     maxy = -np.inf
