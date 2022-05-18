@@ -586,10 +586,10 @@ def reconstruct_ifu(fits_file):
     minx = np.inf
     miny = np.inf
     for j in range(nbins):
-        maxx = np.nanmax([maxx, np.nanmax(xpixbin[j])])
-        maxy = np.nanmax([maxy, np.nanmax(ypixbin[j])])
-        minx = np.nanmin([minx, np.nanmin(xpixbin[j])])
-        miny = np.nanmin([miny, np.nanmin(ypixbin[j])])
+        maxx = np.nanmax([maxx, np.nanmax(xpixbin[j]) if len(xpixbin[j]) > 0 else np.nan])
+        maxy = np.nanmax([maxy, np.nanmax(ypixbin[j]) if len(ypixbin[j]) > 0 else np.nan])
+        minx = np.nanmin([minx, np.nanmin(xpixbin[j]) if len(xpixbin[j]) > 0 else np.nan])
+        miny = np.nanmin([miny, np.nanmin(ypixbin[j]) if len(ypixbin[j]) > 0 else np.nan])
 
     # Reconstruct original shape
     nx = int(maxx - minx + 1)
