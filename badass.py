@@ -268,7 +268,26 @@ def run_BADASS(data,
 	if nprocesses is None:
 		nprocesses = int(np.ceil(mp.cpu_count()/2))
 
-	if os.path.isdir(data):
+	if isinstance(data, list):
+		# Print memory of the python process at the start
+		process = psutil.Process(os.getpid())
+		print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
+
+		files = data
+		arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, user_lines, user_constraints, user_mask,
+					  combined_lines, losvd_options, host_options, power_options, opt_feii_options, uv_iron_options, balmer_options,
+					  outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv) for file in files]
+
+		# map arguments to function
+		if len(files) > 1:
+			pool = mp.Pool(processes=nprocesses, maxtasksperchild=1)
+			pool.starmap(run_single_thread, arguments, chunksize=1)
+			pool.close()
+			pool.join()
+		else:
+			run_single_thread(*arguments[0])
+
+	elif os.path.isdir(data):
 		# Get locations of sub-directories for each fit within the parent data directory
 		spec_loc = natsort.natsorted(glob.glob(os.path.join(data, '*')))
 		if nobj is not None:
