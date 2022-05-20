@@ -477,10 +477,13 @@ def reconstruct_ifu(fits_file):
     if len(most_recent_mcmc) == 0:
         raise NotADirectoryError(f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
     most_recent_mcmc = sorted(most_recent_mcmc)[-1]
-    par_table = os.path.join(most_recent_mcmc, 'log', 'par_table.fits')
-    best_model_components = os.path.join(most_recent_mcmc, 'log', 'best_model_components.fits')
-    if not os.path.isfile(par_table) or not os.path.isfile(best_model_components):
-        raise FileNotFoundError(f"The FITS files for {par_table} and/or {best_model_components} do not exist! Fit before calling reconstruct")
+    par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
+    best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
+    if len(par_table) < 1 or len(best_model_components) < 1:
+        raise FileNotFoundError(
+            f"The FITS files for {most_recent_mcmc} do not exist! Fit before calling reconstruct")
+    par_table = par_table[0]
+    best_model_components = best_model_components[0]
 
     # Load in the FITS files
     with fits.open(par_table) as parhdu, fits.open(best_model_components) as bmchdu:
@@ -534,11 +537,14 @@ def reconstruct_ifu(fits_file):
             raise NotADirectoryError(
                 f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
         most_recent_mcmc = sorted(most_recent_mcmc)[-1]
-        par_table = os.path.join(most_recent_mcmc, 'log', 'par_table.fits')
-        best_model_components = os.path.join(most_recent_mcmc, 'log', 'best_model_components.fits')
-        if not os.path.isfile(par_table) or not os.path.isfile(best_model_components):
-            raise FileNotFoundError(
-                f"The FITS files for {par_table} and/or {best_model_components} do not exist! Fit before calling reconstruct")
+        par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
+        best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
+        if len(par_table) < 1 or len(best_model_components) < 1:
+            # raise FileNotFoundError(
+                # f"The FITS files for {most_recent_mcmc} do not exist! Fit before calling reconstruct")
+            return
+        par_table = par_table[0]
+        best_model_components = best_model_components[0]
 
         # Load in the FITS files
         with fits.open(par_table) as parhdu, fits.open(best_model_components) as bmchdu:
@@ -569,16 +575,21 @@ def reconstruct_ifu(fits_file):
 
     iterable = enumerate(subdirs) if tqdm is None else tqdm.tqdm(enumerate(subdirs), total=len(subdirs))
     Parallel(n_jobs=-1, require='sharedmem')(delayed(append_spaxel)(i, subdir) for i, subdir in iterable)
+    for i in range(len(xpixbin)):
+        if type(xpixbin[i]) in (float, np.float_) and np.isnan(xpixbin[i]):
+            xpixbin[i] = []
+        if type(ypixbin[i]) in (float, np.float_) and np.isnan(ypixbin[i]):
+            ypixbin[i] = []
 
     maxx = -np.inf
     maxy = -np.inf
     minx = np.inf
     miny = np.inf
     for j in range(nbins):
-        maxx = np.nanmax([maxx, np.nanmax(xpixbin[j])])
-        maxy = np.nanmax([maxy, np.nanmax(ypixbin[j])])
-        minx = np.nanmin([minx, np.nanmin(xpixbin[j])])
-        miny = np.nanmin([miny, np.nanmin(ypixbin[j])])
+        maxx = np.nanmax([maxx, np.nanmax(xpixbin[j]) if len(xpixbin[j]) > 0 else np.nan])
+        maxy = np.nanmax([maxy, np.nanmax(ypixbin[j]) if len(ypixbin[j]) > 0 else np.nan])
+        minx = np.nanmin([minx, np.nanmin(xpixbin[j]) if len(xpixbin[j]) > 0 else np.nan])
+        miny = np.nanmin([miny, np.nanmin(ypixbin[j]) if len(ypixbin[j]) > 0 else np.nan])
 
     # Reconstruct original shape
     nx = int(maxx - minx + 1)
