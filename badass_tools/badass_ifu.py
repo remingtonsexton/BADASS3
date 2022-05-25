@@ -554,15 +554,18 @@ def reconstruct_ifu(fits_file):
         # Find each MCMC output
         most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
         if len(most_recent_mcmc) == 0:
-            raise NotADirectoryError(
-                f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
+            # raise NotADirectoryError(
+            # f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
+            print(f"WARNING: MCMC folder for {subdir} not found!")
+            return
         most_recent_mcmc = sorted(most_recent_mcmc)[-1]
         par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
         best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
         test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
         if len(par_table) < 1 or len(best_model_components) < 1:
             # raise FileNotFoundError(
-                # f"The FITS files for {most_recent_mcmc} do not exist! Fit before calling reconstruct")
+            # f"The FITS files for {most_recent_mcmc} do not exist! Fit before calling reconstruct")
+            print(f"WARNING: FITS files for {most_recent_mcmc} not found!")
             return
         par_table = par_table[0]
         best_model_components = best_model_components[0]
