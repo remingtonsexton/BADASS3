@@ -322,14 +322,14 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
             primaryhdu.header.append(('NX', nx, 'x dimension of the full MANGA cube'), end=True)
             primaryhdu.header.append(('NY', ny, 'y dimension of the full MANGA cube'), end=True)
             coadd = fits.BinTableHDU.from_columns(fits.ColDefs([
-                fits.Column(name='flux', array=galaxy_spaxel, format='E'),
-                fits.Column(name='loglam', array=loglam, format='E'),
-                fits.Column(name='ivar', array=ivar_spaxel, format='E'),
-                fits.Column(name='and_mask', array=mask_spaxel, format='E'),
-                fits.Column(name='fwhm_res', array=fwhm_res, format='E')
+                fits.Column(name='flux', array=galaxy_spaxel, format='D'),
+                fits.Column(name='loglam', array=loglam, format='D'),
+                fits.Column(name='ivar', array=ivar_spaxel, format='D'),
+                fits.Column(name='and_mask', array=mask_spaxel, format='D'),
+                fits.Column(name='fwhm_res', array=fwhm_res, format='D')
             ]))
             specobj = fits.BinTableHDU.from_columns(fits.ColDefs([
-                fits.Column(name='z', array=np.array([z]), format='E'),
+                fits.Column(name='z', array=np.array([z]), format='D'),
                 # fits.Column(name='ebv', array=np.array([ebv]), format='E')
             ]))
             specobj.header.append(('PLUG_RA', ra, 'Right ascension'), end=True)
