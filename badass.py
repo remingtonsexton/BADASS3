@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3), Version 9.1.1, Python 3.8 Version
+"""Bayesian AGN Decomposition Analysis for SDSS Spectra (BADASS3)
 
 BADASS is an open-source spectral analysis tool designed for detailed decomposition
 of Sloan Digital Sky Survey (SDSS) spectra, and specifically designed for the 
@@ -64,7 +64,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.1.1"
+__version__	= "9.1.4"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -350,7 +350,13 @@ def run_single_thread(fits_file,
     # Import options if options_file given
     if options_file is not None:
         try:
-            options = importlib.import_module(options_file)
+
+            opt_file = pathlib.Path(options_file)
+            if not opt_file.exists():
+                raise ValueError("\n Options file not found!\n")
+
+            sys.path.append(str(opt_file.parent))
+            options = importlib.import_module(opt_file.stem)
             # print("\n Successfully imported options file!\n")
             if hasattr(options,"fit_options"):
                 fit_options			 = options.fit_options
@@ -1917,13 +1923,26 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
         return mask
 
     # First, we must log-rebin the linearly-binned input spectrum
-    lamRange = (np.min(wave),np.max(wave))
-    galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=True)
-    noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=True)
-    lam_gal = np.exp(logLam)	
+    if np.isclose(wave[1]-wave[0],wave[-1]-wave[-2]):
+        lamRange = (np.min(wave),np.max(wave))
+        galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=True)
+        noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=True)
+        lam_gal = np.exp(logLam)
+    else: 
+        # Assume spectra are already log-rebinned
+        c = 299792.458
+        frac = wave[-1]/wave[-2]
+        velscale = [np.log(frac)*c]
+        galaxy = spec
+        lam_gal = wave 
+        noise = err
 
     mask = generate_mask(fit_min, fit_max, lam_gal/(1+z) )
     
+    if len(noise)<len(galaxy):
+        diff = len(galaxy)-len(noise)
+        noise = np.append(noise,np.full_like(np.nanmedian(noise),diff))
+
     galaxy = galaxy[mask]
     lam_gal = lam_gal[mask]
     noise = noise[mask]
@@ -1955,6 +1974,16 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
         metal_mask_bad = metal_masker(lam_gal,galaxy,noise)
         for b in metal_mask_bad:
             fit_mask_bad.append(b)
+
+    # Mask pixels exactly equal to zero (but not negative pixels)
+    mask_zeros = True 
+    edge_mask_pix = 5 
+    zero_pix = np.where(galaxy==0)[0]
+    if mask_zeros:
+        for i in zero_pix:
+            m = np.arange(i-edge_mask_pix,i+edge_mask_pix,1)
+            for b in m:
+                fit_mask_bad.append(b)
 
     fit_mask_bad = np.sort(np.unique(fit_mask_bad))
     fit_mask_good = np.setdiff1d(np.arange(0,len(lam_gal),1,dtype=int),fit_mask_bad)
@@ -3200,6 +3229,10 @@ def add_fwhm_res(line_list,lam_gal,fwhm_gal,velscale,verbose=True):
 #### Initialize Line Parameters ##################################################
 
 def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
+
+    # Smooth galaxy by a small amount to get rid of 
+    # noise spike (for low S/N spectra)
+    galaxy = gaussian_filter1d(galaxy,2.)
 
     def get_init_amp(line_center):
         line_center = float(line_center)
@@ -5623,7 +5656,7 @@ def lnlike(params,
 
     else:
         # The maximum likelihood routine [by default] minimizes the negative likelihood
-        # Thus for fit_stat="LS", the SSR must be multiplied by -1 to minimize it. 
+        # Thus for fit_stat="OLS", the SSR must be multiplied by -1 to minimize it. 
 
         model, comp_dict = fit_model(params,
                                      param_names,
@@ -6736,6 +6769,8 @@ def VC04_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vel
     elif (opt_feii_options['opt_fwhm_const']['bool']==True): # if amp constant
         na_opt_feii_fwhm = opt_feii_options['opt_fwhm_const']['na_opt_feii_val']
         br_opt_feii_fwhm = opt_feii_options['opt_fwhm_const']['br_opt_feii_val']
+    if na_opt_feii_fwhm<=0.01: na_opt_feii_fwhm = 0.01
+    if br_opt_feii_fwhm<=0.01: br_opt_feii_fwhm = 0.01
     #
     if (opt_feii_options['opt_voff_const']['bool']==False): # if amp not constant
         na_opt_feii_voff = p['NA_OPT_FEII_VOFF']
@@ -6894,6 +6929,7 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         opt_feii_fwhm = p['OPT_FEII_FWHM']
     elif (opt_feii_options['opt_fwhm_const']['bool']==True): # if fwhm constant
         opt_feii_fwhm = opt_feii_options['opt_fwhm_const']['opt_feii_val']
+    if opt_feii_fwhm<= 0.01: opt_feii_fwhm = 0.01
     #
     if (opt_feii_options['opt_voff_const']['bool']==False): # if voff not constant
         opt_feii_voff = p['OPT_FEII_VOFF']
@@ -7108,6 +7144,7 @@ def VW01_uv_iron_template(lam_gal, pdict, uv_iron_template, uv_iron_options, vel
         uv_iron_fwhm = pdict['UV_IRON_FWHM']
     elif (uv_iron_options['uv_fwhm_const']['bool']==True): # if amp constant
         uv_iron_fwhm = uv_iron_options['uv_fwhm_const']['uv_iron_val']
+    if uv_iron_fwhm <= 0.01: uv_iron_fwhm = 0.01
     if (uv_iron_options['uv_voff_const']['bool']==False): # if amp not constant
         uv_iron_voff = pdict['UV_IRON_VOFF']
     elif (uv_iron_options['uv_voff_const']['bool']==True): # if amp constant
@@ -7178,6 +7215,7 @@ def generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer,velscale,
     balmer_fft, balmer_npad = template_rfft(full_balmer)
     c = 299792.458 # speed of light in km/s
     vsyst = np.log(lam_balmer[0]/lam_gal[0])*c
+    if balmer_fwhm<= 0.01: balmer_fwhm = 0.01
     # Broaden the higher-order Balmer lines
     conv_temp = convolve_gauss_hermite(balmer_fft, balmer_npad, float(velscale),\
                                        [balmer_voff, balmer_fwhm/2.3548], lam_gal.shape[0], 
@@ -7289,6 +7327,7 @@ def gaussian_line_profile(lam_gal,center,amp,fwhm,voff,center_pix,fwhm_res_kms,v
     fwhm = np.sqrt(fwhm**2+fwhm_res_kms**2)
     sigma = fwhm/2.3548 # Gaussian dispersion in km/s
     sigma_pix = sigma/(velscale) # dispersion in pixels (velscale = km/s/pixel)
+    if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix = voff/(velscale) # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
@@ -7315,6 +7354,7 @@ def lorentzian_line_profile(lam_gal,center,amp,fwhm,voff,center_pix,fwhm_res_kms
     # Take into account instrumental dispersion (FWHM resolution)
     fwhm = np.sqrt(fwhm**2+fwhm_res_kms**2)
     fwhm_pix = fwhm/velscale # fwhm in pixels (velscale = km/s/pixel)
+    if fwhm_pix<=0.01: fwhm_pix = 0.01
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
@@ -7347,6 +7387,7 @@ def gauss_hermite_line_profile(lam_gal,center,amp,fwhm,voff,hmoments,center_pix,
     # Take into account instrumental dispersion (FWHM resolution)
     fwhm = np.sqrt(fwhm**2+fwhm_res_kms**2)
     sigma_pix = fwhm/2.3548/velscale # dispersion in pixels (velscale = km/s/pixel)
+    if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
@@ -7399,7 +7440,9 @@ def voigt_line_profile(lam_gal,center,amp,fwhm,voff,shape,center_pix,fwhm_res_km
     # Take into account instrumental dispersion (FWHM resolution)
     fwhm	   = np.sqrt(fwhm**2+fwhm_res_kms**2)
     fwhm_pix   = fwhm/velscale # fwhm in pixels (velscale = km/s/pixel)
+    if fwhm_pix<=0.01: fwhm_pix = 0.01
     sigma_pix  = fwhm_pix/2.3548
+    if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix   = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
@@ -7461,6 +7504,10 @@ def gaussian_filter1d(spec, sig):
     :return: spec convolved with a Gaussian with dispersion sig
 
     """
+
+    if isinstance(sig,(int,float)):
+        sig = np.full_like(spec,float(sig))
+
     sig = sig.clip(0.01)  # forces zero sigmas to have 0.01 pixels
     p = int(np.ceil(np.max(3*sig)))
     m = 2*p + 1  # kernel size

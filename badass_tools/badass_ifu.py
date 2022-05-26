@@ -388,6 +388,7 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
     flux_max_unbinned = np.nanmax(flux, axis=0)
     noise_max_unbinned = np.nanmax(np.sqrt(1/ivar), axis=0)
 
+
     if np.any(binnum):
         flux_bin = np.zeros(np.nanmax(binnum)+1)
         noise_bin = np.zeros(np.nanmax(binnum)+1)
@@ -404,6 +405,7 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
                 noise_max[bin] = np.nanmax([noise_max[bin], np.nanmax(np.sqrt(1/ivar)[:, _y[i], _x[i]])])
         flux_bin /= npixels
         noise_bin /= npixels
+
         for bin in range(np.nanmax(binnum)+1):
             _x = xpixbin[bin]
             _y = ypixbin[bin]
