@@ -392,8 +392,8 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
     if np.any(binnum):
         flux_bin = np.zeros(np.nanmax(binnum)+1)
         noise_bin = np.zeros(np.nanmax(binnum)+1)
-        flux_max = np.zeros(np.nanmax(binnum)+1)
-        noise_max = np.zeros(np.nanmax(binnum)+1)
+        # flux_max = np.zeros(np.nanmax(binnum)+1)
+        # noise_max = np.zeros(np.nanmax(binnum)+1)
 
         for bin in range(np.nanmax(binnum)+1):
             _x = xpixbin[bin]
@@ -401,8 +401,8 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
             for i in range(len(_x)):
                 flux_bin[bin] += flux_avg[_y[i], _x[i]]
                 noise_bin[bin] += noise_sum[_y[i], _x[i]]
-                flux_max[bin] = np.nanmax([flux_max[bin], np.nanmax(flux[:, _y[i], _x[i]])])
-                noise_max[bin] = np.nanmax([noise_max[bin], np.nanmax(np.sqrt(1/ivar)[:, _y[i], _x[i]])])
+                # flux_max[bin] = np.nanmax([flux_max[bin], np.nanmax(flux[:, _y[i], _x[i]])])
+                # noise_max[bin] = np.nanmax([noise_max[bin], np.nanmax(np.sqrt(1/ivar)[:, _y[i], _x[i]])])
         flux_bin /= npixels
         noise_bin /= npixels
 
@@ -412,12 +412,12 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
             for i in range(len(_x)):
                 flux_avg[_y[i], _x[i]] = flux_bin[bin]
                 noise_sum[_y[i], _x[i]] = noise_bin[bin]
-                flux_max_unbinned[_y[i], _x[i]] = flux_max[bin]
-                noise_max_unbinned[_y[i], _x[i]] = noise_max[bin]
+                # flux_max_unbinned[_y[i], _x[i]] = flux_max[bin]
+                # noise_max_unbinned[_y[i], _x[i]] = noise_max[bin]
 
     # This is rapidly making me lose the will to live
     base = 10
-    cbar_data = ax1.imshow(np.log(flux_max_unbinned*base+1)/np.log(base), origin='lower', cmap='cubehelix')
+    cbar_data = ax1.imshow(np.log(flux_avg*base+1)/np.log(base), origin='lower', cmap='cubehelix')
     cbar_noise = ax2.imshow(np.log(noise_sum*base+1)/np.log(base), origin='lower', cmap='cubehelix')
     cbar = plt.colorbar(cbar_data, ax=ax1, label=r'$\log_{10}{(f_{\lambda,max})}$ ($10^{-17}$ erg s$^{-1}$ cm$^{-2}$ spaxel$^{-1}$)')
     cbar2 = plt.colorbar(cbar_noise, ax=ax2, label=r'$\log_{10}{(\Sigma\sigma)}$ ($10^{-17}$ erg s$^{-1}$ cm$^{-2}$ spaxel$^{-1}$)')
