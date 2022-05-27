@@ -2410,8 +2410,8 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
 
     ################################################################################
     # Initial conditions for some parameters
-    max_flux	= np.max(galaxy)
-    median_flux = np.median(galaxy)
+    max_flux	= np.nanmax(galaxy)
+    median_flux = np.nanmedian(galaxy)
 
     # Padding on the edges; any line(s) within this many angstroms is omitted
     # from the fit so problems do not occur with the fit
@@ -3232,7 +3232,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
 
     # Smooth galaxy by a small amount to get rid of 
     # noise spike (for low S/N spectra)
-    galaxy = gaussian_filter1d(galaxy,2.)
+    # galaxy = gaussian_filter1d(galaxy,2.)
 
     def get_init_amp(line_center):
         line_center = float(line_center)
