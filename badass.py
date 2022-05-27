@@ -3237,17 +3237,17 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
     def get_init_amp(line_center):
         line_center = float(line_center)
         try:
-            return max(np.max(galaxy[(lam_gal>(line_center-10.)) & (lam_gal<(line_center+10.))]), 0.0)
+            return np.nanmax(np.nanmax(galaxy[(lam_gal>(line_center-10.)) & (lam_gal<(line_center+10.))]), 0.0)
         except ValueError:
             return 0.0
 
     line_par_input = {}
     # Initial conditions for some parameters
-    max_amp = np.max(galaxy)
-    median_amp = np.median(galaxy)
-    opt_feii_amp_init = (0.1*np.median(galaxy))
-    uv_iron_amp_init  = (0.1*np.median(galaxy)) 
-    balmer_amp_init  = (0.1*np.median(galaxy)) 
+    max_amp = np.nanmax(galaxy)
+    median_amp = np.nanmedian(galaxy)
+    opt_feii_amp_init = (0.1*np.nanmedian(galaxy))
+    uv_iron_amp_init  = (0.1*np.nanmedian(galaxy)) 
+    balmer_amp_init  = (0.1*np.nanmedian(galaxy)) 
     # Defaut parameter limits for certain line types
     # Pre-defined initial values and parameter limits for different line_types.
     def amp_hyperpars(line_type,line_center): # amplitude hyperparameters
