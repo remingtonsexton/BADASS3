@@ -3237,7 +3237,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
     def get_init_amp(line_center):
         line_center = float(line_center)
         try:
-            return np.nanmax(np.nanmax(galaxy[(lam_gal>(line_center-10.)) & (lam_gal<(line_center+10.))]), 0.0)
+            return np.nanmax([np.nanmax(galaxy[(lam_gal>(line_center-10.)) & (lam_gal<(line_center+10.))]), 0.0])
         except ValueError:
             return 0.0
 
