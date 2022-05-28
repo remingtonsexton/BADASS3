@@ -469,7 +469,10 @@ def reconstruct_ifu(fits_file):
         raise NotADirectoryError(f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
 
     # Get number of bins
-    nbins = len(subdirs)
+    if voronoi:
+        nbins = max([int(subdir.split('_')[-1]) for subdir in subdirs])
+    else:
+        nbins = len(subdirs)
     xpixbin = np.full(nbins, fill_value=np.nan, dtype=object)
     ypixbin = np.full(nbins, fill_value=np.nan, dtype=object)
 
