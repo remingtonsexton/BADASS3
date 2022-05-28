@@ -470,7 +470,7 @@ def reconstruct_ifu(fits_file):
 
     # Get number of bins
     if voronoi:
-        nbins = max([int(subdir.split('_')[-1]) for subdir in subdirs])
+        nbins = max([int(subdir.split('_')[-1]) for subdir in subdirs]) + 1
     else:
         nbins = len(subdirs)
     xpixbin = np.full(nbins, fill_value=np.nan, dtype=object)
