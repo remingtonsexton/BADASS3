@@ -3847,7 +3847,7 @@ def line_test(param_dict,
 
     # Perform fitting without line
     if verbose:
-        print('\n Fitting without %s...' % test_line["line"])
+        print('\n Fitting without %s...' % remove_lines)
 
     # Make copy of original line list, since initialize_pars() will override it.
     original_line_list = copy.deepcopy(line_list)
