@@ -965,7 +965,7 @@ def run_single_thread(fits_file,
 
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-    fit_quality_dict = fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_type="mcmc",fit_stat=fit_stat)
+    fit_quality_dict = fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type="mcmc",fit_stat=fit_stat)
     param_dict = {**param_dict,**fit_quality_dict}
 
     # Write best fit parameters to fits table
@@ -5231,7 +5231,7 @@ def max_likelihood(param_dict,
     #
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-    fit_quality_dict = fit_quality_pars(best_param_dict,line_list,combined_line_list,comp_dict,fit_type="max_like",fit_stat=fit_stat)
+    fit_quality_dict = fit_quality_pars(best_param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type="max_like",fit_stat=fit_stat)
     pdict = {**pdict,**fit_quality_dict}
 
     if (test_outflows==True):
@@ -5477,17 +5477,17 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
         # ax1.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
         ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
         # Residuals
-        sigma_resid = np.nanstd(comp_dict['DATA']-comp_dict['MODEL'])
-        sigma_noise = np.median(comp_dict['NOISE'])
+        sigma_resid = np.nanstd(comp_dict['DATA'][fit_mask]-comp_dict['MODEL'][fit_mask])
+        sigma_noise = np.median(comp_dict['NOISE'][fit_mask])
         ax2.plot(lam_gal,(comp_dict['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
         ax2.plot(lam_gal,(comp_dict['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
         ax1.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
         ax2.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
         # Axes limits 
-        ax_low = np.min([ax1.get_ylim()[0],ax2.get_ylim()[0]])
-        ax_upp = np.max([ax1.get_ylim()[1], ax2.get_ylim()[1]])
-        if np.isfinite(sigma_resid):
-            ax_upp += 3.0 * sigma_resid
+        ax_low = np.nanmin([ax1.get_ylim()[0],ax2.get_ylim()[0]])
+        ax_upp = np.nanmax(comp_dict['DATA'][fit_mask])+(3.0 * np.nanmedian(comp_dict['NOISE'][fit_mask])) #np.nanmax([ax1.get_ylim()[1], ax2.get_ylim()[1]])
+        # if np.isfinite(sigma_resid):
+        #     ax_upp += 3.0 * sigma_resid
 
         minimum = [np.nanmin(comp_dict[comp][np.where(np.isfinite(comp_dict[comp]))[0]]) for comp in comp_dict
                    if comp_dict[comp][np.isfinite(comp_dict[comp])[0]].size > 0]
@@ -9448,17 +9448,17 @@ def plot_best_model(param_dict,
     # ax1.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
     ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
     # Residuals
-    sigma_resid = np.nanstd(comp_dict['DATA']-comp_dict['MODEL'])
-    sigma_noise = np.median(comp_dict['NOISE'])
+    sigma_resid = np.nanstd(comp_dict['DATA'][fit_mask]-comp_dict['MODEL'][fit_mask])
+    sigma_noise = np.median(comp_dict['NOISE'][fit_mask])
     ax2.plot(lam_gal,(comp_dict['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
     ax2.plot(lam_gal,(comp_dict['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
     ax1.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
     ax2.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
     # Axes limits 
     ax_low = np.min([ax1.get_ylim()[0],ax2.get_ylim()[0]])
-    ax_upp = np.max([ax1.get_ylim()[1], ax2.get_ylim()[1]])
-    if np.isfinite(sigma_resid):
-        ax_upp += 3.0 * sigma_resid
+    ax_upp = np.nanmax(comp_dict['DATA'][fit_mask])+(3.0 * np.nanmedian(comp_dict['NOISE'][fit_mask])) # np.max([ax1.get_ylim()[1], ax2.get_ylim()[1]])
+    # if np.isfinite(sigma_resid):
+        # ax_upp += 3.0 * sigma_resid
 
     minimum = [np.nanmin(comp_dict[comp][np.where(np.isfinite(comp_dict[comp]))[0]]) for comp in comp_dict
                if comp_dict[comp][np.isfinite(comp_dict[comp])[0]].size > 0]
@@ -9524,7 +9524,7 @@ def plot_best_model(param_dict,
     
     return comp_dict
 
-def fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_type,fit_stat):
+def fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
 
     fit_quality_dict = {}
     if fit_stat=="RCHI2":
@@ -9566,9 +9566,9 @@ def fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_type,
                                                }
 
     # compute a total chi-squared and r-squared
-    r_sqaured = 1-(np.sum((comp_dict["DATA"]-comp_dict["MODEL"])**2/np.sum(comp_dict["DATA"]**2)))
+    r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
     nu = len(comp_dict["DATA"])-len(param_dict)
-    rchi_squared = (np.sum((comp_dict["DATA"]-comp_dict["MODEL"])**2/(noise)**2,axis=0))/nu
+    rchi_squared = (np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/(noise[fit_mask])**2,axis=0))/nu
     if fit_type=="max_like":
         fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
         fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
