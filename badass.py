@@ -5636,13 +5636,15 @@ def lnlike(params,
             # we multiply by negative.
             l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
+        elif fit_stat=="RMSE":
+            # Root-Mean Squared Error
+            l = (galaxy[fit_mask]-model[fit_mask])**2
+            l = -np.sqrt(np.sum(l,axis=0)/(len(galaxy[fit_mask])-1))
         elif (fit_stat=="RCHI2"):
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
-
             # Calculate log-likelihood
             l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
-
 
         # Determine if any Gauss-Hermite lines exist
         pen = 0 # accumulating penalty
@@ -5694,10 +5696,13 @@ def lnlike(params,
         elif fit_stat=="OLS":
             l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
+        elif fit_stat=="RMSE":
+            # Root-Mean Squared Error
+            l = (galaxy[fit_mask]-model[fit_mask])**2
+            l = -np.sqrt(np.sum(l,axis=0)/(len(galaxy[fit_mask])-1))
         elif (fit_stat=="RCHI2"):
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
-
             # Calculate log-likelihood
             l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
 
