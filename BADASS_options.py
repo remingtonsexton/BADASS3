@@ -169,7 +169,7 @@ output_options={
                          # especially  if you are running multiple objects.  
                          # You only need this if you want to reconstruct chains 
                          # and histograms. 
-"verbose"     : True,  # prints steps of fitting process in Notebook
+"verbose"     : False,  # prints steps of fitting process in Notebook
 }
 ################################################################################
 
