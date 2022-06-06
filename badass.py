@@ -3894,6 +3894,14 @@ def line_test(param_dict,
                                                                                n_basinhop=n_basinhop,
                                                                                max_like_niter=max_like_niter,
                                                                                verbose=verbose)
+
+    # if fit_stat = "RCHI2", we need to scale the input noise so that the 
+    # line tests are using the properly scaled noise.
+    if fit_stat=="RCHI2":
+        noise *= np.nanmean([mcpars_line["NOISE_SCALE"]["med"], mcpars_no_line["NOISE_SCALE"]["med"]])
+
+
+
     # Determine wavelength bounds of F-test. For [OIII]5007, we use the full profile (core + outflow)
     # and determine the 0.1 and 99.9 percentiles of the flux of the full profile to set the bounds 
     # of the test.
