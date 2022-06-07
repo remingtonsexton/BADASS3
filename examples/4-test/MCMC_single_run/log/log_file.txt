@@ -1,0 +1,278 @@
+
+############################### BADASS v9.1.1 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spec-7721-57360-0412.fits     
+(RA, DEC):                    (14.340921,30.133079)         
+SDSS redshift:                1.83798                       
+fitting region:               (1256,3500) [A]               
+velocity scale:               69.11 [km/s/pixel]            
+Galactic E(B-V):              0.064                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (1000, 3500)                  
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 10                            
+                 test_outflows: False                         
+                     test_line: {'bool': False, 'line': ['OUT_OIII_5007']}
+                max_like_niter: 10                            
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: False                         
+                   fit_uv_iron: False                         
+                    fit_balmer: False                         
+                     fit_losvd: False                         
+                      fit_host: True                          
+                     fit_power: True                          
+                    fit_narrow: True                          
+                     fit_broad: True                          
+                   fit_outflow: True                          
+                    fit_absorp: False                         
+                 tie_line_fwhm: False                         
+                 tie_line_voff: False                         
+               na_line_profile: G                             
+               br_line_profile: V                             
+              out_line_profile: G                             
+              abs_line_profile: G                             
+
+   losvd_options:                                                                         
+                                LOSVD fitting is turned off.  
+
+   host_options:                                                                          
+                           age: [1.0, 5.0, 10.0]              
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 150.0} 
+
+   power_options:                                                                         
+                          type: simple                        
+
+   opt_feii_options:                                                                      
+                                Optical FeII fitting is turned off.
+
+   uv_iron_options:                                                                       
+                                UV Iron fitting is turned off.
+
+   balmer_options:                                                                        
+                                Balmer pseudo-continuum fitting is turned off.
+
+   plot_options:                                                                          
+               plot_param_hist: True                          
+                plot_flux_hist: False                         
+                 plot_lum_hist: False                         
+             plot_eqwidth_hist: False                         
+   output_options:                                                                        
+                   write_chain: True                          
+                       verbose: True                          
+
+-----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------
+ Line List:
+----------------------------------------------------------------------------------------------------------------------------------------
+BR_CIII_1908                                                                              
+                              amp                           free                          
+                              center                        1908.734                      
+                              center_pix                    1816.5472547274749            
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.969029925192404             
+                              fwhm_res_kms                  152.19923946919107            
+                              label                         C III]                        
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_CII_1335                                                                               
+                              amp                           free                          
+                              center                        1335.31                       
+                              center_pix                    264.91475357710635            
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.8311279871083193            
+                              fwhm_res_kms                  186.59779539417465            
+                              label                         C II                          
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_CII_2326                                                                               
+                              amp                           free                          
+                              center                        2326.0                        
+                              center_pix                    2675.1893248175184            
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.198324195550848             
+                              fwhm_res_kms                  154.44907827388707            
+                              label                         C II]                         
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_CIV_1549                                                                               
+                              amp                           free                          
+                              center                        1549.48                       
+                              center_pix                    910.9534635149024             
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.883335582454758             
+                              fwhm_res_kms                  170.9072369459261             
+                              label                         C IV                          
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_FEIII_UV47                                                                             
+                              amp                           free                          
+                              center                        2418.0                        
+                              center_pix                    2843.656277436348             
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.2055579436470847            
+                              fwhm_res_kms                  149.46947030082092            
+                              label                         Fe III                        
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_HEII_1640                                                                              
+                              amp                           free                          
+                              center                        1640.4                        
+                              center_pix                    1158.5903591070853            
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.9068173031315894            
+                              fwhm_res_kms                  165.72603527356148            
+                              label                         He II                         
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_MGII_2799                                                                              
+                              amp                           free                          
+                              center                        2799.117                      
+                              center_pix                    3479.302704588548             
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.216934077120801             
+                              fwhm_res_kms                  130.33669482340554            
+                              label                         Mg II                         
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_OI_1305                                                                                
+                              amp                           free                          
+                              center                        1305.53                       
+                              center_pix                    166.96169105691047            
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.8246787086632906            
+                              fwhm_res_kms                  189.3732485124308             
+                              label                         O I                           
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_SIIV+OIV                                                                               
+                              amp                           free                          
+                              center                        1399.8                        
+                              center_pix                    469.7521180030256             
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.8459409388927127            
+                              fwhm_res_kms                  181.1735343573897             
+                              label                         Si IV + O IV                  
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+BR_SIIV_1398                                                                              
+                              amp                           free                          
+                              center                        1397.61                       
+                              center_pix                    462.9519211822657             
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.8454197105040768            
+                              fwhm_res_kms                  181.34562077665842            
+                              label                         Si IV + O IV                  
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+NA_CIII_1908                                                                              
+                              amp                           free                          
+                              center                        1908.734                      
+                              center_pix                    1816.5472547274749            
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.969029925192404             
+                              fwhm_res_kms                  152.19923946919107            
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          free                          
+NA_CIV_1549                                                                               
+                              amp                           free                          
+                              center                        1549.48                       
+                              center_pix                    910.9534635149024             
+                              fwhm                          free                          
+                              fwhm_res_ang                  0.883335582454758             
+                              fwhm_res_kms                  170.9072369459261             
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          free                          
+NA_HEII_3203                                                                              
+                              amp                           free                          
+                              center                        3203.1                        
+                              center_pix                    4064.797817460317             
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.2435959214310344            
+                              fwhm_res_kms                  116.39370548674243            
+                              label                         He II                         
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          free                          
+NA_MGII_2799                                                                              
+                              amp                           free                          
+                              center                        2799.117                      
+                              center_pix                    3479.302704588548             
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.216934077120801             
+                              fwhm_res_kms                  130.33669482340554            
+                              label                         Mg II                         
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          free                          
+NA_NEV_3346                                                                               
+                              amp                           free                          
+                              center                        3346.783                      
+                              center_pix                    4255.367956866477             
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.3211922144862789            
+                              fwhm_res_kms                  118.3475180408484             
+                              label                         [Ne V]                        
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          free                          
+NA_NEV_3426                                                                               
+                              amp                           free                          
+                              center                        3426.863                      
+                              center_pix                    4358.060033446887             
+                              fwhm                          NA_NEV_3346_FWHM              
+                              fwhm_res_ang                  1.397639230683405             
+                              fwhm_res_kms                  122.26975527291489            
+                              label                         [Ne V]                        
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          NA_NEV_3346_VOFF              
+----------------------------------------------------------------------------------------------------------------------------------------
+ Soft Constraints:
+
+----------------------------------------------------------------------------------------------------------------------------------------
