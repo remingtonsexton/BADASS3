@@ -430,6 +430,12 @@ def check_comp_options(input,verbose=False):
 				  "default": True,
 				  "error_message": "\n fit_power must be a bool.\n",
 				  },
+	"fit_poly" : {"conds":[
+							lambda x: isinstance(x,(bool))
+							],
+				  "default": False,
+				  "error_message": "\n fit_poly must be a bool.\n",
+				  },
 	"fit_narrow" : {"conds":[
 							lambda x: isinstance(x,(bool))
 							],
@@ -626,7 +632,7 @@ def check_power_options(input,verbose=False):
 
 ##########################################################################################
 
-#### Check Host Galaxy Template Options ##################################################
+#### Check LOSVD Fitting (pPXF) Options ##################################################
 
 def check_losvd_options(input,verbose=False):
 	"""
@@ -647,7 +653,6 @@ def check_losvd_options(input,verbose=False):
 					"library"	   : "IndoUS", # Options: IndoUS, Vazdekis2010, eMILES
 					"vel_const" : {"bool":False, "val":0.0},
 					"disp_const": {"bool":False, "val":100.0},
-					"losvd_apoly": {"bool":False, "order":3.0},
 					}
 		return output
 
@@ -670,11 +675,6 @@ def check_losvd_options(input,verbose=False):
 								],
 		  				"default": {"bool":False, "val":100.0},
 		  				"error_message": "\n disp_const must be a dictionary.\n"},
-	"losvd_apoly" 	: {"conds":[
-								lambda x: isinstance(x,(dict))
-								],
-		  				"default": {"bool":False, "order":3.0},
-		  				"error_message": "\n losvd_apoly must be a dictionary.\n"},
 	}
 	output = check_dict(input,keyword_dict)
 	# now we check to ensure the inner dictionaries are correct.  We do this by defining a sub-keyword dictionary for each 
@@ -705,23 +705,98 @@ def check_losvd_options(input,verbose=False):
 		}
 	output["disp_const"] = check_dict(output["disp_const"],disp_const_dict)
 
-	# losvd_apoly
-	losvd_apoly_dict = {
+	if output["disp_const"]["val"]<=0: # convolution error if dispersion equal to zero
+			output["disp_const"]["val"]=1.e-3
+
+	return output
+
+
+##########################################################################################
+
+#### Check Polynomial Continuum Options ##################################################
+
+def check_poly_options(input,verbose=False):
+	"""
+	Checks the inputs of the poly_options dictionary and ensures that 
+	all keywords have valid values. 
+
+	poly_options = {
+					"ppoly" : {"bool": True,  "order": 3}, # positive definite additive polynomial 
+					"apoly" : {"bool": False, "order": 3}, # Legendre additive polynomial 
+					"mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
+					}
+	"""
+	output={} # output dictionary
+
+	# If feii_options not specified
+	if not input:
+		output = {
+				  "ppoly" : {"bool": True,  "order": 3}, # positive definite additive polynomial 
+				  "apoly" : {"bool": False, "order": 3}, # Legendre additive polynomial 
+				  "mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
+				  }
+		return output
+
+	# for dictionaries within dictionaries, we check the outer-most level first to ensure
+	# they are correct dictionaries.
+	keyword_dict={
+	"ppoly" 		 : {"conds":[
+								lambda x: isinstance(x,(dict))
+								],
+		  				"default": {"bool":False, "order":3.0},
+		  				"error_message": "\n ppoly must be a dictionary.\n"},
+	"apoly" 		 : {"conds":[
+								lambda x: isinstance(x,(dict))
+								],
+		  				"default": {"bool":False, "order":3.0},
+		  				"error_message": "\n apoly must be a dictionary.\n"},
+	"mpoly" 		 : {"conds":[
+								lambda x: isinstance(x,(dict))
+								],
+		  				"default": {"bool":False, "order":3.0},
+		  				"error_message": "\n mpoly must be a dictionary.\n"},
+	}
+	output = check_dict(input,keyword_dict)
+	# now we check to ensure the inner dictionaries are correct.  We do this by defining a sub-keyword dictionary for each 
+	# main keyword. 
+	#
+	# ppoly_dict
+	ppoly_dict = {
+	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
+				"default": True,
+				"error_message": "\n ppoly bool must be True or False.\n",},
+	"order" :		{"conds":[	lambda x: isinstance(x,(int)),
+								lambda x: x>=0
+								],
+				"default": 3.0,
+				"error_message": "\n vel_const val must be an integer or float.\n",},
+		}
+	output["ppoly"] = check_dict(output["ppoly"],ppoly_dict)
+	# apoly_dict
+	apoly_dict = {
+	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
+				"default": True,
+				"error_message": "\n apoly bool must be True or False.\n",},
+	"order" :		{"conds":[	lambda x: isinstance(x,(int)),
+								lambda x: x>=0
+								],
+				"default": 3.0,
+				"error_message": "\n disp_const val must be an integer or float.\n",},
+		}
+	output["apoly"] = check_dict(output["apoly"],apoly_dict)
+
+	# mpoly_dict
+	mpoly_dict = {
 	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
 				"default": False,
-				"error_message": "\n losvd_apoly bool must be True or False.\n",},
+				"error_message": "\n mpoly bool must be True or False.\n",},
 	"order" :		{"conds":[	lambda x: isinstance(x,(int)),
 								lambda x: x>=0
 								],
 				"default": 3.0,
 				"error_message": "\n losvd_apoly order val must be an integer.\n",},
 		}
-	output["losvd_apoly"] = check_dict(output["losvd_apoly"],losvd_apoly_dict)
-
-
-
-	if output["disp_const"]["val"]<=0: # convolution error if dispersion equal to zero
-			output["disp_const"]["val"]=1.e-3
+	output["mpoly"] = check_dict(output["mpoly"],mpoly_dict)
 
 	return output
 
@@ -1084,7 +1159,6 @@ def check_uv_iron_options(input,verbose=False):
 			"uv_amp_const"  :{"bool":False,"uv_iron_val":1.0},
 			"uv_fwhm_const" :{"bool":False ,"uv_iron_val":3000.0},
 			"uv_voff_const" :{"bool":True ,"uv_iron_val":0.0},
-			"uv_legendre_m" :{"bool":False , "uv_iron_val":3},
 				}
 		return output
 
@@ -1106,11 +1180,6 @@ def check_uv_iron_options(input,verbose=False):
 								],
 		  				"default": {"bool":True ,"uv_iron_val":0.0},
 		  				"error_message": "\n uv_voff_const must be a dictionary.\n"},
-	"uv_legendre_p" : {"conds":[
-								lambda x: isinstance(x,(dict))
-								],
-		  				"default": {"bool":True ,"uv_iron_val":0.0},
-		  				"error_message": "\n uv_legendre_p must be a dictionary.\n"},
 	
 	}
 	output = check_dict(input,keyword_dict)
@@ -1155,17 +1224,6 @@ def check_uv_iron_options(input,verbose=False):
 				"error_message": "\n uv_voff_const uv_iron_val must be an integer or float.\n",}
 		}
 	output["uv_voff_const"] = check_dict(output["uv_voff_const"],uv_voff_const_dict)
-
-	# uv_legendre_p
-	uv_legendre_m_dict = {
-	"bool" : {"conds":[	lambda x: isinstance(x,(bool))],
-				"default": False,
-				"error_message": "\n uv_legendre_m bool must be True or False.\n",},
-	"uv_iron_val" : {"conds":[	lambda x: isinstance(x,(int))],
-				"default": 3.0,
-				"error_message": "\n uv_legendre_p uv_iron_val must be an integer.\n",}
-		}
-	output["uv_legendre_p"] = check_dict(output["uv_legendre_p"],uv_legendre_m_dict)
 
 	return output
 

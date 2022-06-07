@@ -64,7 +64,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.1.4"
+__version__	= "9.1.5"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -225,6 +225,8 @@ __status__	 = "Release"
 # - options for likelihood function
 # - consolidated outflow and line testing routines
 
+# Version 9.1.5
+# - polynomial continuum components independent from LOSVD component.
 
 ##########################################################################################################
 
@@ -246,6 +248,7 @@ def run_BADASS(data,
                losvd_options=False,
                host_options=False,
                power_options=False,
+               poly_options=False,
                opt_feii_options=False,
                uv_iron_options=False,
                balmer_options=False,
@@ -282,7 +285,7 @@ def run_BADASS(data,
 
         files = [glob.glob(os.path.join(wd, '*.fits'))[0] for wd in work_dirs]
         arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, user_lines, user_constraints, user_mask,
-                      combined_lines, losvd_options, host_options, power_options, opt_feii_options, uv_iron_options, balmer_options,
+                      combined_lines, losvd_options, host_options, power_options, poly_options, opt_feii_options, uv_iron_options, balmer_options,
                       outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv) for file in files]
 
         # map arguments to function
@@ -300,7 +303,7 @@ def run_BADASS(data,
         print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
 
         run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options,
-                          user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options,
+                          user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options, poly_options,
                           opt_feii_options, uv_iron_options, balmer_options, outflow_test_options, plot_options, output_options,
                           sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv)
 
@@ -323,6 +326,7 @@ def run_single_thread(fits_file,
                losvd_options=False,
                host_options=False,
                power_options=False,
+               poly_options=False,
                opt_feii_options=False,
                uv_iron_options=False,
                balmer_options=False,
@@ -376,6 +380,8 @@ def run_single_thread(fits_file,
                 host_options		 = options.host_options
             if hasattr(options,"power_options"):
                 power_options		 = options.power_options
+            if hasattr(options,"poly_options"):
+                poly_options         = options.poly_options
             if hasattr(options,"opt_feii_options"):
                 opt_feii_options	 = options.opt_feii_options
             if hasattr(options,"uv_iron_options"):
@@ -405,6 +411,7 @@ def run_single_thread(fits_file,
     losvd_options		 = badass_utils.check_losvd_options(losvd_options)
     host_options		 = badass_utils.check_host_options(host_options)
     power_options		 = badass_utils.check_power_options(power_options)
+    poly_options         = badass_utils.check_poly_options(poly_options)
     opt_feii_options	 = badass_utils.check_opt_feii_options(opt_feii_options)
     uv_iron_options		 = badass_utils.check_uv_iron_options(uv_iron_options)
     balmer_options		 = badass_utils.check_balmer_options(balmer_options)
@@ -452,6 +459,7 @@ def run_single_thread(fits_file,
     fit_losvd			= comp_options["fit_losvd"]
     fit_host			= comp_options["fit_host"]
     fit_power			= comp_options["fit_power"]
+    fit_poly            = comp_options["fit_poly"]
     fit_narrow			= comp_options["fit_narrow"]
     fit_broad			= comp_options["fit_broad"]
     fit_outflow			= comp_options["fit_outflow"]
@@ -525,7 +533,7 @@ def run_single_thread(fits_file,
         binnum = spaxelx = spaxely = None
 
     # Write to Log 
-    write_log((fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+    write_log((fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,poly_options,opt_feii_options,uv_iron_options,balmer_options,
                plot_options,output_options),'fit_information',run_dir)
 
     ####################################################################################################################################################################################
@@ -613,7 +621,7 @@ def run_single_thread(fits_file,
                                  comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
                                  run_dir,fit_type='init',fit_stat=fit_stat,
                                  fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
-                                 fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,
+                                 fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
                                  fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
                                  tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,verbose=verbose)
 
@@ -2398,7 +2406,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
                     comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
                     run_dir,fit_type='init',fit_stat="RCHI2",
                     fit_opt_feii=True,fit_uv_iron=True,fit_balmer=True,
-                    fit_losvd=False,fit_host=True,fit_power=True,
+                    fit_losvd=False,fit_host=True,fit_power=True,fit_poly=fit_poly,
                     fit_narrow=True,fit_broad=True,fit_outflow=True,fit_absorp=True,
                     tie_line_fwhm=False,tie_line_voff=False,remove_lines=False,verbose=True):
     """
@@ -2635,14 +2643,6 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
             # Narrow FeII VOFF
             par_input['UV_IRON_VOFF'] = ({'init'  :0.0,
                                              'plim'  :(-2000.0,2000.0),
-                                             })
-
-        if (uv_iron_options['uv_legendre_p']['bool']==True) and (uv_iron_options['uv_legendre_p']['uv_iron_val']>=1):
-            if verbose:
-                print('	 		* including %d-order additive Legendre polynomial' % uv_iron_options['uv_legendre_p']['uv_iron_val'])
-            for n in range(int(uv_iron_options['uv_legendre_p']['uv_iron_val'])+1):
-                par_input["UV_IRON_LCOEFF_%d" % n] = ({'init'  :0.0,
-                                             'plim'  :(-1.0e6,1.0e6),
                                              })
 
 
@@ -7128,14 +7128,6 @@ def VW01_uv_iron_template(lam_gal, pdict, uv_iron_template, uv_iron_options, vel
     If the UV iron FWHM and/or VOFF are free to vary, perform the convolution of optical FeII template with Gauss-Hermite kernel using 
     PPXF framework.
     """
-
-    # UV Iron Legendre polynomial
-    if (uv_iron_options['uv_legendre_p']['bool']==True) and (uv_iron_options['uv_legendre_p']['uv_iron_val']>=1):
-        nw = np.linspace(-1,1,len(lam_gal))
-        coeff = np.empty(uv_iron_options['uv_legendre_p']['uv_iron_val']+1)
-        for n in range(uv_iron_options['uv_legendre_p']['uv_iron_val']+1):
-            coeff[n] = pdict["UV_IRON_LCOEFF_%d" % n]
-        lpoly = np.polynomial.legendre.legval(nw, coeff)
     
     #  Unpack opt_feii_templates (uv_iron_fft, npad, vsyst)
     uv_iron_fft, npad, vsyst = uv_iron_template
@@ -7162,9 +7154,6 @@ def VW01_uv_iron_template(lam_gal, pdict, uv_iron_template, uv_iron_options, vel
 
     # Reshape
     conv_temp = conv_temp.reshape(-1)
-    # Add the additive Legendre polynomial function
-    if (uv_iron_options['uv_legendre_p']['bool']==True) and (uv_iron_options['uv_legendre_p']['uv_iron_val']>=1):
-        conv_temp *= lpoly
     # Re-normalize to 1
     conv_temp = conv_temp/np.max(conv_temp)
     # Multiplyy by amplitude
@@ -9901,7 +9890,7 @@ def write_log(output_val,output_type,run_dir):
         return None
 
     if (output_type=='fit_information'):
-        fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,\
+        fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,poly_options,opt_feii_options,uv_iron_options,balmer_options,\
         plot_options,output_options = output_val
         with log_file_path.open(mode='a') as logfile:
             logfile.write('\n')
@@ -9947,6 +9936,7 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_losvd',':',str(comp_options['fit_losvd']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_host',':',str(comp_options['fit_host']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_power',':',str(comp_options['fit_power']) )) 
+            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_poly',':',str(comp_options['fit_poly']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_narrow',':',str(comp_options['fit_narrow']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_broad',':',str(comp_options['fit_broad']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_outflow',':',str(comp_options['fit_outflow']) )) 
@@ -9968,7 +9958,7 @@ def write_log(output_val,output_type,run_dir):
                 logfile.write('\n')
             elif comp_options["fit_losvd"]==False:
                 logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   losvd_options:','',''))
-                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','LOSVD fitting is turned off.' )) 
+                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Stellar LOSVD fitting is turned off.' )) 
                 logfile.write('\n')
             # Host Options
             if comp_options["fit_host"]==True:
@@ -9979,7 +9969,7 @@ def write_log(output_val,output_type,run_dir):
                 logfile.write('\n')
             elif comp_options["fit_host"]==False:
                 logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   host_options:','',''))
-                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Host-galaxy template fitting is turned off.' )) 
+                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Host-galaxy template component is turned off.' )) 
                 logfile.write('\n')
             # Power-law continuum options
             if comp_options['fit_power']==True:
@@ -9988,7 +9978,18 @@ def write_log(output_val,output_type,run_dir):
                 logfile.write('\n')
             elif comp_options["fit_power"]==False:
                 logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   power_options:','',''))
-                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Power Law fitting is turned off.' )) 
+                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Power Law component is turned off.' )) 
+                logfile.write('\n')
+            # Polynomial continuum options
+            if comp_options['fit_poly']==True:
+                logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   poly_options:','',''))
+                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('ppoly',':','bool: %s, order: %s' % (str(poly_options['ppoly']['bool']),str(poly_options['ppoly']['order']) )))
+                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('apoly',':','bool: %s, order: %s' % (str(poly_options['apoly']['bool']),str(poly_options['apoly']['order']),)))
+                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('mpoly',':','bool: %s, order: %s' % (str(poly_options['mpoly']['bool']),str(poly_options['mpoly']['order']),)))
+                logfile.write('\n')
+            elif comp_options["fit_poly"]==False:
+                logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   poly_options:','',''))
+                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Polynomial continuum component is turned off.' )) 
                 logfile.write('\n')
             # Optical FeII fitting options
             if (comp_options['fit_opt_feii']==True):
