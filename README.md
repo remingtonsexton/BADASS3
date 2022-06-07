@@ -73,6 +73,7 @@ As of the most recent version, the following packages are required (Python 3.8.1
 - [`natsort 7.1.0`](https://natsort.readthedocs.io/en/master/)
 - [`psutil 5.8.0`](https://psutil.readthedocs.io/en/latest/)
 - [`vorbin 3.1.5`](https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning)
+- [`astro-bifrost 2.0.2`](https://pypi.org/project/astro-bifrost/)
 - **Note**: [`ppxf`](https://www-astro.physics.ox.ac.uk/~cappellari/software/#ppxf) was integrated within the BADASS source code early on, and does not require installation.
 - **Optional**: `plotly 5.3.1` (for interactive HTML plots)
 
