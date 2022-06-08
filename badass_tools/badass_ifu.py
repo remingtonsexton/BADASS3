@@ -793,13 +793,20 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
         nonlocal parvals, parvals_low, parvals_upp, bmcvals, parameters, xpixbin, ypixbin, voronoi
 
         # Find each MCMC output
-        most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
-        if len(most_recent_mcmc) == 0:
-            # raise NotADirectoryError(
-            # f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
-            print(f"WARNING: MCMC folder for {subdir} not found!")
-            return
-        most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+        if mcmc_label is None:
+            most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
+            if len(most_recent_mcmc) == 0:
+                # raise NotADirectoryError(
+                # f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
+                print(f"WARNING: MCMC folder for {subdir} not found!")
+                return
+            most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+        else:
+            most_recent_mcmc = glob.glob(subdir + os.sep + f"MCMC_output_{mcmc_label}")
+            if len(most_recent_mcmc) == 0:
+                print(f"WARNING: MCMC folder for {subdir} not found!")
+                return
+            most_recent_mcmc = most_recent_mcmc[0]
         par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
         best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
         test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
