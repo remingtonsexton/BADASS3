@@ -1,7 +1,5 @@
 import numpy as np
 from astropy.io import fits
-from astropy.convolution import Gaussian2DKernel, convolve
-import photutils
 import os
 import re
 import glob
@@ -712,10 +710,16 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
     subdir = subdirs[0]
 
     # Find each MCMC output
-    most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
-    if len(most_recent_mcmc) == 0:
-        raise NotADirectoryError(f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
-    most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+    if mcmc_label is None:
+        most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
+        if len(most_recent_mcmc) == 0:
+            raise NotADirectoryError(f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
+        most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+    else:
+        most_recent_mcmc = glob.glob(subdir + os.sep + f"MCMC_output_{mcmc_label}")
+        if len(most_recent_mcmc) == 0:
+            raise NotADirectoryError(f"The unpacked folders for {fits_file}, MCMC_output{mcmc_label} do not exist! Fit before calling reconstruct")
+        most_recent_mcmc = most_recent_mcmc[0]
     par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
     best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
     test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
