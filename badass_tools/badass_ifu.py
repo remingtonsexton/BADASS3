@@ -432,8 +432,8 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
                 xhi = np.min([(ix+1)*fixed_bin_size, binnum.shape[1]])
                 binnum[ylo:yhi, xlo:xhi] = indx
                 ybin, xbin = np.meshgrid(np.arange(ylo, yhi, 1), np.arange(xlo, xhi, 1))
-                ypixbin[indx] = ybin.flatten().tolist()
-                xpixbin[indx] = xbin.flatten().tolist()
+                ypixbin[indx] = (ybin.flatten() + miny).tolist()
+                xpixbin[indx] = (xbin.flatten() + minx).tolist()
                 out_flux[:, indx] = np.apply_over_axes(np.nanmean, flux[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 out_ivar[:, indx] = np.apply_over_axes(np.nanmean, ivar[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 out_mask[:, indx] = np.apply_over_axes(np.nansum, mask[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
