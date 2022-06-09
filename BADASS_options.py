@@ -42,6 +42,7 @@ comp_options={
 "fit_losvd"        : True, # stellar LOSVD
 "fit_host"         : False, # host template
 "fit_power"        : True, # AGN power-law
+"fit_poly"         : False, # Add polynomial continuum component
 "fit_narrow"       : True, # narrow lines
 "fit_broad"        : True, # broad lines
 "fit_outflow"      : True, # outflow lines
@@ -95,6 +96,18 @@ host_options = {
 
 power_options = {
 "type" : "simple" # alternatively, "broken" for smoothly-broken power-law
+}
+
+########################### Polynomial Continuum Options #######################
+# Disabled by default.  Options for a power series polynomial continuum, 
+# additive legendre polynomial, or multiplicative polynomial to be included in 
+# the fit.
+################################################################################
+
+poly_options = {
+"ppoly" : {"bool": False, "order": 3}, # positive definite additive polynomial 
+"apoly" : {"bool": True , "order": 3}, # Legendre additive polynomial 
+"mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
 }
 
 ############################### Optical FeII options ###############################
