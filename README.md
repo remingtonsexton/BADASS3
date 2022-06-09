@@ -341,7 +341,6 @@ losvd_options = {
 	"library"   : "IndoUS", # Options: IndoUS, Vazdekis2010, eMILES
 	"vel_const" :  {"bool":False, "val":0.0}, # Hold velocity constant?
 	"disp_const":  {"bool":False, "val":250.0}, # Hold dispersion constant?
-	"losvd_apoly": {"bool":False, "order":3}, # include additive legendre polynomial?
 }
 ```
 
@@ -416,7 +415,6 @@ uv_iron_options={
 	"uv_amp_const"  :{"bool":False, "uv_iron_val":1.0}, # hold amplitude constant?
 	"uv_fwhm_const" :{"bool":False, "uv_iron_val":3000.0},  # hold FWHM constant?
 	"uv_voff_const" :{"bool":True,  "uv_iron_val":0.0}, # hold velocity constant?
-	"uv_legendre_p" :{"bool":False, "uv_iron_val":3}, # include additive legendre polynomial?
 }
 ```
 
