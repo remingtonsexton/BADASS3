@@ -27,6 +27,8 @@ Before getting started you should [read the wiki](https://github.com/remingtonse
   * [Combined Lines](#combined-lines)
   * [LOSVD Fitting Options (pPXF)](#losvd-fitting-options-ppxf)
   * [Host Model Options](#host-model-options)
+  * [Power Law Options](#power-law-options)
+  * [Polynomial Options](#polynomial-options)
   * [Optical FeII Options](#optical-feii-options)
   * [UV Iron Options](#uv-iron-options)
   * [Balmer Pseudo-Continuum Options](#balmer-psuedocontinuum-options)
@@ -213,6 +215,7 @@ comp_options={
 	"fit_losvd"        : True, # stellar LOSVD
 	"fit_host"         : False, # host template
 	"fit_power"        : True, # AGN power-law
+	"fit_poly"         : False, # Polynomial continuum component
 	"fit_narrow"       : True, # narrow lines
 	"fit_broad"        : True, # broad lines
 	"fit_outflow"      : True, # outflow lines
@@ -248,6 +251,9 @@ Fits a host galaxy template using single-stellar population templates from the E
 
 **`fit_power`**: *Default=True*  
 this fits a power-law component to simulate the effect of the AGN "blue-bump" continuum. 
+
+**`fit_poly`**: *Default=False*  
+Fit a polynomial continuum component of a specified order.  Polynomial options are specified by `poly_options` dictionary.  Options are a power-series polynomial, additive Legendre polynomial, or multiplicative Legendre polynomial.  The order must be within the range 0 <= order <= 99.  Note: caution should be used when using polynomial components, as these can be degenerate with other continuum components, and higher-order polynomials can lead to overfitting.
 
 **`fit_narrow`**: *Default=True*  
 Fit lines of the `line_type`:`na` in the line list.  Narrow forbidden emission lines are seen in both Type 1 and Type 2 AGNs, as well as starforming galaxies. 
@@ -351,10 +357,19 @@ host_options = {
 }
 ```
 
-## Power-Law Options
+## Power Law Options
 ```python
 power_options = {
 	"type" : "simple" # alternatively, "broken" for smoothly-broken power-law
+}
+```
+
+## Polynomial Options
+```python
+poly_options = {
+"ppoly" : {"bool": False, "order": 3}, # positive definite additive polynomial 
+"apoly" : {"bool": True , "order": 3}, # Legendre additive polynomial 
+"mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
 }
 ```
 
