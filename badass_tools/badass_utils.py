@@ -763,25 +763,25 @@ def check_poly_options(input,verbose=False):
 	# ppoly_dict
 	ppoly_dict = {
 	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
-				"default": True,
+				"default": False,
 				"error_message": "\n ppoly bool must be True or False.\n",},
 	"order" :		{"conds":[	lambda x: isinstance(x,(int)),
-								lambda x: x>=0
+								lambda x: (x>=0) & (x<=99)
 								],
 				"default": 3.0,
-				"error_message": "\n vel_const val must be an integer or float.\n",},
+				"error_message": "\n ppoly order must be an integer of 0<=x<=99.\n",},
 		}
 	output["ppoly"] = check_dict(output["ppoly"],ppoly_dict)
 	# apoly_dict
 	apoly_dict = {
 	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
-				"default": True,
+				"default": False,
 				"error_message": "\n apoly bool must be True or False.\n",},
 	"order" :		{"conds":[	lambda x: isinstance(x,(int)),
-								lambda x: x>=0
+								lambda x: (x>=0) & (x<=99)
 								],
 				"default": 3.0,
-				"error_message": "\n disp_const val must be an integer or float.\n",},
+				"error_message": "\n apoly order must be an integer of 0<=x<=99.\n",},
 		}
 	output["apoly"] = check_dict(output["apoly"],apoly_dict)
 
@@ -791,10 +791,10 @@ def check_poly_options(input,verbose=False):
 				"default": False,
 				"error_message": "\n mpoly bool must be True or False.\n",},
 	"order" :		{"conds":[	lambda x: isinstance(x,(int)),
-								lambda x: x>=0
+								lambda x: (x>=0) & (x<=99)
 								],
 				"default": 3.0,
-				"error_message": "\n losvd_apoly order val must be an integer.\n",},
+				"error_message": "\n mpoly order must be an integer of 0<=x<=99.\n",},
 		}
 	output["mpoly"] = check_dict(output["mpoly"],mpoly_dict)
 

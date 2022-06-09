@@ -64,7 +64,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.1.5"
+__version__	= "9.1.6"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -618,7 +618,8 @@ def run_single_thread(fits_file,
         print('----------------------------------------------------------------------------------------------------')
 
     param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
-                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 opt_feii_options,uv_iron_options,balmer_options,
                                  run_dir,fit_type='init',fit_stat=fit_stat,
                                  fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
                                  fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
@@ -672,6 +673,7 @@ def run_single_thread(fits_file,
                   losvd_options,
                   host_options,
                   power_options,
+                  poly_options,
                   opt_feii_options,
                   uv_iron_options,
                   balmer_options,
@@ -732,6 +734,7 @@ def run_single_thread(fits_file,
                   losvd_options,
                   host_options,
                   power_options,
+                  poly_options,
                   opt_feii_options,
                   uv_iron_options,
                   balmer_options,
@@ -774,6 +777,7 @@ def run_single_thread(fits_file,
                                                 losvd_options,
                                                 host_options,
                                                 power_options,
+                                                poly_options,
                                                 opt_feii_options,
                                                 uv_iron_options,
                                                 balmer_options,
@@ -822,10 +826,11 @@ def run_single_thread(fits_file,
         print('\n Initializing parameters for MCMC.')
         print('----------------------------------------------------------------------------------------------------')
     param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
-                                                           comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+                                                           comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                                           opt_feii_options,uv_iron_options,balmer_options,
                                                            run_dir,fit_type='final',fit_stat=fit_stat,
                                                            fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
-                                                           fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,
+                                                           fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
                                                            fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
                                                            tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,
                                                            remove_lines=False,verbose=verbose)
@@ -883,6 +888,7 @@ def run_single_thread(fits_file,
                  losvd_options,
                  host_options,
                  power_options,
+                 poly_options,
                  opt_feii_options,
                  uv_iron_options,
                  balmer_options,
@@ -956,6 +962,7 @@ def run_single_thread(fits_file,
                     losvd_options,
                     host_options,
                     power_options,
+                    poly_options,
                     opt_feii_options,
                     uv_iron_options,
                     balmer_options,
@@ -2403,10 +2410,11 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_m
 
 
 def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale,
-                    comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+                    comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                    opt_feii_options,uv_iron_options,balmer_options,
                     run_dir,fit_type='init',fit_stat="RCHI2",
                     fit_opt_feii=True,fit_uv_iron=True,fit_balmer=True,
-                    fit_losvd=False,fit_host=True,fit_power=True,fit_poly=fit_poly,
+                    fit_losvd=False,fit_host=True,fit_power=True,fit_poly=False,
                     fit_narrow=True,fit_broad=True,fit_outflow=True,fit_absorp=True,
                     tie_line_fwhm=False,tie_line_voff=False,remove_lines=False,verbose=True):
     """
@@ -2486,12 +2494,33 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
             par_input['STEL_DISP'] = ({'init':150.0,
                                            'plim':(0.001,500.),
                                          })
-        if (losvd_options['losvd_apoly']['bool']==True) and (losvd_options['losvd_apoly']['order']>=1):
+
+    ##############################################################################
+
+    if (fit_poly==True):
+        if (poly_options["ppoly"]["bool"]==True) & (poly_options["ppoly"]["order"]>=0) :
             if verbose:
-                print('	 		* including %d-order additive Legendre polynomial' % losvd_options['losvd_apoly']['order'])
-            for n in range(int(losvd_options['losvd_apoly']['order'])+1):
-                par_input["LOSVD_LCOEFF_%d" % n] = ({'init'  :0.0,
-                                             'plim'  :(-1.0e6,1.0e6),
+                print('  - Fitting polynomial continuum component.')
+            #
+            for n in range(int(poly_options['ppoly']['order'])+1):
+                par_input["PPOLY_COEFF_%d" % n] = ({'init'  :0.0,
+                                             'plim'  :(-1.0e4,1.0e4),
+                                             })
+        if (poly_options["apoly"]["bool"]==True) & (poly_options["apoly"]["order"]>=0):
+            if verbose:
+                print('  - Fitting additive legendre polynomial component.')
+            #
+            for n in range(int(poly_options['apoly']['order'])+1):
+                par_input["APOLY_COEFF_%d" % n] = ({'init'  :0.0,
+                                             'plim'  :(-1.0e4,1.0e4),
+                                             })
+        if (poly_options["mpoly"]["bool"]==True) & (poly_options["mpoly"]["order"]>=0):
+            if verbose:
+                print('  - Fitting multiplicative legendre polynomial component.')
+            #
+            for n in range(int(poly_options['mpoly']['order'])+1):
+                par_input["MPOLY_COEFF_%d" % n] = ({'init'  :0.0,
+                                             'plim'  :(-1.0e4,1.0e4),
                                              })
 
     ##############################################################################
@@ -3773,6 +3802,7 @@ def line_test(param_dict,
               losvd_options,
               host_options,
               power_options,
+              poly_options,
               opt_feii_options,
               uv_iron_options,
               balmer_options,
@@ -3824,6 +3854,7 @@ def line_test(param_dict,
                                                           losvd_options,
                                                           host_options,
                                                           power_options,
+                                                          poly_options,
                                                           opt_feii_options,
                                                           uv_iron_options,
                                                           balmer_options,
@@ -3854,10 +3885,11 @@ def line_test(param_dict,
 
     # Generate new parameters
     param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
-                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 opt_feii_options,uv_iron_options,balmer_options,
                                  run_dir,fit_type='init',fit_stat=fit_stat,
                                  fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
-                                 fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],
+                                 fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
                                  fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
                                  tie_line_fwhm=comp_options["tie_line_fwhm"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
 
@@ -3874,6 +3906,7 @@ def line_test(param_dict,
                                                                                losvd_options,
                                                                                host_options,
                                                                                power_options,
+                                                                               poly_options,
                                                                                opt_feii_options,
                                                                                uv_iron_options,
                                                                                balmer_options,
@@ -4044,6 +4077,7 @@ def line_test(param_dict,
                               losvd_options,
                               host_options,
                               power_options,
+                              poly_options,
                               opt_feii_options,
                               uv_iron_options,
                               balmer_options,
@@ -4075,6 +4109,7 @@ def line_test(param_dict,
                               losvd_options,
                               host_options,
                               power_options,
+                              poly_options,
                               opt_feii_options,
                               uv_iron_options,
                               balmer_options,
@@ -4165,6 +4200,18 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
     The plotting function for test_line().  It plots both the outflow
     and no_outflow results.
     """
+
+    def poly_label(kind):
+        if kind=="ppoly":
+            order = len([p for p in param_names_outflows if p.startswith("PPOLY_") ])-1
+        if kind=="apoly":
+            order = len([p for p in param_names_outflows if p.startswith("APOLY_")])-1
+        if kind=="mpoly":
+            order = len([p for p in param_names_outflows if p.startswith("MPOLY_")])-1
+        #
+        ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
+        return ordinal(order)
+
     def calc_new_center(center,voff):
         """
         Calculated new center shifted 
@@ -4197,6 +4244,13 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
 
         elif (key=='POWER'):
             ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
+
+        elif (key=='PPOLY'):
+            ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
+        elif (key=='APOLY'):
+            ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
+        elif (key=='MPOLY'):
+            ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['MPOLY'], color='xkcd:lavender' , linewidth=0.5, linestyle='-', label='%s-order Mult. Poly.' % (poly_label("mpoly")))
 
         elif (key in ['NA_OPT_FEII_TEMPLATE','BR_OPT_FEII_TEMPLATE']):
             ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['NA_OPT_FEII_TEMPLATE'], color='xkcd:yellow', linewidth=0.5, linestyle='-' , label='Narrow FeII')
@@ -4260,7 +4314,7 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
     ax2.set_ylim(ax_low,ax_upp)
     ax2.set_xlim(np.min(lam_gal),np.max(lam_gal))
     # Axes labels
-    ax2.set_yticklabels(np.array(ax2.get_yticks()/3.0,dtype=int))
+    ax2.set_yticklabels(np.round(np.array(ax2.get_yticks()/3.0)))
     ax2.set_ylabel(r'$\Delta f_\lambda$',fontsize=12)
     ax2.set_xlabel(r'Wavelength, $\lambda\;(\mathrm{\AA})$',fontsize=12)
     handles, labels = ax1.get_legend_handles_labels()
@@ -4303,6 +4357,13 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
 
         elif (key=='POWER'):
             ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
+
+        elif (key=='PPOLY'):
+            ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
+        elif (key=='APOLY'):
+            ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
+        elif (key=='MPOLY'):
+            ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['MPOLY'], color='xkcd:lavender' , linewidth=0.5, linestyle='-', label='%s-order Mult. Poly.' % (poly_label("mpoly")))
 
         elif (key in ['NA_OPT_FEII_TEMPLATE','BR_OPT_FEII_TEMPLATE']):
             ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['NA_OPT_FEII_TEMPLATE'], color='xkcd:yellow', linewidth=0.5, linestyle='-' , label='Narrow FeII')
@@ -4536,7 +4597,7 @@ def calc_max_like_flux(comp_dict, lam_gal):
     """
     flux_dict = {}
     for key in comp_dict: 
-        if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT"]:
+        if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             flux = np.log10(1.e-17*(simps(comp_dict[key],lam_gal)))
             # Add to flux_dict
             flux_dict[key+"_FLUX"]  = flux
@@ -4579,11 +4640,11 @@ def calc_max_like_eqwidth(comp_dict, line_list, lam_gal, noise, velscale):
     # Create a single continuum component based on what was fit
     cont = np.zeros(len(lam_gal))
     for key in comp_dict:
-        if key in ["POWER","HOST_GALAXY","BALMER_CONT"]:
+        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             cont+=comp_dict[key]
 
     # Get all spectral components, not including data, model, resid, and noise
-    spec_comps= [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT"]]
+    spec_comps= [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [i for i in line_list]
     if (spec_comps) and (lines) and (np.sum(cont)>0):
@@ -4615,11 +4676,11 @@ def calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=70.0, Om0=0.30):
     agn_cont   = np.zeros(len(lam_gal))
     host_cont  = np.zeros(len(lam_gal))
     for key in comp_dict:
-        if key in ["POWER","HOST_GALAXY","BALMER_CONT"]:
+        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             total_cont+=comp_dict[key]
-        if key in ["POWER","BALMER_CONT"]:
+        if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             agn_cont+=comp_dict[key]
-        if key in ["HOST_GALAXY"]:
+        if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
             host_cont+=comp_dict[key]
     #
     # Calculate luminosity distance
@@ -4767,6 +4828,7 @@ def max_likelihood(param_dict,
                    losvd_options,
                    host_options,
                    power_options,
+                   poly_options,
                    opt_feii_options,
                    uv_iron_options,
                    balmer_options,
@@ -4837,6 +4899,7 @@ def max_likelihood(param_dict,
                                                          losvd_options,
                                                          host_options,
                                                          power_options,
+                                                         poly_options,
                                                          opt_feii_options,
                                                          uv_iron_options,
                                                          balmer_options,
@@ -4876,6 +4939,7 @@ def max_likelihood(param_dict,
                           losvd_options,
                           host_options,
                           power_options,
+                          poly_options,
                           opt_feii_options,
                           uv_iron_options,
                           balmer_options,
@@ -5025,6 +5089,7 @@ def max_likelihood(param_dict,
                                              losvd_options,
                                              host_options,
                                              power_options,
+                                             poly_options,
                                              opt_feii_options,
                                              uv_iron_options,
                                              balmer_options,
@@ -5059,6 +5124,7 @@ def max_likelihood(param_dict,
                                   losvd_options,
                                   host_options,
                                   power_options,
+                                  poly_options,
                                   opt_feii_options,
                                   uv_iron_options,
                                   balmer_options,
@@ -5249,6 +5315,7 @@ def max_likelihood(param_dict,
                           losvd_options,
                           host_options,
                           power_options,
+                          poly_options,
                           opt_feii_options,
                           uv_iron_options,
                           balmer_options,
@@ -5403,6 +5470,16 @@ def add_tied_parameters(pdict,line_list):
 
 def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_dir):
 
+        def poly_label(kind):
+            if kind=="ppoly":
+                order = len([p for p in param_names if p.startswith("PPOLY_") ])-1
+            if kind=="apoly":
+                order = len([p for p in param_names if p.startswith("APOLY_")])-1
+            if kind=="mpoly":
+                order = len([p for p in param_names if p.startswith("MPOLY_")])-1
+            #
+            ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
+            return ordinal(order)
 
         def calc_new_center(center,voff):
             """
@@ -5433,6 +5510,13 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
 
             elif (key=='POWER'):
                 ax1.plot(comp_dict['WAVE'], comp_dict['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
+
+            elif (key=='PPOLY'):
+                ax1.plot(comp_dict['WAVE'], comp_dict['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
+            elif (key=='APOLY'):
+                ax1.plot(comp_dict['WAVE'], comp_dict['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
+            elif (key=='MPOLY'):
+                ax1.plot(comp_dict['WAVE'], comp_dict['MPOLY'], color='xkcd:lavender' , linewidth=0.5, linestyle='-', label='%s-order Mult. Poly.' % (poly_label("mpoly")))
 
             elif (key in ['NA_OPT_FEII_TEMPLATE','BR_OPT_FEII_TEMPLATE']):
                 ax1.plot(comp_dict['WAVE'], comp_dict['NA_OPT_FEII_TEMPLATE'], color='xkcd:yellow', linewidth=0.5, linestyle='-' , label='Narrow FeII')
@@ -5500,7 +5584,7 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
         ax2.set_ylim(ax_low,ax_upp)
         ax2.set_xlim(np.min(lam_gal),np.max(lam_gal))
         # Axes labels
-        ax2.set_yticklabels(np.array(ax2.get_yticks()/3.0,dtype=int))
+        ax2.set_yticklabels(np.round(np.array(ax2.get_yticks()/3.0)))
         ax2.set_ylabel(r'$\Delta f_\lambda$',fontsize=12)
         ax2.set_xlabel(r'Wavelength, $\lambda\;(\mathrm{\AA})$',fontsize=12)
         handles, labels = ax1.get_legend_handles_labels()
@@ -5575,6 +5659,7 @@ def lnlike(params,
            losvd_options,
            host_options,
            power_options,
+           poly_options,
            opt_feii_options,
            uv_iron_options,
            balmer_options,
@@ -5610,6 +5695,7 @@ def lnlike(params,
                                                                                   losvd_options,
                                                                                   host_options,
                                                                                   power_options,
+                                                                                  poly_options,
                                                                                   opt_feii_options,
                                                                                   uv_iron_options,
                                                                                   balmer_options,
@@ -5671,6 +5757,7 @@ def lnlike(params,
                                      losvd_options,
                                      host_options,
                                      power_options,
+                                     poly_options,
                                      opt_feii_options,
                                      uv_iron_options,
                                      balmer_options,
@@ -5775,6 +5862,7 @@ def lnprob(params,
            losvd_options,
            host_options,
            power_options,
+           poly_options,
            opt_feii_options,
            uv_iron_options,
            balmer_options,
@@ -5808,6 +5896,7 @@ def lnprob(params,
                                                                          losvd_options,
                                                                          host_options,
                                                                          power_options,
+                                                                         poly_options,
                                                                          opt_feii_options,
                                                                          uv_iron_options,
                                                                          balmer_options,
@@ -6024,6 +6113,7 @@ def fit_model(params,
               losvd_options,
               host_options,
               power_options,
+              poly_options,
               opt_feii_options,
               uv_iron_options,
               balmer_options,
@@ -6057,8 +6147,6 @@ def fit_model(params,
 
     ############################# Power-law Component ######################################################
 
-    # if all(comp in param_names for comp in ['POWER_AMP','power_slope','power_break'])==True:
-    # if all(comp in param_names for comp in ['POWER_AMP','power_slope'])==True:
     if (comp_options['fit_power']==True) & (power_options['type']=='simple'):
 
         # Create a template model for the power-law continuum
@@ -6077,6 +6165,44 @@ def fit_model(params,
 
         host_model = (host_model) - (power) # Subtract off continuum from galaxy, since we only want template weights to be fit
         comp_dict['POWER'] = power
+
+    ########################################################################################################
+
+    ############################# Polynomial Components ####################################################
+
+
+    if (comp_options["fit_poly"]==True) & (poly_options["ppoly"]["bool"]==True) & (poly_options["ppoly"]["order"]>=0):
+        #
+        nw = np.linspace(-1,1,len(lam_gal))
+        coeff = np.empty(poly_options['ppoly']['order']+1)
+        for n in range(poly_options['ppoly']['order']+1):
+            coeff[n] = p["PPOLY_COEFF_%d" % n]
+        ppoly = np.polynomial.polynomial.polyval(nw, coeff)
+        if np.any(ppoly)<0:
+            ppoly += -np.nanmin(ppoly)
+        comp_dict["PPOLY"] = ppoly
+        host_model += ppoly
+        #
+    if (comp_options["fit_poly"]==True) & (poly_options["apoly"]["bool"]==True) & (poly_options["apoly"]["order"]>=0):
+        #
+        nw = np.linspace(-1,1,len(lam_gal))
+        coeff = np.empty(poly_options['apoly']['order']+1)
+        for n in range(poly_options['apoly']['order']+1):
+            coeff[n] = p["APOLY_COEFF_%d" % n]
+        apoly = np.polynomial.legendre.legval(nw, coeff)
+        comp_dict["APOLY"] = apoly
+        host_model += apoly
+        #
+    if (comp_options["fit_poly"]==True) & (poly_options["mpoly"]["bool"]==True) & (poly_options["mpoly"]["order"]>=0):
+        #
+        nw = np.linspace(-1,1,len(lam_gal))
+        coeff = np.empty(poly_options['mpoly']['order']+1)
+        for n in range(poly_options['mpoly']['order']+1):
+            coeff[n] = p["MPOLY_COEFF_%d" % n]
+        mpoly = np.polynomial.legendre.legval(nw, coeff)
+        comp_dict["MPOLY"] = mpoly
+        host_model *= mpoly
+        #
 
     ########################################################################################################
 
@@ -6239,24 +6365,11 @@ def fit_model(params,
                 # host_norm = 1
             weights	 = nnls(conv_temp,host_model)#/host_norm) # scipy.optimize Non-negative Least Squares
             host_galaxy = (np.sum(weights*conv_temp,axis=1)) #* host_norm
-            #
-            if (losvd_options['losvd_apoly']['bool']==True) and (losvd_options['losvd_apoly']['order']>=1):
-                nw = np.linspace(-1,1,len(lam_gal))
-                coeff = np.empty(losvd_options['losvd_apoly']['order']+1)
-                for n in range(losvd_options['losvd_apoly']['order']+1):
-                    coeff[n] = p["LOSVD_LCOEFF_%d" % n]
-                lpoly = np.polynomial.legendre.legval(nw, coeff)
-                host_galaxy += lpoly
+            # Final scaling to ensure the host galaxy isn't negative anywhere
+            if np.any(host_galaxy<0):
+                host_galaxy+= -np.min(host_galaxy)
 
-                if np.any(host_galaxy<0):
-                    host_galaxy+= -np.min(host_galaxy)
 
-            # fig = plt.figure(figsize=(18,7))
-            # ax1 = fig.add_subplot(1,1,1)
-            # ax1.plot(lam_gal,host_galaxy)
-            # plt.tight_layout()
-            #
-            #
         elif (losvd_options["vel_const"]["bool"]==False) | (losvd_options["disp_const"]["bool"]==False):
             # If templates velocity OR dispersion are not constant, we need to perform 
             # the convolution.
@@ -6275,10 +6388,6 @@ def fit_model(params,
             conv_temp	= convolve_gauss_hermite(temp_fft,npad,float(velscale),\
                            [stel_vel, stel_disp],np.shape(lam_gal)[0],velscale_ratio=1,sigma_diff=0,vsyst=vsyst)
             #
-            # print(np.shape(temp_fft))
-            # print(len(conv_temp))
-            # print(len(host_model))
-            # sys.exit()
 
             host_model[~np.isfinite(host_model)] = 0
             conv_temp[~np.isfinite(conv_temp)]	= 0
@@ -6288,34 +6397,11 @@ def fit_model(params,
             weights	 = nnls(conv_temp,host_model)#/host_norm) # scipy.optimize Non-negative Least Squares
             host_galaxy = (np.sum(weights*conv_temp,axis=1)) #* host_norm
             #
-            if (losvd_options['losvd_apoly']['bool']==True) and (losvd_options['losvd_apoly']['order']>=1):
-                nw = np.linspace(-1,1,len(lam_gal))
-                coeff = np.empty(losvd_options['losvd_apoly']['order']+1)
-                for n in range(losvd_options['losvd_apoly']['order']+1):
-                    coeff[n] = p["LOSVD_LCOEFF_%d" % n]
-                lpoly = np.polynomial.legendre.legval(nw, coeff)
-                host_galaxy += lpoly 
-
-                if np.any(host_galaxy<0):
-                    host_galaxy+= -np.min(host_galaxy)
+            if np.any(host_galaxy<0):
+                host_galaxy+= -np.min(host_galaxy)
 
         host_model = (host_model) - (host_galaxy) # Subtract off continuum from galaxy, since we only want template weights to be fit
         comp_dict['HOST_GALAXY'] = host_galaxy
-
-        # # Unpack stel_templates
-        # temp_fft, vsyst, npad = stel_templates
-        # # Convolve the templates with a LOSVD
-        # losvd_params = [p['STEL_VEL'],p['STEL_DISP']] # ind 0 = velocity*, ind 1 = sigma*
-        # conv_temp	= convolve_gauss_hermite(temp_fft,npad,float(velscale),\
-        # 			   losvd_params,np.shape(lam_gal)[0],velscale_ratio=1,sigma_diff=0,vsyst=vsyst)
-        
-        # # Fitted weights of all templates using Non-negative Least Squares (NNLS)
-        # host_model[host_model/host_model!=1] = 0 
-        # conv_temp[conv_temp/conv_temp!=1]	= 0
-        # host_norm = np.median(host_model) 
-        # weights	 = nnls(conv_temp,host_model/host_norm) # scipy.optimize Non-negative Least Squares
-        # host_galaxy = (np.sum(weights*conv_temp,axis=1)) * host_norm
-        # comp_dict['HOST_GALAXY'] = host_galaxy
 
      ########################################################################################################
 
@@ -6352,14 +6438,14 @@ def fit_model(params,
         agn_cont   = np.zeros(len(lam_gal))
         host_cont  = np.zeros(len(lam_gal))
         for key in comp_dict:
-            if key in ["POWER","HOST_GALAXY","BALMER_CONT"]:
+            if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
                 total_cont+=comp_dict[key]
-            if key in ["POWER","BALMER_CONT"]:
+            if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
                 agn_cont+=comp_dict[key]
-            if key in ["HOST_GALAXY"]:
+            if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
                 host_cont+=comp_dict[key]
         # Get all spectral components, not including data, model, resid, and noise
-        spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT"]]
+        spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
         # Get keys of any lines that were fit for which we will compute eq. widths for
         lines = [line for line in line_list]
         fluxes	= {}
@@ -9316,6 +9402,7 @@ def plot_best_model(param_dict,
                     losvd_options,
                     host_options,
                     power_options,
+                    poly_options,
                     opt_feii_options,
                     uv_iron_options,
                     balmer_options,
@@ -9333,6 +9420,21 @@ def plot_best_model(param_dict,
     """
     Plots the best fig model and outputs the components to a FITS file for reproduction.
     """
+
+    param_names  = [key for key in param_dict ]
+    par_best     = [param_dict[key]['par_best'] for key in param_dict ]
+
+    def poly_label(kind):
+        if kind=="ppoly":
+            order = len([p for p in param_names if p.startswith("PPOLY_") ])-1
+        if kind=="apoly":
+            order = len([p for p in param_names if p.startswith("APOLY_")])-1
+        if kind=="mpoly":
+            order = len([p for p in param_names if p.startswith("MPOLY_")])-1
+        #
+        ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
+        return ordinal(order)
+
     def calc_new_center(center,voff):
         """
         Calculated new center shifted 
@@ -9341,10 +9443,6 @@ def plot_best_model(param_dict,
         c = 299792.458 # speed of light (km/s)
         new_center = (voff*center)/c + center
         return new_center
-
-    param_names  = [key for key in param_dict ]
-    par_best	 = [param_dict[key]['par_best'] for key in param_dict ]
-
 
     output_model = True
     fit_type	 = 'final'
@@ -9359,6 +9457,7 @@ def plot_best_model(param_dict,
                           losvd_options,
                           host_options,
                           power_options,
+                          poly_options,
                           opt_feii_options,
                           uv_iron_options,
                           balmer_options,
@@ -9398,6 +9497,13 @@ def plot_best_model(param_dict,
 
         elif (key=='POWER'):
             ax1.plot(comp_dict['WAVE'], comp_dict['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
+
+        elif (key=='PPOLY'):
+            ax1.plot(comp_dict['WAVE'], comp_dict['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
+        elif (key=='APOLY'):
+            ax1.plot(comp_dict['WAVE'], comp_dict['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
+        elif (key=='MPOLY'):
+            ax1.plot(comp_dict['WAVE'], comp_dict['MPOLY'], color='xkcd:lavender' , linewidth=0.5, linestyle='-', label='%s-order Mult. Poly.' % (poly_label("mpoly")))
 
         elif (key in ['NA_OPT_FEII_TEMPLATE','BR_OPT_FEII_TEMPLATE']):
             ax1.plot(comp_dict['WAVE'], comp_dict['NA_OPT_FEII_TEMPLATE'], color='xkcd:yellow', linewidth=0.5, linestyle='-' , label='Narrow FeII')
@@ -9465,7 +9571,7 @@ def plot_best_model(param_dict,
     ax2.set_ylim(ax_low,ax_upp)
     ax2.set_xlim(np.min(lam_gal),np.max(lam_gal))
     # Axes labels
-    ax2.set_yticklabels(np.array(ax2.get_yticks()/3.0,dtype=int))
+    ax2.set_yticklabels(np.round(np.array(ax2.get_yticks()/3.0)))
     ax2.set_ylabel(r'$\Delta f_\lambda$',fontsize=12)
     ax2.set_xlabel(r'Wavelength, $\lambda\;(\mathrm{\AA})$',fontsize=12)
     handles, labels = ax1.get_legend_handles_labels()
