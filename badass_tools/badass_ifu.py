@@ -426,14 +426,21 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
         SNR = np.zeros((nbins,))
         for iy in range(wy):
             for ix in range(wx):
-                ylo = miny+iy*fixed_bin_size
-                yhi = np.min([miny+(iy+1)*fixed_bin_size, binnum.shape[0]])
-                xlo = minx+ix*fixed_bin_size
-                xhi = np.min([minx+(ix+1)*fixed_bin_size, binnum.shape[1]])
+                # Relative axes indices
+                ylo = iy*fixed_bin_size
+                yhi = np.min([(iy+1)*fixed_bin_size, binnum.shape[0]])
+                xlo = ix*fixed_bin_size
+                xhi = np.min([(ix+1)*fixed_bin_size, binnum.shape[1]])
                 binnum[ylo:yhi, xlo:xhi] = indx
+
+                # Shift axes limits by the aperture
+                ylo += miny
+                yhi += miny
+                xlo += minx
+                xhi += minx
                 ybin, xbin = np.meshgrid(np.arange(ylo, yhi, 1), np.arange(xlo, xhi, 1))
-                ypixbin[indx] = (ybin.flatten() + miny).tolist()
-                xpixbin[indx] = (xbin.flatten() + minx).tolist()
+                ypixbin[indx] = ybin.flatten().tolist()
+                xpixbin[indx] = xbin.flatten().tolist()
                 out_flux[:, indx] = np.apply_over_axes(np.nanmean, flux[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 out_ivar[:, indx] = np.apply_over_axes(np.nanmean, ivar[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 out_mask[:, indx] = np.apply_over_axes(np.nansum, mask[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
