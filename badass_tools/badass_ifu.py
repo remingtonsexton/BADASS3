@@ -19,6 +19,39 @@ plt.style.use('dark_background')
 
 
 def read_muse_ifu(fits_file,z=0):
+    """
+    Read in a MUSE-formatted IFU cube
+
+    :param fits_file: str
+        File path to the FITS IFU cube
+    :param z: float, optional
+        The redshift of the spectrum, since MUSE cubes often do not provide this information
+
+    :return nx: int
+        x-dimension (horizontal axis) of the cube
+    :return ny: int
+        y-dimension (vertical axis) of the cube
+    :return nz: int
+        z-dimension (wavelength axis) of the cube
+    :return ra: float
+        Right ascension
+    :return dec: float
+        Declination
+    :return museid: str
+        The MUSE ID of the observation
+    :return wave: array
+        1-D Wavelength array with dimension (nz,)
+    :return flux: array
+        3-D flux array with dimensions (nz, ny, nx)
+    :return ivar: array
+        3-D inverse variance array with dimensions (nz, ny, nx)
+    :return specres: array
+        1-D spectral resolution ("R") array with dimension (nz,)
+    :return mask: array
+        3-D mask array with dimensions (nz, ny, nx)
+    :return object_name: str
+        The name of the object, if provided in the FITS header
+    """
 
     # Load the file
     # https://www.eso.org/rm/api/v1/public/releaseDescriptions/78
@@ -89,6 +122,39 @@ def read_muse_ifu(fits_file,z=0):
 
 
 def read_manga_ifu(fits_file,z=0):
+    """
+    Read in a MANGA-formatted IFU cube
+
+    :param fits_file: str
+        File path to the FITS IFU cube
+    :param z: float, optional
+        The redshift of the spectrum, this is unused.
+
+    :return nx: int
+        x-dimension (horizontal axis) of the cube
+    :return ny: int
+        y-dimension (vertical axis) of the cube
+    :return nz: int
+        z-dimension (wavelength axis) of the cube
+    :return ra: float
+        Right ascension
+    :return dec: float
+        Declination
+    :return mangaid: str
+        The MANGA ID of the observation
+    :return wave: array
+        1-D Wavelength array with dimension (nz,)
+    :return flux: array
+        3-D flux array with dimensions (nz, ny, nx)
+    :return ivar: array
+        3-D inverse variance array with dimensions (nz, ny, nx)
+    :return specres: array
+        1-D spectral resolution ("R") array with dimension (nz,)
+    :return mask: array
+        3-D mask array with dimensions (nz, ny, nx)
+    :return None:
+        To mirror the output length of read_muse_ifu
+    """
 
     # Load the file
     # https://data.sdss.org/datamodel/files/MANGA_SPECTRO_REDUX/DRPVER/PLATE4/stack/manga-CUBE.html#hdu1
@@ -122,9 +188,93 @@ def read_manga_ifu(fits_file,z=0):
 
 
 
-def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=None,cvt=True,voronoi_plot=True,quiet=True,wvt=False,
-                maxbins=800,snr_threshold=3,use_and_mask=True,nx=None,ny=None,nz=None,ra=None,dec=None,dataid=None,wave=None,flux=None,ivar=None,
+def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binning=False,targetsn=None,cvt=True,voronoi_plot=True,quiet=True,wvt=False,
+                maxbins=800,snr_threshold=0.5,fixed_bin_size=10,use_and_mask=True,nx=None,ny=None,nz=None,ra=None,dec=None,dataid=None,wave=None,flux=None,ivar=None,
                 specres=None,mask=None,objname=None):
+    """
+    Deconstruct an IFU cube into individual spaxel files for fitting with BADASS
+
+    :param fits_file: str
+        The file path to the IFU FITS file; if format == 'user', this field may be left as None, '', or any other filler value
+    :param z: float
+        The redshift of the spectrum
+    :param aperture: array, optional
+        The lower-left and upper-right corners of a square aperture, formatted as [y0, y1, x0, x1]
+    :param voronoi_binning: bool
+        Whether or not to bin spaxels using the voronoi method (grouping to read a certain SNR threshold). Default True.
+        Mutually exclusive with fixed_binning.
+    :param fixed_binning: bool
+        Whether or not to bin spaxels using a fixed size. Default False.
+        Mutually exclusive with voronoi_binning.
+    :param targetsn: float, optional
+        The target SNR to bin by, if using voronoi binning.
+    :param cvt: bool
+        Vorbin CVT option (see the vorbin package docs). Default True.
+    :param voronoi_plot: bool
+        Whether or not to plot the voronoi bin structure. Default True.
+    :param quiet: bool
+        Vorbin quiet option (see the vorbin package docs). Default True.
+    :param wvt: bool
+        Vorbin wvt option (see the vorbin package docs). Default False.
+    :param maxbins: int
+        If no target SNR is provided for voronoi binning, maxbins may be specified, which will automatically calculate
+        the target SNR required to reach the number of bins desired. Default 800.
+    :param snr_threshold: float
+        Minimum SNR threshold, below which spaxel data will be removed and not fit.
+    :param fixed_bin_size: int
+        If using fixed binning, this is the side length of the square bins, in units of spaxels.
+    :param use_and_mask: bool
+        Whether or not to save the and_mask data.
+    :param nx: int, optional
+        x-dimension of the cube, only required if format == 'user'
+    :param ny: int, optional
+        y-dimension of the cube, only required if format == 'user'
+    :param nz: int, optional
+        z-dimension of the cube, only required if format == 'user'
+    :param ra: float, optional
+        Right ascension of the cube, only required if format == 'user'
+    :param dec: float, optional
+        Declination of the cube, only required if format == 'user'
+    :param dataid: str, optional
+        ID of the cube, only required if format == 'user'
+    :param wave: array, optional
+        1-D wavelength array with shape (nz,), only required if format == 'user'
+    :param flux: array, optional
+        3-D flux array with shape (nz, ny, nx), only required if format == 'user'
+    :param ivar: array, optional
+        3-D inverse variance array with shape (nz, ny, nx), only required if format == 'user'
+    :param specres: array, optional
+        1-D spectral resolution ("R") array with shape (nz,), only required if format == 'user'
+    :param mask: array, optional
+        3-D mask array with shape (nz, ny, nx), only required if format == 'user'
+    :param objname: str, optional
+        The name of the object, only required if format == 'user'
+    
+    :return wave: array
+        1-D wavelength array with shape (nz,)
+    :return flux: array
+        3-D masked flux array with shape (nz, ny, nx)
+    :return ivar: array
+        3-D masked inverse variance array with shape (nz, ny, nx)
+    :return mask: array
+        3-D mask array with shape (nz, ny, nx)
+    :return fwhm_res: array
+        1-D FWHM resolution array with shape (nz,)
+    :return binnum: array
+        Bin number array that specifies which spaxels are in each bin (see the vorbin docs)
+    :return npixels: array
+        Number of spaxels in each bin (see the vorbin docs)
+    :return xpixbin: array
+        The x positions of spaxels in each bin
+    :return ypixbin: array
+        The y positions of spaxels in each bin
+    :return z: float
+        The redshift
+    :return dataid: str
+        The data ID
+    :return objname: str
+        The object name
+    """
 
     assert format in ('manga', 'muse', 'user'), "format must be either 'manga' or 'muse'; no others currently supported!"
     # Read the FITS file using the appropriate parsing function
@@ -190,7 +340,7 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
         sr = signal.ravel()
         nr = noise.ravel()
         good = np.where(np.isfinite(sr) & np.isfinite(nr) & (sr > 0) & (nr > 0))[0]
-
+            
         # Target S/N ratio to bin for. If none, defaults to value such that the highest pixel isnt binned
         # In general this isn't a great choice.  Should want to maximize resolution without sacrificing too much
         # computation time.
@@ -217,20 +367,6 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
             targetsn = soln.x[0]
 
             binnum, xbin, ybin, xbar, ybar, SNR, npixels, scale = objective(targetsn, return_data=True)
-
-            # i = 0
-            # while np.max(binnum) > maxbins:
-            #     targetsn *= 2 if i < 4 else 1.5
-            #     try:
-            #         binnum, xbin, ybin, xbar, ybar, sn, npixels, scale = voronoi_2d_binning(_x[good], _y[good], sr[good], nr[good],
-            #                                                                                 targetsn, cvt=cvt, pixelsize=1, plot=voronoi_plot,
-            #                                                                                 quiet=quiet, wvt=wvt)
-            #     except ValueError:
-            #         print(f'WARNING: Target S/N = {targetsn} generated an error.')
-            #         continue
-            #     if np.max(binnum) > maxbins:
-            #         print(f'WARNING: Target S/N = {targetsn} created too many bins. Increasing...')
-            #     i += 1
 
         else:
             binnum, xbin, ybin, xbar, ybar, SNR, npixels, scale = voronoi_2d_binning(_x[good], _y[good], sr[good], nr[good],
@@ -272,6 +408,57 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
                 flux[:, np.asarray(ypixbin[bin]), np.asarray(xpixbin[bin])] = np.nan
                 ivar[:, np.asarray(ypixbin[bin]), np.asarray(xpixbin[bin])] = np.nan
                 mask[:, np.asarray(ypixbin[bin]), np.asarray(xpixbin[bin])] = 1
+    
+    elif fixed_binning:
+        print(f'Performing binning with fixed bin size of {fixed_bin_size}')
+        # Create square bins of a fixed size
+        binnum = np.zeros((maxy-miny, maxx-minx), dtype=int)
+        wy = int(np.ceil((maxy-miny)/fixed_bin_size))
+        wx = int(np.ceil((maxx-minx)/fixed_bin_size))
+        indx = 0
+        nbins = wy*wx
+        out_flux = np.zeros((flux.shape[0], nbins))
+        out_ivar = np.zeros((ivar.shape[0], nbins))
+        out_mask = np.zeros((mask.shape[0], nbins))
+        xpixbin = np.full(nbins, fill_value=np.nan, dtype=object)
+        ypixbin = np.full(nbins, fill_value=np.nan, dtype=object)
+        npixels = np.zeros((nbins,), dtype=int)
+        SNR = np.zeros((nbins,))
+        for iy in range(wy):
+            for ix in range(wx):
+                # Relative axes indices
+                ylo = iy*fixed_bin_size
+                yhi = np.min([(iy+1)*fixed_bin_size, binnum.shape[0]])
+                xlo = ix*fixed_bin_size
+                xhi = np.min([(ix+1)*fixed_bin_size, binnum.shape[1]])
+                binnum[ylo:yhi, xlo:xhi] = indx
+
+                # Shift axes limits by the aperture
+                ylo += miny
+                yhi += miny
+                xlo += minx
+                xhi += minx
+                ybin, xbin = np.meshgrid(np.arange(ylo, yhi, 1), np.arange(xlo, xhi, 1))
+                ypixbin[indx] = ybin.flatten().tolist()
+                xpixbin[indx] = xbin.flatten().tolist()
+                out_flux[:, indx] = np.apply_over_axes(np.nanmean, flux[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
+                out_ivar[:, indx] = np.apply_over_axes(np.nanmean, ivar[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
+                out_mask[:, indx] = np.apply_over_axes(np.nansum, mask[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
+                npixels[indx] = len(ybin)
+                
+                signal = np.nanmean(flux[:, ylo:yhi, xlo:xhi], axis=0)
+                noise = np.sqrt(1/np.nanmean(ivar[:, ylo:yhi, xlo:xhi], axis=0))
+                SNR[indx] = np.nansum(signal) / np.sqrt(np.nansum(noise**2))
+                if SNR[indx] < snr_threshold:
+                    flux[:, ylo:yhi, xlo:xhi] = np.nan
+                    ivar[:, ylo:yhi, xlo:xhi] = np.nan
+                    mask[:, ylo:yhi, xlo:xhi] = 1
+
+                indx += 1
+
+        binnum = binnum.flatten()
+        irange = nbins
+        print(f'Fixed binning successful, created {nbins} bins')
 
     else:
         xpixbin = None
@@ -296,7 +483,7 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
         galaxy_spaxel = out_flux[:,i]  # observed flux
         ivar_spaxel = out_ivar[:,i]    # 1-sigma spectral noise
         mask_spaxel = out_mask[:,i]    # bad pixels
-        if voronoi_binning:
+        if voronoi_binning or fixed_binning:
             xi = xpixbin[i]            # x and y pixel position
             yi = ypixbin[i]
             snr_thresh = SNR[i] >= snr_threshold  # make sure bin has an overall SNR greater than the threshold
@@ -304,7 +491,7 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
             xi = [_x[i]]
             yi = [_y[i]]
             snr_thresh = SNR[_y[i], _x[i]] >= snr_threshold  # make sure spaxel has an SNR greater than the threshold
-        binnum_i = 0 if not voronoi_binning else i   # Voronoi bin index that this pixel belongs to
+        binnum_i = 0 if (not voronoi_binning) and (not fixed_binning) else i   # Voronoi bin index that this pixel belongs to
 
         # Package into a FITS file -- but only if the SNR is high enough, otherwise throw out the data
         if snr_thresh:
@@ -342,7 +529,7 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
             out_hdu = fits.HDUList([primaryhdu, coadd, specobj, binobj])
 
             # Save output to sub-folder
-            if voronoi_binning:
+            if voronoi_binning or fixed_binning:
                 tag = '_'.join(['spaxel', 'bin', str(binnum_i)])
             else:
                 tag = '_'.join(['spaxel', str(xi[0]), str(yi[0])])
@@ -362,6 +549,38 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,targetsn=N
 
 
 def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,dataid,aperture=None,object_name=None):
+    """
+    Plot a binned IFU cube and aperture.
+
+    :param fits_file: str
+        The file path to the FITS IFU file.
+    :param wave: array
+        1-D wavelength array with shape (nz,)
+    :param flux: array
+        3-D masked flux array with shape (nz, ny, nx)
+    :param ivar: array
+        3-D masked inverse variance array with shape (nz, ny, nx)
+    :param mask: array
+        3-D mask array with shape (nz, ny, nx)
+    :param binnum: array
+        Bin number array that specifies which spaxels are in each bin (see the vorbin docs)
+    :param npixels: array
+        Number of spaxels in each bin (see the vorbin docs)
+    :param xpixbin: array
+        The x positions of spaxels in each bin
+    :param ypixbin: array
+        The y positions of spaxels in each bin
+    :param z: float
+        The redshift
+    :param dataid: str
+        The data ID
+    :param aperture: array
+        The lower-left and upper-right corners of a square aperture, formatted as [y0, y1, x0, x1]
+    :param objname: str
+        The object name
+    
+    :return None:
+    """
 
     # fig = plt.figure(figsize=(14,4))
     fig = plt.figure(figsize=(14, 10))
@@ -457,7 +676,25 @@ def plot_ifu(fits_file,wave,flux,ivar,mask,binnum,npixels,xpixbin,ypixbin,z,data
     plt.close(fig)
 
 
-def reconstruct_ifu(fits_file):
+def reconstruct_ifu(fits_file,mcmc_label=None):
+    """
+    Reconstruct an IFU cube using the fit MCMC data from BADASS
+
+    :param fits_file: str
+        The file path to the original IFU FITS file
+    :param mcmc_label: int, optional
+        The index of the MCMC_output_* files that should be used in the reconstruction. Defaults to the largest one found.
+    
+    :return par_out: FITS HDUList
+        FITS-formatted HDUList mirroring the par_table format from BADASS, but arranged in the cube shape
+        Each HDU in the list corresponds to one parameter, mapped with a shape (ny, nx)
+    :return bmc_out: FITS HDUList
+        FITS-formatted HDUList mirroring the best_model_components format from BADASS, but arranged in the cube shape
+        Each HDU in the list corresponds to a model component, mapped with a shape (nz, ny, nx)
+    :return last_mcmc+1: int
+        The index of the output MCMC_output_* file for the overall cube (independent of the individual MCMC_output_* folders for each spaxel)
+    """
+
     # Make sure outputs exist
     path = fits_file.replace('.fits', '') + os.sep
     if not os.path.exists(path):
@@ -480,10 +717,16 @@ def reconstruct_ifu(fits_file):
     subdir = subdirs[0]
 
     # Find each MCMC output
-    most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
-    if len(most_recent_mcmc) == 0:
-        raise NotADirectoryError(f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
-    most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+    if mcmc_label is None:
+        most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
+        if len(most_recent_mcmc) == 0:
+            raise NotADirectoryError(f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
+        most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+    else:
+        most_recent_mcmc = glob.glob(subdir + os.sep + f"MCMC_output_{mcmc_label}")
+        if len(most_recent_mcmc) == 0:
+            raise NotADirectoryError(f"The unpacked folders for {fits_file}, MCMC_output{mcmc_label} do not exist! Fit before calling reconstruct")
+        most_recent_mcmc = most_recent_mcmc[0]
     par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
     best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
     test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
@@ -557,13 +800,20 @@ def reconstruct_ifu(fits_file):
         nonlocal parvals, parvals_low, parvals_upp, bmcvals, parameters, xpixbin, ypixbin, voronoi
 
         # Find each MCMC output
-        most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
-        if len(most_recent_mcmc) == 0:
-            # raise NotADirectoryError(
-            # f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
-            print(f"WARNING: MCMC folder for {subdir} not found!")
-            return
-        most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+        if mcmc_label is None:
+            most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
+            if len(most_recent_mcmc) == 0:
+                # raise NotADirectoryError(
+                # f"The unpacked folders for {fits_file} do not exist! Fit before calling reconstruct")
+                print(f"WARNING: MCMC folder for {subdir} not found!")
+                return
+            most_recent_mcmc = sorted(most_recent_mcmc)[-1]
+        else:
+            most_recent_mcmc = glob.glob(subdir + os.sep + f"MCMC_output_{mcmc_label}")
+            if len(most_recent_mcmc) == 0:
+                print(f"WARNING: MCMC folder for {subdir} not found!")
+                return
+            most_recent_mcmc = most_recent_mcmc[0]
         par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
         best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
         test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
@@ -716,6 +966,20 @@ def reconstruct_ifu(fits_file):
 
 
 def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=None, animated=False):
+    """
+    Make 2D maps and/or videos of the reconstructed par_table and best_model_components parameters
+
+    :param mcmc_output_dir: str
+        The folder to the overall MCMC_output_* folder for the whole cube (not individual spaxels)
+    :param partable_to_plot: list, optional
+        List of the par_table parameter names to plot. If None, plots them all.
+    :param bmc_to_plot: list, optional
+        List of best_model_components parameter names to plot. If None, plots them all.
+    :param animated: bool   
+        Whether or not to make the best_model_components plots into videos. Required an installation of FFMpeg.
+    
+    :return None:
+    """
     # Get directories
     partable = os.path.join(mcmc_output_dir, 'log', 'cube_par_table.fits')
     bmc = os.path.join(mcmc_output_dir, 'log', 'cube_best_model_components.fits')

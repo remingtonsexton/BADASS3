@@ -48,6 +48,7 @@ import psutil
 import pathlib
 import importlib
 import multiprocessing as mp
+import bifrost
 # Import BADASS tools modules
 cwd = os.getcwd() # get current working directory
 sys.path.insert(1,cwd+'/badass_tools/')
@@ -64,7 +65,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.1.6"
+__version__	= "9.1.5"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -1590,53 +1591,51 @@ def emline_masker(wave,spec,noise):
     return mask_bad#,mask_good
 
 
-def metal_masker(wave,spec,noise):
+def metal_masker(wave,spec,noise,fits_file):
     """
-    Runs a multiple moving window median  
+    Runs a neural network using BIFROST
     to determine location of emission lines
     to generate an emission line mask for 
     continuum fitting.
-    """
-    # Do a series of median filters with window sizes up to 25 
-    bandwidths = [5, 10, 15, 20, 25,100,500]
-    sig_clip = 3.0 # sigma threshold
-    nclip = 10 # number of clipping iterations
-    buffer = 2 # buffers # pixels each side 
-    all_nans = []
-    for i in range(len(bandwidths)):
-        count=0
-        new_spec = np.copy(spec)
-        while (count<=nclip):
-            med_spec = window_filter(new_spec,bandwidths[i])
-            count+=1
+    """    
+    # Initialize the neural network
+    line_name = ['metal_abs', 'generic_line']
+    neuralnet = bifrost.NeuralNet()
 
-            # fig = plt.figure(figsize=(20,10))
-            # ax1 = fig.add_subplot(111)
-            # ax1.plot(wave,spec)
-            # ax1.plot(wave,med_spec)
-            # ax1.plot(wave,noise)
-            # plt.tight_layout()
-            # sys.exit()
+    # Set up file paths
+    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data_files', 'neural_network')
+    if not os.path.exists(path):
+        os.mkdir(path)
+    _file = os.path.join(path, "metal.absorption.network.h5")
+    _plot = os.path.join(os.path.abspath(os.path.dirname(fits_file)), "metal.nn.convolve.html")
 
-            nan_spec = np.where((med_spec>new_spec) & (np.abs(med_spec-new_spec)>np.median(noise)*sig_clip))[0]
-            inan_buffer_upp = np.array([range(i,i+buffer+1) for i in nan_spec if (i+buffer) < len(spec)],dtype=int)
-            inan_buffer_upp = inan_buffer_upp.flatten()
-            inan_buffer_low = np.array([range(i-buffer-1,i) for i in nan_spec if (i-buffer) > 0],dtype=int)
-            inan_buffer_low = inan_buffer_low.flatten()
-            inan = np.concatenate([nan_spec,inan_buffer_low, inan_buffer_upp])
-            all_nans.append(inan)
-            new_spec = med_spec
+    # If not already trained, it must be trained
+    if not os.path.exists(_file):
+        print("Training neural network to mask metal absorption...")
+        neuralnet.train(line_name, target_line=0, size=100_000, epochs=11, save_path=_file)
+    # Otherwise, just load in the already-trained neural network
+    else:
+        neuralnet.load(_file, line_name, target_line=0)
+    
+    # Convert arrays to the native byte order
+    l_wave = wave if wave.dtype.byteorder == '=' else wave.byteswap().newbyteorder('=')
+    l_spec = spec if spec.dtype.byteorder == '=' else spec.byteswap().newbyteorder('=')
+    l_noise = noise if noise.dtype.byteorder == '=' else noise.byteswap().newbyteorder('=')
+    # (the noise isn't actually used)
 
-            if len(nan_spec)>0:
-                pass
-
-            else:
-                break
-
-    mask_bad = np.unique(np.concatenate(all_nans))
+    # Smooth and subtract spectrum to leave only narrow features
+    l_spec = (l_spec - gaussian_filter1d(l_spec, 20)) / np.nanmedian(l_spec)
+    l_noise = l_noise / np.nanmedian(l_spec)
+    
+    # Now the fun part, do a "convolution" (not really) of the neural network with a 100-angstrom wide window
+    # to get the confidence that a metal absorption line exists at each wavelength
+    cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
+    # Additional challenge -- re-mapping cwave back onto the original wave array
+    remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
+    # Mask all pixels where the confidence is over 50%
+    mask_bad = remap[conf > 0.5]
 
     return mask_bad
-
 
 
 def window_filter(spec,size):
@@ -1788,7 +1787,7 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
     
     if mask_metal:
         # galaxy = interpolate_metal(galaxy,noise)
-        metal_mask_bad = metal_masker(lam_gal,galaxy,noise)
+        metal_mask_bad = metal_masker(lam_gal,galaxy,noise,fits_file)
         for b in metal_mask_bad:
             fit_mask_bad.append(b)
 
@@ -1986,7 +1985,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
     
     if mask_metal:
         # galaxy = interpolate_metal(galaxy,noise)
-        metal_mask_bad = metal_masker(lam_gal,galaxy,noise)
+        metal_mask_bad = metal_masker(lam_gal,galaxy,noise,fits_file)
         for b in metal_mask_bad:
             fit_mask_bad.append(b)
 
@@ -2211,7 +2210,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
 
     if mask_metal:
         # galaxy = interpolate_metal(galaxy,noise)
-        metal_mask_bad = metal_masker(lam_gal, galaxy, noise)
+        metal_mask_bad = metal_masker(lam_gal, galaxy, noise, fits_file)
         for b in metal_mask_bad:
             fit_mask_bad.append(b)
 
@@ -3927,6 +3926,14 @@ def line_test(param_dict,
                                                                                n_basinhop=n_basinhop,
                                                                                max_like_niter=max_like_niter,
                                                                                verbose=verbose)
+
+    # if fit_stat = "RCHI2", we need to scale the input noise so that the 
+    # line tests are using the properly scaled noise.
+    if fit_stat=="RCHI2":
+        noise *= np.nanmean([mcpars_line["NOISE_SCALE"]["med"], mcpars_no_line["NOISE_SCALE"]["med"]])
+
+
+
     # Determine wavelength bounds of F-test. For [OIII]5007, we use the full profile (core + outflow)
     # and determine the 0.1 and 99.9 percentiles of the flux of the full profile to set the bounds 
     # of the test.
