@@ -1,7 +1,7 @@
 
 ![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_logo.gif)
 
-Ridiculous acronyms are a long-running joke in astronomy, but here, spectral fitting ain't no joke!
+Ridiculous acronyms are a [long-running joke in astronomy](https://lweb.cfa.harvard.edu/~gpetitpas/Links/Astroacro.html), but here, spectral fitting ain't no joke!
 
 [BADASS](https://ui.adsabs.harvard.edu/abs/2021MNRAS.500.2871S/abstract) is an open-source spectral analysis tool designed for detailed decomposition of Sloan Digital Sky Survey (SDSS) spectra, and specifically designed for the fitting of Type 1 ("broad line") Active Galactic Nuclei (AGN) in the optical.  The fitting process utilizes the Bayesian affine-invariant Markov-Chain Monte Carlo sampler [emcee](https://ui.adsabs.harvard.edu/abs/2013PASP..125..306F/abstract) for robust parameter and uncertainty estimation, as well as autocorrelation analysis to access parameter chain convergence.  BADASS can fit the following spectral features:
 - Stellar line-of-sight velocity distribution (LOSVD) using Penalized Pixel-Fitting ([pPXF](https://www-astro.physics.ox.ac.uk/~mxc/software/#ppxf), [Cappellari et al. (2017)](https://ui.adsabs.harvard.edu/abs/2017MNRAS.466..798C/abstract)) using templates from the [Indo-U.S. Library of Coudé Feed Stellar Spectra](https://www.noao.edu/cflib/) ([Valdes et al. (2004)](https://ui.adsabs.harvard.edu/abs/2004ApJS..152..251V/abstract)) in the optical region 3460 Å - 9464 Å.
