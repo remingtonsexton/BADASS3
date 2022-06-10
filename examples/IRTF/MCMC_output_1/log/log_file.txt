@@ -1,0 +1,564 @@
+
+############################### BADASS v9.1.1 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spec-IRTF-3.2m-Mid-IR.fits    
+SDSS redshift:                0.01756                       
+fitting region:               (8900,10500) [A]              
+velocity scale:               103.38 [km/s/pixel]           
+Galactic E(B-V):              0.010                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (8900, 10500)                 
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 10                            
+                 test_outflows: False                         
+                     test_line: {'bool': False, 'line': 'NA_OIII_5007'}
+                max_like_niter: 0                             
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: False                         
+                   fit_uv_iron: False                         
+                    fit_balmer: False                         
+                     fit_losvd: False                         
+                      fit_host: False                         
+                     fit_power: False                         
+                      fit_poly: True                          
+                    fit_narrow: True                          
+                     fit_broad: True                          
+                   fit_outflow: False                         
+                    fit_absorp: False                         
+                 tie_line_fwhm: True                          
+                 tie_line_voff: True                          
+               na_line_profile: GH                            
+               br_line_profile: V                             
+              out_line_profile: G                             
+              abs_line_profile: G                             
+
+   losvd_options:                                                                         
+                                Stellar LOSVD fitting is turned off.
+
+   host_options:                                                                          
+                                Host-galaxy template component is turned off.
+
+   power_options:                                                                         
+                                Power Law component is turned off.
+
+   poly_options:                                                                          
+                         ppoly: bool: True, order: 5                                                                                
+                         apoly: bool: False, order: 3                                                                               
+                         mpoly: bool: False, order: 3                                                                               
+
+   opt_feii_options:                                                                      
+                                Optical FeII fitting is turned off.
+
+   uv_iron_options:                                                                       
+                                UV Iron fitting is turned off.
+
+   balmer_options:                                                                        
+                                Balmer pseudo-continuum fitting is turned off.
+
+   plot_options:                                                                          
+               plot_param_hist: True                          
+                plot_flux_hist: False                         
+                 plot_lum_hist: False                         
+             plot_eqwidth_hist: False                         
+   output_options:                                                                        
+                   write_chain: False                         
+                       verbose: True                          
+
+-----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------
+ Line List:
+----------------------------------------------------------------------------------------------------------------------------------------
+BR_PA_DELTA                                                                               
+                              amp                           free                          
+                              center                        10052.123                     
+                              center_pix                    353.4069571789157             
+                              fwhm                          BR_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  457.22282994985244            
+                              label                         Pa$\delta$                    
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         BR_SHAPE                      
+                              voff                          BR_VOFF                       
+BR_PA_EPSIL                                                                               
+                              amp                           free                          
+                              center                        9548.587                      
+                              center_pix                    204.38244589534622            
+                              fwhm                          BR_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  481.33405760077386            
+                              label                         Pa$\epsilon$                  
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         BR_SHAPE                      
+                              voff                          BR_VOFF                       
+NA_CI_9824                                                                                
+                              amp                           free                          
+                              center                        9824.13                       
+                              center_pix                    286.8782147139288             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  467.8338056463016             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [C I]                         
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_CI_9850                                                                                
+                              amp                           free                          
+                              center                        9850.26                       
+                              center_pix                    294.5808703468554             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  466.5927726845789             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [C I]                         
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_FEVI_10111                                                                             
+                              amp                           free                          
+                              center                        10111.671                     
+                              center_pix                    370.5346780988417             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  454.53022799733105            
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [FeVI]                        
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_HEI_10027                                                                              
+                              amp                           free                          
+                              center                        10027.73                      
+                              center_pix                    346.36151575326676            
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  458.335049414374              
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         He I                          
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_HEI_10031                                                                              
+                              amp                           free                          
+                              center                        10031.16                      
+                              center_pix                    347.353239758819              
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  458.1783288337541             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         He I                          
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_NI_10400                                                                               
+                              amp                           free                          
+                              center                        10400.6                       
+                              center_pix                    452.2323344570682             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  441.9033637543988             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [NI]                          
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_NI_10410                                                                               
+                              amp                           free                          
+                              center                        10410.2                       
+                              center_pix                    454.9077334350575             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  441.49585263145764            
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [NI]                          
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_SIII_9069                                                                              
+                              amp                           free                          
+                              center                        9068.6                        
+                              center_pix                    54.8225882850143              
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  506.8103262977748             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [S III]                       
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_SIII_9531                                                                              
+                              amp                           free                          
+                              center                        9531.1                        
+                              center_pix                    199.0669332153727             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  482.21717588358115            
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [S III]                       
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_SII_10289                                                                              
+                              amp                           free                          
+                              center                        10289.549                     
+                              center_pix                    421.1032577446919             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  446.67265057623035            
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [SII]                         
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_SII_10323                                                                              
+                              amp                           free                          
+                              center                        10323.318                     
+                              center_pix                    430.6045451071073             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  445.2115226000014             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [SII]                         
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_SII_10339                                                                              
+                              amp                           free                          
+                              center                        10339.243                     
+                              center_pix                    435.07448464117243            
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  444.5257863717876             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [SII]                         
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_SII_10373                                                                              
+                              amp                           free                          
+                              center                        10373.332                     
+                              center_pix                    444.61963274938006            
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  443.0649790312313             
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [SII]                         
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+NA_SVIII_9913                                                                             
+                              amp                           free                          
+                              center                        9913.0                        
+                              center_pix                    312.9924804367967             
+                              fwhm                          NA_FWHM                       
+                              fwhm_res_ang                  15.33080637093279             
+                              fwhm_res_kms                  463.639677702411              
+                              h3                            NA_H3                         
+                              h4                            NA_H4                         
+                              h5                            NA_H5                         
+                              h6                            NA_H6                         
+                              label                         [S VIII]                      
+                              line_profile                  GH                            
+                              line_type                     na                            
+                              voff                          NA_VOFF                       
+----------------------------------------------------------------------------------------------------------------------------------------
+ Soft Constraints:
+
+               BR_PA_DELTA_AMP > BR_PA_EPSIL_AMP
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### Maximum Likelihood Fitting Results ###
+-----------------------------------------------------------------------------------------------------------------
+Parameter                     Max. Like. Value              +/- 1-sigma                   Flag                          
+-----------------------------------------------------------------------------------------------------------------
+BR_FWHM                       2622.1153                     0.0000                        1                             
+BR_PA_DELTA_AMP               37.6627                       0.0000                        1                             
+BR_PA_DELTA_DISP              601.1416                      0.0000                        0                             
+BR_PA_DELTA_EW                9.7866                        0.0000                        0                             
+BR_PA_DELTA_FLUX              -13.8947                      0.0000                        1                             
+BR_PA_DELTA_FWHM              2622.1153                     0.0000                        1                             
+BR_PA_DELTA_LUM               39.9474                       0.0000                        0                             
+BR_PA_DELTA_NPIX              23.0000                       0.0000                        0                             
+BR_PA_DELTA_SHAPE             0.0000                        0.0000                        2                             
+BR_PA_DELTA_VINT              378.6709                      0.0000                        0                             
+BR_PA_DELTA_VOFF              378.6446                      0.0000                        1                             
+BR_PA_EPSIL_AMP               37.6627                       0.0000                        1                             
+BR_PA_EPSIL_DISP              598.2122                      0.0000                        0                             
+BR_PA_EPSIL_EW                9.2575                        0.0000                        0                             
+BR_PA_EPSIL_FLUX              -13.9166                      0.0000                        1                             
+BR_PA_EPSIL_FWHM              2622.1153                     0.0000                        1                             
+BR_PA_EPSIL_LUM               39.9256                       0.0000                        0                             
+BR_PA_EPSIL_NPIX              23.0000                       0.0000                        0                             
+BR_PA_EPSIL_SHAPE             0.0000                        0.0000                        2                             
+BR_PA_EPSIL_VINT              378.8061                      0.0000                        0                             
+BR_PA_EPSIL_VOFF              378.6446                      0.0000                        1                             
+BR_SHAPE                      0.0000                        0.0000                        2                             
+BR_VOFF                       378.6446                      0.0000                        1                             
+LOG_LIKE                      1478.2059                     0.0000                        0                             
+NA_CI_9824_AMP                21.0131                       0.0000                        1                             
+NA_CI_9824_DISP               0.0000                        0.0000                        0                             
+NA_CI_9824_EW                 0.7085                        0.0000                        0                             
+NA_CI_9824_FLUX               -15.0404                      0.0000                        1                             
+NA_CI_9824_FWHM               1200.0000                     0.0000                        2                             
+NA_CI_9824_H3                 -0.1799                       0.0000                        1                             
+NA_CI_9824_H4                 -0.0026                       0.0000                        1                             
+NA_CI_9824_H5                 -0.0802                       0.0000                        1                             
+NA_CI_9824_H6                 -0.0088                       0.0000                        1                             
+NA_CI_9824_LUM                38.8017                       0.0000                        0                             
+NA_CI_9824_NPIX               1.0000                        0.0000                        0                             
+NA_CI_9824_VINT               20.0540                       0.0000                        0                             
+NA_CI_9824_VOFF               -54.8339                      0.0000                        1                             
+NA_CI_9850_AMP                58.3046                       0.0000                        1                             
+NA_CI_9850_DISP               316.3078                      0.0000                        0                             
+NA_CI_9850_EW                 11.0609                       0.0000                        0                             
+NA_CI_9850_FLUX               -13.8471                      0.0000                        1                             
+NA_CI_9850_FWHM               1200.0000                     0.0000                        2                             
+NA_CI_9850_H3                 -0.1799                       0.0000                        1                             
+NA_CI_9850_H4                 -0.0026                       0.0000                        1                             
+NA_CI_9850_H5                 -0.0802                       0.0000                        1                             
+NA_CI_9850_H6                 -0.0088                       0.0000                        1                             
+NA_CI_9850_LUM                39.9951                       0.0000                        0                             
+NA_CI_9850_NPIX               15.0000                       0.0000                        0                             
+NA_CI_9850_VINT               -27.1505                      0.0000                        0                             
+NA_CI_9850_VOFF               -54.8339                      0.0000                        1                             
+NA_FEVI_10111_AMP             6.5320                        0.0000                        1                             
+NA_FEVI_10111_DISP            0.0000                        0.0000                        0                             
+NA_FEVI_10111_EW              0.0000                        0.0000                        1                             
+NA_FEVI_10111_FLUX            0.0000                        0.0000                        1                             
+NA_FEVI_10111_FWHM            1200.0000                     0.0000                        2                             
+NA_FEVI_10111_H3              -0.1799                       0.0000                        1                             
+NA_FEVI_10111_H4              -0.0026                       0.0000                        1                             
+NA_FEVI_10111_H5              -0.0802                       0.0000                        1                             
+NA_FEVI_10111_H6              -0.0088                       0.0000                        1                             
+NA_FEVI_10111_LUM             0.0000                        0.0000                        1                             
+NA_FEVI_10111_NPIX            0.0000                        0.0000                        0                             
+NA_FEVI_10111_VINT            0.0000                        0.0000                        0                             
+NA_FEVI_10111_VOFF            -54.8339                      0.0000                        1                             
+NA_FWHM                       1200.0000                     0.0000                        2                             
+NA_H3                         -0.1799                       0.0000                        1                             
+NA_H4                         -0.0026                       0.0000                        1                             
+NA_H5                         -0.0802                       0.0000                        1                             
+NA_H6                         -0.0088                       0.0000                        1                             
+NA_HEI_10027_AMP              5.8374                        0.0000                        1                             
+NA_HEI_10027_DISP             0.0000                        0.0000                        0                             
+NA_HEI_10027_EW               0.0000                        0.0000                        1                             
+NA_HEI_10027_FLUX             0.0000                        0.0000                        1                             
+NA_HEI_10027_FWHM             1200.0000                     0.0000                        2                             
+NA_HEI_10027_H3               -0.1799                       0.0000                        1                             
+NA_HEI_10027_H4               -0.0026                       0.0000                        1                             
+NA_HEI_10027_H5               -0.0802                       0.0000                        1                             
+NA_HEI_10027_H6               -0.0088                       0.0000                        1                             
+NA_HEI_10027_LUM              0.0000                        0.0000                        1                             
+NA_HEI_10027_NPIX             0.0000                        0.0000                        0                             
+NA_HEI_10027_VINT             0.0000                        0.0000                        0                             
+NA_HEI_10027_VOFF             -54.8339                      0.0000                        1                             
+NA_HEI_10031_AMP              2.5752                        0.0000                        1                             
+NA_HEI_10031_DISP             0.0000                        0.0000                        0                             
+NA_HEI_10031_EW               0.0000                        0.0000                        1                             
+NA_HEI_10031_FLUX             0.0000                        0.0000                        1                             
+NA_HEI_10031_FWHM             1200.0000                     0.0000                        2                             
+NA_HEI_10031_H3               -0.1799                       0.0000                        1                             
+NA_HEI_10031_H4               -0.0026                       0.0000                        1                             
+NA_HEI_10031_H5               -0.0802                       0.0000                        1                             
+NA_HEI_10031_H6               -0.0088                       0.0000                        1                             
+NA_HEI_10031_LUM              0.0000                        0.0000                        1                             
+NA_HEI_10031_NPIX             0.0000                        0.0000                        0                             
+NA_HEI_10031_VINT             0.0000                        0.0000                        0                             
+NA_HEI_10031_VOFF             -54.8339                      0.0000                        1                             
+NA_NI_10400_AMP               28.7417                       0.0000                        1                             
+NA_NI_10400_DISP              167.5180                      0.0000                        0                             
+NA_NI_10400_EW                2.4320                        0.0000                        0                             
+NA_NI_10400_FLUX              -14.4758                      0.0000                        1                             
+NA_NI_10400_FWHM              1200.0000                     0.0000                        2                             
+NA_NI_10400_H3                -0.1799                       0.0000                        1                             
+NA_NI_10400_H4                -0.0026                       0.0000                        1                             
+NA_NI_10400_H5                -0.0802                       0.0000                        1                             
+NA_NI_10400_H6                -0.0088                       0.0000                        1                             
+NA_NI_10400_LUM               39.3663                       0.0000                        0                             
+NA_NI_10400_NPIX              8.0000                        0.0000                        0                             
+NA_NI_10400_VINT              16.1235                       0.0000                        0                             
+NA_NI_10400_VOFF              -54.8339                      0.0000                        1                             
+NA_NI_10410_AMP               63.9796                       0.0000                        1                             
+NA_NI_10410_DISP              339.8560                      0.0000                        0                             
+NA_NI_10410_EW                12.6542                       0.0000                        0                             
+NA_NI_10410_FLUX              -13.7591                      0.0000                        1                             
+NA_NI_10410_FWHM              1200.0000                     0.0000                        2                             
+NA_NI_10410_H3                -0.1799                       0.0000                        1                             
+NA_NI_10410_H4                -0.0026                       0.0000                        1                             
+NA_NI_10410_H5                -0.0802                       0.0000                        1                             
+NA_NI_10410_H6                -0.0088                       0.0000                        1                             
+NA_NI_10410_LUM               40.0830                       0.0000                        0                             
+NA_NI_10410_NPIX              15.0000                       0.0000                        0                             
+NA_NI_10410_VINT              -38.9198                      0.0000                        0                             
+NA_NI_10410_VOFF              -54.8339                      0.0000                        1                             
+NA_SIII_9069_AMP              122.4129                      0.0000                        1                             
+NA_SIII_9069_DISP             448.6891                      0.0000                        0                             
+NA_SIII_9069_EW               30.0981                       0.0000                        0                             
+NA_SIII_9069_FLUX             -13.4018                      0.0000                        1                             
+NA_SIII_9069_FWHM             1200.0000                     0.0000                        2                             
+NA_SIII_9069_H3               -0.1799                       0.0000                        1                             
+NA_SIII_9069_H4               -0.0026                       0.0000                        1                             
+NA_SIII_9069_H5               -0.0802                       0.0000                        1                             
+NA_SIII_9069_H6               -0.0088                       0.0000                        1                             
+NA_SIII_9069_LUM              40.4403                       0.0000                        0                             
+NA_SIII_9069_NPIX             23.0000                       0.0000                        0                             
+NA_SIII_9069_VINT             -105.7391                     0.0000                        0                             
+NA_SIII_9069_VOFF             -54.8339                      0.0000                        1                             
+NA_SIII_9531_AMP              280.6051                      0.0000                        1                             
+NA_SIII_9531_DISP             521.6509                      0.0000                        0                             
+NA_SIII_9531_EW               85.5806                       0.0000                        0                             
+NA_SIII_9531_FLUX             -12.9492                      0.0000                        1                             
+NA_SIII_9531_FWHM             1200.0000                     0.0000                        2                             
+NA_SIII_9531_H3               -0.1799                       0.0000                        1                             
+NA_SIII_9531_H4               -0.0026                       0.0000                        1                             
+NA_SIII_9531_H5               -0.0802                       0.0000                        1                             
+NA_SIII_9531_H6               -0.0088                       0.0000                        1                             
+NA_SIII_9531_LUM              40.8929                       0.0000                        0                             
+NA_SIII_9531_NPIX             27.0000                       0.0000                        0                             
+NA_SIII_9531_VINT             -153.4659                     0.0000                        0                             
+NA_SIII_9531_VOFF             -54.8339                      0.0000                        1                             
+NA_SII_10289_AMP              75.7820                       0.0000                        1                             
+NA_SII_10289_DISP             375.4212                      0.0000                        0                             
+NA_SII_10289_EW               16.7406                       0.0000                        0                             
+NA_SII_10289_FLUX             -13.6464                      0.0000                        1                             
+NA_SII_10289_FWHM             1200.0000                     0.0000                        2                             
+NA_SII_10289_H3               -0.1799                       0.0000                        1                             
+NA_SII_10289_H4               -0.0026                       0.0000                        1                             
+NA_SII_10289_H5               -0.0802                       0.0000                        1                             
+NA_SII_10289_H6               -0.0088                       0.0000                        1                             
+NA_SII_10289_LUM              40.1957                       0.0000                        0                             
+NA_SII_10289_NPIX             18.0000                       0.0000                        0                             
+NA_SII_10289_VINT             -60.7627                      0.0000                        0                             
+NA_SII_10289_VOFF             -54.8339                      0.0000                        1                             
+NA_SII_10323_AMP              90.2275                       0.0000                        1                             
+NA_SII_10323_DISP             406.4571                      0.0000                        0                             
+NA_SII_10323_EW               21.5352                       0.0000                        0                             
+NA_SII_10323_FLUX             -13.5345                      0.0000                        1                             
+NA_SII_10323_FWHM             1200.0000                     0.0000                        2                             
+NA_SII_10323_H3               -0.1799                       0.0000                        1                             
+NA_SII_10323_H4               -0.0026                       0.0000                        1                             
+NA_SII_10323_H5               -0.0802                       0.0000                        1                             
+NA_SII_10323_H6               -0.0088                       0.0000                        1                             
+NA_SII_10323_LUM              40.3076                       0.0000                        0                             
+NA_SII_10323_NPIX             20.0000                       0.0000                        0                             
+NA_SII_10323_VINT             -80.0270                      0.0000                        0                             
+NA_SII_10323_VOFF             -54.8339                      0.0000                        1                             
+NA_SII_10339_AMP              66.4048                       0.0000                        1                             
+NA_SII_10339_DISP             347.1061                      0.0000                        0                             
+NA_SII_10339_EW               13.5284                       0.0000                        0                             
+NA_SII_10339_FLUX             -13.7351                      0.0000                        1                             
+NA_SII_10339_FWHM             1200.0000                     0.0000                        2                             
+NA_SII_10339_H3               -0.1799                       0.0000                        1                             
+NA_SII_10339_H4               -0.0026                       0.0000                        1                             
+NA_SII_10339_H5               -0.0802                       0.0000                        1                             
+NA_SII_10339_H6               -0.0088                       0.0000                        1                             
+NA_SII_10339_LUM              40.1070                       0.0000                        0                             
+NA_SII_10339_NPIX             17.0000                       0.0000                        0                             
+NA_SII_10339_VINT             -45.3735                      0.0000                        0                             
+NA_SII_10339_VOFF             -54.8339                      0.0000                        1                             
+NA_SII_10373_AMP              69.5591                       0.0000                        1                             
+NA_SII_10373_DISP             358.9318                      0.0000                        0                             
+NA_SII_10373_EW               14.5300                       0.0000                        0                             
+NA_SII_10373_FLUX             -13.7016                      0.0000                        1                             
+NA_SII_10373_FWHM             1200.0000                     0.0000                        2                             
+NA_SII_10373_H3               -0.1799                       0.0000                        1                             
+NA_SII_10373_H4               -0.0026                       0.0000                        1                             
+NA_SII_10373_H5               -0.0802                       0.0000                        1                             
+NA_SII_10373_H6               -0.0088                       0.0000                        1                             
+NA_SII_10373_LUM              40.1405                       0.0000                        0                             
+NA_SII_10373_NPIX             17.0000                       0.0000                        0                             
+NA_SII_10373_VINT             -48.8768                      0.0000                        0                             
+NA_SII_10373_VOFF             -54.8339                      0.0000                        1                             
+NA_SVIII_9913_AMP             15.3755                       0.0000                        1                             
+NA_SVIII_9913_DISP            0.0000                        0.0000                        0                             
+NA_SVIII_9913_EW              0.0000                        0.0000                        1                             
+NA_SVIII_9913_FLUX            0.0000                        0.0000                        1                             
+NA_SVIII_9913_FWHM            1200.0000                     0.0000                        2                             
+NA_SVIII_9913_H3              -0.1799                       0.0000                        1                             
+NA_SVIII_9913_H4              -0.0026                       0.0000                        1                             
+NA_SVIII_9913_H5              -0.0802                       0.0000                        1                             
+NA_SVIII_9913_H6              -0.0088                       0.0000                        1                             
+NA_SVIII_9913_LUM             0.0000                        0.0000                        1                             
+NA_SVIII_9913_NPIX            0.0000                        0.0000                        0                             
+NA_SVIII_9913_VINT            0.0000                        0.0000                        0                             
+NA_SVIII_9913_VOFF            -54.8339                      0.0000                        1                             
+NA_VOFF                       -54.8339                      0.0000                        1                             
+NOISE_SCALE                   0.3348                        0.0000                        1                             
+PPOLY_COEFF_0                 129.6484                      0.0000                        1                             
+PPOLY_COEFF_1                 -8.3526                       0.0000                        1                             
+PPOLY_COEFF_2                 11.2444                       0.0000                        1                             
+PPOLY_COEFF_3                 22.4973                       0.0000                        1                             
+PPOLY_COEFF_4                 -7.9647                       0.0000                        1                             
+PPOLY_COEFF_5                 -7.9202                       0.0000                        1                             
+PPOLY_EW                      0.0000                        0.0000                        1                             
+PPOLY_FLUX                    0.0000                        0.0000                        1                             
+PPOLY_LUM                     0.0000                        0.0000                        1                             
+RCHI_SQUARED                  1.0713                        0.0000                        0                             
+R_SQUARED                     0.9989                        0.0000                        0                             
+NOISE_STD.                    15.6181                       
+RESID_STD                     5.1666                        
+-----------------------------------------------------------------------------------------------------------------

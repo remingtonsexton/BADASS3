@@ -49,6 +49,7 @@ import pathlib
 import importlib
 import multiprocessing as mp
 import bifrost
+import spectres
 # Import BADASS tools modules
 cwd = os.getcwd() # get current working directory
 sys.path.insert(1,cwd+'/badass_tools/')
@@ -65,7 +66,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.1.5"
+__version__	= "9.1.6"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -226,8 +227,9 @@ __status__	 = "Release"
 # - options for likelihood function
 # - consolidated outflow and line testing routines
 
-# Version 9.1.5
+# Version 9.1.6
 # - polynomial continuum components independent from LOSVD component.
+# - linearization of non-linearized non-SDSS spectra using spectres module
 
 ##########################################################################################################
 
@@ -1937,19 +1939,27 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
         return mask
 
     # First, we must log-rebin the linearly-binned input spectrum
-    if np.isclose(wave[1]-wave[0],wave[-1]-wave[-2]):
-        lamRange = (np.min(wave),np.max(wave))
-        galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=True)
-        noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=True)
-        lam_gal = np.exp(logLam)
-    else: 
-        # Assume spectra are already log-rebinned
-        c = 299792.458
-        frac = wave[-1]/wave[-2]
-        velscale = [np.log(frac)*c]
-        galaxy = spec
-        lam_gal = wave 
-        noise = err
+    # If the spectrum is NOT linearly binned, we need to do that before we 
+    # try to log-rebin:
+    if not np.isclose(wave[1]-wave[0],wave[-1]-wave[-2]):
+        if verbose:
+            print("\n Input spectrum is not linearly binned. BADASS will linearly rebin and conserve flux...")
+        new_wave = np.linspace(wave[0],wave[-1],len(wave))
+        spec, err = spectres.spectres(new_wavs=new_wave, spec_wavs=wave, spec_fluxes=spec, 
+                                      spec_errs=err, fill=None, verbose=False)
+        # Fill in any NaN
+        mask = np.isnan(spec)
+        spec[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), spec[~mask])        
+        mask = np.isnan(err)
+        err[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), err[~mask])      
+        #
+        wave = new_wave
+
+
+    lamRange = (np.min(wave),np.max(wave))
+    galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=True)
+    noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=True)
+    lam_gal = np.exp(logLam)
 
     mask = generate_mask(fit_min, fit_max, lam_gal/(1+z) )
     
@@ -2797,6 +2807,10 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
             ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
             ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
             #
+            ("BR_PA_DELTA_AMP","BR_PA_EPSIL_AMP"),
+            ("BR_PA_GAMMA_AMP","BR_PA_DELTA_AMP"),
+            # ("",""),
+
 
         ]
 
@@ -2934,14 +2948,51 @@ def line_list_default():
 
         ##############################################################################################################################################################################################################################################
 
-        ### Region 1 (> 8000 Å)
+        ### Region 1 (8000 Å - 9000 Å)
         "NA_HEII_8236"  :{"center":8236.790, "amp":"free", "fwhm":"free"			 , "voff":"free"			 , "line_type":"na","label":r"He II"},
         "NA_OI_8446"	:{"center":8446.359, "amp":"free", "fwhm":"free"			 , "voff":"free"			 , "line_type":"na","label":r"O I"},
         "NA_FEII_8616"  :{"center":8616.950, "amp":"free", "fwhm":"NA_FEII_8891_FWHM", "voff":"NA_FEII_8891_VOFF", "line_type":"na","label":r"[Fe II]"},
         "NA_FEII_8891"  :{"center":8891.910, "amp":"free", "fwhm":"free"			 , "voff":"free"			 , "line_type":"na","label":r"[Fe II]"},
-        "NA_SIII_9069"  :{"center":9068.600, "amp":"free", "fwhm":"NA_SIII_9531_FWHM", "voff":"NA_SIII_9531_VOFF", "line_type":"na","label":r"[S III]"},
 
         ##############################################################################################################################################################################################################################################
+
+        ### Region Y (9000 Å - 12000 Å)
+        "NA_SIII_9069"    :{"center":9068.600 , "amp":"free", "fwhm":"NA_SIII_9531_FWHM", "voff":"NA_SIII_9531_VOFF","h3":"NA_SIII_9531_H3", "h4":"NA_SIII_9531_H4", "line_type":"na", "line_profile":"GH", "label":r"[S III]"},
+        "NA_SIII_9531"    :{"center":9531.100 , "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[S III]"},
+
+        "NA_CI_9824"    :{"center":9824.130 , "amp":"free", "fwhm":"NA_CI_9850_FWHM"  , "voff":"NA_CI_9850_VOFF"  ,"h3":"NA_CI_9850_H3"  , "h4":"NA_CI_9850_H4"  , "line_type":"na", "line_profile":"GH", "label":r"[C I]"},
+        "NA_CI_9850"    :{"center":9850.260 , "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[C I]"},
+
+        "NA_SVIII_9913" :{"center":9913.000 , "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[S VIII]"},
+
+        # "NA_PA_EPSIL"     :{"center":9548.587 , "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\epsilon$"},
+
+        # "NA_PA_DELTA"     :{"center":10052.123, "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\delta$"},
+
+        "NA_HEI_10027"    :{"center":10027.730, "amp":"free", "fwhm":"NA_HEI_10031_FWHM", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
+        "NA_HEI_10031"    :{"center":10031.160, "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"He I"},
+
+        "NA_FEVI_10111"   :{"center":10111.671, "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"[FeVI]"},
+
+        "NA_SII_10289"    :{"center":10289.549, "amp":"free", "fwhm":"NA_SII_10373_FWHM", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
+        "NA_SII_10323"    :{"center":10323.318, "amp":"free", "fwhm":"NA_SII_10373_FWHM", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
+        "NA_SII_10339"    :{"center":10339.243, "amp":"free", "fwhm":"NA_SII_10373_FWHM", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
+        "NA_SII_10373"    :{"center":10373.332, "amp":"free", "fwhm":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[SII]"},
+
+        "NA_NI_10400"     :{"center":10400.600, "amp":"free", "fwhm":"NA_NI_10410_FWHM" , "voff":"NA_NI_10410_VOFF" , "h3":"NA_NI_10410_H3" , "h4":"NA_NI_10410_H4", "line_type":"na", "label":r"[NI]"},
+        "NA_NI_10410"     :{"center":10410.200, "amp":"free", "fwhm":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[NI]"},
+
+        "NA_FEXIII_10749" :{"center":10749.744, "amp":"free", "fwhm":"NA_FEXIII_10800_FWHM", "voff":"NA_FEXIII_10800_VOFF", "h3":"NA_FEXIII_10800_H3", "h4":"NA_FEXIII_10800_H4", "line_type":"na", "label":r"[FeXIII]"},
+        "NA_FEXIII_10800" :{"center":10800.858, "amp":"free", "fwhm":"free"                , "voff":"free"                , "h3":"free"              , "h4":"free"              , "line_type":"na", "label":r"[FeXIII]"},
+
+        "NA_HEI_10830"    :{"center":10830.340, "amp":"free", "fwhm":"NA_HEI_10031_FWHM", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
+        # "NA_PA_GAMMA"     :{"center":10941.082, "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\gamma$"},
+
+        
+
+
+        ##############################################################################################################################################################################################################################################
+
 
     }
 
@@ -2973,6 +3024,12 @@ def line_list_default():
 
         ### Region 3 (6200 Å - 6800 Å)
         "BR_H_ALPHA"  :{"center":6585.278, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br"},
+
+        ### Region Y (9000 Å - 12000 Å)
+        "BR_PA_EPSIL"   :{"center":9548.587 ,"amp":"free", "fwhm":"BR_PA_GAMMA_FWHM", "voff":"BR_PA_GAMMA_VOFF", "shape":"BR_PA_GAMMA_SHAPE", "line_type":"br", "label":r"Pa$\epsilon$"},
+        "BR_PA_DELTA"   :{"center":10052.123,"amp":"free", "fwhm":"BR_PA_GAMMA_FWHM", "voff":"BR_PA_GAMMA_VOFF", "shape":"BR_PA_GAMMA_SHAPE", "line_type":"br", "label":r"Pa$\delta$"},
+        "BR_PA_GAMMA"   :{"center":10941.082,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\gamma$"},
+
     }
     # Default Outlfow Lines
     # Outflows share a universal width and voff across all lines, but amplitudes will be different.
