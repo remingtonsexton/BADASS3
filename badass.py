@@ -2989,7 +2989,11 @@ def line_list_default():
         # "NA_PA_GAMMA"     :{"center":10941.082, "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\gamma$"},
 
         
+        "NA_NIIII_11910"    :{"center":11910.0, "amp":"free", "fwhm":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Ni II]"},
 
+
+        "NA_FEII_12570"    :{"center":12570.0, "amp":"free", "fwhm":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
+        "NA_FEII_13210"    :{"center":13210.0, "amp":"free", "fwhm":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
 
         ##############################################################################################################################################################################################################################################
 
@@ -3026,9 +3030,10 @@ def line_list_default():
         "BR_H_ALPHA"  :{"center":6585.278, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br"},
 
         ### Region Y (9000 Å - 12000 Å)
-        "BR_PA_EPSIL"   :{"center":9548.587 ,"amp":"free", "fwhm":"BR_PA_GAMMA_FWHM", "voff":"BR_PA_GAMMA_VOFF", "shape":"BR_PA_GAMMA_SHAPE", "line_type":"br", "label":r"Pa$\epsilon$"},
-        "BR_PA_DELTA"   :{"center":10052.123,"amp":"free", "fwhm":"BR_PA_GAMMA_FWHM", "voff":"BR_PA_GAMMA_VOFF", "shape":"BR_PA_GAMMA_SHAPE", "line_type":"br", "label":r"Pa$\delta$"},
+        "BR_PA_EPSIL"   :{"center":9548.587 ,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\epsilon$"},
+        "BR_PA_DELTA"   :{"center":10052.123,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\delta$"},
         "BR_PA_GAMMA"   :{"center":10941.082,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\gamma$"},
+        "BR_PA_BETA"    :{"center":12820.0,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\beta$"},
 
     }
     # Default Outlfow Lines
