@@ -3727,7 +3727,7 @@ def chi2_metric(eval_ind,
 
     return chi2_outflow, chi2_outflow_err, chi2_no_outflow, chi2_no_outflow_err, chi2_ratio, chi2_ratio_err
 
-def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wave, max_wave, eval_ind, nchannel,run_dir):
+def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wave, max_wave, eval_ind, nchannel, ddof, run_dir):
     """
     Performs a Bayesian A/B hypothesis test for the 
     likelihood distributions for two models.
@@ -3769,6 +3769,10 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wav
         lnlike_no_line = np.sum(-0.5*(np.random.normal(loc=resid_no_line[eval_ind],scale=noise[eval_ind],size=len(eval_ind)))**2/noise[eval_ind]**2)
         resid_line_lnlike[i] = lnlike_line
         resid_no_line_lnlike[i] = lnlike_no_line
+
+    # Penalize by degrees of freedom
+    resid_line_lnlike    /= (len(data)-ddof)
+    resid_no_line_lnlike /= (len(data))
     #
     ax2.hist(resid_line_lnlike,bins="doane",histtype="step",label="Line",density=True,color="xkcd:bright aqua",linewidth=0.5)
     p_line = np.percentile(resid_line_lnlike,[16,50,84])
@@ -3783,7 +3787,7 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wav
     ax2.tick_params(axis='both', labelsize= fontsize)
     ax2.legend()
     # The sampled log-likelihoods should be nearly Gaussian
-    x			= np.arange(np.min([resid_line_lnlike, resid_no_line_lnlike]),np.max([resid_line_lnlike, resid_no_line_lnlike]),0.1)
+    x			= np.linspace(np.min([resid_line_lnlike, resid_no_line_lnlike]),np.max([resid_line_lnlike, resid_no_line_lnlike]),1000)
     norm_line	= stats.norm(loc=p_line[1],scale=np.mean([p_line[2]-p_line[1],p_line[1]-p_line[0]]))
     norm_no_line = stats.norm(loc=p_no_line[1],scale=np.mean([p_no_line[2]-p_no_line[1],p_no_line[1]-p_no_line[0]]))
     #
@@ -3935,7 +3939,15 @@ def line_test(param_dict,
                                                           test_outflows=True,
                                                           n_basinhop=n_basinhop,
                                                           max_like_niter=max_like_niter,
-                                                          verbose=verbose)	
+                                                          verbose=verbose)
+
+    # Calculate delta degrees of freedom (ddof) from extra line parameters
+    ddof = 0
+    for line in remove_lines:
+        for par in line_list[line]:
+            if line_list[line][par]=="free":
+                # print(line_list[line][par])
+                ddof+=1
 
     # Perform fitting without line
     if verbose:
@@ -3953,6 +3965,12 @@ def line_test(param_dict,
                                  fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
                                  fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
                                  tie_line_fwhm=comp_options["tie_line_fwhm"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
+
+    # Initialize the no_line fit to be at the same fit parameters as the fit with the line
+    for key in param_dict_no_line:
+        if key in [p for p in mcpars_line]:
+            # print(key)
+            param_dict_no_line[key]["init"] = mcpars_line[key]["med"]
 
     mcpars_no_line, mccomps_no_line, mcLL_no_line = max_likelihood(param_dict_no_line,
                                                                                line_list_no_line,
@@ -4017,7 +4035,7 @@ def line_test(param_dict,
         resid_total[i,:]   = mccomps_line['RESID'][i,:][fit_mask]
 
     # Perform Bayesian A/B test
-    pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap = bayesian_AB_test(mccomps_line['RESID'][0,:][fit_mask], mccomps_no_line['RESID'][0,:][fit_mask], full_profile[fit_mask], lam_gal[fit_mask], noise[fit_mask], galaxy[fit_mask], min_wave, max_wave, eval_ind, nchannel, run_dir)
+    pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap = bayesian_AB_test(mccomps_line['RESID'][0,:][fit_mask], mccomps_no_line['RESID'][0,:][fit_mask], full_profile[fit_mask], lam_gal[fit_mask], noise[fit_mask], galaxy[fit_mask], min_wave, max_wave, eval_ind, nchannel, ddof, run_dir)
 
     # Calculate sum-of-square of residuals and its uncertainty
     ssr_ratio, ssr_ratio_err, ssr_no_line, ssr_no_line_err, ssr_line, ssr_line_err = ssr_test(resid_line,resid_no_line,run_dir)
