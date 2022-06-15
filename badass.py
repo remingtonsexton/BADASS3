@@ -2807,8 +2807,8 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
             ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
             ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
             #
-            ("BR_PA_DELTA_AMP","BR_PA_EPSIL_AMP"),
-            ("BR_PA_GAMMA_AMP","BR_PA_DELTA_AMP"),
+            # ("BR_PA_DELTA_AMP","BR_PA_EPSIL_AMP"),
+            # ("BR_PA_GAMMA_AMP","BR_PA_DELTA_AMP"),
             # ("",""),
 
 
@@ -3903,11 +3903,71 @@ def line_test(param_dict,
         elif isinstance(test_line["line"],list):
             remove_lines = test_line["line"]
 
-    # # Perform fitting with line
+    # Make copy of original line list, since initialize_pars() will override it.
+    original_line_list = copy.deepcopy(line_list)
+
+    # Perform fitting without line
     if verbose:
-        print('\n Fitting with %s...' % remove_lines)
+        print('\n Fitting simpler model without %s...\n' % remove_lines)
+
+    # Generate parameters without lines
+    param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
+                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 opt_feii_options,uv_iron_options,balmer_options,
+                                 run_dir,fit_type='init',fit_stat=fit_stat,
+                                 fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
+                                 fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
+                                 fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
+                                 tie_line_fwhm=comp_options["tie_line_fwhm"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
+
+
+    mcpars_no_line, mccomps_no_line, mcLL_no_line = max_likelihood(param_dict_no_line,
+                                                                               line_list_no_line,
+                                                                               combined_line_list_no_line,
+                                                                               soft_cons_no_line,
+                                                                               lam_gal,
+                                                                               galaxy,
+                                                                               noise,
+                                                                               z,
+                                                                               cosmology,
+                                                                               comp_options,
+                                                                               losvd_options,
+                                                                               host_options,
+                                                                               power_options,
+                                                                               poly_options,
+                                                                               opt_feii_options,
+                                                                               uv_iron_options,
+                                                                               balmer_options,
+                                                                               outflow_test_options,
+                                                                               host_template,
+                                                                               opt_feii_templates,
+                                                                               uv_iron_template,
+                                                                               balmer_template,
+                                                                               stel_templates,
+                                                                               fwhm_gal,
+                                                                               fit_mask,
+                                                                               velscale,
+                                                                               run_dir,
+                                                                               fit_type='init',
+                                                                               fit_stat=fit_stat,
+                                                                               output_model=False,
+                                                                               test_outflows=True,
+                                                                               n_basinhop=n_basinhop,
+                                                                               max_like_niter=max_like_niter,
+                                                                               verbose=verbose)
+
+    # Initialize the no_line fit to be at the same fit parameters as the fit with the line
+    for key in param_dict:
+        if key in [p for p in mcpars_no_line]:
+            # print(key)
+            param_dict[key]["init"] = mcpars_no_line[key]["med"]
+
+
+    # Perform fitting with line
+    if verbose:
+        print('\n Fitting complex model with %s...\n' % remove_lines)
     mcpars_line, mccomps_line, mcLL_line = max_likelihood(param_dict,
-                                                          line_list,
+                                                          original_line_list,
                                                           combined_line_list,
                                                           soft_cons,
                                                           lam_gal,
@@ -3944,68 +4004,12 @@ def line_test(param_dict,
     # Calculate delta degrees of freedom (ddof) from extra line parameters
     ddof = 0
     for line in remove_lines:
-        for par in line_list[line]:
-            if line_list[line][par]=="free":
+        for par in original_line_list[line]:
+            if original_line_list[line][par]=="free":
                 # print(line_list[line][par])
                 ddof+=1
 
-    # Perform fitting without line
-    if verbose:
-        print('\n Fitting without %s...' % remove_lines)
-
-    # Make copy of original line list, since initialize_pars() will override it.
-    original_line_list = copy.deepcopy(line_list)
-
-    # Generate new parameters
-    param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
-                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
-                                 opt_feii_options,uv_iron_options,balmer_options,
-                                 run_dir,fit_type='init',fit_stat=fit_stat,
-                                 fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
-                                 fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
-                                 fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
-                                 tie_line_fwhm=comp_options["tie_line_fwhm"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
-
-    # Initialize the no_line fit to be at the same fit parameters as the fit with the line
-    for key in param_dict_no_line:
-        if key in [p for p in mcpars_line]:
-            # print(key)
-            param_dict_no_line[key]["init"] = mcpars_line[key]["med"]
-
-    mcpars_no_line, mccomps_no_line, mcLL_no_line = max_likelihood(param_dict_no_line,
-                                                                               line_list_no_line,
-                                                                               combined_line_list_no_line,
-                                                                               soft_cons_no_line,
-                                                                               lam_gal,
-                                                                               galaxy,
-                                                                               noise,
-                                                                               z,
-                                                                               cosmology,
-                                                                               comp_options,
-                                                                               losvd_options,
-                                                                               host_options,
-                                                                               power_options,
-                                                                               poly_options,
-                                                                               opt_feii_options,
-                                                                               uv_iron_options,
-                                                                               balmer_options,
-                                                                               outflow_test_options,
-                                                                               host_template,
-                                                                               opt_feii_templates,
-                                                                               uv_iron_template,
-                                                                               balmer_template,
-                                                                               stel_templates,
-                                                                               fwhm_gal,
-                                                                               fit_mask,
-                                                                               velscale,
-                                                                               run_dir,
-                                                                               fit_type='init',
-                                                                               fit_stat=fit_stat,
-                                                                               output_model=False,
-                                                                               test_outflows=True,
-                                                                               n_basinhop=n_basinhop,
-                                                                               max_like_niter=max_like_niter,
-                                                                               verbose=verbose)
+    
 
     # if fit_stat = "RCHI2", we need to scale the input noise so that the 
     # line tests are using the properly scaled noise.
