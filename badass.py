@@ -229,7 +229,81 @@ __status__	 = "Release"
 ##########################################################################################################
 
 
-#### Run BADASS ##################################################################
+import utils.input
+import utils.options
+
+import prodict
+
+
+# TODO: make option
+USE_MULTIPROCESS = True
+
+
+# BadassRunner handles parsing input data and options and
+# running a BadassContext for each target file
+class BadassRunner:
+	def __init__(self, input_data, options_data, infmt=None, output=None):
+		self.targets = utils.input.BadassInput.get_inputs(input_data, fmt=infmt)
+		self.options = utils.options.BadassOptions.get_options(options_data)
+
+	def run(self):
+		if len(self.targets) == 0:
+			return 'No targets to run' # TODO: make an Error
+
+		if (len(self.options) != 1) and (len(self.targets) != len(self.options)):
+			return 'Target and options count mismatch'
+
+		
+		jobs = []
+		for i, target in enumerate(self.targets):
+			topts = self.options[0]
+			if len(self.options) > 1:
+				topts = self.options[i]
+			ctx = BadassContext(target, topts, infile=target.infile)
+			if USE_MULTIPROCESS:
+				ctx.start()
+				jobs.append(ctx)
+			else:
+				ctx.run()
+
+		if USE_MULTIPROCESS:
+			for job in jobs:
+				job.join()
+
+		return None
+
+
+class BadassContext(mp.Process):
+	def __init__(self, input_data, options, infile=None, output=None):
+		mp.Process.__init__(self)
+		self.infile = input_data if isinstance(input_data, pathlib.Path) else infile
+		self.indata = input_data
+		self.options = options
+
+	def run(self):
+		print('bactx %d' % os.getpid())
+		print(self.options)
+
+		# TODO: temporary for teting
+		run_single_thread(self.infile,
+			   fit_options=self.options.fit_options,
+			   mcmc_options=self.options.mcmc_options,
+			   comp_options=self.options.comp_options,
+			   user_lines=self.options.user_lines,
+			   user_constraints=self.options.user_constraints,
+			   user_mask=self.options.user_mask,
+			   combined_lines=self.options.combined_lines,
+			   losvd_options=self.options.losvd_options,
+			   host_options=self.options.host_options,
+			   power_options=self.options.power_options,
+			   opt_feii_options=self.options.opt_feii_options,
+			   uv_iron_options=self.options.uv_iron_options,
+			   balmer_options=self.options.balmer_options,
+			   outflow_test_options=False,
+			   plot_options=self.options.plot_options,
+			   output_options=self.options.output_options
+		)
+
 
 def run_BADASS(data,
 			   nobj=None,
@@ -480,7 +554,7 @@ def run_single_thread(fits_file,
 	plot_HTML			= plot_options["plot_HTML"]
 
 	# Set up run ('MCMC_output_#') directory
-	work_dir = os.path.dirname(fits_file)+"/"
+	work_dir = os.path.dirname(str(fits_file))+"/"
 	run_dir,prev_dir = setup_dirs(work_dir,output_options['verbose'])
 	run_dir = pathlib.Path(run_dir)
 
