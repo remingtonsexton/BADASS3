@@ -3,6 +3,8 @@ import json
 import pathlib
 import prodict
 
+from utils.verify.verify_default import DefaultVerifySet
+
 # TODO: validation, all expected options are supplied
 
 class BadassOptions(prodict.Prodict):
@@ -44,3 +46,6 @@ class BadassOptions(prodict.Prodict):
             return [cls.from_file(options_data)]
 
         return []
+
+    def verify(self, verify_set=DefaultVerifySet):
+        verify_set(self).verify()
