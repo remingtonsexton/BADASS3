@@ -9978,7 +9978,7 @@ def plotly_best_fit(objname,line_list,fit_mask,run_dir):
                   # tracenames.append(tracename)
             if line_list[comp]["line_type"]=="out":
                   # tracename="outflow line"
-                fig.add_trace(go.Scatter( x = tbdata["WAVE"], y = tbdata[comp], mode="lines", line=go.scatter.Line(width=1), name=comp, legendgroup="outflow lines",legendgrouptitle_text="outflow lines", legendrank=14,), row=1, col=1)
+                fig.add_trace(go.Scatter( x = tbdata["WAVE"], y = tbdata[comp], mode="lines", line=go.scatter.Line(color="#FC0080", width=1), name=comp, legendgroup="outflow lines",legendgrouptitle_text="outflow lines", legendrank=14,), row=1, col=1)
                   # tracenames.append(tracename)
             if line_list[comp]["line_type"]=="abs":
                   # tracename="absorption line"
