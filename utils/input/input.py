@@ -13,7 +13,9 @@ SDSS_FMT = 'sdss_spec'
 # parser directory and auto-import
 # anything found there?
 def import_custom_parsers():
-    import utils.sdss_input
+    import utils.input.sdss_input
+    import utils.input.ifu_input
+    import utils.input.muse_input
 
 
 
@@ -47,38 +49,43 @@ class BadassInput(metaclass=MetaRegistry):
         return True
 
 
+    def prepare_input(self, ba_ctx):
+        return
+
+
     @classmethod
     def from_dict(cls, input_data):
         return cls(input_data)
 
 
     @classmethod
-    def from_format(cls, input_data, fmt):
+    def from_format(cls, input_data, options):
         import_custom_parsers()
 
+        options = options if isinstance(options, dict) else options[0]
+        fmt = options.io_options.infmt
         read_format_func = '{pre}{fmt}'.format(pre=INPUT_PARSER_PREFIX, fmt=fmt)
         for childcls in REGISTRY.values():
             if hasattr(childcls, read_format_func):
-                return getattr(childcls, read_format_func)(input_data)
+                try:
+                    return getattr(childcls, read_format_func)(input_data, options)
+                except:
+                    raise Exception('Reading input data with format: {fmt} failed'.format(fmt=fmt))
 
         raise Exception('Input data format not supported: {fmt}'.format(fmt=fmt))
 
 
     @classmethod
-    def from_path(cls, _path, fmt, filter=None):
+    def from_path(cls, _path, options, filter=None):
         # TODO: implement support to filter different types
         #       of files from the supplied directory
-
-        if fmt is None:
-            print('WARNING: Format not provided for input file, using SDSS')
-            fmt = SDSS_FMT
 
         path = pathlib.Path(_path)
         if not path.exists():
             raise Exception('Unable to find input path: %s' % str(path))
 
         if path.is_file():
-            return cls.from_format(path, fmt)
+            return cls.from_format(path, options)
 
         inputs = []
         for infile in path.glob('*'):
@@ -86,44 +93,48 @@ class BadassInput(metaclass=MetaRegistry):
             if not infile.is_file():
                 continue
 
-            inputs.append(cls.from_format(infile, fmt))
+            inputs.append(cls.from_format(infile, options))
         return inputs
 
 
     @classmethod
-    def get_inputs(cls, input_data, fmt=None):
+    def get_inputs(cls, input_data, options):
         if isinstance(input_data, list):
 
-            if isinstance(fmt, list):
-                if len(input_data) != len(fmt):
-                    raise Exception('Input format list must be same length as input data')
+            if isinstance(options, list) and (len(options) != 1 and len(options) != len(input_data)):
+                raise Exception('Options list must be same length as input data')
 
-                formats = fmt
-
-            elif isinstance(fmt, (str, type(None))):
-                formats = [fmt] * len(input_data)
-
-            else:
-                raise Exception('Invalid input format type: %s' % type(fmt))
+            opts = options
+            if isinstance(options, dict):
+                opts = [options] * len(input_data)
+            elif len(options) == 1:
+                opts = [options[0]] * len(input_data)
 
             inputs = []
-            for ind, ifmt in zip(input_data, formats):
-                inputs.extend(cls.get_inputs(ind, ifmt))
+            for ind, opt in zip(input_data, opts):
+                inputs.extend(cls.get_inputs(ind, opt))
             return inputs
 
         if isinstance(input_data, dict):
             return [cls.from_dict(input_data)]
 
         if isinstance(input_data, pathlib.Path):
-            ret = cls.from_path(input_data, fmt)
+            ret = cls.from_path(input_data, options)
             return ret if isinstance(ret, list) else [ret]
 
         # Check if string path
         if isinstance(input_data, str):
             if pathlib.Path(input_data).exists():
-                ret = cls.from_path(input_data, fmt)
+                ret = cls.from_path(input_data, options)
                 return ret if isinstance(ret, list) else [ret]
             # if not, could be actual data
 
-        return [cls.from_format(input_data, fmt)]
+        return [cls.from_format(input_data, options)]
 
+
+    def validate_input(self):
+        pass
+        # TODO: implement
+        # expected instance variables: spec, wave, err, fwhm, z, ebv
+        # returned from prepare_*_spec functions:
+        #       lam_gal, galaxy, noise, z, ebv, velscale, fwhm_gal, fit_mask_good
