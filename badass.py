@@ -2609,12 +2609,12 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             if verbose:
                 print('	 		* varying optical FeII dispersion.')
             # Narrow FeII DISP
-            par_input['NA_OPT_FEII_DISP'] = ({'init'  :250.0,
-                                              'plim'  :(0.1,1000.0),
+            par_input['NA_OPT_FEII_DISP'] = ({'init'  :10.0,
+                                              'plim'  :(0.1,250.0),
                                              })
             # Broad FeII DISP
-            par_input['BR_OPT_FEII_DISP'] = ({'init'  :1000.0,
-                                              'plim'  :(100.0,10000.0),
+            par_input['BR_OPT_FEII_DISP'] = ({'init'  :500.0,
+                                              'plim'  :(100.0,5000.0),
                                              })
         if (opt_feii_options['opt_voff_const']['bool']==False):
             if verbose:
@@ -4899,27 +4899,28 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal,
     interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,bounds_error=False)
     # Loop through lines
     for line in lines:
-        # Calculate velocity scale centered on line
-        vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[line]["center"])
-        full_profile = comp_dict[line]
-        # Remove stray lines
-        full_profile = remove_stray_lines(full_profile)
-        #
-        # Normalized line profile
-        norm_profile = full_profile/np.sum(full_profile)
-        # Calculate integrated velocity in pixels units
-        v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
-        # Calculate integrated dispersion and correct for instrumental dispersion
-        d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
-        d_int = np.sqrt(d_int**2 - (line_list[line]["disp_res_kms"]/2.3548)**2)
-        # 
-        if ~np.isfinite(d_int): d_int = 0.0
-        if ~np.isfinite(v_int): v_int = 0.0
-        disp_dict[line+"_DISP"] = d_int
-        vint_dict[line+"_VINT"] = v_int
-        if line in combined_line_list:
-            comb_fwhm = combined_fwhm(lam_gal,comp_dict[line],line_list[line]["disp_res_kms"],velscale)
-            fwhm_dict[line+"_FWHM"] = comb_fwhm
+        fwhm = combined_fwhm(lam_gal,comp_dict[line],line_list[line]["disp_res_kms"],velscale)
+        fwhm_dict[line+"_FWHM"] = fwhm
+
+        if line in combined_line_list:   
+            # Calculate velocity scale centered on line
+            vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[line]["center"])
+            full_profile = comp_dict[line]
+            # Remove stray lines
+            full_profile = remove_stray_lines(full_profile)
+            #
+            # Normalized line profile
+            norm_profile = full_profile/np.sum(full_profile)
+            # Calculate integrated velocity in pixels units
+            v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
+            # Calculate integrated dispersion and correct for instrumental dispersion
+            d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
+            d_int = np.sqrt(d_int**2 - (line_list[line]["disp_res_kms"])**2)
+            # 
+            if ~np.isfinite(d_int): d_int = 0.0
+            if ~np.isfinite(v_int): v_int = 0.0
+            disp_dict[line+"_DISP"] = d_int
+            vint_dict[line+"_VOFF"] = v_int
     #
     return disp_dict, fwhm_dict, vint_dict
 
@@ -5067,9 +5068,6 @@ def max_likelihood(param_dict,
                           fit_stat,
                           output_model)
 
-    # if fit_stat=="RCHI2":
-    # 	return {p:result['x'][i] for i,p in enumerate(param_names)},comp_dict
-
     #### Maximum Likelihood Bootstrapping #################################################################
     # Construct random normally-distributed noise
     # How we do the monte carlo bootstrapping (i.e., the proper way):
@@ -5086,21 +5084,23 @@ def max_likelihood(param_dict,
     # Storage dictionaries for all calculated paramters at each iteration
     mcpars = {k:np.empty(max_like_niter+1) for k in param_names}
     # flux_dict
-    flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT"]]
+    flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
     mcflux = {k:np.empty(max_like_niter+1) for k in flux_names}
     # lum dict
-    lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT"]]
+    lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
     mclum  = {k:np.empty(max_like_niter+1) for k in lum_names}
     # eqwidth dict
     # line_names = [key+"_EW" for key in {**line_list, **combined_line_list}]
-    line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT"]]
+    line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
     mceqw  = {k:np.empty(max_like_niter+1) for k in line_names}
     # integrated dispersion & velocity dicts
-    line_names = [key+"_DISP" for key in {**line_list, **combined_line_list}]
+    # Since dispersion is calculated for all lines, we only need to calculate the integrated
+    # dispersions and velocities for combined lines, and FWHM for all lines
+    line_names = [key+"_DISP" for key in combined_line_list]
     mcdisp  = {k:np.empty(max_like_niter+1) for k in line_names}
-    line_names = [key+"_FWHM" for key in combined_line_list]
+    line_names = [key+"_FWHM" for key in {**line_list, **combined_line_list}]
     mcfwhm  = {k:np.empty(max_like_niter+1) for k in line_names}
-    line_names = [key+"_VINT" for key in {**line_list, **combined_line_list}]
+    line_names = [key+"_VOFF" for key in combined_line_list]
     mcvint  = {k:np.empty(max_like_niter+1) for k in line_names}
     # component dictionary
     mccomps = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
@@ -6211,10 +6211,10 @@ def combined_fwhm(lam_gal, full_profile, disp_res, velscale ):
 
     hmx = half_max_x(range(len(lam_gal)),full_profile)
     fwhm = np.abs(hmx[1]-hmx[0])
-    fwhm = np.sqrt((fwhm*velscale)**2 - fwhm_res**2)
+    fwhm = np.sqrt((fwhm*velscale)**2 - (disp_res*2.3548)**2)
     if ~np.isfinite(fwhm):
         fwhm = 0.0
-
+    #
     return fwhm
 
 
@@ -6588,7 +6588,10 @@ def fit_model(params,
             eqwidths[key+"_EW"]  = eqwidth
             #
             if (key in lines):
-                # Calculate integrated velocities and dispersions for each line
+                comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
+                int_vel_disp[key+"_FWHM"] = comb_fwhm
+            # Calculate integrated FWHM for combined lines
+            if (key in combined_line_list):
                 # Calculate velocity scale centered on line
                 vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
                 full_profile = comp_dict[key]
@@ -6604,11 +6607,7 @@ def fit_model(params,
                 if ~np.isfinite(d_int): d_int = 0.0
                 if ~np.isfinite(v_int): v_int = 0.0
                 int_vel_disp[key+"_DISP"] = d_int
-                int_vel_disp[key+"_VINT"] = v_int
-            # Calculate integrated FWHM for combined lines
-            if (key in combined_line_list):
-                comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
-                int_vel_disp[key+"_FWHM"] = comb_fwhm
+                int_vel_disp[key+"_VOFF"] = v_int
 
         # Continuum fluxes (to obtain continuum luminosities)
         cont_fluxes = {}
@@ -6756,7 +6755,7 @@ def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbo
 
 #### Optical FeII Templates ##############################################################
 
-def initialize_opt_feii(lam_gal, opt_feii_options, disp_res,fit_mask, velscale):
+def initialize_opt_feii(lam_gal, opt_feii_options, disp_res, fit_mask, velscale):
     """
     Generate FeII templates.  Options:
 
@@ -7515,7 +7514,7 @@ def broken_power_law(x, amp, x_break, alpha_1, alpha_2, delta):
 
 ##################################################################################
 
-
+#### Line Profiles ####
 
 ##################################################################################
 
