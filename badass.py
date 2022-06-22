@@ -292,13 +292,14 @@ def run_BADASS(data,
                       outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv) for file in files]
 
         # map arguments to function
-        if len(files) > 1:
+        if len(files) > 1 and nprocesses > 1:
             pool = mp.Pool(processes=nprocesses, maxtasksperchild=1)
             pool.starmap(run_single_thread, arguments, chunksize=1)
             pool.close()
             pool.join()
         else:
-            run_single_thread(*arguments[0])
+            for i in range(len(files)):
+                run_single_thread(*arguments[i])
 
     elif os.path.isfile(data):
         # Print memory of the python process at the start
@@ -3556,6 +3557,61 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
     # New method
     # Map line parameters to init
     line_par_dict = {l:line_par_input[l]["init"] for l in line_par_input}
+
+    # Count the number of outflow components each line has. For example:
+    # OUT_OIII_5007_1
+    # OUT_OIII_5007_2
+    # OUT_OIII_5007_3 etc...
+    lines = np.unique(["_".join(l.split('_')[0:3]) for l in line_par_input if l.split('_')[0] == 'OUT'])
+    n_comps = np.zeros(lines.shape, dtype=int)
+    for j, line in enumerate(lines):
+        i = 1
+        check_next = True
+        while check_next:
+            check_next = False
+            for key in line_par_input:
+                if f"{line}_{i}" in key:
+                    n_comps[j] += 1
+                    check_next = True
+                    i += 1
+                    break
+        if n_comps[j] == 0:
+            n_comps[j] = 1
+
+    # Check if any lines have multiple components
+    for k, nci in enumerate(n_comps):
+        if nci > 1:
+            # If so, add soft constraint on VOFF such that they are always ordered the same
+            for m in range(1, nci):
+                # For example:
+                # OUT_OIII_5007_2_VOFF > OUT_OIII_5007_1_VOFF
+                # OUT_OIII_5007_3_VOFF > OUT_OIII_5007_2_VOFF
+                # etc...
+                con1 = (f"{lines[k]}_{m+1}_FWHM", f"{lines[k]}_{m}_FWHM")
+                # Just in case the user already placed the soft con in question:
+                if con1 not in soft_cons:
+                    soft_cons.append(con1)
+                
+                con2 = (f"{lines[k]}_{m}_AMP", f"{lines[k]}_{m+1}_AMP")
+                if con2 not in soft_cons:
+                    soft_cons.append(con2)
+            
+            # Add additional constraints for narrow/broad components
+            if f"{lines[k].replace('OUT_', 'NA_')}_FWHM" in line_par_input:
+                con1 = (f"{lines[k]}_1_FWHM", f"{lines[k].replace('OUT_', 'NA_')}_FWHM")
+                if con1 not in soft_cons:
+                    soft_cons.append(con1)
+                con2 = (f"{lines[k].replace('OUT_', 'NA_')}_AMP", f"{lines[k]}_1_AMP")
+                if con2 not in soft_cons:
+                    soft_cons.append(con2)
+            if f"{lines[k].replace('OUT_', 'BR_')}_FWHM" in line_par_input:
+                con = (f"{lines[k].replace('OUT_', 'BR_')}_FWHM", f"{lines[k]}_{nci}_FWHM")
+                if con not in soft_cons:
+                    soft_cons.append(con)
+
+    # Add automatic soft_cons if lines have multiple components, to ensure the order is consistent
+
+
     for con in soft_cons:
         # print(con)
         valid_cons = []
@@ -3573,7 +3629,7 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
         else: 
             if verbose:
                 print("\n - %s soft constraint removed because one or more free parameters is not available." % str(con))
-    
+
     # for p in line_par_input:
     # 	print(p)
     # print(out_cons)
