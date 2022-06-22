@@ -15,6 +15,7 @@ class TestBADASS(unittest.TestCase):
 
     def test_single_examples(self):
 
+        # self.skipTest('ignore')
         options_file = OPTIONS_DIR.joinpath('single_tests.py')
 
         single_tests = [
@@ -33,12 +34,12 @@ class TestBADASS(unittest.TestCase):
                 shutil.rmtree(d)
 
         # Run tests all at once so BADASS will use multiprocessing
-        ret = badass.BadassRunner(single_tests, options_file, infmt='sdss_spec').run()
+        ret = badass.BadassRunner(single_tests, options_file).run()
         self.assertIsNone(ret) # BadassRunner.run() should return an error string on failure, None on success
 
         for fits_file in single_tests:
             test_dir = fits_file.parent
-            output_dir = test_dir.joinpath('MCMC_output_1')
+            output_dir = test_dir.joinpath('MCMC_output')
             self.assertTrue(output_dir.exists())
 
             for file in ['best_fit_model.pdf', 'fitting_region.pdf', 'max_likelihood_fit.pdf']:
@@ -52,11 +53,7 @@ class TestBADASS(unittest.TestCase):
     def test_muse(self):
 
         self.skipTest('ignore')
-
-        options_file = str(OPTIONS_DIR.joinpath('muse_test.py').relative_to(BADASS_DIR)).replace('/', '.')[:-3]
-
-        z = 0.00379
-        ap = [8, 9, 3, 4]
+        options_file = OPTIONS_DIR.joinpath('muse_test.py')
 
         cube = EXAMPLES_DIR.joinpath('MUSE', 'NGC1068_subcube.fits')
         self.assertTrue(cube.exists())
@@ -65,22 +62,24 @@ class TestBADASS(unittest.TestCase):
         if cube_subdir.exists():
             shutil.rmtree(str(cube_subdir))
 
-        wave, flux, ivar, mask, fwhm_res, binnum, npixels, xpixbin, ypixbin, z, dataid, objname = ifu.prepare_ifu(str(cube), z, format='muse', 
-                                                                                                    aperture=ap, 
-                                                                                                    targetsn=25.0 ,
-                                                                                                    snr_threshold=0.,
-                                                                                                    voronoi_binning=False,
-                                                                                                    use_and_mask=False,
-                                                                                                    )
+        # wave, flux, ivar, mask, fwhm_res, binnum, npixels, xpixbin, ypixbin, z, dataid, objname = ifu.prepare_ifu(str(cube), z, format='muse', 
+        #                                                                                             aperture=ap, 
+        #                                                                                             targetsn=25.0 ,
+        #                                                                                             snr_threshold=0.,
+        #                                                                                             voronoi_binning=False,
+        #                                                                                             use_and_mask=False,
+        #                                                                                             )
 
-        self.assertTrue(cube_subdir.exists())
-        spaxel_dirs = list(cube_subdir.glob('spaxel*'))
-        self.assertGreater(len(spaxel_dirs), 0)
+        # self.assertTrue(cube_subdir.exists())
+        # spaxel_dirs = list(cube_subdir.glob('spaxel*'))
+        # self.assertGreater(len(spaxel_dirs), 0)
 
-        badass.run_BADASS(cube_subdir, nprocesses=4, options_file=options_file, sdss_spec=False, ifu_spec=True)
+        # badass.run_BADASS(cube_subdir, nprocesses=4, options_file=options_file, sdss_spec=False, ifu_spec=True)
+
+        ret = badass.BadassRunner(cube, options_file).run()
 
         for spaxel_dir in spaxel_dirs:
-            output_dir = spaxel_dir.joinpath('MCMC_output_1')
+            output_dir = spaxel_dir.joinpath('MCMC_output')
             self.assertTrue(output_dir.exists())
 
             for file in ['fitting_region.pdf', 'max_likelihood_fit.pdf']:
@@ -91,5 +90,11 @@ class TestBADASS(unittest.TestCase):
                 self.assertTrue(log_dir.joinpath(file).exists())
 
 
+    # TODO: Add manga test
+
+    # TODO: Add user spec test
+
+
 if __name__ == '__main__':
     unittest.main()
+    # TestBADASS().test_single_examples()
