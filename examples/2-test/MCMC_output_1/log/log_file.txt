@@ -1,0 +1,304 @@
+
+############################### BADASS v9.1.1 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spec-2756-54508-0579.fits     
+(RA, DEC):                    (208.816960,18.465940)        
+SDSS redshift:                0.71967                       
+fitting region:               (4400,5355) [A]               
+velocity scale:               69.15 [km/s/pixel]            
+Galactic E(B-V):              0.032                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (4400, 5500)                  
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 10                            
+                 test_outflows: False                         
+                     test_line: {'bool': False, 'line': ['NA_NEV_3426']}
+                max_like_niter: 0                             
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: True                          
+                   fit_uv_iron: False                         
+                    fit_balmer: False                         
+                     fit_losvd: True                          
+                      fit_host: False                         
+                     fit_power: True                          
+                      fit_poly: True                          
+                    fit_narrow: True                          
+                     fit_broad: True                          
+                   fit_outflow: True                          
+                    fit_absorp: False                         
+                 tie_line_fwhm: False                         
+                 tie_line_voff: False                         
+               na_line_profile: G                             
+               br_line_profile: V                             
+              out_line_profile: G                             
+              abs_line_profile: G                             
+
+   losvd_options:                                                                         
+                       library: IndoUS                        
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 250.0} 
+
+   host_options:                                                                          
+                                Host-galaxy template component is turned off.
+
+   power_options:                                                                         
+                          type: simple                        
+
+   poly_options:                                                                          
+                         ppoly: bool: False, order: 3                                                                               
+                         apoly: bool: True, order: 3                                                                                
+                         mpoly: bool: False, order: 3                                                                               
+
+   opt_feii_options:                                                                      
+                 opt_template:: type: VC04                                                                                          
+                 opt_amp_const: bool: False, br_opt_feii_val: 1.0, na_opt_feii_val: 1.0                                             
+                opt_fwhm_const: bool: False, br_opt_feii_val: 3000.0, na_opt_feii_val: 500.0                                        
+                opt_voff_const: bool: False, br_opt_feii_val: 0.0, na_opt_feii_val: 0.0                                             
+   uv_iron_options:                                                                       
+                                UV Iron fitting is turned off.
+
+   balmer_options:                                                                        
+                                Balmer pseudo-continuum fitting is turned off.
+
+   plot_options:                                                                          
+               plot_param_hist: True                          
+                plot_flux_hist: False                         
+                 plot_lum_hist: False                         
+             plot_eqwidth_hist: False                         
+   output_options:                                                                        
+                   write_chain: False                         
+                       verbose: True                          
+
+-----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------
+ Line List:
+----------------------------------------------------------------------------------------------------------------------------------------
+BR_H_BETA                                                                                 
+                              amp                           free                          
+                              center                        4862.691                      
+                              center_pix                    435.21099039301293            
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.7113611503892572            
+                              fwhm_res_kms                  105.50807480896958            
+                              line_profile                  V                             
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+NA_H_BETA                                                                                 
+                              amp                           free                          
+                              center                        4862.691                      
+                              center_pix                    435.21099039301293            
+                              fwhm                          NA_OIII_5007_FWHM             
+                              fwhm_res_ang                  1.7113611503892572            
+                              fwhm_res_kms                  105.50807480896958            
+                              label                         H$\beta$                      
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          free                          
+NA_OIII_4960                                                                              
+                              amp                           (NA_OIII_5007_AMP/2.98)       
+                              center                        4960.295                      
+                              center_pix                    521.5197602739727             
+                              fwhm                          NA_OIII_5007_FWHM             
+                              fwhm_res_ang                  1.7307518976935183            
+                              fwhm_res_kms                  104.60393295110559            
+                              label                         [O III]                       
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          NA_OIII_5007_VOFF             
+NA_OIII_5007                                                                              
+                              amp                           free                          
+                              center                        5008.24                       
+                              center_pix                    563.2959830508472             
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.744476394207026             
+                              fwhm_res_kms                  104.42408234076268            
+                              label                         [O III]                       
+                              line_profile                  G                             
+                              line_type                     na                            
+                              voff                          free                          
+OUT_H_BETA                                                                                
+                              amp                           OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP
+                              center                        4862.691                      
+                              center_pix                    435.21099039301293            
+                              fwhm                          OUT_OIII_5007_FWHM            
+                              fwhm_res_ang                  1.7113611503892572            
+                              fwhm_res_kms                  105.50807480896958            
+                              line_profile                  G                             
+                              line_type                     out                           
+                              voff                          OUT_OIII_5007_VOFF            
+OUT_OIII_4960                                                                             
+                              amp                           OUT_OIII_5007_AMP/2.98        
+                              center                        4960.295                      
+                              center_pix                    521.5197602739727             
+                              fwhm                          OUT_OIII_5007_FWHM            
+                              fwhm_res_ang                  1.7307518976935183            
+                              fwhm_res_kms                  104.60393295110559            
+                              line_profile                  G                             
+                              line_type                     out                           
+                              voff                          OUT_OIII_5007_VOFF            
+OUT_OIII_5007                                                                             
+                              amp                           free                          
+                              center                        5008.24                       
+                              center_pix                    563.2959830508472             
+                              fwhm                          free                          
+                              fwhm_res_ang                  1.744476394207026             
+                              fwhm_res_kms                  104.42408234076268            
+                              line_profile                  G                             
+                              line_type                     out                           
+                              voff                          free                          
+----------------------------------------------------------------------------------------------------------------------------------------
+ Soft Constraints:
+
+                BR_H_BETA_FWHM > NA_OIII_5007_FWHM
+                BR_H_BETA_FWHM > OUT_OIII_5007_FWHM
+            OUT_OIII_5007_FWHM > NA_OIII_5007_FWHM
+              NA_OIII_5007_AMP > NA_H_BETA_AMP
+              NA_OIII_5007_AMP > OUT_OIII_5007_AMP
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### Maximum Likelihood Fitting Results ###
+-----------------------------------------------------------------------------------------------------------------
+Parameter                     Max. Like. Value              +/- 1-sigma                   Flag                          
+-----------------------------------------------------------------------------------------------------------------
+APOLY_COEFF_0                 -0.1341                       0.0000                        1                             
+APOLY_COEFF_1                 -0.2404                       0.0000                        1                             
+APOLY_COEFF_2                 -1.6156                       0.0000                        1                             
+APOLY_COEFF_3                 -1.2543                       0.0000                        1                             
+APOLY_EW                      0.0000                        0.0000                        1                             
+APOLY_FLUX                    0.0000                        0.0000                        1                             
+APOLY_LUM                     0.0000                        0.0000                        1                             
+BR_H_BETA_AMP                 47.8581                       0.0000                        1                             
+BR_H_BETA_DISP                2906.1047                     0.0000                        0                             
+BR_H_BETA_EW                  77.7519                       0.0000                        0                             
+BR_H_BETA_FLUX                -13.3844                      0.0000                        1                             
+BR_H_BETA_FWHM                4527.8203                     0.0000                        1                             
+BR_H_BETA_LUM                 43.9819                       0.0000                        0                             
+BR_H_BETA_NPIX                217.0000                      0.0000                        0                             
+BR_H_BETA_SHAPE               0.0966                        0.0000                        1                             
+BR_H_BETA_VINT                217.4503                      0.0000                        0                             
+BR_H_BETA_VOFF                217.4568                      0.0000                        1                             
+BR_OPT_FEII_AMP               0.0000                        0.0000                        1                             
+BR_OPT_FEII_FWHM              2998.8990                     0.0000                        1                             
+BR_OPT_FEII_TEMPLATE_EW       0.0000                        0.0000                        1                             
+BR_OPT_FEII_TEMPLATE_FLUX     -31.5273                      0.0000                        1                             
+BR_OPT_FEII_TEMPLATE_LUM      25.8389                       0.0000                        1                             
+BR_OPT_FEII_VOFF              -1.0197                       0.0000                        1                             
+H_BETA_COMP_DISP              291.5732                      0.0000                        0                             
+H_BETA_COMP_EW                6.0911                        0.0000                        1                             
+H_BETA_COMP_FLUX              -14.5139                      0.0000                        1                             
+H_BETA_COMP_FWHM              497.7041                      0.0000                        0                             
+H_BETA_COMP_LUM               42.8523                       0.0000                        1                             
+H_BETA_COMP_NPIX              15.0000                       0.0000                        0                             
+H_BETA_COMP_VINT              -33.6259                      0.0000                        0                             
+LOG_LIKE                      1942.4803                     0.0000                        0                             
+L_CONT_AGN_5100               45.5409                       0.0000                        1                             
+L_CONT_HOST_5100              45.4019                       0.0000                        1                             
+L_CONT_TOT_5100               45.7738                       0.0000                        1                             
+NA_H_BETA_AMP                 25.1310                       0.0000                        1                             
+NA_H_BETA_DISP                183.7491                      0.0000                        0                             
+NA_H_BETA_EW                  3.8536                        0.0000                        0                             
+NA_H_BETA_FLUX                -14.7147                      0.0000                        1                             
+NA_H_BETA_FWHM                432.6924                      0.0000                        1                             
+NA_H_BETA_LUM                 42.6515                       0.0000                        0                             
+NA_H_BETA_NPIX                11.0000                       0.0000                        0                             
+NA_H_BETA_VINT                -40.4728                      0.0000                        0                             
+NA_H_BETA_VOFF                -40.4728                      0.0000                        1                             
+NA_OIII_4960_AMP              89.8150                       0.0000                        1                             
+NA_OIII_4960_DISP             183.7491                      0.0000                        0                             
+NA_OIII_4960_EW               13.2759                       0.0000                        0                             
+NA_OIII_4960_FLUX             -14.1531                      0.0000                        1                             
+NA_OIII_4960_FWHM             432.6924                      0.0000                        1                             
+NA_OIII_4960_LUM              43.2131                       0.0000                        0                             
+NA_OIII_4960_NPIX             15.0000                       0.0000                        0                             
+NA_OIII_4960_VINT             -27.4133                      0.0000                        0                             
+NA_OIII_4960_VOFF             -27.4133                      0.0000                        1                             
+NA_OIII_5007_AMP              267.6486                      0.0000                        1                             
+NA_OIII_5007_DISP             183.7491                      0.0000                        0                             
+NA_OIII_5007_EW               40.7257                       0.0000                        0                             
+NA_OIII_5007_FLUX             -13.6747                      0.0000                        1                             
+NA_OIII_5007_FWHM             432.6924                      0.0000                        1                             
+NA_OIII_5007_LUM              43.6915                       0.0000                        0                             
+NA_OIII_5007_NPIX             17.0000                       0.0000                        0                             
+NA_OIII_5007_VINT             -27.4133                      0.0000                        0                             
+NA_OIII_5007_VOFF             -27.4133                      0.0000                        1                             
+NA_OPT_FEII_AMP               5.0968                        0.0000                        1                             
+NA_OPT_FEII_FWHM              553.4880                      0.0000                        1                             
+NA_OPT_FEII_TEMPLATE_EW       2.2700                        0.0000                        1                             
+NA_OPT_FEII_TEMPLATE_FLUX     -14.9194                      0.0000                        1                             
+NA_OPT_FEII_TEMPLATE_LUM      42.4469                       0.0000                        1                             
+NA_OPT_FEII_VOFF              473.9728                      0.0000                        1                             
+NOISE_SCALE                   1.4303                        0.0000                        1                             
+OIII_4960_COMP_DISP           291.4694                      0.0000                        0                             
+OIII_4960_COMP_EW             21.0822                       0.0000                        1                             
+OIII_4960_COMP_FLUX           -13.9523                      0.0000                        1                             
+OIII_4960_COMP_FWHM           495.7634                      0.0000                        0                             
+OIII_4960_COMP_LUM            43.4140                       0.0000                        1                             
+OIII_4960_COMP_NPIX           27.0000                       0.0000                        0                             
+OIII_4960_COMP_VINT           -25.4002                      0.0000                        0                             
+OIII_5007_COMP_DISP           291.4736                      0.0000                        0                             
+OIII_5007_COMP_EW             64.6728                       0.0000                        1                             
+OIII_5007_COMP_FLUX           -13.4739                      0.0000                        1                             
+OIII_5007_COMP_FWHM           495.6803                      0.0000                        0                             
+OIII_5007_COMP_LUM            43.8923                       0.0000                        1                             
+OIII_5007_COMP_NPIX           32.0000                       0.0000                        0                             
+OIII_5007_COMP_VINT           -25.4001                      0.0000                        0                             
+OUT_H_BETA_AMP                6.6970                        0.0000                        3                             
+OUT_H_BETA_DISP               414.7283                      0.0000                        0                             
+OUT_H_BETA_EW                 2.2375                        0.0000                        0                             
+OUT_H_BETA_FLUX               -14.9455                      0.0000                        1                             
+OUT_H_BETA_FWHM               976.6027                      0.0000                        1                             
+OUT_H_BETA_LUM                42.4208                       0.0000                        0                             
+OUT_H_BETA_NPIX               14.0000                       0.0000                        0                             
+OUT_H_BETA_VINT               -21.9764                      0.0000                        0                             
+OUT_H_BETA_VOFF               -21.9764                      0.0000                        1                             
+OUT_OIII_4960_AMP             23.9342                       0.0000                        1                             
+OUT_OIII_4960_DISP            414.7285                      0.0000                        0                             
+OUT_OIII_4960_EW              7.8063                        0.0000                        0                             
+OUT_OIII_4960_FLUX            -14.3837                      0.0000                        1                             
+OUT_OIII_4960_FWHM            976.6027                      0.0000                        1                             
+OUT_OIII_4960_LUM             42.9825                       0.0000                        0                             
+OUT_OIII_4960_NPIX            27.0000                       0.0000                        0                             
+OUT_OIII_4960_VINT            -21.9764                      0.0000                        0                             
+OUT_OIII_4960_VOFF            -21.9764                      0.0000                        1                             
+OUT_OIII_5007_AMP             71.3240                       0.0000                        1                             
+OUT_OIII_5007_DISP            414.7285                      0.0000                        0                             
+OUT_OIII_5007_EW              23.9471                       0.0000                        0                             
+OUT_OIII_5007_FLUX            -13.9053                      0.0000                        1                             
+OUT_OIII_5007_FWHM            976.6027                      0.0000                        1                             
+OUT_OIII_5007_LUM             43.4609                       0.0000                        0                             
+OUT_OIII_5007_NPIX            32.0000                       0.0000                        0                             
+OUT_OIII_5007_VINT            -21.9764                      0.0000                        0                             
+OUT_OIII_5007_VOFF            -21.9764                      0.0000                        1                             
+POWER_AMP                     29.7663                       0.0000                        1                             
+POWER_SLOPE                   -0.7132                       0.0000                        1                             
+RCHI_SQUARED                  1.0778                        0.0000                        0                             
+R_SQUARED                     0.9984                        0.0000                        0                             
+STEL_DISP                     500.0000                      0.0000                        2                             
+STEL_VEL                      91.0702                       0.0000                        1                             
+NOISE_STD.                    1.4996                        
+RESID_STD                     2.8018                        
+-----------------------------------------------------------------------------------------------------------------

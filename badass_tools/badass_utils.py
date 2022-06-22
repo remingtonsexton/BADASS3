@@ -359,7 +359,7 @@ def check_comp_options(input,verbose=False):
 			"fit_broad"		: False, # broad lines
 			"fit_outflow"	  : False, # outflow lines
 			"fit_absorp"	   : False, # absorption lines
-			"tie_line_fwhm"	: False, # tie line widths
+			"tie_line_disp"	: False, # tie line widths
 			"tie_line_voff"	: False, # tie line velocity offsets
 			"na_line_profile"  : "G",	 # narrow line profile
 			"br_line_profile"  : "G",	 # broad line profile
@@ -383,7 +383,7 @@ def check_comp_options(input,verbose=False):
 			"fit_broad"		: False, # broad lines
 			"fit_outflow"	  : False, # outflow lines
 			"fit_absorp"	   : False, # absorption lines
-			"tie_line_fwhm"	: False, # tie line widths
+			"tie_line_disp"	: False, # tie line widths
 			"tie_line_voff"	: False, # tie line velocity offsets
 			"na_line_profile"  : "G",	 # narrow line profile
 			"br_line_profile"  : "G",	 # broad line profile
@@ -460,11 +460,11 @@ def check_comp_options(input,verbose=False):
 				  "default": True,
 				  "error_message": "\n fit_absorp must be a bool.\n",
 				  },
-	"tie_line_fwhm" : {"conds":[
+	"tie_line_disp" : {"conds":[
 							lambda x: isinstance(x,(bool))
 							],
 				  "default": False,
-				  "error_message": "\n tie_line_fwhm must be a bool.\n",
+				  "error_message": "\n tie_line_disp must be a bool.\n",
 				  },
 	"tie_line_voff" : {"conds":[
 							lambda x: isinstance(x,(bool))
@@ -894,7 +894,7 @@ def check_opt_feii_options(input,verbose=False):
 	opt_feii_options={
 			"opt_template"  :{"type":"VC04"}, 
 			"opt_amp_const" :{"bool":False,"br_opt_feii_val":1.0   ,"na_opt_feii_val":1.0},
-			"opt_fwhm_const":{"bool":True ,"br_opt_feii_val":3000.0,"na_opt_feii_val":500.0},
+			"opt_disp_const":{"bool":True ,"br_opt_feii_val":3000.0,"na_opt_feii_val":500.0},
 			"opt_voff_const":{"bool":True ,"br_opt_feii_val":0.0   ,"na_opt_feii_val":0.0},
 	}
 	
@@ -905,7 +905,7 @@ def check_opt_feii_options(input,verbose=False):
 		output={
 				"opt_template"  :{"type":"VC04"}, 
 				"opt_amp_const" :{"bool":False,"br_opt_feii_val":1.0   ,"na_opt_feii_val":1.0},
-				"opt_fwhm_const":{"bool":True ,"br_opt_feii_val":3000.0,"na_opt_feii_val":500.0},
+				"opt_disp_const":{"bool":True ,"br_opt_feii_val":3000.0,"na_opt_feii_val":500.0},
 				"opt_voff_const":{"bool":True ,"br_opt_feii_val":0.0   ,"na_opt_feii_val":0.0},
 				}
 		return output
@@ -917,7 +917,7 @@ def check_opt_feii_options(input,verbose=False):
 			output={
 				"opt_template"  :{"type":"VC04"}, 
 				"opt_amp_const" :{"bool":False,"br_opt_feii_val":1.0   ,"na_opt_feii_val":1.0},
-				"opt_fwhm_const":{"bool":True ,"br_opt_feii_val":3000.0,"na_opt_feii_val":500.0},
+				"opt_disp_const":{"bool":True ,"br_opt_feii_val":3000.0,"na_opt_feii_val":500.0},
 				"opt_voff_const":{"bool":True ,"br_opt_feii_val":0.0   ,"na_opt_feii_val":0.0},
 					}
 			return output
@@ -935,11 +935,11 @@ def check_opt_feii_options(input,verbose=False):
 									],
 			  				"default": {"bool":False,"br_opt_feii_val":1.0   ,"na_opt_feii_val":1.0},
 			  				"error_message": "\n opt_amp_const must be a dictionary.\n"},
-		"opt_fwhm_const" : {"conds":[
+		"opt_disp_const" : {"conds":[
 									lambda x: isinstance(x,(dict))
 									],
 			  				"default": {"bool":True ,"br_opt_feii_val":3000.0,"na_opt_feii_val":500.0},
-			  				"error_message": "\n opt_fwhm_const must be a dictionary.\n"},
+			  				"error_message": "\n opt_disp_const must be a dictionary.\n"},
 		"opt_voff_const" : {"conds":[
 									lambda x: isinstance(x,(dict))
 									],
@@ -976,23 +976,23 @@ def check_opt_feii_options(input,verbose=False):
 			}
 		output["opt_amp_const"] = check_dict(output["opt_amp_const"],opt_amp_const_dict)
 
-		# opt_fwhm_const
-		opt_fwhm_const_dict = {
+		# opt_disp_const
+		opt_disp_const_dict = {
 		"bool" : {"conds":[	lambda x: isinstance(x,(bool))],
 					"default": True,
-					"error_message": "\n .opt_fwhm_const bool must be True or False.\n",},
+					"error_message": "\n .opt_disp_const bool must be True or False.\n",},
 		"br_opt_feii_val" : {"conds":[	lambda x: isinstance(x,(int,float)),
 										lambda x: x>0
 									],
 					"default": 3000.0,
-					"error_message": "\n opt_fwhm_const br_opt_feii_val must be an integer or float.\n",},
+					"error_message": "\n opt_disp_const br_opt_feii_val must be an integer or float.\n",},
 		"na_opt_feii_val" : {"conds":[	lambda x: isinstance(x,(int,float)),
 										lambda x: x>0
 									],
 					"default": 500.0,
-					"error_message": "\n opt_fwhm_const na_opt_feii_val must be an integer or float.\n",}
+					"error_message": "\n opt_disp_const na_opt_feii_val must be an integer or float.\n",}
 			}
-		output["opt_fwhm_const"] = check_dict(output["opt_fwhm_const"],opt_fwhm_const_dict)
+		output["opt_disp_const"] = check_dict(output["opt_disp_const"],opt_disp_const_dict)
 
 
 		# opt_voff_const
@@ -1017,7 +1017,7 @@ def check_opt_feii_options(input,verbose=False):
 			output={
 					"opt_template"  :{"type":"K10"},
 					"opt_amp_const" :{"bool":False,"f_feii_val":1.0,"s_feii_val":1.0,"g_feii_val":1.0,"z_feii_val":1.0},
-					"opt_fwhm_const":{"bool":False,"opt_feii_val":1500.0},
+					"opt_disp_const":{"bool":False,"opt_feii_val":1500.0},
 					"opt_voff_const":{"bool":False,"opt_feii_val":0.0},
 					"opt_temp_const":{"bool":True,"opt_feii_val":10000.0},
 					}
@@ -1037,11 +1037,11 @@ def check_opt_feii_options(input,verbose=False):
 									],
 			  				"default": {"bool":False,"f_feii_val":1.0,"s_feii_val":1.0,"g_feii_val":1.0,"z_feii_val":1.0},
 			  				"error_message": "\n opt_amp_const must be a dictionary.\n"},
-		"opt_fwhm_const" : {"conds":[
+		"opt_disp_const" : {"conds":[
 									lambda x: isinstance(x,(dict))
 									],
 			  				"default": {"bool":False,"opt_feii_val":1500.0},
-			  				"error_message": "\n opt_fwhm_const must be a dictionary.\n"},
+			  				"error_message": "\n opt_disp_const must be a dictionary.\n"},
 		"opt_voff_const" : {"conds":[
 									lambda x: isinstance(x,(dict))
 									],
@@ -1093,18 +1093,18 @@ def check_opt_feii_options(input,verbose=False):
 			}
 		output["opt_amp_const"] = check_dict(output["opt_amp_const"],opt_amp_const_dict)
 
-		# opt_fwhm_const
-		opt_fwhm_const_dict = {
+		# opt_disp_const
+		opt_disp_const_dict = {
 		"bool" : {"conds":[	lambda x: isinstance(x,(bool))],
 					"default": False,
-					"error_message": "\n opt_fwhm_const bool must be True or False.\n",},
+					"error_message": "\n opt_disp_const bool must be True or False.\n",},
 		"opt_feii_val" : {"conds":[	lambda x: isinstance(x,(int,float)),
 										lambda x: x>0
 									],
 					"default": 1500.0,
-					"error_message": "\n opt_fwhm_const opt_feii_val must be an integer or float.\n",},
+					"error_message": "\n opt_disp_const opt_feii_val must be an integer or float.\n",},
 			}
-		output["opt_fwhm_const"] = check_dict(output["opt_fwhm_const"],opt_fwhm_const_dict)
+		output["opt_disp_const"] = check_dict(output["opt_disp_const"],opt_disp_const_dict)
 
 		# opt_voff_const
 		opt_voff_const_dict = {
@@ -1145,7 +1145,7 @@ def check_uv_iron_options(input,verbose=False):
 
 	uv_iron_options={
 			"uv_amp_const"  :{"bool":False,"uv_iron_val":1.0},
-			"uv_fwhm_const" :{"bool":False ,"uv_iron_val":3000.0},
+			"uv_disp_const" :{"bool":False ,"uv_iron_val":3000.0},
 			"uv_voff_const" :{"bool":True ,"uv_iron_val":0.0},
 			"uv_legendre_m" :{"bool":False , "uv_iron_val":3},
 	}
@@ -1157,7 +1157,7 @@ def check_uv_iron_options(input,verbose=False):
 	if not input:
 		output={
 			"uv_amp_const"  :{"bool":False,"uv_iron_val":1.0},
-			"uv_fwhm_const" :{"bool":False ,"uv_iron_val":3000.0},
+			"uv_disp_const" :{"bool":False ,"uv_iron_val":3000.0},
 			"uv_voff_const" :{"bool":True ,"uv_iron_val":0.0},
 				}
 		return output
@@ -1170,11 +1170,11 @@ def check_uv_iron_options(input,verbose=False):
 								],
 		  				"default": {"bool":False,"uv_iron_val":1.0},
 		  				"error_message": "\n uv_amp_const must be a dictionary.\n"},
-	"uv_fwhm_const" : {"conds":[
+	"uv_disp_const" : {"conds":[
 								lambda x: isinstance(x,(dict))
 								],
 		  				"default": {"bool":False ,"uv_iron_val":3000.0},
-		  				"error_message": "\n uv_fwhm_const must be a dictionary.\n"},
+		  				"error_message": "\n uv_disp_const must be a dictionary.\n"},
 	"uv_voff_const" : {"conds":[
 								lambda x: isinstance(x,(dict))
 								],
@@ -1200,18 +1200,18 @@ def check_uv_iron_options(input,verbose=False):
 	output["uv_amp_const"] = check_dict(output["uv_amp_const"],uv_amp_const_dict)
 
 
-	# uv_fwhm_const
-	uv_fwhm_const_dict = {
+	# uv_disp_const
+	uv_disp_const_dict = {
 	"bool" : {"conds":[	lambda x: isinstance(x,(bool))],
 				"default": False,
-				"error_message": "\n uv_fwhm_const bool must be True or False.\n",},
+				"error_message": "\n uv_disp_const bool must be True or False.\n",},
 	"uv_iron_val" : {"conds":[	lambda x: isinstance(x,(int,float)),
 								lambda x: x>0
 								],
 				"default": 3000.0,
-				"error_message": "\n uv_fwhm_const uv_iron_val must be an integer or float.\n",}
+				"error_message": "\n uv_disp_const uv_iron_val must be an integer or float.\n",}
 		}
-	output["uv_fwhm_const"] = check_dict(output["uv_fwhm_const"],uv_fwhm_const_dict)
+	output["uv_disp_const"] = check_dict(output["uv_disp_const"],uv_disp_const_dict)
 
 
 	# uv_voff_const
@@ -1240,7 +1240,7 @@ def check_balmer_options(input,verbose=False):
 	balmer_options = {
 			"R_const"		  :{"bool":False, "R_val":0.5}, # ratio between balmer continuum and higher-order balmer lines
 			"balmer_amp_const" :{"bool":False, "balmer_amp_val":1.0}, # amplitude of overall balmer model (continuum + higher-order lines)
-			"balmer_fwhm_const":{"bool":True,  "balmer_fwhm_val":5000.0}, # broadening of higher-order Balmer lines
+			"balmer_disp_const":{"bool":True,  "balmer_disp_val":5000.0}, # broadening of higher-order Balmer lines
 			"balmer_voff_const":{"bool":True,  "balmer_voff_val":0.0}, # velocity offset of higher-order Balmer lines
 			"Teff_const"	   :{"bool":True,  "Teff_val":15000.0}, # effective temperature
 			"tau_const"		:{"bool":True,  "tau_val":1.0}, # optical depth
@@ -1252,7 +1252,7 @@ def check_balmer_options(input,verbose=False):
 		output = {
 			"R_const"		  :{"bool":False, "R_val":0.5}, # ratio between balmer continuum and higher-order balmer lines
 			"balmer_amp_const" :{"bool":False, "balmer_amp_val":1.0}, # amplitude of overall balmer model (continuum + higher-order lines)
-			"balmer_fwhm_const":{"bool":True,  "balmer_fwhm_val":5000.0}, # broadening of higher-order Balmer lines
+			"balmer_disp_const":{"bool":True,  "balmer_disp_val":5000.0}, # broadening of higher-order Balmer lines
 			"balmer_voff_const":{"bool":True,  "balmer_voff_val":0.0}, # velocity offset of higher-order Balmer lines
 			"Teff_const"	   :{"bool":True,  "Teff_val":15000.0}, # effective temperature
 			"tau_const"		:{"bool":True,  "tau_val":1.0}, # optical depth
@@ -1270,11 +1270,11 @@ def check_balmer_options(input,verbose=False):
 								],
 		  				"default": {"bool":False, "balmer_amp_val":1.0},
 		  				"error_message": "\n balmer_amp_const must be a dictionary.\n"},
-	"balmer_fwhm_const" : {"conds":[
+	"balmer_disp_const" : {"conds":[
 								lambda x: isinstance(x,(dict))
 								],
-		  				"default": {"bool":True,  "balmer_fwhm_val":5000.0},
-		  				"error_message": "\n balmer_fwhm_const must be a dictionary.\n"},
+		  				"default": {"bool":True,  "balmer_disp_val":5000.0},
+		  				"error_message": "\n balmer_disp_const must be a dictionary.\n"},
 	"balmer_voff_const" : {"conds":[
 								lambda x: isinstance(x,(dict))
 								],
@@ -1321,18 +1321,18 @@ def check_balmer_options(input,verbose=False):
 		}
 	output["balmer_amp_const"] = check_dict(output["balmer_amp_const"],balmer_amp_const_dict)
 
-	# balmer_fwhm_const
-	balmer_fwhm_const_dict = {
+	# balmer_disp_const
+	balmer_disp_const_dict = {
 	"bool" : {"conds":[	lambda x: isinstance(x,(bool))],
 				"default": True,
-				"error_message": "\n balmer_fwhm_const bool must be True or False.\n",},
-	"balmer_fwhm_val" : {"conds":[	lambda x: isinstance(x,(int,float)),
+				"error_message": "\n balmer_disp_const bool must be True or False.\n",},
+	"balmer_disp_val" : {"conds":[	lambda x: isinstance(x,(int,float)),
 									lambda x: x>0
 						],
 				"default": 5000.0,
-				"error_message": "\n balmer_fwhm_const balmer_fwhm_val must be an integer or float.\n",},
+				"error_message": "\n balmer_disp_const balmer_disp_val must be an integer or float.\n",},
 		}
-	output["balmer_fwhm_const"] = check_dict(output["balmer_fwhm_const"],balmer_fwhm_const_dict)
+	output["balmer_disp_const"] = check_dict(output["balmer_disp_const"],balmer_disp_const_dict)
 
 	# balmer_voff_const
 	balmer_voff_const_dict = {
@@ -1497,7 +1497,7 @@ def check_output_options(input,verbose=False):
 
 #### Check User Input Spectrum ###################################################
 
-def check_user_input_spec(spec,wave,err,fwhm,z,ebv,verbose=False):
+def check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,verbose=False):
 
 	if (spec is not None) and (isinstance(spec,(list,np.ndarray))):
 		pass
@@ -1514,21 +1514,21 @@ def check_user_input_spec(spec,wave,err,fwhm,z,ebv,verbose=False):
 	else: 
 		raise TypeError("\n Required user-input error spectrum must be a list or array the same size as the input spectrum.\n")
 
-	if (fwhm is not None) and (isinstance(fwhm,(list,np.ndarray,int,float))) and (fwhm>=0):
+	if (fwhm_res is not None) and (isinstance(fwhm_res,(list,np.ndarray,int,float))) and (fwhm_res>=0):
 		pass
-	elif (fwhm is None):
-		fwhm = 0.0 # Assume the user does not want to correct for instrumental dispersion
+	elif (fwhm_res is None):
+		fwhm_res = 0.0 # Assume the user does not want to correct for instrumental dispersion
 		if (verbose==True):
-			print("\n Warning: no specified instrumental dispersion.  BADASS cannot correct for instrumental dispersion or accurately fit the stellar LOSVD without an input FWHM value.  Assuming fwhm = 0.0 Å.\n")
+			print("\n Warning: no specified instrumental FWHM resolution in Angstroms!  BADASS cannot correct for instrumental dispersion or accurately fit the stellar LOSVD without an input FWHM value.  Assuming FWHM = 0.0 Å.\n")
 	else: 
-		raise TypeError("\n User-input fwhm must be a list/array the same size as the input spectrum, or integer/float value.\n")
+		raise TypeError("\n User-input disp must be a list/array the same size as the input spectrum, or integer/float value.\n")
 
 	if (z is not None) and (isinstance(z,(int,float))) and (z>=0):
 		pass
 	else: 
 		raise TypeError("\n Required user-input redshift must be an integer or float value.\n")
 
-	if (ebv is not None) and (isinstance(fwhm,(int,float))) and (ebv>=0):
+	if (ebv is not None) and (isinstance(ebv,(int,float))) and (ebv>=0):
 		pass
 	elif (ebv is None):
 		ebv = 0.0 # Assume the user does not want to correct for galactic extinction
@@ -1538,7 +1538,7 @@ def check_user_input_spec(spec,wave,err,fwhm,z,ebv,verbose=False):
 		raise TypeError("\n User-input ebv must be an integer/float value.\n")
 
 
-	return spec,wave,err,fwhm,z,ebv
+	return spec,wave,err,fwhm_res,z,ebv
 
 ##################################################################################
 
