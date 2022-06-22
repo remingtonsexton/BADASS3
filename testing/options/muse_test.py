@@ -1,3 +1,25 @@
+################################# IO Options ################################
+io_options={
+    "infmt" : "muse_ifu",
+    "output_dir" : None, # same directory as input file
+    "dust_cache" : None,
+}
+
+################################# Input Options ################################
+ifu_options={
+    "z" : 0.00379,
+    "aperture" : [8, 9, 3, 4],
+    "voronoi_binning" : False, # Default: True
+    "targetsn" : 25.0, # Default: None
+    "cvt" : True,
+    "voronoi_plot" : True,
+    "quiet" : True,
+    "wvt" : False,
+    "maxbins" : 800,
+    "snr_threshold" : 0, # Default: 3
+    "use_and_mask" : False, # Default: True
+}
+
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={

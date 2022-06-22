@@ -1,3 +1,10 @@
+################################# IO Options ################################
+io_options={
+    "infmt" : "sdss_spec",
+    "output_dir" : None, # same directory as input file
+    "dust_cache" : None,
+}
+
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={
@@ -181,6 +188,6 @@ output_options={
                          # especially  if you are running multiple objects.  
                          # You only need this if you want to reconstruct chains 
                          # and histograms. 
-"verbose"     : False,  # prints steps of fitting process in Notebook
+"verbose"     : True,  # prints steps of fitting process in Notebook
 }
 ################################################################################
