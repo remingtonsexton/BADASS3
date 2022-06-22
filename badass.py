@@ -51,7 +51,7 @@ import multiprocessing as mp
 # Import BADASS tools modules
 cwd = os.getcwd() # get current working directory
 sys.path.insert(1,cwd+'/badass_tools/')
-import badass_utils as badass_utils
+import badass_tools.badass_utils as badass_utils
 
 plt.style.use('dark_background') # For cool tron-style dark plots
 import matplotlib
@@ -229,11 +229,11 @@ __status__	 = "Release"
 ##########################################################################################################
 
 
-import utils.input
-import utils.options
+from utils.input.input import BadassInput
+from utils.options import BadassOptions
+from utils.utils import *
 
-import prodict
-
+import utils.constants as constants
 
 # TODO: make option
 USE_MULTIPROCESS = True
@@ -242,9 +242,10 @@ USE_MULTIPROCESS = True
 # BadassRunner handles parsing input data and options and
 # running a BadassContext for each target file
 class BadassRunner:
-	def __init__(self, input_data, options_data, infmt=None, output=None):
-		self.targets = utils.input.BadassInput.get_inputs(input_data, fmt=infmt)
-		self.options = utils.options.BadassOptions.get_options(options_data)
+	def __init__(self, input_data, options_data):
+		self.options = BadassOptions.get_options(options_data)
+		[o.verify() for o in self.options]
+		self.targets = BadassInput.get_inputs(input_data, self.options)
 
 	def run(self):
 		if len(self.targets) == 0:
@@ -259,7 +260,7 @@ class BadassRunner:
 			topts = self.options[0]
 			if len(self.options) > 1:
 				topts = self.options[i]
-			ctx = BadassContext(target, topts, infile=target.infile)
+			ctx = BadassContext(target, topts)
 			if USE_MULTIPROCESS:
 				ctx.start()
 				jobs.append(ctx)
@@ -274,816 +275,616 @@ class BadassRunner:
 
 
 class BadassContext(mp.Process):
-	def __init__(self, input_data, options, infile=None, output=None):
+	def __init__(self, target, options):
 		mp.Process.__init__(self)
-		self.infile = input_data if isinstance(input_data, pathlib.Path) else infile
-		self.indata = input_data
+		self.target = target
+		self.target.context = self
 		self.options = options
+		# TODO: set outdir to default to None in options validation
+		self.outdir = self.options.io_options.output_dir or get_default_outdir(self.target.infile)
+
+		print(self.target)
+		print(self.target.__dict__)
+
 
 	def run(self):
 		print('bactx %d' % os.getpid())
-		print(self.options)
 
-		# TODO: temporary for teting
-		run_single_thread(self.infile,
-			   fit_options=self.options.fit_options,
-			   mcmc_options=self.options.mcmc_options,
-			   comp_options=self.options.comp_options,
-			   user_lines=self.options.user_lines,
-			   user_constraints=self.options.user_constraints,
-			   user_mask=self.options.user_mask,
-			   combined_lines=self.options.combined_lines,
-			   losvd_options=self.options.losvd_options,
-			   host_options=self.options.host_options,
-			   power_options=self.options.power_options,
-			   opt_feii_options=self.options.opt_feii_options,
-			   uv_iron_options=self.options.uv_iron_options,
-			   balmer_options=self.options.balmer_options,
-			   outflow_test_options=False,
-			   plot_options=self.options.plot_options,
-			   output_options=self.options.output_options
-		)
+		# TODO: remove, for testing
+		fit_options = self.options.fit_options
+		mcmc_options = self.options.mcmc_options
+		comp_options = self.options.comp_options
+		user_lines = self.options.user_lines
+		user_constraints = self.options.user_constraints
+		losvd_options = self.options.losvd_options
+		host_options = self.options.host_options
+		power_options = self.options.power_options
+		opt_feii_options = self.options.opt_feii_options
+		uv_iron_options = self.options.uv_iron_options
+		balmer_options = self.options.balmer_options
+		outflow_test_options = self.options.outflow_test_options
+		plot_options = self.options.plot_options
+		output_options = self.options.output_options
 
+		verbose = self.options.output_options.verbose # TODO: move output_options to io_options
 
-def run_BADASS(data,
-			   nobj=None,
-			   nprocesses=None,
-			   options_file=None,
-			   dust_cache=None,
-			   fit_options=False,
-			   mcmc_options=False,
-			   comp_options=False,
-			   user_lines=None,
-			   user_constraints=None,
-			   user_mask=None,
-			   combined_lines={},
-			   losvd_options=False,
-			   host_options=False,
-			   power_options=False,
-			   opt_feii_options=False,
-			   uv_iron_options=False,
-			   balmer_options=False,
-			   outflow_test_options=False,
-			   plot_options=False,
-			   output_options=False,
-			   sdss_spec=True,
-			   ifu_spec=False,
-			   spec=None,
-			   wave=None,
-			   err=None,
-			   fwhm=None,
-			   z=None,
-			   ebv=None,
-			   ):
-	"""
-	The top-level BADASS function that handles the multiprocessing workers making calls to run_single_thread
-	"""
-	# Determine the number of processes based on CPU count, if unspecified
-	if nprocesses is None:
-		nprocesses = int(np.ceil(mp.cpu_count()/2))
+		# TODO: remove, for testing
+		fit_reg				= self.options.fit_options.fit_reg
+		good_thresh			= self.options.fit_options.good_thresh
+		mask_bad_pix	  	= self.options.fit_options.mask_bad_pix
+		mask_emline			= self.options.fit_options.mask_emline
+		mask_metal			= self.options.fit_options.mask_metal
+		fit_stat		  	= self.options.fit_options.fit_stat
+		n_basinhop	   		= self.options.fit_options.n_basinhop
+		test_outflows		= self.options.fit_options.test_outflows
+		test_line			= self.options.fit_options.test_line
+		max_like_niter		= self.options.fit_options.max_like_niter
+		output_pars			= self.options.fit_options.output_pars
+		cosmology		    = self.options.fit_options.cosmology
+		mcmc_fit 			= self.options.mcmc_options.mcmc_fit
+		nwalkers 			= self.options.mcmc_options.nwalkers
+		auto_stop 			= self.options.mcmc_options.auto_stop
+		conv_type 			= self.options.mcmc_options.conv_type
+		min_samp			= self.options.mcmc_options.min_samp
+		ncor_times 			= self.options.mcmc_options.ncor_times
+		autocorr_tol 		= self.options.mcmc_options.autocorr_tol
+		write_iter			= self.options.mcmc_options.write_iter
+		write_thresh		= self.options.mcmc_options.write_thresh
+		burn_in 			= self.options.mcmc_options.burn_in
+		min_iter			= self.options.mcmc_options.min_iter
+		max_iter			= self.options.mcmc_options.max_iter
+		fit_opt_feii		= self.options.comp_options.fit_opt_feii
+		fit_uv_iron			= self.options.comp_options.fit_uv_iron
+		fit_balmer			= self.options.comp_options.fit_balmer
+		fit_losvd			= self.options.comp_options.fit_losvd
+		fit_host			= self.options.comp_options.fit_host
+		fit_power			= self.options.comp_options.fit_power
+		fit_narrow			= self.options.comp_options.fit_narrow
+		fit_broad			= self.options.comp_options.fit_broad
+		fit_outflow			= self.options.comp_options.fit_outflow
+		fit_absorp			= self.options.comp_options.fit_absorp
+		tie_line_fwhm		= self.options.comp_options.tie_line_fwhm
+		tie_line_voff		= self.options.comp_options.tie_line_voff
+		n_moments 			= self.options.comp_options.n_moments
+		plot_param_hist		= self.options.plot_options.plot_param_hist
+		plot_flux_hist		= self.options.plot_options.plot_flux_hist
+		plot_lum_hist		= self.options.plot_options.plot_lum_hist
+		plot_eqwidth_hist   = self.options.plot_options.plot_eqwidth_hist
 
-	if isinstance(data, list):
-		# Print memory of the python process at the start
-		process = psutil.Process(os.getpid())
-		print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
+		write_chain = self.options.output_options.write_chain
+		plot_HTML = self.options.plot_options.plot_HTML
 
-		files = data
-		arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, user_lines, user_constraints, user_mask,
-					  combined_lines, losvd_options, host_options, power_options, opt_feii_options, uv_iron_options, balmer_options,
-					  outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv) for file in files]
+		# TODO: remove, for testing
+		sdss_spec = True
+		fits_file = self.target.infile
+		run_dir = self.outdir
+		user_mask = []
+		combined_lines = {}
 
-		# map arguments to function
-		if len(files) > 1:
-			pool = mp.Pool(processes=nprocesses, maxtasksperchild=1)
-			pool.starmap(run_single_thread, arguments, chunksize=1)
-			pool.close()
-			pool.join()
-		else:
-			run_single_thread(*arguments[0])
+		if self.options.io_options.dust_cache != None:
+			IrsaDust.cache_location = str(self.options.io_options.dust_cache)
 
-	elif os.path.isdir(data):
-		# Get locations of sub-directories for each fit within the parent data directory
-		spec_loc = natsort.natsorted(glob.glob(os.path.join(data, '*')))
-		if nobj is not None:
-			spec_loc = spec_loc[nobj[0]:nobj[1]]
-		work_dirs = [si + os.sep for si in spec_loc]
-		print(f"Fitting {len(spec_loc)} 1D spectra")
+		# TODO: do this in option validation
+		# Check to make sure plotly is installed for HTML interactive plots:
+		if self.options.plot_options.plot_HTML and not importlib.util.find_spec('plotly'):
+			self.options.plot_options.plot_HTML = False
 
-		# Print memory of the python process at the start
-		process = psutil.Process(os.getpid())
-		print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
+		# Start fitting process
+		print('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
+		sys.stdout.flush()
+		# Start a timer to record the total runtime
+		start_time = time.time()
 
-		files = [glob.glob(os.path.join(wd, '*.fits'))[0] for wd in work_dirs]
-		arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, user_lines, user_constraints, user_mask,
-					  combined_lines, losvd_options, host_options, power_options, opt_feii_options, uv_iron_options, balmer_options,
-					  outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv) for file in files]
+		# Determine validity of fitting region
+		min_fit_reg = 25 # in Å; set the minimum fitting region size here
+		if (sdss_spec) or (ifu_spec): # if user-input spectrum is an SDSS spectrum
+			#
+			fit_reg,good_frac = determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose)
+			if (fit_reg is None) or ((fit_reg[1]-fit_reg[0]) < min_fit_reg):
+				print('\n Fitting region too small! The fitting region must be at least %d A!  Moving to next object... \n' % (min_fit_reg))
+				cleanup(run_dir)
+				return None
+			elif (good_frac < fit_options["good_thresh"]) and (fit_reg is not None): # if fraction of good pixels is less than good_threshold, then move to next object
+				print('\n Not enough good channels above threshold! Moving onto next object...')
+				cleanup(run_dir)
+				return None
+			elif (good_frac >= fit_options["good_thresh"]) and (fit_reg is not None):
+				pass
+		elif (not sdss_spec): # if user-input spectrum is not an SDSS spectrum
+			fit_reg,good_frac = determine_fit_reg_user(wave, z, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose)
+			if (fit_reg is None) or ((fit_reg[1]-fit_reg[0]) < min_fit_reg):
+				print('\n Fitting region too small! The fitting region must be at least %d A!  Moving to next object... \n' % (min_fit_reg))
+				cleanup(run_dir)
+				return None
+			elif (fit_reg is not None):
+				pass
 
-		# map arguments to function
-		if len(files) > 1:
-			pool = mp.Pool(processes=nprocesses, maxtasksperchild=1)
-			pool.starmap(run_single_thread, arguments, chunksize=1)
-			pool.close()
-			pool.join()
-		else:
-			run_single_thread(*arguments[0])
+		# Prepare spectrum for fitting
+		# SDSS spectrum
+		if (sdss_spec):
+			lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_sdss_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+			binnum = spaxelx = spaxely = None
+		# ifu spectrum
+		elif (ifu_spec):
+			lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask,binnum,spaxelx,spaxely = prepare_ifu_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+		# non-SDSS spectrum
+		elif (not sdss_spec):
+			lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+			binnum = spaxelx = spaxely = None
 
-	elif os.path.isfile(data):
-		# Print memory of the python process at the start
-		process = psutil.Process(os.getpid())
-		print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
+		# Write to Log 
+		write_log((fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+				   plot_options,output_options),'fit_information',run_dir)
 
-		run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options,
-						  user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options,
-						  opt_feii_options, uv_iron_options, balmer_options, outflow_test_options, plot_options, output_options,
-						  sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv)
+		####################################################################################################################################################################################
+		# Generate host-galaxy template
+		if (fit_host==True) & (lam_gal[0]>1680.2):
+			host_template = generate_host_template(lam_gal, host_options, fwhm_gal,fit_mask, velscale, verbose=verbose)
+		elif (fit_host==True) & (lam_gal[0]<1680.2):
+			host_template = None
+			fit_host = False
+			comp_options["fit_host"]=False
+			if verbose:
+				print('\n - Host galaxy SSP template disabled because template is outside of fitting region.')
+		elif (fit_host==False):
+			host_template = None
+		# Load stellar templates if fit_losvd=True 
+		if (fit_losvd==True):
+			stel_templates = prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_mask, losvd_options, run_dir)
+		elif (fit_losvd==False):
+			stel_templates = None
 
-	# Print memory at the end
-	print(f"End process memory: {process.memory_info().rss / 1e9:<30.8f}")
+		# For the Optical FeII, UV Iron, and Balmer templates, we disable the templates if the fitting region
+		# is entirely outside of the range of the templates.  This saves resources.
 
-
-
-
-def run_single_thread(fits_file,
-			   options_file = None,
-			   dust_cache=None,
-			   fit_options=False,
-			   mcmc_options=False,
-			   comp_options=False,
-			   user_lines=None,
-			   user_constraints=None,
-			   user_mask=None,
-			   combined_lines={},
-			   losvd_options=False,
-			   host_options=False,
-			   power_options=False,
-			   opt_feii_options=False,
-			   uv_iron_options=False,
-			   balmer_options=False,
-			   outflow_test_options=False,
-			   plot_options=False,
-			   output_options=False,
-			   sdss_spec =True,
-			   ifu_spec  =False,
-			   spec = None,
-			   wave = None,
-			   err  = None,
-			   fwhm = None,
-			   z	= None,
-			   ebv  = None,
-			   ):
-			   
-	"""
-	This is the main function calls all other sub-functions in order. 
-	"""
-
-	if dust_cache != None:
-		IrsaDust.cache_location = str(dust_cache)
-
-
-	# Import options if options_file given
-	if options_file is not None:
-		try:
-			options = importlib.import_module(options_file)
-			# print("\n Successfully imported options file!\n")
-			if hasattr(options,"fit_options"):
-				fit_options			 = options.fit_options
-			if hasattr(options,"comp_options"):
-				comp_options		 = options.comp_options
-			if hasattr(options,"mcmc_options"):
-				mcmc_options		 = options.mcmc_options
-			if hasattr(options,"user_lines"):
-				user_lines			 = options.user_lines
-			if hasattr(options,"user_constraints"):
-				user_constraints	 = options.user_constraints
-			if hasattr(options,"user_mask"):
-				user_mask			 = options.user_mask
-			if hasattr(options,"losvd_options"):
-				losvd_options		 = options.losvd_options
-			if hasattr(options,"host_options"):
-				host_options		 = options.host_options
-			if hasattr(options,"power_options"):
-				power_options		 = options.power_options
-			if hasattr(options,"opt_feii_options"):
-				opt_feii_options	 = options.opt_feii_options
-			if hasattr(options,"uv_iron_options"):
-				uv_iron_options		 = options.uv_iron_options
-			if hasattr(options,"balmer_options"):
-				balmer_options		 = options.balmer_options
-			if hasattr(options,"plot_options"):
-				plot_options		 = options.plot_options
-			if hasattr(options,"output_options"):
-				output_options		 = options.output_options
-			if hasattr(options,"line_list"):
-				user_lines		     = options.user_lines
-			if hasattr(options,"soft_cons"):
-				user_constraints     = options.user_constraints
-			if hasattr(options,"combined_lines"):
-				combined_lines	     = options.combined_lines
-		except ImportError:
-			print("\n Error in importing options file! Options file must be a .py file!\n ")
-
-	# Check inputs; raises exception if user input is invalid.
-	fit_options			 = badass_utils.check_fit_options(fit_options,comp_options)
-	comp_options		 = badass_utils.check_comp_options(comp_options)
-	mcmc_options		 = badass_utils.check_mcmc_options(mcmc_options)
-	user_lines			 = badass_utils.check_user_lines(user_lines)
-	user_constraints	 = badass_utils.check_user_constraints(user_constraints)
-	user_mask			 = badass_utils.check_user_mask(user_mask)
-	losvd_options		 = badass_utils.check_losvd_options(losvd_options)
-	host_options		 = badass_utils.check_host_options(host_options)
-	power_options		 = badass_utils.check_power_options(power_options)
-	opt_feii_options	 = badass_utils.check_opt_feii_options(opt_feii_options)
-	uv_iron_options		 = badass_utils.check_uv_iron_options(uv_iron_options)
-	balmer_options		 = badass_utils.check_balmer_options(balmer_options)
-	plot_options		 = badass_utils.check_plot_options(plot_options)
-	output_options		 = badass_utils.check_output_options(output_options)
-	verbose				 = output_options["verbose"]
-	# Check user input spectrum if sdss_spec=False
-	if (not sdss_spec) and (not ifu_spec):
-		# If user does not provide a error spectrum one will be provided for them!
-		if err is None:
-			err = np.abs(0.1*spec)
-		spec, wave, err, fwhm, z, ebv = badass_utils.check_user_input_spec(spec,wave,err,fwhm,z,ebv)
-
-	# Unpack input
-	# fit_options
-	fit_reg				= fit_options["fit_reg"]
-	good_thresh			= fit_options["good_thresh"]
-	mask_bad_pix	  	= fit_options["mask_bad_pix"]
-	mask_emline			= fit_options["mask_emline"]
-	mask_metal			= fit_options["mask_metal"]
-	fit_stat		  	= fit_options["fit_stat"]
-	n_basinhop	   		= fit_options["n_basinhop"]
-	test_outflows		= fit_options["test_outflows"]
-	test_line			= fit_options["test_line"]
-	max_like_niter		= fit_options["max_like_niter"]
-	output_pars			= fit_options["output_pars"]
-	cosmology		    = fit_options["cosmology"]
-	# mcmc_options
-	mcmc_fit 			= mcmc_options["mcmc_fit"]
-	nwalkers 			= mcmc_options["nwalkers"]
-	auto_stop 			= mcmc_options["auto_stop"]
-	conv_type 			= mcmc_options["conv_type"]
-	min_samp			= mcmc_options["min_samp"]
-	ncor_times 			= mcmc_options["ncor_times"]
-	autocorr_tol 		= mcmc_options["autocorr_tol"]
-	write_iter			= mcmc_options["write_iter"]
-	write_thresh		= mcmc_options["write_thresh"]
-	burn_in 			= mcmc_options["burn_in"]
-	min_iter			= mcmc_options["min_iter"]
-	max_iter			= mcmc_options["max_iter"]
-	# comp_options
-	fit_opt_feii		= comp_options["fit_opt_feii"]
-	fit_uv_iron			= comp_options["fit_uv_iron"]
-	fit_balmer			= comp_options["fit_balmer"]
-	fit_losvd			= comp_options["fit_losvd"]
-	fit_host			= comp_options["fit_host"]
-	fit_power			= comp_options["fit_power"]
-	fit_narrow			= comp_options["fit_narrow"]
-	fit_broad			= comp_options["fit_broad"]
-	fit_outflow			= comp_options["fit_outflow"]
-	fit_absorp			= comp_options["fit_absorp"]
-	tie_line_fwhm		= comp_options["tie_line_fwhm"]
-	tie_line_voff		= comp_options["tie_line_voff"]
-	n_moments 			= comp_options["n_moments"]
-	# plot_options
-	plot_param_hist		= plot_options["plot_param_hist"]
-	plot_flux_hist		= plot_options["plot_flux_hist"]
-	plot_lum_hist		= plot_options["plot_lum_hist"]
-	plot_eqwidth_hist   = plot_options["plot_eqwidth_hist"]
-	plot_HTML			= plot_options["plot_HTML"]
-
-	# Set up run ('MCMC_output_#') directory
-	work_dir = os.path.dirname(str(fits_file))+"/"
-	run_dir,prev_dir = setup_dirs(work_dir,output_options['verbose'])
-	run_dir = pathlib.Path(run_dir)
-
-	# Check to make sure plotly is installed for HTML interactive plots:
-	if plot_HTML==True:
-		if importlib.util.find_spec('plotly'):
-			pass
-	else: plot_HTML=False
-
-	# output_options
-	write_chain			= output_options["write_chain"]
-	verbose				= output_options["verbose"]
-	#
-	# Start fitting process
-	print('\n > Starting fit for %s' % fits_file.parent.name)
-	sys.stdout.flush()
-	# Start a timer to record the total runtime
-	start_time = time.time()
-	#
-	# Determine validity of fitting region
-	min_fit_reg = 25 # in Å; set the minimum fitting region size here
-	if (sdss_spec) or (ifu_spec): # if user-input spectrum is an SDSS spectrum
-		#
-		fit_reg,good_frac = determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose)
-		if (fit_reg is None) or ((fit_reg[1]-fit_reg[0]) < min_fit_reg):
-			print('\n Fitting region too small! The fitting region must be at least %d A!  Moving to next object... \n' % (min_fit_reg))
-			cleanup(run_dir)
-			return None
-		elif (good_frac < fit_options["good_thresh"]) and (fit_reg is not None): # if fraction of good pixels is less than good_threshold, then move to next object
-			print('\n Not enough good channels above threshold! Moving onto next object...')
-			cleanup(run_dir)
-			return None
-		elif (good_frac >= fit_options["good_thresh"]) and (fit_reg is not None):
-			pass
-	elif (not sdss_spec): # if user-input spectrum is not an SDSS spectrum
-		fit_reg,good_frac = determine_fit_reg_user(wave, z, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose)
-		if (fit_reg is None) or ((fit_reg[1]-fit_reg[0]) < min_fit_reg):
-			print('\n Fitting region too small! The fitting region must be at least %d A!  Moving to next object... \n' % (min_fit_reg))
-			cleanup(run_dir)
-			return None
-		elif (fit_reg is not None):
-			pass
-
-	# Prepare spectrum for fitting
-	# SDSS spectrum
-	if (sdss_spec):
-		lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_sdss_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
-		binnum = spaxelx = spaxely = None
-	# ifu spectrum
-	elif (ifu_spec):
-		lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask,binnum,spaxelx,spaxely = prepare_ifu_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
-	# non-SDSS spectrum
-	elif (not sdss_spec):
-		lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
-		binnum = spaxelx = spaxely = None
-
-	# Write to Log 
-	write_log((fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
-			   plot_options,output_options),'fit_information',run_dir)
-
-	####################################################################################################################################################################################
-	# Generate host-galaxy template
-	if (fit_host==True) & (lam_gal[0]>1680.2):
-		host_template = generate_host_template(lam_gal, host_options, fwhm_gal,fit_mask, velscale, verbose=verbose)
-	elif (fit_host==True) & (lam_gal[0]<1680.2):
-		host_template = None
-		fit_host = False
-		comp_options["fit_host"]=False
-		if verbose:
-			print('\n - Host galaxy SSP template disabled because template is outside of fitting region.')
-	elif (fit_host==False):
-		host_template = None
-	# Load stellar templates if fit_losvd=True 
-	if (fit_losvd==True):
-		stel_templates = prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_mask, losvd_options, run_dir)
-	elif (fit_losvd==False):
-		stel_templates = None
-
-	# For the Optical FeII, UV Iron, and Balmer templates, we disable the templates if the fitting region
-	# is entirely outside of the range of the templates.  This saves resources.
-
-	# Check conditions for and generate Optical FeII templates
-	# Veron-Cetty et al. (2004)
-	if (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="VC04") & (lam_gal[-1]>=3400.0) & (lam_gal[0]<=7200.0):
-		opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,fwhm_gal,fit_mask,velscale)
-	elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="VC04") & ((lam_gal[-1]<3400.0) | (lam_gal[0]>7200.0)):
-		if verbose:
-			print('\n - Optical FeII template disabled because template is outside of fitting region.')
-		fit_opt_feii = False
-		comp_options["fit_opt_feii"]=False
-		opt_feii_templates = None
-		write_log((),'update_opt_feii',run_dir)
-	# Kovacevic et al. (2010)
-	elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="K10") & (lam_gal[-1]>=4400.0) & (lam_gal[0]<=5500.0):
-		opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,fwhm_gal,fit_mask,velscale)
-	elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="K10") & ((lam_gal[-1]<4400.0) | (lam_gal[0]>5500.0)):
-		if verbose:
-			print('\n - Optical FeII template disabled because template is outside of fitting region.')
-		opt_feii_templates = None
-		fit_opt_feii = False
-		comp_options["fit_opt_feii"]=False
-		opt_feii_templates = None
-		write_log((),'update_opt_feii',run_dir)
-	elif (fit_opt_feii==False):
-		opt_feii_templates = None
-		
-	# Generate UV Iron template - Vestergaard & Wilkes (2001)
-	if (fit_uv_iron==True) & (lam_gal[-1]>=1074.0) & (lam_gal[0]<=3100.0):
-		uv_iron_template = initialize_uv_iron(lam_gal,uv_iron_options,fwhm_gal,fit_mask,velscale)
-	elif (fit_uv_iron==True) & ((lam_gal[-1]<1074.0) | (lam_gal[0]>3100.0)):
-		if verbose:
-			print('\n - UV Iron template disabled because template is outside of fitting region.')
-		uv_iron_template = None
-		fit_uv_iron = False
-		comp_options["fit_uv_iron"]=False
-		uv_iron_template = None
-		write_log((),'update_uv_iron',run_dir)
-	elif (fit_uv_iron==False):
-		uv_iron_template = None
-
-	# Generate Balmer continuum
-	if (fit_balmer==True) & (lam_gal[0]<3500.0):
-		balmer_template = initialize_balmer(lam_gal,balmer_options,fwhm_gal,fit_mask,velscale)
-	elif (fit_balmer==True) & (lam_gal[0]>=3500.0):
-		if verbose:
-			print('\n - Balmer continuum disabled because template is outside of fitting region.')
-		balmer_template = None
-		fit_balmer = False
-		comp_options["fit_balmer"]=False
-		balmer_template = None
-		write_log((),'update_balmer',run_dir)
-	elif (fit_balmer==False):
-		balmer_template = None
-
-	####################################################################################################################################################################################
-
-	# Initialize maximum likelihood parameters
-	if verbose:
-		print('\n Initializing parameters for Maximum Likelihood Fitting.')
-		print('----------------------------------------------------------------------------------------------------')
-
-	param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
-								 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
-								 run_dir,fit_type='init',fit_stat=fit_stat,
-								 fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
-								 fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,
-								 fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
-								 tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,verbose=verbose)
-
-	# Output all free parameters of fit prior to fitting (useful for diagnostics)
-	if output_pars and verbose:
-		output_free_pars(line_list,param_dict,soft_cons)
-		write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
-		return 
-	elif not output_pars and verbose:
-		output_free_pars(line_list,param_dict,soft_cons)
-		write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
-	elif not output_pars and not verbose:
-		write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
-
-	#### Line Testing ################################################################################################################################################################################
-	
-	if (test_line["bool"]==True):
-		# If line test, check to make sure line is in line list
-		if (isinstance(test_line["line"],str)) and (test_line["line"] not in line_list):
-			shutil.rmtree(run_dir)
-			print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
-			return
-		elif (isinstance(test_line["line"],list)) and not (np.all([False if line not in line_list else True for line in test_line["line"]])):
-			shutil.rmtree(run_dir)
-			print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
-			return
+		# Check conditions for and generate Optical FeII templates
+		# Veron-Cetty et al. (2004)
+		if (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="VC04") & (lam_gal[-1]>=3400.0) & (lam_gal[0]<=7200.0):
+			opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,fwhm_gal,fit_mask,velscale)
+		elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="VC04") & ((lam_gal[-1]<3400.0) | (lam_gal[0]>7200.0)):
+			if verbose:
+				print('\n - Optical FeII template disabled because template is outside of fitting region.')
+			fit_opt_feii = False
+			comp_options["fit_opt_feii"]=False
+			opt_feii_templates = None
+			write_log((),'update_opt_feii',run_dir)
+		# Kovacevic et al. (2010)
+		elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="K10") & (lam_gal[-1]>=4400.0) & (lam_gal[0]<=5500.0):
+			opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,fwhm_gal,fit_mask,velscale)
+		elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="K10") & ((lam_gal[-1]<4400.0) | (lam_gal[0]>5500.0)):
+			if verbose:
+				print('\n - Optical FeII template disabled because template is outside of fitting region.')
+			opt_feii_templates = None
+			fit_opt_feii = False
+			comp_options["fit_opt_feii"]=False
+			opt_feii_templates = None
+			write_log((),'update_opt_feii',run_dir)
+		elif (fit_opt_feii==False):
+			opt_feii_templates = None
 			
+		# Generate UV Iron template - Vestergaard & Wilkes (2001)
+		if (fit_uv_iron==True) & (lam_gal[-1]>=1074.0) & (lam_gal[0]<=3100.0):
+			uv_iron_template = initialize_uv_iron(lam_gal,uv_iron_options,fwhm_gal,fit_mask,velscale)
+		elif (fit_uv_iron==True) & ((lam_gal[-1]<1074.0) | (lam_gal[0]>3100.0)):
+			if verbose:
+				print('\n - UV Iron template disabled because template is outside of fitting region.')
+			uv_iron_template = None
+			fit_uv_iron = False
+			comp_options["fit_uv_iron"]=False
+			uv_iron_template = None
+			write_log((),'update_uv_iron',run_dir)
+		elif (fit_uv_iron==False):
+			uv_iron_template = None
 
+		# Generate Balmer continuum
+		if (fit_balmer==True) & (lam_gal[0]<3500.0):
+			balmer_template = initialize_balmer(lam_gal,balmer_options,fwhm_gal,fit_mask,velscale)
+		elif (fit_balmer==True) & (lam_gal[0]>=3500.0):
+			if verbose:
+				print('\n - Balmer continuum disabled because template is outside of fitting region.')
+			balmer_template = None
+			fit_balmer = False
+			comp_options["fit_balmer"]=False
+			balmer_template = None
+			write_log((),'update_balmer',run_dir)
+		elif (fit_balmer==False):
+			balmer_template = None
+
+		####################################################################################################################################################################################
+
+		# Initialize maximum likelihood parameters
 		if verbose:
-			print("\n Testing for %s" % (test_line["line"]))
+			print('\n Initializing parameters for Maximum Likelihood Fitting.')
+			print('----------------------------------------------------------------------------------------------------')
+
+		param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
+									 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+									 run_dir,fit_type='init',fit_stat=fit_stat,
+									 fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
+									 fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,
+									 fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
+									 tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,verbose=verbose)
+
+		# Output all free parameters of fit prior to fitting (useful for diagnostics)
+		if output_pars and verbose:
+			output_free_pars(line_list,param_dict,soft_cons)
+			write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
+			return 
+		elif not output_pars and verbose:
+			output_free_pars(line_list,param_dict,soft_cons)
+			write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
+		elif not output_pars and not verbose:
+			write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
+
+		#### Line Testing ################################################################################################################################################################################
+		
+		if (test_line["bool"]==True):
+			# If line test, check to make sure line is in line list
+			if (isinstance(test_line["line"],str)) and (test_line["line"] not in line_list):
+				shutil.rmtree(run_dir)
+				print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
+				return
+			elif (isinstance(test_line["line"],list)) and not (np.all([False if line not in line_list else True for line in test_line["line"]])):
+				shutil.rmtree(run_dir)
+				print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
+				return
+				
+
+			if verbose:
+				print("\n Testing for %s" % (test_line["line"]))
 
 
-		line_test(param_dict,
-				  line_list,
-				  combined_line_list,
-				  soft_cons,
-				  lam_gal,
-				  galaxy,
-				  noise,
-				  z,
-				  cosmology,
-				  fit_reg,
-				  user_lines,
-				  user_constraints,
-				  combined_lines,
-				  test_line,
-				  comp_options,
-				  losvd_options,
-				  host_options,
-				  power_options,
-				  opt_feii_options,
-				  uv_iron_options,
-				  balmer_options,
-				  outflow_test_options,
-				  host_template,
-				  opt_feii_templates,
-				  uv_iron_template,
-				  balmer_template,
-				  stel_templates,
-				  fwhm_gal,
-				  fit_mask,
-				  velscale,
-				  run_dir,
-				  fit_type='init',
-				  fit_stat=fit_stat,
-				  output_model=False,
-				  test_outflows=False,
-				  n_basinhop=n_basinhop,
-				  max_like_niter=max_like_niter,
-				  verbose=verbose,
-				  binnum=binnum,
-				  spaxelx=spaxelx,
-				  spaxely=spaxely)
-		# Exit BADASS
-		print(' - Line testing complete for %s! \n' % fits_file.parent.name)
-		return
-
-	####################################################################################################################################################################################
-
-	#### Outflow Testing ################################################################################################################################################################################
-	
-	if (test_outflows==True):
-		# If test_outflow, check to make sure the line list has outflow lines in it
-		if (len([line for line in line_list if line_list[line]["line_type"]=="out"])==0):
-			shutil.rmtree(run_dir)
-			print("\n There are no outflow lines in the line list to test! Make sure fit_outflow = True and are within fitting range.\n")
+			line_test(param_dict,
+					  line_list,
+					  combined_line_list,
+					  soft_cons,
+					  lam_gal,
+					  galaxy,
+					  noise,
+					  z,
+					  cosmology,
+					  fit_reg,
+					  user_lines,
+					  user_constraints,
+					  combined_lines,
+					  test_line,
+					  comp_options,
+					  losvd_options,
+					  host_options,
+					  power_options,
+					  opt_feii_options,
+					  uv_iron_options,
+					  balmer_options,
+					  outflow_test_options,
+					  host_template,
+					  opt_feii_templates,
+					  uv_iron_template,
+					  balmer_template,
+					  stel_templates,
+					  fwhm_gal,
+					  fit_mask,
+					  velscale,
+					  run_dir,
+					  fit_type='init',
+					  fit_stat=fit_stat,
+					  output_model=False,
+					  test_outflows=False,
+					  n_basinhop=n_basinhop,
+					  max_like_niter=max_like_niter,
+					  verbose=verbose,
+					  binnum=binnum,
+					  spaxelx=spaxelx,
+					  spaxely=spaxely)
+			# Exit BADASS
+			print(' - Line testing complete for %s! \n' % fits_file.parent.name)
 			return
 
+		####################################################################################################################################################################################
+
+		#### Outflow Testing ################################################################################################################################################################################
+		
+		if (test_outflows==True):
+			# If test_outflow, check to make sure the line list has outflow lines in it
+			if (len([line for line in line_list if line_list[line]["line_type"]=="out"])==0):
+				shutil.rmtree(run_dir)
+				print("\n There are no outflow lines in the line list to test! Make sure fit_outflow = True and are within fitting range.\n")
+				return
+
+			if verbose:
+				print("\n Testing for outflows...")
+
+
+			line_test(param_dict,
+					  line_list,
+					  combined_line_list,
+					  soft_cons,
+					  lam_gal,
+					  galaxy,
+					  noise,
+					  z,
+					  cosmology,
+					  fit_reg,
+					  user_lines,
+					  user_constraints,
+					  combined_lines,
+					  test_line,
+					  comp_options,
+					  losvd_options,
+					  host_options,
+					  power_options,
+					  opt_feii_options,
+					  uv_iron_options,
+					  balmer_options,
+					  outflow_test_options,
+					  host_template,
+					  opt_feii_templates,
+					  uv_iron_template,
+					  balmer_template,
+					  stel_templates,
+					  fwhm_gal,
+					  fit_mask,
+					  velscale,
+					  run_dir,
+					  fit_type='init',
+					  fit_stat=fit_stat,
+					  output_model=False,
+					  test_outflows=True,
+					  n_basinhop=n_basinhop,
+					  max_like_niter=max_like_niter,
+					  verbose=verbose,
+					  binnum=binnum,
+					  spaxelx=spaxelx,
+					  spaxely=spaxely)
+			# Exit BADASS
+			print(' - Outflow testing complete for %s! \n' % fits_file.parent.name)
+			return
+
+		####################################################################################################################################################################################
+		# Peform maximum likelihood
+		result_dict, comp_dict     = max_likelihood(param_dict,
+													line_list,
+													combined_line_list,
+													soft_cons,
+													lam_gal,
+													galaxy,
+													noise,
+													z,
+													cosmology,
+													comp_options,
+													losvd_options,
+													host_options,
+													power_options,
+													opt_feii_options,
+													uv_iron_options,
+													balmer_options,
+													outflow_test_options,
+													host_template,
+													opt_feii_templates,
+													uv_iron_template,
+													balmer_template,
+													stel_templates,
+													fwhm_gal,
+													fit_mask,
+													velscale,
+													run_dir,
+													fit_type='init',
+													fit_stat=fit_stat,
+													output_model=False,
+													test_outflows=False,
+													n_basinhop=n_basinhop,
+													max_like_niter=max_like_niter,
+													verbose=verbose)
+		
+		if (mcmc_fit==False):
+			# If not performing MCMC fitting, terminate BADASS here and write 
+			# parameters, uncertainties, and components to a fits file
+			# Write final parameters to file
+			# Header information
+			header_dict = {}
+			header_dict["z_sdss"] = z
+			header_dict["med_noise"] = np.median(noise)
+			header_dict["velscale"]  = velscale
+			#
+			write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,binnum,spaxelx,spaxely)
+			
+			# Make interactive HTML plot 
+			if plot_HTML:
+				plotly_best_fit(fits_file.parent.name,line_list,fit_mask,run_dir)
+
+			print(' - Done fitting %s! \n' % fits_file.parent.name)
+			sys.stdout.flush()
+			return
+
+		#######################################################################################################
+	 
+		# Initialize parameters for emcee
 		if verbose:
-			print("\n Testing for outflows...")
+			print('\n Initializing parameters for MCMC.')
+			print('----------------------------------------------------------------------------------------------------')
+		param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
+															   comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
+															   run_dir,fit_type='final',fit_stat=fit_stat,
+															   fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
+															   fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,
+															   fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
+															   tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,
+															   remove_lines=False,verbose=verbose)
+		#
+		if verbose:
+			output_free_pars(line_list,param_dict,soft_cons)
+		#
+		# Replace initial conditions with best fit max. likelihood parameters (the old switcharoo)
+		for key in result_dict:
+			if key in param_dict:
+				param_dict[key]['init']=result_dict[key]['med']
+		# We make an exception for FeII temperature if Kovadevic et al. (2010) templates are used because 
+		# temperature is not every sensitive > 8,000 K.  This causes temperature parameter to blow up
+		# during the initial max. likelihood fitting, causing it to be initialized for MCMC at an 
+		# unreasonable value.  We therefroe re-initializethe FeiI temp start value to 10,000 K.
+		if 'feii_temp' in param_dict:
+			param_dict['feii_temp']['init']=10000.0
+		
+		#######################################################################################################
 
 
-		line_test(param_dict,
-				  line_list,
-				  combined_line_list,
-				  soft_cons,
-				  lam_gal,
-				  galaxy,
-				  noise,
-				  z,
-				  cosmology,
-				  fit_reg,
-				  user_lines,
-				  user_constraints,
-				  combined_lines,
-				  test_line,
-				  comp_options,
-				  losvd_options,
-				  host_options,
-				  power_options,
-				  opt_feii_options,
-				  uv_iron_options,
-				  balmer_options,
-				  outflow_test_options,
-				  host_template,
-				  opt_feii_templates,
-				  uv_iron_template,
-				  balmer_template,
-				  stel_templates,
-				  fwhm_gal,
-				  fit_mask,
-				  velscale,
-				  run_dir,
-				  fit_type='init',
-				  fit_stat=fit_stat,
-				  output_model=False,
-				  test_outflows=True,
-				  n_basinhop=n_basinhop,
-				  max_like_niter=max_like_niter,
-				  verbose=verbose,
-				  binnum=binnum,
-				  spaxelx=spaxelx,
-				  spaxely=spaxely)
-		# Exit BADASS
-		print(' - Outflow testing complete for %s! \n' % fits_file.parent.name)
-		return
+		# Run emcee
+		if verbose:
+			print('\n Performing MCMC iterations...')
+			print('----------------------------------------------------------------------------------------------------')
 
-	####################################################################################################################################################################################
-	# Peform maximum likelihood
-	result_dict, comp_dict     = max_likelihood(param_dict,
-												line_list,
-												combined_line_list,
-												soft_cons,
-												lam_gal,
-												galaxy,
-												noise,
-												z,
-												cosmology,
-												comp_options,
-												losvd_options,
-												host_options,
-												power_options,
-												opt_feii_options,
-												uv_iron_options,
-												balmer_options,
-												outflow_test_options,
-												host_template,
-												opt_feii_templates,
-												uv_iron_template,
-												balmer_template,
-												stel_templates,
-												fwhm_gal,
-												fit_mask,
-												velscale,
-												run_dir,
-												fit_type='init',
-												fit_stat=fit_stat,
-												output_model=False,
-												test_outflows=False,
-												n_basinhop=n_basinhop,
-												max_like_niter=max_like_niter,
-												verbose=verbose)
-	
-	if (mcmc_fit==False):
-		# If not performing MCMC fitting, terminate BADASS here and write 
-		# parameters, uncertainties, and components to a fits file
-		# Write final parameters to file
+		# Extract relevant stuff from dicts
+		param_names  = [key for key in param_dict ]
+		init_params  = [param_dict[key]['init'] for key in param_dict ]
+		bounds		 = [param_dict[key]['plim'] for key in param_dict ]
+
+		# Check number of walkers
+		# If number of walkers < 2*(# of params) (the minimum required), then set it to that
+		if nwalkers<2*len(param_names):
+			if verbose:
+				print('\n Number of walkers < 2 x (# of parameters)!  Setting nwalkers = %d' % (2.0*len(param_names)))
+			nwalkers = int(2.0*len(param_names))
+		
+		ndim, nwalkers = len(init_params), nwalkers # minimum walkers = 2*len(params)
+
+		# initialize walker starting positions based on parameter estimation from Maximum Likelihood fitting
+		pos = initialize_walkers(init_params,param_names,bounds,soft_cons,nwalkers,ndim)
+
+		# Run emcee
+		# args = arguments of lnprob (log-probability function)
+		lnprob_args=(param_names,
+					 bounds,
+					 line_list,
+					 combined_line_list,
+					 soft_cons,
+					 lam_gal,
+					 galaxy,
+					 noise,
+					 comp_options,
+					 losvd_options,
+					 host_options,
+					 power_options,
+					 opt_feii_options,
+					 uv_iron_options,
+					 balmer_options,
+					 outflow_test_options,
+					 host_template,
+					 opt_feii_templates,
+					 uv_iron_template,
+					 balmer_template,
+					 stel_templates,
+					 fwhm_gal,
+					 fit_mask,
+					 fit_stat,
+					 velscale,
+					 run_dir)
+		
+		emcee_data = run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
+								auto_stop,conv_type,min_samp,ncor_times,autocorr_tol,write_iter,write_thresh,
+								burn_in,min_iter,max_iter,verbose=verbose)
+
+		sampler_chain, burn_in, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, log_like_blob = emcee_data
+		# Add chains to each parameter in param dictionary
+		for k,key in enumerate(param_names):
+			if key in param_dict:
+				param_dict[key]['chain']=sampler_chain[:,:,k]
+
+		if verbose:
+			print('\n > Fitting MCMC chains...')
+		# These three functions produce parameter, flux, and luminosity histograms and chains from the MCMC sampling.
+		# Free parameter values, uncertainties, and plots
+		param_dict = param_plots(param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist,verbose=verbose)
+		# Add tied parameters
+		param_dict = add_tied_parameters(param_dict, line_list)
+		# Log Like Function values plots
+		log_like_dict = log_like_plot(log_like_blob, burn_in, nwalkers, run_dir, plot_param_hist=plot_param_hist,verbose=verbose)
+		# Flux values, uncertainties, and plots
+		flux_dict = flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=plot_flux_hist,verbose=verbose)
+		# Luminosity values, uncertainties, and plots
+		lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
+		# Continuum luminosity 
+		cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
+		# Equivalent widths, uncertainties, and plots
+		eqwidth_dict = eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=plot_eqwidth_hist, verbose=verbose)
+		# Auxiliary Line Dict (Combined FWHMs and Fluxes of MgII and CIV)
+		int_vel_disp_dict = int_vel_disp_plots(int_vel_disp_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_param_hist=plot_param_hist,verbose=verbose)
+
+		# If stellar velocity is fit, estimate the systemic velocity of the galaxy;
+		# SDSS redshifts are based on average emission line redshifts.
+		extra_dict = {}
+		extra_dict["LOG_LIKE"] = log_like_dict
+
+		if ('stel_vel' in param_dict):
+			if verbose:
+				print('\n > Estimating systemic velocity of galaxy...')
+			z_dict = systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist)
+			extra_dict = {**extra_dict, **z_dict}
+
+		if verbose:
+			print('\n > Saving Data...')
+
+		# Write all chains to a fits table
+		if (write_chain==True):
+			write_chains({**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},run_dir)
+		# Plot and save the best fit model and all sub-components
+		comp_dict = plot_best_model(param_dict,
+						line_list,
+						combined_line_list,
+						lam_gal,
+						galaxy,
+						noise,
+						comp_options,
+						losvd_options,
+						host_options,
+						power_options,
+						opt_feii_options,
+						uv_iron_options,
+						balmer_options,
+						outflow_test_options,
+						host_template,
+						opt_feii_templates,
+						uv_iron_template,
+						balmer_template,
+						stel_templates,
+						fwhm_gal,
+						fit_mask,
+						fit_stat,
+						velscale,
+						run_dir)
+
+		# Calculate some fit quality parameters which will be added to the dictionary
+		# These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
+		fit_quality_dict = fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_type="mcmc",fit_stat=fit_stat)
+		param_dict = {**param_dict,**fit_quality_dict}
+
+		# Write best fit parameters to fits table
 		# Header information
 		header_dict = {}
-		header_dict["z_sdss"] = z
-		header_dict["med_noise"] = np.median(noise)
-		header_dict["velscale"]  = velscale
+		header_dict["Z_SDSS"]	= z
+		header_dict["MED_NOISE"] = np.median(noise)
+		header_dict["VELSCALE"]  = velscale
 		#
-		write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,binnum,spaxelx,spaxely)
-		
+		param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
+		write_params(param_dict,header_dict,bounds,run_dir,binnum,spaxelx,spaxely)
+
 		# Make interactive HTML plot 
 		if plot_HTML:
 			plotly_best_fit(fits_file.parent.name,line_list,fit_mask,run_dir)
 
-		print(' - Done fitting %s! \n' % fits_file.parent.name)
+		if verbose:
+			print('\n Cleaning up...')
+			print('----------------------------------------------------------------------------------------------------')
+		# Delete redundant files to cut down on space
+		cleanup(run_dir)
+		
+		# Total time
+		elap_time = (time.time() - start_time)
+		if verbose:
+			print("\n Total Runtime = %s" % (time_convert(elap_time)))
+		# Write to log
+		write_log(elap_time,'total_time',run_dir)
+		print(' - Done fitting %s! \n' % fits_file.stem)
 		sys.stdout.flush()
 		return
-
-	#######################################################################################################
- 
-	# Initialize parameters for emcee
-	if verbose:
-		print('\n Initializing parameters for MCMC.')
-		print('----------------------------------------------------------------------------------------------------')
-	param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
-														   comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
-														   run_dir,fit_type='final',fit_stat=fit_stat,
-														   fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
-														   fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,
-														   fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
-														   tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,
-														   remove_lines=False,verbose=verbose)
-	#
-	if verbose:
-		output_free_pars(line_list,param_dict,soft_cons)
-	#
-	# Replace initial conditions with best fit max. likelihood parameters (the old switcharoo)
-	for key in result_dict:
-		if key in param_dict:
-			param_dict[key]['init']=result_dict[key]['med']
-	# We make an exception for FeII temperature if Kovadevic et al. (2010) templates are used because 
-	# temperature is not every sensitive > 8,000 K.  This causes temperature parameter to blow up
-	# during the initial max. likelihood fitting, causing it to be initialized for MCMC at an 
-	# unreasonable value.  We therefroe re-initializethe FeiI temp start value to 10,000 K.
-	if 'feii_temp' in param_dict:
-		param_dict['feii_temp']['init']=10000.0
-	
-	#######################################################################################################
-
-
-	# Run emcee
-	if verbose:
-		print('\n Performing MCMC iterations...')
-		print('----------------------------------------------------------------------------------------------------')
-
-	# Extract relevant stuff from dicts
-	param_names  = [key for key in param_dict ]
-	init_params  = [param_dict[key]['init'] for key in param_dict ]
-	bounds		 = [param_dict[key]['plim'] for key in param_dict ]
-
-	# Check number of walkers
-	# If number of walkers < 2*(# of params) (the minimum required), then set it to that
-	if nwalkers<2*len(param_names):
-		if verbose:
-			print('\n Number of walkers < 2 x (# of parameters)!  Setting nwalkers = %d' % (2.0*len(param_names)))
-		nwalkers = int(2.0*len(param_names))
-	
-	ndim, nwalkers = len(init_params), nwalkers # minimum walkers = 2*len(params)
-
-	# initialize walker starting positions based on parameter estimation from Maximum Likelihood fitting
-	pos = initialize_walkers(init_params,param_names,bounds,soft_cons,nwalkers,ndim)
-
-	# Run emcee
-	# args = arguments of lnprob (log-probability function)
-	lnprob_args=(param_names,
-				 bounds,
-				 line_list,
-				 combined_line_list,
-				 soft_cons,
-				 lam_gal,
-				 galaxy,
-				 noise,
-				 comp_options,
-				 losvd_options,
-				 host_options,
-				 power_options,
-				 opt_feii_options,
-				 uv_iron_options,
-				 balmer_options,
-				 outflow_test_options,
-				 host_template,
-				 opt_feii_templates,
-				 uv_iron_template,
-				 balmer_template,
-				 stel_templates,
-				 fwhm_gal,
-				 fit_mask,
-				 fit_stat,
-				 velscale,
-				 run_dir)
-	
-	emcee_data = run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
-							auto_stop,conv_type,min_samp,ncor_times,autocorr_tol,write_iter,write_thresh,
-							burn_in,min_iter,max_iter,verbose=verbose)
-
-	sampler_chain, burn_in, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, log_like_blob = emcee_data
-	# Add chains to each parameter in param dictionary
-	for k,key in enumerate(param_names):
-		if key in param_dict:
-			param_dict[key]['chain']=sampler_chain[:,:,k]
-
-	if verbose:
-		print('\n > Fitting MCMC chains...')
-	# These three functions produce parameter, flux, and luminosity histograms and chains from the MCMC sampling.
-	# Free parameter values, uncertainties, and plots
-	param_dict = param_plots(param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist,verbose=verbose)
-	# Add tied parameters
-	param_dict = add_tied_parameters(param_dict, line_list)
-	# Log Like Function values plots
-	log_like_dict = log_like_plot(log_like_blob, burn_in, nwalkers, run_dir, plot_param_hist=plot_param_hist,verbose=verbose)
-	# Flux values, uncertainties, and plots
-	flux_dict = flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=plot_flux_hist,verbose=verbose)
-	# Luminosity values, uncertainties, and plots
-	lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
-	# Continuum luminosity 
-	cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
-	# Equivalent widths, uncertainties, and plots
-	eqwidth_dict = eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=plot_eqwidth_hist, verbose=verbose)
-	# Auxiliary Line Dict (Combined FWHMs and Fluxes of MgII and CIV)
-	int_vel_disp_dict = int_vel_disp_plots(int_vel_disp_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_param_hist=plot_param_hist,verbose=verbose)
-
-	# If stellar velocity is fit, estimate the systemic velocity of the galaxy;
-	# SDSS redshifts are based on average emission line redshifts.
-	extra_dict = {}
-	extra_dict["LOG_LIKE"] = log_like_dict
-
-	if ('stel_vel' in param_dict):
-		if verbose:
-			print('\n > Estimating systemic velocity of galaxy...')
-		z_dict = systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist)
-		extra_dict = {**extra_dict, **z_dict}
-
-	if verbose:
-		print('\n > Saving Data...')
-
-	# Write all chains to a fits table
-	if (write_chain==True):
-		write_chains({**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},run_dir)
-	# Plot and save the best fit model and all sub-components
-	comp_dict = plot_best_model(param_dict,
-					line_list,
-					combined_line_list,
-					lam_gal,
-					galaxy,
-					noise,
-					comp_options,
-					losvd_options,
-					host_options,
-					power_options,
-					opt_feii_options,
-					uv_iron_options,
-					balmer_options,
-					outflow_test_options,
-					host_template,
-					opt_feii_templates,
-					uv_iron_template,
-					balmer_template,
-					stel_templates,
-					fwhm_gal,
-					fit_mask,
-					fit_stat,
-					velscale,
-					run_dir)
-
-	# Calculate some fit quality parameters which will be added to the dictionary
-	# These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-	fit_quality_dict = fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_type="mcmc",fit_stat=fit_stat)
-	param_dict = {**param_dict,**fit_quality_dict}
-
-	# Write best fit parameters to fits table
-	# Header information
-	header_dict = {}
-	header_dict["Z_SDSS"]	= z
-	header_dict["MED_NOISE"] = np.median(noise)
-	header_dict["VELSCALE"]  = velscale
-	#
-	param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
-	write_params(param_dict,header_dict,bounds,run_dir,binnum,spaxelx,spaxely)
-
-	# Make interactive HTML plot 
-	if plot_HTML:
-		plotly_best_fit(fits_file.parent.name,line_list,fit_mask,run_dir)
-
-	if verbose:
-		print('\n Cleaning up...')
-		print('----------------------------------------------------------------------------------------------------')
-	# Delete redundant files to cut down on space
-	cleanup(run_dir)
-	
-	# Total time
-	elap_time = (time.time() - start_time)
-	if verbose:
-		print("\n Total Runtime = %s" % (time_convert(elap_time)))
-	# Write to log
-	write_log(elap_time,'total_time',run_dir)
-	print(' - Done fitting %s! \n' % fits_file.stem)
-	sys.stdout.flush()
-	return
 
 ##################################################################################
 
@@ -1307,6 +1108,11 @@ def determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, 
 		min_losvd, max_losvd = 3540.5, 7409.6
 	if (losvd_options["library"]=="eMILES"):
 		min_losvd, max_losvd = 1680.2, 49999.4
+
+	# TODO: use:
+	# 	min_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].min_losvd
+	# 	max_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].max_losvd
+
 	# Open spectrum file
 	hdu = fits.open(fits_file)
 	specobj = hdu[2].data
@@ -1380,30 +1186,10 @@ def determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, 
 	# Determine number of good pixels in new fitting region
 	mask = ((lam_gal >= new_fit_reg[0]) & (lam_gal <= new_fit_reg[1]))
 	igood = np.where((gal[mask]>0) & (ivar[mask]>0) & (and_mask[mask]==0))[0]
+	# igood = np.where((self.target.flux[mask]>0) & (self.target.ivar[mask]>0) & (and_mask[mask]==0))[0]
 	ibad  = np.where(and_mask[mask]!=0)[0]
 	good_frac = (len(igood)*1.0)/len(gal[mask])
-
-	if 0:
-		##################################################################################
-		fig = plt.figure(figsize=(14,6))
-		ax1 = fig.add_subplot(1,1,1)
-
-		ax1.plot(lam_gal,gal,linewidth=0.5)
-		ax1.axvline(new_fit_reg[0],linestyle='--',color='xkcd:yellow')
-		ax1.axvline(new_fit_reg[1],linestyle='--',color='xkcd:yellow')
-
-		ax1.scatter(lam_gal[mask][ibad],gal[mask][ibad],color='red')
-		ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)')
-		ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)')
-
-		plt.tight_layout()
-		plt.savefig(run_dir.joinpath('good_pixels.pdf'),fmt='pdf',dpi=150)
-		fig.clear()
-		plt.close()
-	##################################################################################
-	# Close the fits file 
-	hdu.close()
-	##################################################################################
+	# good_frac = (len(igood)*1.0)/len(self.target.flux[mask])
 
 	return new_fit_reg,good_frac
 
