@@ -220,12 +220,12 @@ comp_options={
 	"fit_broad"        : True, # broad lines
 	"fit_outflow"      : True, # outflow lines
 	"fit_absorp"       : False, # absorption lines
-	"tie_line_fwhm"    : False, # tie line widths
+	"tie_line_disp"    : False, # tie line widths
 	"tie_line_voff"    : False, # tie line velocity offsets
-	"na_line_profile"  : "G",     # narrow line profile
-	"br_line_profile"  : "V",     # broad line profile
-	"out_line_profile" : "G",     # outflow line profile
-	"abs_line_profile" : "G",     # absorption line profile
+	"na_line_profile"  : "gaussian",  # narrow line profile
+	"br_line_profile"  : "voigt",     # broad line profile
+	"out_line_profile" : "gaussian",  # outflow line profile
+	"abs_line_profile" : "gaussian",  # absorption line profile
 	"n_moments"        : 4, # number of Gauss-Hermite moments for Gauss-Hermite line profiles
 	                        # must be >2 and <10 for higher-order moments (default = 4)
 }
@@ -267,22 +267,22 @@ Fit lines of the `line_type`:`out` in the line list.  Convenience to easily togg
 **`fit_absorp`**: *Default=False*  
 Fit lines of the `line_type`:`abs` in the line list.  Occasionally one might need to fit a strong absorption feature that isn't described by stellar processes, such as a broad absorption line in a quasar.
 
-**`tie_line_fwhm`**: *Default=False*  
+**`tie_line_disp`**: *Default=False*  
 Ties the widths of all respective line types (all narrow lines are tied, all broad lines are tied, etc.).  This can be done to significantly reduce the number of free parameters in the fit if fitting many lines, however it is not recommended. 
 
 **`tie_line_voff`**: *Default=False*  
 Ties the velocity offsets of all respective line types (all narrow lines are tied, all broad lines are tied, etc.).  This can be done to significantly reduce the number of free parameters in the fit if fitting many lines, however it is not recommended. 
 
-**`na_line_profile`**: *Default="G"*
+**`na_line_profile`**: *Default="gaussian"*
 Line profile shape of the narrow lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH). 
 
-**`br_line_profile`**: *Default="V"*
-Line profile shape of the broad lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH).  Broad line profile shapes are not always Gaussian, and can occasionally be Lorentzian (such as in NLS1 galaxies).
+**`br_line_profile`**: *Default="voigt"*
+Line profile shape of the broad lines.  Options are Gaussian ('gaussian'), Lorentzian ('lorentzian'), pseudo-Voigt ('voigt'), Gauss-Hermite ('gauss-hermite'), Laplace ('laplace'), or Uniform ('uniform').  Broad line profile shapes are not always Gaussian, and can occasionally be Lorentzian (such as in NLS1 galaxies).
 
-**`out_line_profile`**: *Default="G"*
+**`out_line_profile`**: *Default="gaussian"*
 Line profile shape of the outflow lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH). 
 
-**`abs_line_profile`**: *Default="G"*
+**`abs_line_profile`**: *Default="gaussian"*
 Line profile shape of the absorption lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH). 
 
 **`n_moments`**: *Default=4*
@@ -298,7 +298,7 @@ Additionally, the user can provide additional lines to the default line list dir
 
 ```python
 user_lines = {
-	"NA_UNKNOWN_1":{"center":6085., "line_type":"na", "line_profile":"G"},
+	"NA_UNKNOWN_1":{"center":6085., "line_type":"na", "line_profile":"gaussian"},
 }
 ```
 
@@ -306,7 +306,7 @@ Similarly, one can provided additional soft constraints.  For example, if we wan
 
 ```python
 user_constraints = [
-	("BR_MGII_2799_DISP","BR_MGII_2799_DISP"),
+	("BR_MGII_2799_DISP","NA_MGII_2799_DISP"),
 ]
 ```
 
@@ -695,7 +695,7 @@ The default line list built into BADASS references most of the [standard SDSS li
 				 "voff_plim": tuple, # tuple of (lower,upper) bounds of parameter
 				 
 				 "line_type": "na", # line type ["na","br","out","abs", or "user]
-				 "line_profile": "G" # Gaussian (G), Lorentzian (L), Voigt (V), or Gauss-Hermite (GH)
+				 "line_profile": "gaussian" # gaussian, lorentzian, voigt, gauss-hermite, laplace, or uniform
 				 "label"    : string, # a name for the line for plotting purposes
 				 },
 ```
@@ -724,7 +724,7 @@ or in a more general case
 				     "h3"          : "free",
 				     "h4"          : "free",
 				     "line_type"   : "user",
-				     "line_profile": "GH"
+				     "line_profile": "gauss-hermite"
 				     "label"       : r"User Line"
 				 },
 ```
@@ -736,7 +736,7 @@ BADASS uses the `numexpr` module to allow for hard constraints on line parameter
 ```python
 		"NA_OIII_4960" :{"center":4960.295,
 						 "amp":"(NA_OIII_5007_AMP/2.98)", 
-						 "fwhm":"NA_OIII_5007_FWHM", 
+						 "disp":"NA_OIII_5007_DISP", 
 						 "voff":"NA_OIII_5007_VOFF", 
 						 "line_type":"na" ,
 						 "label":r"[O III]"
@@ -744,7 +744,7 @@ BADASS uses the `numexpr` module to allow for hard constraints on line parameter
 						 
 		"NA_OIII_5007" :{"center":5008.240, 
 						 "amp":"free", 
-						 "fwhm":"free", 
+						 "disp":"free", 
 						 "voff":"free", 
 						 "line_type":"na" ,
 						 "label":r"[O III]"

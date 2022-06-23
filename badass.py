@@ -54,6 +54,7 @@ import spectres
 cwd = os.getcwd() # get current working directory
 sys.path.insert(1,cwd+'/badass_tools/')
 import badass_utils as badass_utils
+import gh_alternative as gh_alt # Gauss-Hermite alternative line profiles
 
 plt.style.use('dark_background') # For cool tron-style dark plots
 import matplotlib
@@ -66,7 +67,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.1.6"
+__version__	= "9.1.7"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -231,6 +232,18 @@ __status__	 = "Release"
 # - polynomial continuum components independent from LOSVD component.
 # - linearization of non-linearized non-SDSS spectra using spectres module
 
+# Version 9.1.7
+# - switched width parameter of all lines from FWHM to dispersion to accomodate more lines and 
+# -     avert problems with biased integrated velocities and dispersions.  As a result, 
+# -     integrated dispersions and velocities are only calculated for combined lines, and FWHM 
+# -     are calculated for ALL lines.
+# - Added Laplace and Uniform line profiles from Sanders et al. (2020) 
+# -     (https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract; 
+# -      https://github.com/jls713/gh_alternative)
+# - Changed instrumental fwhm keyword to instrumental dispersion "disp_res".  Input resolution for user
+# -     -input spectra is still a "fwhm_res" but changes to disp_res internally.
+
+
 ##########################################################################################################
 
 
@@ -263,7 +276,7 @@ def run_BADASS(data,
                spec=None,
                wave=None,
                err=None,
-               fwhm=None,
+               fwhm_res=None,
                z=None,
                ebv=None,
                ):
@@ -289,7 +302,7 @@ def run_BADASS(data,
         files = [glob.glob(os.path.join(wd, '*.fits'))[0] for wd in work_dirs]
         arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, user_lines, user_constraints, user_mask,
                       combined_lines, losvd_options, host_options, power_options, poly_options, opt_feii_options, uv_iron_options, balmer_options,
-                      outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv) for file in files]
+                      outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv) for file in files]
 
         # map arguments to function
         if len(files) > 1 and nprocesses > 1:
@@ -309,7 +322,7 @@ def run_BADASS(data,
         run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options,
                           user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options, poly_options,
                           opt_feii_options, uv_iron_options, balmer_options, outflow_test_options, plot_options, output_options,
-                          sdss_spec, ifu_spec, spec, wave, err, fwhm, z, ebv)
+                          sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv)
 
     # Print memory at the end
     print(f"End process memory: {process.memory_info().rss / 1e9:<30.8f}")
@@ -342,7 +355,7 @@ def run_single_thread(fits_file,
                spec = None,
                wave = None,
                err  = None,
-               fwhm = None,
+               fwhm_res = None,
                z	= None,
                ebv  = None,
                ):
@@ -427,7 +440,7 @@ def run_single_thread(fits_file,
         # If user does not provide a error spectrum one will be provided for them!
         if err is None:
             err = np.abs(0.1*spec)
-        spec, wave, err, fwhm, z, ebv = badass_utils.check_user_input_spec(spec,wave,err,fwhm,z,ebv)
+        spec, wave, err, fwhm_res, z, ebv = badass_utils.check_user_input_spec(spec,wave,err,fwhm_res,z,ebv)
 
     # Unpack input
     # fit_options
@@ -468,7 +481,7 @@ def run_single_thread(fits_file,
     fit_broad			= comp_options["fit_broad"]
     fit_outflow			= comp_options["fit_outflow"]
     fit_absorp			= comp_options["fit_absorp"]
-    tie_line_fwhm		= comp_options["tie_line_fwhm"]
+    tie_line_disp		= comp_options["tie_line_disp"]
     tie_line_voff		= comp_options["tie_line_voff"]
     n_moments 			= comp_options["n_moments"]
     # plot_options
@@ -526,14 +539,14 @@ def run_single_thread(fits_file,
     # Prepare spectrum for fitting
     # SDSS spectrum
     if (sdss_spec):
-        lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_sdss_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask = prepare_sdss_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
         binnum = spaxelx = spaxely = None
     # ifu spectrum
     elif (ifu_spec):
-        lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask,binnum,spaxelx,spaxely = prepare_ifu_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask,binnum,spaxelx,spaxely = prepare_ifu_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
     # non-SDSS spectrum
     elif (not sdss_spec):
-        lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm_res, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
         binnum = spaxelx = spaxely = None
 
     # Write to Log 
@@ -543,7 +556,7 @@ def run_single_thread(fits_file,
     ####################################################################################################################################################################################
     # Generate host-galaxy template
     if (fit_host==True) & (lam_gal[0]>1680.2):
-        host_template = generate_host_template(lam_gal, host_options, fwhm_gal,fit_mask, velscale, verbose=verbose)
+        host_template = generate_host_template(lam_gal, host_options, disp_res,fit_mask, velscale, verbose=verbose)
     elif (fit_host==True) & (lam_gal[0]<1680.2):
         host_template = None
         fit_host = False
@@ -554,7 +567,7 @@ def run_single_thread(fits_file,
         host_template = None
     # Load stellar templates if fit_losvd=True 
     if (fit_losvd==True):
-        stel_templates = prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_mask, losvd_options, run_dir)
+        stel_templates = prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, disp_res,fit_mask, losvd_options, run_dir)
     elif (fit_losvd==False):
         stel_templates = None
 
@@ -564,7 +577,7 @@ def run_single_thread(fits_file,
     # Check conditions for and generate Optical FeII templates
     # Veron-Cetty et al. (2004)
     if (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="VC04") & (lam_gal[-1]>=3400.0) & (lam_gal[0]<=7200.0):
-        opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,fwhm_gal,fit_mask,velscale)
+        opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,disp_res,fit_mask,velscale)
     elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="VC04") & ((lam_gal[-1]<3400.0) | (lam_gal[0]>7200.0)):
         if verbose:
             print('\n - Optical FeII template disabled because template is outside of fitting region.')
@@ -574,7 +587,7 @@ def run_single_thread(fits_file,
         write_log((),'update_opt_feii',run_dir)
     # Kovacevic et al. (2010)
     elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="K10") & (lam_gal[-1]>=4400.0) & (lam_gal[0]<=5500.0):
-        opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,fwhm_gal,fit_mask,velscale)
+        opt_feii_templates = initialize_opt_feii(lam_gal,opt_feii_options,disp_res,fit_mask,velscale)
     elif (fit_opt_feii==True) & (opt_feii_options["opt_template"]["type"]=="K10") & ((lam_gal[-1]<4400.0) | (lam_gal[0]>5500.0)):
         if verbose:
             print('\n - Optical FeII template disabled because template is outside of fitting region.')
@@ -588,7 +601,7 @@ def run_single_thread(fits_file,
         
     # Generate UV Iron template - Vestergaard & Wilkes (2001)
     if (fit_uv_iron==True) & (lam_gal[-1]>=1074.0) & (lam_gal[0]<=3100.0):
-        uv_iron_template = initialize_uv_iron(lam_gal,uv_iron_options,fwhm_gal,fit_mask,velscale)
+        uv_iron_template = initialize_uv_iron(lam_gal,uv_iron_options,disp_res,fit_mask,velscale)
     elif (fit_uv_iron==True) & ((lam_gal[-1]<1074.0) | (lam_gal[0]>3100.0)):
         if verbose:
             print('\n - UV Iron template disabled because template is outside of fitting region.')
@@ -602,7 +615,7 @@ def run_single_thread(fits_file,
 
     # Generate Balmer continuum
     if (fit_balmer==True) & (lam_gal[0]<3500.0):
-        balmer_template = initialize_balmer(lam_gal,balmer_options,fwhm_gal,fit_mask,velscale)
+        balmer_template = initialize_balmer(lam_gal,balmer_options,disp_res,fit_mask,velscale)
     elif (fit_balmer==True) & (lam_gal[0]>=3500.0):
         if verbose:
             print('\n - Balmer continuum disabled because template is outside of fitting region.')
@@ -621,14 +634,14 @@ def run_single_thread(fits_file,
         print('\n Initializing parameters for Maximum Likelihood Fitting.')
         print('----------------------------------------------------------------------------------------------------')
 
-    param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
+    param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                                  comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                  opt_feii_options,uv_iron_options,balmer_options,
                                  run_dir,fit_type='init',fit_stat=fit_stat,
                                  fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
                                  fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
                                  fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
-                                 tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,verbose=verbose)
+                                 tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,verbose=verbose)
 
     # Output all free parameters of fit prior to fitting (useful for diagnostics)
     if output_pars and verbose:
@@ -687,7 +700,7 @@ def run_single_thread(fits_file,
                   uv_iron_template,
                   balmer_template,
                   stel_templates,
-                  fwhm_gal,
+                  disp_res,
                   fit_mask,
                   velscale,
                   run_dir,
@@ -748,7 +761,7 @@ def run_single_thread(fits_file,
                   uv_iron_template,
                   balmer_template,
                   stel_templates,
-                  fwhm_gal,
+                  disp_res,
                   fit_mask,
                   velscale,
                   run_dir,
@@ -791,7 +804,7 @@ def run_single_thread(fits_file,
                                                 uv_iron_template,
                                                 balmer_template,
                                                 stel_templates,
-                                                fwhm_gal,
+                                                disp_res,
                                                 fit_mask,
                                                 velscale,
                                                 run_dir,
@@ -829,14 +842,14 @@ def run_single_thread(fits_file,
     if verbose:
         print('\n Initializing parameters for MCMC.')
         print('----------------------------------------------------------------------------------------------------')
-    param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
+    param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                                                            comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                                            opt_feii_options,uv_iron_options,balmer_options,
                                                            run_dir,fit_type='final',fit_stat=fit_stat,
                                                            fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
                                                            fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
                                                            fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
-                                                           tie_line_fwhm=tie_line_fwhm,tie_line_voff=tie_line_voff,
+                                                           tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,
                                                            remove_lines=False,verbose=verbose)
     #
     if verbose:
@@ -902,7 +915,7 @@ def run_single_thread(fits_file,
                  uv_iron_template,
                  balmer_template,
                  stel_templates,
-                 fwhm_gal,
+                 disp_res,
                  fit_mask,
                  fit_stat,
                  velscale,
@@ -976,7 +989,7 @@ def run_single_thread(fits_file,
                     uv_iron_template,
                     balmer_template,
                     stel_templates,
-                    fwhm_gal,
+                    disp_res,
                     fit_mask,
                     fit_stat,
                     velscale,
@@ -1804,7 +1817,7 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
     dlam_gal = (frac - 1)*lam_gal   # Size of every pixel in Angstrom
     # print('\n Size of every pixel: %s (A)' % dlam_gal)
     wdisp = t['wdisp'][mask]		# Intrinsic dispersion of every pixel, in pixels units
-    fwhm_gal = 2.355*wdisp*dlam_gal # Resolution FWHM of every pixel, in angstroms
+    disp_res = wdisp*dlam_gal # Resolution dispersion of every pixel, in angstroms
     velscale = np.log(frac)*c	   # Constant velocity scale in km/s per pixel
 
     # If the galaxy is at significant redshift, one should bring the galaxy
@@ -1817,12 +1830,12 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
     # This is done with the following three commented lines:
     #
     lam_gal = lam_gal/(1.0+z)  # Compute approximate restframe wavelength
-    fwhm_gal = fwhm_gal/(1.0+z)   # Adjust resolution in Angstrom
+    disp_res = disp_res/(1.0+z)   # Adjust resolution in Angstrom
 
-    # fwhm_gal = np.full_like(lam_gal,0.0)
+    # disp_res = np.full_like(lam_gal,0.0)
     # We pass this interp1d class to the fit_model function to correct for 
     # the instrumental resolution of emission lines in our model
-    # fwhm_gal_ftn = interp1d(lam_gal,fwhm_gal,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10)) 
+    # disp_res_ftn = interp1d(lam_gal,disp_res,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10)) 
 
     val,idx = find_nearest(lam_gal,5175)
 
@@ -1870,7 +1883,7 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
         print('-----------------------------------------------------------')
     ################################################################################
 
-    return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good
+    return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good
 
 ##################################################################################
 
@@ -1906,7 +1919,7 @@ def prepare_sdss_plot(lam_gal,galaxy,noise,ibad,run_dir):
 
 #### Prepare User Spectrum #######################################################
 
-def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=True):
+def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,fit_reg,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=True):
     """
     Prepares user-input spectrum for BADASS fitting.
     """
@@ -2021,14 +2034,14 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
     dlam_gal = (frac - 1)*lam_gal   # Size of every pixel in Angstrom
     # print(dlam_gal)
     # # print('\n Size of every pixel: %s (A)' % dlam_gal)
-    # print(fwhm/dlam_gal) # FWHM of every pixel in pixels
+    # print(disp/dlam_gal) # dispersion of every pixel in pixels
     # wdisp = t['wdisp'][mask]		# Intrinsic dispersion of every pixel, in pixels units
-    # fwhm_gal = 2.355*wdisp*dlam_gal # Resolution FWHM of every pixel, in angstroms
+    # disp_res = wdisp*dlam_gal # Resolution dispersion of every pixel, in angstroms
     # velscale = np.log(frac)*c	   # Constant velocity scale in km/s per pixel
-    if type(fwhm) in (list, np.ndarray):
-        fwhm_gal = fwhm[mask]
+    if type(fwhm_res) in (list, np.ndarray):
+        disp_res = fwhm_res[mask]/2.3548
     else:
-        fwhm_gal = np.full(lam_gal.shape, fill_value=fwhm)
+        disp_res = np.full(lam_gal.shape, fill_value=fwhm_res/2.3548)
 
     velscale = velscale[0]
 
@@ -2042,7 +2055,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
     # This is done with the following three commented lines:
     #
     lam_gal = lam_gal/(1+z)  # Compute approximate restframe wavelength
-    fwhm_gal = fwhm_gal/(1+z)   # Adjust resolution in Angstrom
+    disp_res = disp_res/(1+z)   # Adjust resolution in Angstrom
 
     #################### Correct for galactic extinction ##################
 
@@ -2072,7 +2085,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,use
     #
     # fit_mask_good = np.arange(0,len(lam_gal),1,dtype=int)
     #
-    return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good
+    return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good
 
 ##################################################################################
 
@@ -2149,10 +2162,10 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
         ebv = 0.04  # average Galactic E(B-V)
 
     if format != 'MANGA':
-        lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['fwhm_res'],z,ebv,fit_reg,
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['disp_res'],z,ebv,fit_reg,
                                                                                        mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=verbose,plot=plot)
 
-        return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good,binnum,spaxelx,spaxely
+        return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good,binnum,spaxelx,spaxely
 
 
     # Only use the wavelength range in common between galaxy and stellar library.
@@ -2235,8 +2248,8 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
     # dlam_gal = (frac - 1) * lam_gal  # Size of every pixel in Angstrom
     # print('\n Size of every pixel: %s (A)' % dlam_gal)
     # wdisp = t['wdisp'][mask]  # Intrinsic dispersion of every pixel, in pixels units
-    # fwhm_gal = 2.355 * wdisp * dlam_gal  # Resolution FWHM of every pixel, in angstroms
-    fwhm_gal = t['fwhm_res'][mask]
+    # disp_res = wdisp * dlam_gal  # Resolution FWHM of every pixel, in angstroms
+    disp_res = t['disp_res'][mask]
     velscale = np.log(frac) * c  # Constant velocity scale in km/s per pixel
 
     # If the galaxy is at significant redshift, one should bring the galaxy
@@ -2249,12 +2262,12 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
     # This is done with the following three commented lines:
     #
     lam_gal = lam_gal / (1.0 + z)  # Compute approximate restframe wavelength
-    fwhm_gal = fwhm_gal / (1.0 + z)  # Adjust resolution in Angstrom
+    disp_res = disp_res / (1.0 + z)  # Adjust resolution in Angstrom
 
-    # fwhm_gal = np.full_like(lam_gal,0.0)
+    # disp_res = np.full_like(lam_gal,0.0)
     # We pass this interp1d class to the fit_model function to correct for
     # the instrumental resolution of emission lines in our model
-    # fwhm_gal_ftn = interp1d(lam_gal,fwhm_gal,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
+    # disp_res_ftn = interp1d(lam_gal,disp_res,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
 
     val, idx = find_nearest(lam_gal, 5175)
 
@@ -2285,7 +2298,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
         print('-----------------------------------------------------------')
     ################################################################################
 
-    return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good,binnum,spaxelx,spaxely
+    return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good,binnum,spaxelx,spaxely
 
 ##################################################################################
 
@@ -2294,7 +2307,7 @@ prepare_ifu_plot = prepare_sdss_plot
 
 #### Prepare stellar templates ###################################################
 
-def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_mask, losvd_options, run_dir):
+def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, disp_res, fit_mask, losvd_options, run_dir):
     """
     Prepares stellar templates for convolution using pPXF. 
     This example is from Capellari's pPXF examples, the code 
@@ -2304,12 +2317,15 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_m
     if (losvd_options["library"]=="IndoUS"):
         temp_dir  = "badass_data_files/IndoUS/"
         fwhm_temp = 1.35 # Indo-US Template Library FWHM in Å (linear)
+        disp_temp = fwhm_temp/2.3548
     if (losvd_options["library"]=="Vazdekis2010"):
         temp_dir  = "badass_data_files/Vazdekis2010/"
         fwhm_temp = 2.51 # Vazdekis+10 spectra have a constant resolution FWHM of 2.51A (linear)
+        disp_temp = fwhm_temp/2.3548
     if (losvd_options["library"]=="eMILES"):
         temp_dir  = "badass_data_files/eMILES/"
         fwhm_temp = 2.51 # eMILES spectra have a constant resolution FWHM of 2.51A (linear)
+        disp_temp = fwhm_temp/2.3548
 
     fit_min,fit_max = float(fit_reg[0]),float(fit_reg[1])
     #
@@ -2348,10 +2364,10 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_m
     # of the templates. Outside the range of the galaxy spectrum the resolution
     # will be extrapolated, but this is irrelevant as those pixels cannot be
     # used in the fit anyway.
-    if isinstance(fwhm_gal,(list,np.ndarray)):
-        fwhm_gal_interp = np.interp(lam_temp, lam_gal, fwhm_gal)
-    elif isinstance(fwhm_gal,(int,float)):
-        fwhm_gal_interp = np.full_like(lam_temp,fwhm_gal)
+    if isinstance(disp_res,(list,np.ndarray)):
+        disp_res_interp = np.interp(lam_temp, lam_gal, disp_res)
+    elif isinstance(disp_res,(int,float)):
+        disp_res_interp = np.full_like(lam_temp,disp_res)
 
     # Convolve the whole Vazdekis library of spectral templates
     # with the quadratic difference between the SDSS and the
@@ -2362,11 +2378,11 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_m
     # The formula below is rigorously valid if the shapes of the
     # instrumental spectral profiles are well approximated by Gaussians.
     #
-    # In the line below, the fwhm_dif is set to zero when fwhm_gal < fwhm_tem.
+    # In the line below, the disp_dif is set to zero when disp_res < disp_tem.
     # In principle it should never happen and a higher resolution template should be used.
     #
-    fwhm_dif = np.sqrt((fwhm_gal_interp**2 - fwhm_temp**2).clip(0))
-    sigma = fwhm_dif/2.355/h2['CDELT1'] # Sigma difference in pixels
+    disp_dif = np.sqrt((disp_res_interp**2 - disp_temp**2).clip(0))
+    sigma = disp_dif/h2['CDELT1'] # Sigma difference in pixels
 
     for j, fname in enumerate(temp_list):
         hdu = fits.open(fname)
@@ -2419,14 +2435,14 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, fwhm_gal,fit_m
 #### Initialize Parameters #######################################################
 
 
-def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale,
+def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale,
                     comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                     opt_feii_options,uv_iron_options,balmer_options,
                     run_dir,fit_type='init',fit_stat="RCHI2",
                     fit_opt_feii=True,fit_uv_iron=True,fit_balmer=True,
                     fit_losvd=False,fit_host=True,fit_power=True,fit_poly=False,
                     fit_narrow=True,fit_broad=True,fit_outflow=True,fit_absorp=True,
-                    tie_line_fwhm=False,tie_line_voff=False,remove_lines=False,verbose=True):
+                    tie_line_disp=False,tie_line_voff=False,remove_lines=False,verbose=True):
     """
     Initializes all free parameters for the fit based on user input and options.
     """
@@ -2591,16 +2607,16 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
             par_input['BR_OPT_FEII_AMP'] = ({'init'  :0.1*median_flux,
                                                 'plim'  :(0,max_flux),
                                              })
-        if (opt_feii_options['opt_fwhm_const']['bool']==False):
+        if (opt_feii_options['opt_disp_const']['bool']==False):
             if verbose:
-                print('	 		* varying optical FeII fwhm')
-            # Narrow FeII FWHM
-            par_input['NA_OPT_FEII_FWHM'] = ({'init'  :500.0,
-                                                   'plim'  :(100.0,1000.0),
+                print('	 		* varying optical FeII dispersion.')
+            # Narrow FeII DISP
+            par_input['NA_OPT_FEII_DISP'] = ({'init'  :10.0,
+                                              'plim'  :(0.1,250.0),
                                              })
-            # Broad FeII FWHM
-            par_input['BR_OPT_FEII_FWHM'] = ({'init'  :3000.0,
-                                                   'plim'  :(1000.0,10000.0),
+            # Broad FeII DISP
+            par_input['BR_OPT_FEII_DISP'] = ({'init'  :500.0,
+                                              'plim'  :(100.0,5000.0),
                                              })
         if (opt_feii_options['opt_voff_const']['bool']==False):
             if verbose:
@@ -2621,36 +2637,36 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
         # Consits of 7 free parameters
         #	- 4 amplitude parameters for S,F,G,IZw1 line families
         #	- 1 Temperature parameter determines relative intensities (5k-15k Kelvin)
-        #	- 1 FWHM parameter
+        #	- 1 DISP parameter
         #	- 1 VOFF parameter
         # 	- all lines modeled as Gaussians
         # Narrow FeII amplitude
         if (opt_feii_options['opt_amp_const']['bool']==False):
             par_input['OPT_FEII_F_AMP'] = ({'init'  :0.1*median_flux,
-                                                'plim'  :(0,max_flux),
+                                            'plim'  :(0,max_flux),
                                            })
             par_input['OPT_FEII_S_AMP'] = ({'init'  :0.1*median_flux,
-                                                'plim'  :(0,max_flux),
+                                            'plim'  :(0,max_flux),
                                            })
             par_input['OPT_FEII_G_AMP'] = ({'init'  :0.1*median_flux,
-                                                'plim'  :(0,max_flux),
+                                            'plim'  :(0,max_flux),
                                            })
             par_input['OPT_FEII_Z_AMP'] = ({'init'  :0.1*median_flux,
-                                               'plim'  :(0,max_flux),
+                                            'plim'  :(0,max_flux),
                                            })
-        if (opt_feii_options['opt_fwhm_const']['bool']==False):
-            # FeII FWHM
-            par_input['OPT_FEII_FWHM'] = ({'init'  :1000.0,
-                                              'plim'  :(100.0,5000.0),
+        if (opt_feii_options['opt_disp_const']['bool']==False):
+            # FeII DISP
+            par_input['OPT_FEII_DISP'] = ({'init'  :250.0,
+                                           'plim'  :(0.1,2500.0),
                                           })
         if (opt_feii_options['opt_voff_const']['bool']==False):
             # Narrow FeII amplitude
             par_input['OPT_FEII_VOFF'] = ({'init'  :0.0,
-                                              'plim'  :(-1000.0,1000.0),
+                                           'plim'  :(-1000.0,1000.0),
                                           })
         if (opt_feii_options['opt_temp_const']['bool']==False):
             par_input['OPT_FEII_TEMP'] = ({'init'  :10000.0,
-                                               'plim'  :(2000.0,25000.0),
+                                           'plim'  :(2000.0,25000.0),
                                            })
 
     ##############################################################################
@@ -2665,15 +2681,15 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
                 print('	 		* varying UV iron amplitudes')
             # Narrow FeII amplitude
             par_input['UV_IRON_AMP'] = ({'init'  :0.1*median_flux,
-                                            'plim'  :(0,max_flux),
+                                         'plim'  :(0,max_flux),
                                              })
 
-        if (uv_iron_options['uv_fwhm_const']['bool']==False):
+        if (uv_iron_options['uv_disp_const']['bool']==False):
             if verbose:
-                print('	 		* varying UV iron fwhm')
-            # Narrow FeII FWHM
-            par_input['UV_IRON_FWHM'] = ({'init'  :3000.0,
-                                             'plim'  :(1000.0,20000.0),
+                print('	 		* varying UV iron dispersion.')
+            # Narrow FeII DISP
+            par_input['UV_IRON_DISP'] = ({'init'  :1000.0,
+                                          'plim'  :(100.0,20000.0),
                                              })
 
         if (uv_iron_options['uv_voff_const']['bool']==False):
@@ -2681,7 +2697,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
                 print('	 		* varying UV iron voff')
             # Narrow FeII VOFF
             par_input['UV_IRON_VOFF'] = ({'init'  :0.0,
-                                             'plim'  :(-2000.0,2000.0),
+                                          'plim'  :(-2000.0,2000.0),
                                              })
 
 
@@ -2711,12 +2727,12 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
                                            'plim'  :(0,max_flux),
                                              })
 
-        if (balmer_options['balmer_fwhm_const']['bool']==False):
+        if (balmer_options['balmer_disp_const']['bool']==False):
             if verbose:
-                print('	 		* varying Balmer fwhm')
-            # Balmer continuum FWHM
-            par_input['BALMER_FWHM'] = ({'init'  :5000.0,
-                                            'plim'  :(1000.0,25000.0),
+                print('	 		* varying Balmer dispersion')
+            # Balmer continuum DISP
+            par_input['BALMER_DISP'] = ({'init'  :2500.0,
+                                            'plim'  :(500.0,15000.0),
                                              })
 
         if (balmer_options['balmer_voff_const']['bool']==False):
@@ -2764,7 +2780,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
     line_list = check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=edge_pad,verbose=verbose)
     # Add the FWHM resolution and central pixel locations for each line so we don't have to 
     # find them during the fit.
-    line_list = add_fwhm_res(line_list,lam_gal,fwhm_gal,velscale,verbose=verbose)
+    line_list = add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=verbose)
     # Generate line free parameters based on input line_list
     line_par_input = initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=verbose)
     # Check hard line constraints; returns updated line_list and line_par_input
@@ -2800,10 +2816,10 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask_good,velscale
     if (user_constraints is None) or (len(user_constraints)==0):
 
         soft_cons = [
-            ("BR_H_BETA_FWHM","NA_OIII_5007_FWHM"),
-            ("BR_H_BETA_FWHM","OUT_OIII_5007_FWHM"),
+            ("BR_H_BETA_DISP","NA_OIII_5007_DISP"),
+            ("BR_H_BETA_DISP","OUT_OIII_5007_DISP"),
             #
-            ("OUT_OIII_5007_FWHM","NA_OIII_5007_FWHM"),
+            ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
             #
             ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
             ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
@@ -2836,14 +2852,14 @@ def generate_comb_line_list(combined_lines,line_list):
         # Check to make sure lines are in line list
         if np.all([True if i in valid_lines else False for i in combined_lines[comb_line] ]):
             all_line_profiles = [line_list[i]["line_profile"] for i in combined_lines[comb_line] ]
-            if ("V" in all_line_profiles) or ("L" in all_line_profiles):
-                line_profile = "V"
+            if ("voigt" in all_line_profiles) or ("lorentzian" in all_line_profiles):
+                line_profile = "voigt"
             else:
-                line_profile = "G"
+                line_profile = "gaussian"
             combined_line_list[comb_line] = {"lines":combined_lines[comb_line],
                                              "center":line_list[combined_lines[comb_line][0]]["center"],
                                              "center_pix":line_list[combined_lines[comb_line][0]]["center_pix"],
-                                             "fwhm_res_kms":line_list[combined_lines[comb_line][0]]["fwhm_res_kms"],
+                                             "disp_res_kms":line_list[combined_lines[comb_line][0]]["disp_res_kms"],
                                              "line_profile":line_profile,
                                             }
     #
@@ -2863,7 +2879,7 @@ def line_list_default():
     Hard constraints: if you want to hold a parameter value to a constant scalar value, or to the 
     value of another parameter, this is called a "hard" constraint, because the parameter is no 
     longer free, help to a specific value.  To implement a hard constraint, BADASS parses string 
-    input from the amp, fwhm, voff, h3, h4, and shape keywords for each line.  Be warned, however, 
+    input from the amp, disp, voff, h3, h4, and shape keywords for each line.  Be warned, however, 
     to tie a parameter to another paramter, requires you to know the name of the parameter in question. 
     If BADASS encounters an error in parsing hard constraint string input, it will automatically convert
     the paramter to a "free" parameter instead of raising an error.
@@ -2872,129 +2888,129 @@ def line_list_default():
     narrow_lines ={
 
         ### Region 8 (< 2000 Å)
-        "NA_LY_ALPHA"  :{"center":1215.240, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"na"},
-        "NA_CIV_1549"  :{"center":1549.480, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"na"},
-        "NA_CIII_1908" :{"center":1908.734, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"na"},
+        "NA_LY_ALPHA"  :{"center":1215.240, "amp":"free", "disp":"free", "voff":"free", "line_type":"na"},
+        "NA_CIV_1549"  :{"center":1549.480, "amp":"free", "disp":"free", "voff":"free", "line_type":"na"},
+        "NA_CIII_1908" :{"center":1908.734, "amp":"free", "disp":"free", "voff":"free", "line_type":"na"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 7 (2000 Å - 3500 Å)
-        "NA_MGII_2799" :{"center":2799.117, "amp":"free", "fwhm":"free"				, "voff":"free"			   , "line_type":"na","label":r"Mg II"},
-        "NA_HEII_3203" :{"center":3203.100, "amp":"free", "fwhm":"free"				, "voff":"free"			   , "line_type":"na","label":r"He II"},
-        "NA_NEV_3346"  :{"center":3346.783, "amp":"free", "fwhm":"free"				, "voff":"free"			   , "line_type":"na","label":r"[Ne V]"},
-        "NA_NEV_3426"  :{"center":3426.863, "amp":"free", "fwhm":"NA_NEV_3346_FWHM"	, "voff":"NA_NEV_3346_VOFF", "line_type":"na","label":r"[Ne V]"},
+        "NA_MGII_2799" :{"center":2799.117, "amp":"free", "disp":"free"				, "voff":"free"			   , "line_type":"na","label":r"Mg II"},
+        "NA_HEII_3203" :{"center":3203.100, "amp":"free", "disp":"free"				, "voff":"free"			   , "line_type":"na","label":r"He II"},
+        "NA_NEV_3346"  :{"center":3346.783, "amp":"free", "disp":"free"				, "voff":"free"			   , "line_type":"na","label":r"[Ne V]"},
+        "NA_NEV_3426"  :{"center":3426.863, "amp":"free", "disp":"NA_NEV_3346_DISP"	, "voff":"NA_NEV_3346_VOFF", "line_type":"na","label":r"[Ne V]"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 6 (3500 Å - 4400 Å):
-        "NA_OII_3727"  :{"center":3727.092, "amp":"free", "fwhm":"NA_OII_3729_FWHM"   , "voff":"NA_OII_3729_VOFF"  , "line_type":"na","label":r"[O II]"},
-        "NA_OII_3729"  :{"center":3729.875, "amp":"free", "fwhm":"free"				  , "voff":"free"			   , "line_type":"na"},
-        "NA_NEIII_3869":{"center":3869.857, "amp":"free", "fwhm":"free"				  , "voff":"free"			   , "line_type":"na","label":r"[Ne III]"}, # Coronal Line
-        "NA_HEI_3889"  :{"center":3888.647, "amp":"free", "fwhm":"free"				  , "voff":"free"			   , "line_type":"na","label":r"He I"},
-        "NA_NEIII_3968":{"center":3968.593, "amp":"free", "fwhm":"NA_NEIII_3869_FWHM" , "voff":"NA_NEIII_3869_VOFF", "line_type":"na","label":r"[Ne III]"}, # Coronal Line
-        "NA_H_DELTA"   :{"center":4102.900, "amp":"free", "fwhm":"NA_H_GAMMA_FWHM"	  , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"H$\delta$"},
-        "NA_H_GAMMA"   :{"center":4341.691, "amp":"free", "fwhm":"free" 			  , "voff":"free"			   , "line_type":"na","label":r"H$\gamma$"},
-        "NA_OIII_4364" :{"center":4364.436, "amp":"free", "fwhm":"NA_H_GAMMA_FWHM"	  , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"[O III]"},
+        "NA_OII_3727"  :{"center":3727.092, "amp":"free", "disp":"NA_OII_3729_DISP"   , "voff":"NA_OII_3729_VOFF"  , "line_type":"na","label":r"[O II]"},
+        "NA_OII_3729"  :{"center":3729.875, "amp":"free", "disp":"free"				  , "voff":"free"			   , "line_type":"na"},
+        "NA_NEIII_3869":{"center":3869.857, "amp":"free", "disp":"free"				  , "voff":"free"			   , "line_type":"na","label":r"[Ne III]"}, # Coronal Line
+        "NA_HEI_3889"  :{"center":3888.647, "amp":"free", "disp":"free"				  , "voff":"free"			   , "line_type":"na","label":r"He I"},
+        "NA_NEIII_3968":{"center":3968.593, "amp":"free", "disp":"NA_NEIII_3869_DISP" , "voff":"NA_NEIII_3869_VOFF", "line_type":"na","label":r"[Ne III]"}, # Coronal Line
+        "NA_H_DELTA"   :{"center":4102.900, "amp":"free", "disp":"NA_H_GAMMA_DISP"	  , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"H$\delta$"},
+        "NA_H_GAMMA"   :{"center":4341.691, "amp":"free", "disp":"free" 			  , "voff":"free"			   , "line_type":"na","label":r"H$\gamma$"},
+        "NA_OIII_4364" :{"center":4364.436, "amp":"free", "disp":"NA_H_GAMMA_DISP"	  , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"[O III]"},
 
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 5 (4400 Å - 5500 Å)
-        # "NA_HEI_4471"  :{"center":4471.479, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"na","label":r"He I"},
-        # "NA_HEII_4687" :{"center":4687.021, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"na","label":r"He II"},
+        # "NA_HEI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
+        # "NA_HEII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
 
-        "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "fwhm":"NA_OIII_5007_FWHM", "voff":"free"			   , "line_type":"na" ,"label":r"H$\beta$"},
-        "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "fwhm":"NA_OIII_5007_FWHM", "voff":"NA_OIII_5007_VOFF", "line_type":"na" ,"label":r"[O III]"},
-        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "fwhm":"free"			   , "voff":"free"			   , "line_type":"na" ,"label":r"[O III]"},
+        "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
+        "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
+        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"			   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
 
-        # "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "fwhm":"STEL_DISP*2.355", "voff":"free"			   , "line_type":"na" ,"label":r"H$\beta$"},
-        # "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "fwhm":"STEL_DISP*2.355", "voff":"NA_OIII_5007_VOFF"  , "line_type":"na" ,"label":r"[O III]"},
-        # "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "fwhm":"STEL_DISP*2.355", "voff":"free"			   , "line_type":"na" ,"label":r"[O III]"},
+        # "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"STEL_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"H$\beta$"},
+        # "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"STEL_DISP", "voff":"NA_OIII_5007_VOFF"  , "line_type":"na" ,"label":r"[O III]"},
+        # "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"STEL_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"[O III]"},
 
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 4 (5500 Å - 6200 Å)
-        "NA_FEVI_5638" :{"center":5637.600, "amp":"free", "fwhm":"NA_FEVI_5677_FWHM" , "voff":"NA_FEVI_5677_VOFF" , "line_type":"na","label":r"[Fe VI]"}, # Coronal Line
-        "NA_FEVI_5677" :{"center":5677.000, "amp":"free", "fwhm":"free"				 , "voff":"free"			  , "line_type":"na","label":r"[Fe VI]"}, # Coronal Line
-        "NA_FEVII_5720":{"center":5720.700, "amp":"free", "fwhm":"NA_FEVII_6087_FWHM", "voff":"NA_FEVII_6087_VOFF", "line_type":"na","label":r"[Fe VII]"}, # Coronal Line
-        "NA_HEI_5876"  :{"center":5875.624, "amp":"free", "fwhm":"free"				 , "voff":"free"			  , "line_type":"na","label":r"He I"},
-        "NA_FEVII_6087":{"center":6087.000, "amp":"free", "fwhm":"free"				 , "voff":"free"			  , "line_type":"na","label":r"[Fe VII]"}, # Coronal Line
+        "NA_FEVI_5638" :{"center":5637.600, "amp":"free", "disp":"NA_FEVI_5677_DISP" , "voff":"NA_FEVI_5677_VOFF" , "line_type":"na","label":r"[Fe VI]"}, # Coronal Line
+        "NA_FEVI_5677" :{"center":5677.000, "amp":"free", "disp":"free"				 , "voff":"free"			  , "line_type":"na","label":r"[Fe VI]"}, # Coronal Line
+        "NA_FEVII_5720":{"center":5720.700, "amp":"free", "disp":"NA_FEVII_6087_DISP", "voff":"NA_FEVII_6087_VOFF", "line_type":"na","label":r"[Fe VII]"}, # Coronal Line
+        "NA_HEI_5876"  :{"center":5875.624, "amp":"free", "disp":"free"				 , "voff":"free"			  , "line_type":"na","label":r"He I"},
+        "NA_FEVII_6087":{"center":6087.000, "amp":"free", "disp":"free"				 , "voff":"free"			  , "line_type":"na","label":r"[Fe VII]"}, # Coronal Line
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 3 (6200 Å - 6800 Å)
 
-        "NA_OI_6302"   :{"center":6302.046, "amp":"free"				, "fwhm":"NA_NII_6585_FWHM" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
-        "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "fwhm":"NA_NII_6585_FWHM" , "voff":"free" , "line_type":"na","label":r"[S III]"},
-        "NA_OI_6365"   :{"center":6365.535, "amp":"NA_OI_6302_AMP/3.0"	, "fwhm":"NA_NII_6585_FWHM" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
-        "NA_FEX_6374"  :{"center":6374.510, "amp":"free"				, "fwhm":"free"			    , "voff":"free"				, "line_type":"na","label":r"[Fe X]"}, # Coronal Line
+        "NA_OI_6302"   :{"center":6302.046, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
+        "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"free" , "line_type":"na","label":r"[S III]"},
+        "NA_OI_6365"   :{"center":6365.535, "amp":"NA_OI_6302_AMP/3.0"	, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
+        "NA_FEX_6374"  :{"center":6374.510, "amp":"free"				, "disp":"free"			    , "voff":"free"				, "line_type":"na","label":r"[Fe X]"}, # Coronal Line
 
         #
-        "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93"	, "fwhm":"NA_NII_6585_FWHM", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[N II]"},
-        # "NA_H_ALPHA"   :{"center":6564.632, "amp":"free"					, "fwhm":"NA_NII_6585_FWHM", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"H$\alpha$"},
-        "NA_NII_6585"  :{"center":6585.278, "amp":"free"					, "fwhm":"free"			   , "voff":"free"			  , "line_type":"na","label":r"[N II]"},
-        "NA_SII_6718"  :{"center":6718.294, "amp":"free"					, "fwhm":"NA_NII_6585_FWHM", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
-        "NA_SII_6732"  :{"center":6732.668, "amp":"free"					, "fwhm":"NA_NII_6585_FWHM", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
+        "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93"	, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[N II]"},
+        # "NA_H_ALPHA"   :{"center":6564.632, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"H$\alpha$"},
+        "NA_NII_6585"  :{"center":6585.278, "amp":"free"					, "disp":"free"			   , "voff":"free"			  , "line_type":"na","label":r"[N II]"},
+        "NA_SII_6718"  :{"center":6718.294, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
+        "NA_SII_6732"  :{"center":6732.668, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 2 (6800 Å - 8000 Å)
-        "NA_HEI_7062"   :{"center":7065.196, "amp":"free", "fwhm":"free"			, "voff":"free"			   , "line_type":"na","label":r"He I"},
-        "NA_ARIII_7135" :{"center":7135.790, "amp":"free", "fwhm":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Ar III]"},
-        "NA_OII_7319"   :{"center":7319.990, "amp":"free", "fwhm":"NA_OII_7331_FWHM", "voff":"NA_OII_7331_VOFF", "line_type":"na","label":r"[O II]"},
-        "NA_OII_7331"   :{"center":7330.730, "amp":"free", "fwhm":"free"			, "voff":"free"			   , "line_type":"na","label":r"[O II]"},
-        "NA_NIIII_7890" :{"center":7889.900, "amp":"free", "fwhm":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Ni III]"},
-        "NA_FEXI_7892"  :{"center":7891.800, "amp":"free", "fwhm":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Fe XI]"},
+        "NA_HEI_7062"   :{"center":7065.196, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"He I"},
+        "NA_ARIII_7135" :{"center":7135.790, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Ar III]"},
+        "NA_OII_7319"   :{"center":7319.990, "amp":"free", "disp":"NA_OII_7331_DISP", "voff":"NA_OII_7331_VOFF", "line_type":"na","label":r"[O II]"},
+        "NA_OII_7331"   :{"center":7330.730, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[O II]"},
+        "NA_NIIII_7890" :{"center":7889.900, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Ni III]"},
+        "NA_FEXI_7892"  :{"center":7891.800, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Fe XI]"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 1 (8000 Å - 9000 Å)
-        "NA_HEII_8236"  :{"center":8236.790, "amp":"free", "fwhm":"free"			 , "voff":"free"			 , "line_type":"na","label":r"He II"},
-        "NA_OI_8446"	:{"center":8446.359, "amp":"free", "fwhm":"free"			 , "voff":"free"			 , "line_type":"na","label":r"O I"},
-        "NA_FEII_8616"  :{"center":8616.950, "amp":"free", "fwhm":"NA_FEII_8891_FWHM", "voff":"NA_FEII_8891_VOFF", "line_type":"na","label":r"[Fe II]"},
-        "NA_FEII_8891"  :{"center":8891.910, "amp":"free", "fwhm":"free"			 , "voff":"free"			 , "line_type":"na","label":r"[Fe II]"},
+        "NA_HEII_8236"  :{"center":8236.790, "amp":"free", "disp":"free"			 , "voff":"free"			 , "line_type":"na","label":r"He II"},
+        "NA_OI_8446"	:{"center":8446.359, "amp":"free", "disp":"free"			 , "voff":"free"			 , "line_type":"na","label":r"O I"},
+        "NA_FEII_8616"  :{"center":8616.950, "amp":"free", "disp":"NA_FEII_8891_DISP", "voff":"NA_FEII_8891_VOFF", "line_type":"na","label":r"[Fe II]"},
+        "NA_FEII_8891"  :{"center":8891.910, "amp":"free", "disp":"free"			 , "voff":"free"			 , "line_type":"na","label":r"[Fe II]"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region Y (9000 Å - 12000 Å)
-        "NA_SIII_9069"    :{"center":9068.600 , "amp":"free", "fwhm":"NA_SIII_9531_FWHM", "voff":"NA_SIII_9531_VOFF","h3":"NA_SIII_9531_H3", "h4":"NA_SIII_9531_H4", "line_type":"na", "line_profile":"GH", "label":r"[S III]"},
-        "NA_SIII_9531"    :{"center":9531.100 , "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[S III]"},
+        "NA_SIII_9069"    :{"center":9068.600 , "amp":"free", "disp":"NA_SIII_9531_DISP", "voff":"NA_SIII_9531_VOFF","h3":"NA_SIII_9531_H3", "h4":"NA_SIII_9531_H4", "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S III]"},
+        "NA_SIII_9531"    :{"center":9531.100 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S III]"},
 
-        "NA_CI_9824"    :{"center":9824.130 , "amp":"free", "fwhm":"NA_CI_9850_FWHM"  , "voff":"NA_CI_9850_VOFF"  ,"h3":"NA_CI_9850_H3"  , "h4":"NA_CI_9850_H4"  , "line_type":"na", "line_profile":"GH", "label":r"[C I]"},
-        "NA_CI_9850"    :{"center":9850.260 , "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[C I]"},
+        "NA_CI_9824"    :{"center":9824.130 , "amp":"free", "disp":"NA_CI_9850_DISP"  , "voff":"NA_CI_9850_VOFF"  ,"h3":"NA_CI_9850_H3"  , "h4":"NA_CI_9850_H4"  , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[C I]"},
+        "NA_CI_9850"    :{"center":9850.260 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[C I]"},
 
-        "NA_SVIII_9913" :{"center":9913.000 , "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[S VIII]"},
+        "NA_SVIII_9913" :{"center":9913.000 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S VIII]"},
 
-        # "NA_PA_EPSIL"     :{"center":9548.587 , "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\epsilon$"},
+        # "NA_PA_EPSIL"     :{"center":9548.587 , "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\epsilon$"},
 
-        # "NA_PA_DELTA"     :{"center":10052.123, "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\delta$"},
+        # "NA_PA_DELTA"     :{"center":10052.123, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\delta$"},
 
-        "NA_HEI_10027"    :{"center":10027.730, "amp":"free", "fwhm":"NA_HEI_10031_FWHM", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
-        "NA_HEI_10031"    :{"center":10031.160, "amp":"free", "fwhm":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"He I"},
+        "NA_HEI_10027"    :{"center":10027.730, "amp":"free", "disp":"NA_HEI_10031_DISP", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
+        "NA_HEI_10031"    :{"center":10031.160, "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"He I"},
 
-        "NA_FEVI_10111"   :{"center":10111.671, "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"[FeVI]"},
+        "NA_FEVI_10111"   :{"center":10111.671, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"[FeVI]"},
 
-        "NA_SII_10289"    :{"center":10289.549, "amp":"free", "fwhm":"NA_SII_10373_FWHM", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
-        "NA_SII_10323"    :{"center":10323.318, "amp":"free", "fwhm":"NA_SII_10373_FWHM", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
-        "NA_SII_10339"    :{"center":10339.243, "amp":"free", "fwhm":"NA_SII_10373_FWHM", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
-        "NA_SII_10373"    :{"center":10373.332, "amp":"free", "fwhm":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[SII]"},
+        "NA_SII_10289"    :{"center":10289.549, "amp":"free", "disp":"NA_SII_10373_DISP", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
+        "NA_SII_10323"    :{"center":10323.318, "amp":"free", "disp":"NA_SII_10373_DISP", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
+        "NA_SII_10339"    :{"center":10339.243, "amp":"free", "disp":"NA_SII_10373_DISP", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
+        "NA_SII_10373"    :{"center":10373.332, "amp":"free", "disp":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[SII]"},
 
-        "NA_NI_10400"     :{"center":10400.600, "amp":"free", "fwhm":"NA_NI_10410_FWHM" , "voff":"NA_NI_10410_VOFF" , "h3":"NA_NI_10410_H3" , "h4":"NA_NI_10410_H4", "line_type":"na", "label":r"[NI]"},
-        "NA_NI_10410"     :{"center":10410.200, "amp":"free", "fwhm":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[NI]"},
+        "NA_NI_10400"     :{"center":10400.600, "amp":"free", "disp":"NA_NI_10410_DISP" , "voff":"NA_NI_10410_VOFF" , "h3":"NA_NI_10410_H3" , "h4":"NA_NI_10410_H4", "line_type":"na", "label":r"[NI]"},
+        "NA_NI_10410"     :{"center":10410.200, "amp":"free", "disp":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[NI]"},
 
-        "NA_FEXIII_10749" :{"center":10749.744, "amp":"free", "fwhm":"NA_FEXIII_10800_FWHM", "voff":"NA_FEXIII_10800_VOFF", "h3":"NA_FEXIII_10800_H3", "h4":"NA_FEXIII_10800_H4", "line_type":"na", "label":r"[FeXIII]"},
-        "NA_FEXIII_10800" :{"center":10800.858, "amp":"free", "fwhm":"free"                , "voff":"free"                , "h3":"free"              , "h4":"free"              , "line_type":"na", "label":r"[FeXIII]"},
+        "NA_FEXIII_10749" :{"center":10749.744, "amp":"free", "disp":"NA_FEXIII_10800_DISP", "voff":"NA_FEXIII_10800_VOFF", "h3":"NA_FEXIII_10800_H3", "h4":"NA_FEXIII_10800_H4", "line_type":"na", "label":r"[FeXIII]"},
+        "NA_FEXIII_10800" :{"center":10800.858, "amp":"free", "disp":"free"                , "voff":"free"                , "h3":"free"              , "h4":"free"              , "line_type":"na", "label":r"[FeXIII]"},
 
-        "NA_HEI_10830"    :{"center":10830.340, "amp":"free", "fwhm":"NA_HEI_10031_FWHM", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
-        # "NA_PA_GAMMA"     :{"center":10941.082, "amp":"free", "fwhm":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\gamma$"},
+        "NA_HEI_10830"    :{"center":10830.340, "amp":"free", "disp":"NA_HEI_10031_DISP", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
+        # "NA_PA_GAMMA"     :{"center":10941.082, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\gamma$"},
 
         
-        "NA_NIIII_11910"    :{"center":11910.0, "amp":"free", "fwhm":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Ni II]"},
+        "NA_NIIII_11910"    :{"center":11910.0, "amp":"free", "disp":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Ni II]"},
 
 
-        "NA_FEII_12570"    :{"center":12570.0, "amp":"free", "fwhm":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
-        "NA_FEII_13210"    :{"center":13210.0, "amp":"free", "fwhm":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
+        "NA_FEII_12570"    :{"center":12570.0, "amp":"free", "disp":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
+        "NA_FEII_13210"    :{"center":13210.0, "amp":"free", "disp":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
 
         ##############################################################################################################################################################################################################################################
 
@@ -3004,37 +3020,37 @@ def line_list_default():
     # Default Broad lines
     broad_lines = {
         ### Region 8 (< 2000 Å)
-        "BR_OVI_1034"  :{"center":1033.820, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"O VI"},
-        "BR_LY_ALPHA"  :{"center":1215.240, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"Ly$\alpha$"},
-        "BR_NV_1241"   :{"center":1240.810, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"N V"},
-        "BR_OI_1305"   :{"center":1305.530, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"O I"},
-        "BR_CII_1335"  :{"center":1335.310, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"C II"},
-        "BR_SIIV_1398" :{"center":1397.610, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"Si IV + O IV"},
-        "BR_SIIV+OIV"  :{"center":1399.800, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"Si IV + O IV"},
-        "BR_CIV_1549"  :{"center":1549.480, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"C IV"},
-        "BR_HEII_1640" :{"center":1640.400, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"He II"},
-        "BR_CIII_1908" :{"center":1908.734, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"C III]"},
+        "BR_OVI_1034"  :{"center":1033.820, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"O VI"},
+        "BR_LY_ALPHA"  :{"center":1215.240, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"Ly$\alpha$"},
+        "BR_NV_1241"   :{"center":1240.810, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"N V"},
+        "BR_OI_1305"   :{"center":1305.530, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"O I"},
+        "BR_CII_1335"  :{"center":1335.310, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"C II"},
+        "BR_SIIV_1398" :{"center":1397.610, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"Si IV + O IV"},
+        "BR_SIIV+OIV"  :{"center":1399.800, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"Si IV + O IV"},
+        "BR_CIV_1549"  :{"center":1549.480, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"C IV"},
+        "BR_HEII_1640" :{"center":1640.400, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"He II"},
+        "BR_CIII_1908" :{"center":1908.734, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"C III]"},
 
         ### Region 7 (2000 Å - 3500 Å)
-        "BR_CII_2326"  :{"center":2326.000, "amp":"free", "fwhm":"free", "voff":"free", "line_profile":"G", "line_type":"br","label":r"C II]"},
-        "BR_FEIII_UV47":{"center":2418.000, "amp":"free", "fwhm":"free", "voff":"free", "line_profile":"G", "line_type":"br","label":r"Fe III"},
-        "BR_MGII_2799" :{"center":2799.117, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br","label":r"Mg II"},
+        "BR_CII_2326"  :{"center":2326.000, "amp":"free", "disp":"free", "voff":"free", "line_profile":"gaussian", "line_type":"br","label":r"C II]"},
+        "BR_FEIII_UV47":{"center":2418.000, "amp":"free", "disp":"free", "voff":"free", "line_profile":"gaussian", "line_type":"br","label":r"Fe III"},
+        "BR_MGII_2799" :{"center":2799.117, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"Mg II"},
 
         ### Region 6 (3500 Å - 4400 Å):
-        "BR_H_DELTA"   :{"center":4102.900, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br"},
-        "BR_H_GAMMA"   :{"center":4341.691, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br"},
+        "BR_H_DELTA"   :{"center":4102.900, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
+        "BR_H_GAMMA"   :{"center":4341.691, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
 
         ### Region 5 (4400 Å - 5500 Å)
-        "BR_H_BETA"   :{"center":4862.691, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br"},
+        "BR_H_BETA"   :{"center":4862.691, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
 
         ### Region 3 (6200 Å - 6800 Å)
-        "BR_H_ALPHA"  :{"center":6585.278, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"br"},
+        "BR_H_ALPHA"  :{"center":6585.278, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
 
         ### Region Y (9000 Å - 12000 Å)
-        "BR_PA_EPSIL"   :{"center":9548.587 ,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\epsilon$"},
-        "BR_PA_DELTA"   :{"center":10052.123,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\delta$"},
-        "BR_PA_GAMMA"   :{"center":10941.082,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\gamma$"},
-        "BR_PA_BETA"    :{"center":12820.0,"amp":"free", "fwhm":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\beta$"},
+        "BR_PA_EPSIL"   :{"center":9548.587 ,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\epsilon$"},
+        "BR_PA_DELTA"   :{"center":10052.123,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\delta$"},
+        "BR_PA_GAMMA"   :{"center":10941.082,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\gamma$"},
+        "BR_PA_BETA"    :{"center":12820.0,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\beta$"},
 
     }
     # Default Outlfow Lines
@@ -3046,33 +3062,33 @@ def line_list_default():
     # narrow-to-outflow line ratio. This same reasoning applies to the H-alpha/[NII]/[SII] region, with H-alpha deciding the line amplitudes.
     outflow_lines = {
         # Ne III
-        "OUT_NEIII_3869":{"center":3869.857, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"out"}, # Coronal Line
-        "OUT_NEIII_3968":{"center":3968.593, "amp":"OUT_NEIII_3869_AMP/NA_NEIII_3869_AMP*NA_NEIII_3968_AMP", "fwhm":"OUT_NEIII_3869_FWHM", "voff":"OUT_NEIII_3869_VOFF", "line_type":"out"}, # Coronal Line
+        "OUT_NEIII_3869":{"center":3869.857, "amp":"free", "disp":"free", "voff":"free", "line_type":"out"}, # Coronal Line
+        "OUT_NEIII_3968":{"center":3968.593, "amp":"OUT_NEIII_3869_AMP/NA_NEIII_3869_AMP*NA_NEIII_3968_AMP", "disp":"OUT_NEIII_3869_DISP", "voff":"OUT_NEIII_3869_VOFF", "line_type":"out"}, # Coronal Line
         # H-beta/[OIII]
-        "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "fwhm":"OUT_OIII_5007_FWHM", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							  , "fwhm":"OUT_OIII_5007_FWHM", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									  , "fwhm":"free", "voff":"free", "line_type":"out"},
+        "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
+        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							  , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
+        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
         # H-beta/[OIII] - Secondary Components
-        # "OUT_H_BETA_2"    :{"center":4862.691, "amp":"OUT_OIII_5007_2_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "fwhm":"OUT_OIII_5007_2_FWHM", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
-        # "OUT_OIII_4960_2" :{"center":4960.295, "amp":"OUT_OIII_5007_2_AMP/2.98"							  , "fwhm":"OUT_OIII_5007_2_FWHM", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
-        # "OUT_OIII_5007_2" :{"center":5008.240, "amp":"free"         									  , "fwhm":"free", "voff":"free", "line_type":"out"},
+        # "OUT_H_BETA_2"    :{"center":4862.691, "amp":"OUT_OIII_5007_2_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_2_DISP", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
+        # "OUT_OIII_4960_2" :{"center":4960.295, "amp":"OUT_OIII_5007_2_AMP/2.98"							  , "disp":"OUT_OIII_5007_2_DISP", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
+        # "OUT_OIII_5007_2" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
         # H-beta/[OIII] - Tertiary Components
-        # "OUT_H_BETA_3"    :{"center":4862.691, "amp":"OUT_OIII_5007_3_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "fwhm":"OUT_OIII_5007_3_FWHM", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
-        # "OUT_OIII_4960_3" :{"center":4960.295, "amp":"OUT_OIII_5007_3_AMP/2.98"							  , "fwhm":"OUT_OIII_5007_3_FWHM", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
-        # "OUT_OIII_5007_3" :{"center":5008.240, "amp":"free"         									  , "fwhm":"free", "voff":"free", "line_type":"out"},
+        # "OUT_H_BETA_3"    :{"center":4862.691, "amp":"OUT_OIII_5007_3_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_3_DISP", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
+        # "OUT_OIII_4960_3" :{"center":4960.295, "amp":"OUT_OIII_5007_3_AMP/2.98"							  , "disp":"OUT_OIII_5007_3_DISP", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
+        # "OUT_OIII_5007_3" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
         # [O I]
-        "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP", "fwhm":"OUT_NII_6585_FWHM", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP", "fwhm":"OUT_NII_6585_FWHM", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         # H-alpha/[NII]/[SiII]
-        "OUT_NII_6549"  :{"center":6549.859, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_NII_6585_AMP/2.93", "fwhm":"OUT_NII_6585_FWHM", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_H_ALPHA"   :{"center":6564.632, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_H_ALPHA_AMP" 	  , "fwhm":"OUT_NII_6585_FWHM", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_NII_6585"  :{"center":6585.278, "amp":"free"											 	  , "fwhm":"free"			  , "voff":"free"			  , "line_type":"out"},
-        "OUT_SII_6718"  :{"center":6718.294, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6718_AMP"	  , "fwhm":"OUT_NII_6585_FWHM", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_SII_6732"  :{"center":6732.668, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6732_AMP"	  , "fwhm":"OUT_NII_6585_FWHM", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_NII_6549"  :{"center":6549.859, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_NII_6585_AMP/2.93", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_H_ALPHA"   :{"center":6564.632, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_H_ALPHA_AMP" 	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_NII_6585"  :{"center":6585.278, "amp":"free"											 	  , "disp":"free"			  , "voff":"free"			  , "line_type":"out"},
+        "OUT_SII_6718"  :{"center":6718.294, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6718_AMP"	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_SII_6732"  :{"center":6732.668, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6732_AMP"	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
     }
     # Default Absorption Lines
     absorp_lines = {
-        "ABS_NAI_5897":{"center":5897.558, "amp":"free", "fwhm":"free", "voff":"free", "line_type":"abs","label":r"Na D"},
+        "ABS_NAI_5897":{"center":5897.558, "amp":"free", "disp":"free", "voff":"free", "line_type":"abs","label":r"Na D"},
     }
     #
     # Combine all line lists into single list
@@ -3089,10 +3105,10 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
     Checks each entry in the complete (narrow, broad, outflow, absorption, and user) line list
     and ensures all necessary keywords are input.  It also checks every line entry against the 
     front-end component options (comp_options).  The only required keyword for a line entry is 
-    the "center" wavelength of the line.  If "amp", "fwhm", "voff", "h3" and "h4" (for Gauss-Hermite)
+    the "center" wavelength of the line.  If "amp", "disp", "voff", "h3" and "h4" (for Gauss-Hermite)
     line profiles are missing, it assumes these are all "free" parameters in the fitting of that line. 
     If "line_type" is not defined, it is assumed to be "na" (narrow).  If "line_profile" is not defined, 
-    it is assumed to be "G" (Gaussian). 
+    it is assumed to be "gaussian". 
     """
     # Input checking
     # If fit_narrow=False, set fit_outflow=False as well (doesn't make sense to fit outflows without their narrow lines)
@@ -3145,38 +3161,43 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
             line_list[line]["line_profile"] = comp_options["abs_line_profile"]
         if (("line_type" not in line_list[line]) and ("line_profile" not in line_list[line])) or (("line_type" in line_list[line]) and (line_list[line]["line_type"]=="user") and ("line_profile" not in line_list[line])):
             if verbose:
-                print("\n Warning: %s has no defined line_type or line_profile keywords.  Assuming line_profile='G' (Gaussian).\n" % line)
+                print("\n Warning: %s has no defined line_type or line_profile keywords.  Assuming line_profile='gaussian'.\n" % line)
             line_list[line]["line_type"] = "user" # User-defined line
-            line_list[line]["line_profile"] = "G"
+            line_list[line]["line_profile"] = "gaussian"
         if ("line_type" not in line_list[line]) and ("line_profile" in line_list[line]):
             line_list[line]["line_type"] = "user" # User-defined line
         if ("line_type" in line_list[line]) and (line_list[line]["line_type"] not in ["na","br","out","abs","user"]):
             raise ValueError("\n User-input line_type not recognized.  Available options are 'na' (narrow), 'br' (broad), 'out' (outflow), or 'abs' (absorption). If unsure, leave out this keyword.\n ")
-        if ("line_profile" in line_list[line]) and (line_list[line]["line_profile"] not in ["G","L","GH","V"]):
-            raise ValueError("\n User-input line_profile not recognized.  Available options are 'G' (Gaussian), 'L' (Lorentzian), 'GH' (Gauss-Hermite), or 'V' (Voigt).  Default is 'G' (Gaussian).\n ")
+        if ("line_profile" in line_list[line]) and (line_list[line]["line_profile"] not in ["gaussian","lorentzian","gauss-hermite","voigt","laplace","uniform"]):
+            raise ValueError("\n User-input line_profile not recognized.  Available options are 'gaussian', 'lorentzian', 'gauss-hermite', 'voigt', 'laplace', or 'uniform'.  Default is 'gaussian'.\n ")
     #
     # Step 5: Check parameters based on the defined line profile; if line_profile is not defined, add a keyword for the line profile.  If it 
     # is defined, make sure its consisten with the comp_options and line_type:
     for line in list(line_list):
         if ("amp" not in line_list[line]): # Assume "free"
             line_list[line]["amp"]="free"
-        if ("fwhm" not in line_list[line]): # Assume "free"
-            line_list[line]["fwhm"]="free"
+        if ("disp" not in line_list[line]): # Assume "free"
+            line_list[line]["disp"]="free"
         if ("voff" not in line_list[line]): # Assume "free"
             line_list[line]["voff"]="free"
-        if (line_list[line]["line_profile"]=="GH") and (comp_options["n_moments"]>2): # If Gauss-Hermite line profile
+        if (line_list[line]["line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2): # If Gauss-Hermite line profile
             for m in range(3,3+(comp_options["n_moments"]-2),1):
                 if ("h"+str(m) not in line_list[line]): # Assume "free"
                     line_list[line]["h"+str(m)]="free"
-        if (line_list[line]["line_profile"]=='V'):
+        if (line_list[line]["line_profile"]=='voigt'):
             if ("shape" not in line_list[line]): # Assume "free"
                 line_list[line]["shape"]="free"
+        if (line_list[line]["line_profile"] in ['laplace','uniform']):
+            if ("h3" not in line_list[line]): # Assume "free"
+                line_list[line]["h3"]="free"
+            if ("h4" not in line_list[line]): # Assume "free"
+                line_list[line]["h4"]="free"
 
         # Remove unnecessary parameters
         # If the line profile is Gauss-Hermite, but the number of higher-order moments is 
         # less than or equal to 2 (for which the line profile is just Gaussian), remove any 
         # unnecessary higher-order line parameters that may be in the line dictionary.
-        if (line_list[line]["line_profile"]=="GH"):
+        if (line_list[line]["line_profile"]=="gauss-hermite"):
             for m in range(comp_options["n_moments"]+1,11,1):
                 if ("h"+str(m) in line_list[line]):
                     line_list[line].pop("h"+str(m),None) # Remove sigma key
@@ -3185,7 +3206,7 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                 if ("h"+str(m)+"_plim" in line_list[line]):
                     line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
         # If line profile is not Gauss-Hermite, parse all higher-order moments and parameters
-        elif (line_list[line]["line_profile"]!="GH"):
+        elif (line_list[line]["line_profile"] not in ["gauss-hermite","laplace","uniform"]):
             for m in range(3,11,1):
                 if ("h"+str(m) in line_list[line]):
                     line_list[line].pop("h"+str(m),None) # Remove sigma key
@@ -3195,15 +3216,15 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                     line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
 
         # Parse unnecessary "shape" parameter is not Voigt profile
-        if (line_list[line]["line_profile"]!="V") and ("shape" in line_list[line]):
+        if (line_list[line]["line_profile"]!="voigt") and ("shape" in line_list[line]):
             line_list[line].pop("shape",None) # Remove sigma key
-        if (line_list[line]["line_profile"]!="V") and ("shape_init" in line_list[line]):
+        if (line_list[line]["line_profile"]!="voigt") and ("shape_init" in line_list[line]):
             line_list[line].pop("shape_init",None) # Remove sigma key
-        if (line_list[line]["line_profile"]!="V") and ("shape_plim" in line_list[line]):
+        if (line_list[line]["line_profile"]!="voigt") and ("shape_plim" in line_list[line]):
             line_list[line].pop("shape_plim",None) # Remove sigma key
     #
-    # If tie_line_fwhm=True, tie line widths (narrow, broad, outflow, and absorption fwhm) are tied, respectively.
-    if comp_options["tie_line_fwhm"]:
+    # If tie_line_disp=True, tie line widths (narrow, broad, outflow, and absorption disp) are tied, respectively.
+    if comp_options["tie_line_disp"]:
         for line in list(line_list):
             # The universal narrow, broad, and outflow widths will be added when parameters are generated
             # If h3,h4, or shape parameters are present, remove them
@@ -3213,51 +3234,66 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
             if ("shape" in line_list[line]):
                 line_list[line].pop("shape",None)
             # line_list[line].pop("sigma",None) # Removes the key completly
-            # line_list[line].pop("fwhm",None) # Removes the key completly
+            # line_list[line].pop("disp",None) # Removes the key completly
             # Narrow lines
             if ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="na"): 
                 # line_list[line].pop("sigma",None) # Remove sigma key
-                line_list[line]["fwhm"] = "NA_FWHM" # Replace with fwhm key
+                line_list[line]["disp"] = "NA_DISP" # Replace with disp key
                 # If line profile is Gauss-Hermite, add h3 and h4
-                if comp_options["na_line_profile"]=="GH":
+                if comp_options["na_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "NA_H"+str(m)
-                if comp_options["na_line_profile"]=="V":
+                if comp_options["na_line_profile"]=="voigt":
                     line_list[line]["shape"] = "NA_SHAPE"
+                if comp_options["na_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "NA_H3"
+                    line_list[line]["h4"] = "NA_H4"
             # Broad lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="br"): 
-                line_list[line]["fwhm"] = "BR_FWHM" 
-                if comp_options["br_line_profile"]=="GH":
+                line_list[line]["disp"] = "BR_DISP" 
+                if comp_options["br_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "BR_H"+str(m)
-                if comp_options["br_line_profile"]=="V":
+                if comp_options["br_line_profile"]=="voigt":
                     line_list[line]["shape"] = "BR_SHAPE"
+                if comp_options["br_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "BR_H3"
+                    line_list[line]["h4"] = "BR_H4"
             # Outflow lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="out"): 
-                line_list[line]["fwhm"] = "OUT_FWHM"
-                if comp_options["out_line_profile"]=="GH":
+                line_list[line]["disp"] = "OUT_DISP"
+                if comp_options["out_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "OUT_H"+str(m)
-                if comp_options["out_line_profile"]=="V":
+                if comp_options["out_line_profile"]=="voigt":
                     line_list[line]["shape"] = "OUT_SHAPE"
+                if comp_options["out_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "OUT_H3"
+                    line_list[line]["h4"] = "OUT_H4"
             # Absorption lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="abs"): 
-                line_list[line]["fwhm"] = "ABS_FWHM"
-                if comp_options["abs_line_profile"]=="GH":
+                line_list[line]["disp"] = "ABS_DISP"
+                if comp_options["abs_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "ABS_H"+str(m)
-                if comp_options["abs_line_profile"]=="V":
+                if comp_options["abs_line_profile"]=="voigt":
                     line_list[line]["shape"] = "ABS_SHAPE"
+                if comp_options["abs_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "ABS_H3"
+                    line_list[line]["h4"] = "ABS_H4"
             elif ("line_type" not in line_list[line]) or (line_list[line]["line_type"]=="user"):
                 if verbose:
                     print("\n Warning: %s has no line_type keyword specified.  Assuming narrow line." % (line))
-                line_list[line]["fwhm"] = "NA_FWHM"
+                line_list[line]["disp"] = "NA_DISP"
                 line_list[line]["line_type"] = "na"
-                if comp_options["na_line_profile"]=="GH":
+                if comp_options["na_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "NA_H"+str(m)
-                if comp_options["na_line_profile"]=="V":
+                if comp_options["na_line_profile"]=="voigt":
                     line_list[line]["shape"] = "NA_SHAPE"
+                if comp_options["na_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "NA_H3"
+                    line_list[line]["h4"] = "NA_H4"
     #
     # If tie_line_voff=True, tie line velocity offsets (narrow, broad, outflow, and absorption voff) are tied, respectively.
     if comp_options["tie_line_voff"]:
@@ -3282,8 +3318,8 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
     for line in list(line_list):
 
         for key in line_list[line]:
-            if key not in ["center","center_pix","fwhm_res_kms","fwhm_res_ang","amp","fwhm","voff","shape","line_type","line_profile",
-                          "amp_init","amp_plim","fwhm_init","fwhm_plim","voff_init","voff_plim",
+            if key not in ["center","center_pix","disp_res_kms","disp_res_ang","amp","disp","voff","shape","line_type","line_profile",
+                          "amp_init","amp_plim","disp_init","disp_plim","voff_init","voff_plim",
                           "shape_init","shape_plim","label"]+hmoments+init_hmoments+plim_hmoments:
                 raise ValueError("\n %s not a valid keyword for the line list! \n" % key)
     #
@@ -3291,13 +3327,13 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
 
 ##################################################################################
 
-#### Add FWHM Resolution #########################################################
+#### Add Dispersion Resolution #########################################################
 
-def add_fwhm_res(line_list,lam_gal,fwhm_gal,velscale,verbose=True):
-    # Perform linear interpolation on the fwhm_gal array as a function of wavelength 
-    # We will use this to determine the fwhm resolution as a function of wavelenth for each 
+def add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=True):
+    # Perform linear interpolation on the disp_res array as a function of wavelength 
+    # We will use this to determine the dispersion resolution as a function of wavelenth for each 
     # emission line so we can correct for the resolution at every iteration.
-    fwhm_gal_ftn = interp1d(lam_gal,fwhm_gal,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
+    disp_res_ftn = interp1d(lam_gal,disp_res,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
     # Interpolation function that maps x (in angstroms) to pixels so we can get the exact
     # location in pixel space of the emission line.
     x_pix = np.array(range(len(lam_gal)))
@@ -3307,11 +3343,11 @@ def add_fwhm_res(line_list,lam_gal,fwhm_gal,velscale,verbose=True):
         center = line_list[line]["center"] # line center in Angstroms
         center_pix = float(pix_interp_ftn(center)) # line center in pixels
         line_list[line]["center_pix"]   = center_pix
-        fwhm_res_ang = float(fwhm_gal_ftn(center)) # instrumental FWHM resolution in angstroms
-        line_list[line]["fwhm_res_ang"] = fwhm_res_ang
+        disp_res_ang = float(disp_res_ftn(center)) # instrumental FWHM resolution in angstroms
+        line_list[line]["disp_res_ang"] = disp_res_ang
         c = 299792.458 # speed of light (km/s)
-        fwhm_res_kms = (fwhm_res_ang/center)*c# instrumental FWHM resolution in km/s
-        line_list[line]["fwhm_res_kms"] = fwhm_res_kms
+        disp_res_kms = (disp_res_ang/center)*c# instrumental FWHM resolution in km/s
+        line_list[line]["disp_res_kms"] = disp_res_kms
     
     return line_list
 
@@ -3351,33 +3387,35 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         elif (line_type=="abs"):
             return -median_amp, (-median_amp,0.0,)
     #
-    def fwhm_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
-        na_fwhm_init = 100.0
-        out_fwhm_init = 450.0
-        br_fwhm_init = 2500.0
-        abs_fwhm_init = 500.0
-        na_fwhm_lim  = (0.1  , 800.0)
-        out_fwhm_lim = (0.1  , 5000.0)
-        br_fwhm_lim  = (500.0, 15000.0)
-        abs_fwhm_lim = (0.1  , 800.0)
+    def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
+        # default initial widths for lines (if not specified)
+        na_disp_init = 50.0
+        out_disp_init = 100.0
+        br_disp_init = 500.0
+        abs_disp_init = 50.0
+        # default width bounds for lines (if not specified)
+        na_disp_lim  = (0.1  , 500.0)
+        out_disp_lim = (0.1  , 1000.0)
+        br_disp_lim  = (200.0, 6000.0)
+        abs_disp_lim = (0.1  , 500.0)
         if line_type in ["na","user"]:
-            if (line_profile=="GH"):
+            if (line_profile in ["gauss-hermite","laplace","uniform"]):
                 # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
                 # able to accomodate excess width from an outflow component.
-                return 250.0, (0.1,3000.0)
+                return 50.0, (0.1,1000.0)
             else:
-                return na_fwhm_init, na_fwhm_lim
+                return na_disp_init, na_disp_lim
         elif line_type in ["br"]:
-            return br_fwhm_init, br_fwhm_lim
+            return br_disp_init, br_disp_lim
         elif line_type in ["out"]:
-            return out_fwhm_init, out_fwhm_lim
+            return out_disp_init, out_disp_lim
         elif line_type in ["abs"]:
-            if (line_profile=="GH"):
+            if (line_profile in ["gauss-hermite","laplace","uniform"]):
                 # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
                 # able to accomodate excess width from an outflow component.
-                return 250.0, (0.1,5000.0)
+                return 50.0, (0.1,1000.0)
             else:
-                return abs_fwhm_init, abs_fwhm_lim
+                return abs_disp_init, abs_disp_lim
     #
     def voff_hyperpars(line_type, line_center):
         na_voff_init, br_voff_init = 0.001, 0.001
@@ -3390,13 +3428,14 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
 
     def h_moment_hyperpars():
         # Higher-order moments for Gauss-Hermite line profiles
+        # extends to Laplace and Uniform kernels
         # all start at the same initial value (0) and parameter limits [-0.5,0.5]
         # You can specify individual higher-order parameters here.
         h_init = 0.0
         h_lim  = (-0.5,0.5)
         return h_init, h_lim
     #
-    def shape_hyperpars(): # shape of the Voigt profile; if line_profile="V" (Voigt)
+    def shape_hyperpars(): # shape of the Voigt profile; if line_profile="voigt"
         shape_init = 0.0
         shape_lim = (0.0,1.0)
         return shape_init, shape_lim	
@@ -3410,13 +3449,15 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_AMP"]["init"]<line_par_input[line+"_AMP"]["plim"][0]) or (line_par_input[line+"_AMP"]["init"]>line_par_input[line+"_AMP"]["plim"][1]):
                 raise ValueError("\n Amplitude (amp) initial value (amp_init) for %s outside of parameter limits (amp_plim)!\n" % (line))
-        if (("fwhm" in line_list[line]) and (line_list[line]["fwhm"]=="free")):
-            fwhm_default = fwhm_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
-            line_par_input[line+"_FWHM"] = {"init": line_list[line].get("fwhm_init",fwhm_default[0]), 
-                                            "plim":line_list[line].get("fwhm_plim",fwhm_default[1])}
+        
+        if (("disp" in line_list[line]) and (line_list[line]["disp"]=="free")):
+            disp_default = disp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
+            line_par_input[line+"_DISP"] = {"init": line_list[line].get("disp_init",disp_default[0]), 
+                                            "plim":line_list[line].get("disp_plim",disp_default[1])}
             # Check to make sure init value is within limits of plim
-            if (line_par_input[line+"_FWHM"]["init"]<line_par_input[line+"_FWHM"]["plim"][0]) or (line_par_input[line+"_FWHM"]["init"]>line_par_input[line+"_FWHM"]["plim"][1]):
-                raise ValueError("\n FWHM (fwhm) initial value (fwhm_init) for %s outside of parameter limits (fwhm_plim)!\n" % (line))
+            if (line_par_input[line+"_DISP"]["init"]<line_par_input[line+"_DISP"]["plim"][0]) or (line_par_input[line+"_DISP"]["init"]>line_par_input[line+"_DISP"]["plim"][1]):
+                raise ValueError("\n DISP (disp) initial value (disp_init) for %s outside of parameter limits (disp_plim)!\n" % (line))
+        
         if (("voff" in line_list[line]) and (line_list[line]["voff"]=="free")):
             voff_default = voff_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
             line_par_input[line+"_VOFF"] = {"init": line_list[line].get("voff_init",voff_default[0]), 
@@ -3425,7 +3466,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
             if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
                 raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
         
-        if (line_list[line]["line_profile"]=="GH") & (comp_options["n_moments"]>2):
+        if (line_list[line]["line_profile"]=="gauss-hermite") & (comp_options["n_moments"]>2):
             h_default = h_moment_hyperpars()
             for m in range(3,3+(comp_options["n_moments"]-2),1):
                 if ("h"+str(m) in line_list[line]):
@@ -3436,6 +3477,25 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                         if (line_par_input[line+"_H"+str(m)]["init"]<line_par_input[line+"_H"+str(m)]["plim"][0]) or (line_par_input[line+"_H"+str(m)]["init"]>line_par_input[line+"_H"+str(m)]["plim"][1]):
                             raise ValueError("\n Gauss-Hermite moment h%d initial value (h%d_init) for %s outside of parameter limits (h%d_plim)!\n" % (m,m,line,m))
 
+        if (line_list[line]["line_profile"] in ["laplace","uniform"]):
+            h_default = h_moment_hyperpars()
+            for m in range(3,5,1):
+                if ("h"+str(m) in line_list[line]):
+                    if (line_list[line]["h"+str(m)]=="free"):
+                        line_par_input[line+"_H"+str(m)] = {"init": line_list[line].get("h"+str(m)+"_init",h_default[0]), 
+                                                              "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1])}
+                        # add exceptions for h4 in each line profile; laplace h4>=0, uniform h4<0
+                        if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["init"]=0.01
+                        if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["plim"]=(0,0.2)
+                        if (m==3) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["init"]=0.01
+                        if (m==3) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["plim"]=(-0.15,0.15)
+                        #
+                        if (m==4) and (line_list[line]["line_profile"]=="uniform"): line_par_input[line+"_H"+str(m)]["init"]=-0.01
+                        if (m==4) and (line_list[line]["line_profile"]=="uniform"): line_par_input[line+"_H"+str(m)]["plim"]=(-0.3,-1e-4)#(line_par_input[line+"_H"+str(m)]["plim"][0],-1e-4)
+                        # Check to make sure init value is within limits of plim
+                        if (line_par_input[line+"_H"+str(m)]["init"]<line_par_input[line+"_H"+str(m)]["plim"][0]) or (line_par_input[line+"_H"+str(m)]["init"]>line_par_input[line+"_H"+str(m)]["plim"][1]):
+                            raise ValueError("\n Laplace or Uniform moment h%d initial value (h%d_init) for %s outside of parameter limits (h%d_plim)!\n" % (m,m,line,m))
+
         if (("shape" in line_list[line]) and (line_list[line]["shape"]=="free")):
             shape_default = shape_hyperpars()
             line_par_input[line+"_SHAPE"] = {"init": line_list[line].get("shape_init",shape_default[0]), 
@@ -3444,52 +3504,69 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
             if (line_par_input[line+"_SHAPE"]["init"]<line_par_input[line+"_SHAPE"]["plim"][0]) or (line_par_input[line+"_SHAPE"]["init"]>line_par_input[line+"_SHAPE"]["plim"][1]):
                 raise ValueError("\n Voigt profile shape parameter (shape) initial value (shape_init) for %s outside of parameter limits (shape_plim)!\n" % (line))
 
-    # If tie_line_fwhm = True, we tie all widths (including any higher order moments) by respective line groups (Na, Br, Out, Abs)
-    if (comp_options["tie_line_fwhm"]==True):
+    # If tie_line_disp = True, we tie all widths (including any higher order moments) by respective line groups (Na, Br, Out, Abs)
+    if (comp_options["tie_line_disp"]==True):
         # Add the common line widths for na,br,out, and abs lines
         if (comp_options["fit_narrow"]==True) or ("na" in [line_list[line]["line_type"] for line in line_list]):
-            line_par_input["NA_FWHM"] = {"init": 250.0, 
+            line_par_input["NA_DISP"] = {"init": 250.0, 
                                          "plim":(0.0,1200.0)}
-            if (comp_options["na_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["na_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["NA_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
-            if comp_options["na_line_profile"]=="V":
+            if comp_options["na_line_profile"]=="voigt":
                 line_par_input["NA_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
+            if (comp_options["na_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["NA_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
         if (comp_options["fit_broad"]==True) or ("br" in [line_list[line]["line_type"] for line in line_list]):
-            line_par_input["BR_FWHM"] = {"init": 2500.0, 
+            line_par_input["BR_DISP"] = {"init": 2500.0, 
                                          "plim":(500.0,15000.0)}
-            if (comp_options["br_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["br_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["BR_H"+str(m)] = {"init": 0.0, 
                                                 "plim":(-0.5,0.5)}
-            if comp_options["br_line_profile"]=="V":
+            if comp_options["br_line_profile"]=="voigt":
                 line_par_input["BR_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
-
+            if (comp_options["br_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["BR_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
         if (comp_options["fit_outflow"]==True) or ("out" in [line_list[line]["line_type"] for line in line_list]):
-            line_par_input["OUT_FWHM"] = {"init": 450.0, 
+            line_par_input["OUT_DISP"] = {"init": 450.0, 
                                          "plim":(0.1,2500.0)}
-            if (comp_options["abs_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["abs_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
-            if comp_options["abs_line_profile"]=="V":
-                line_par_input["ABS_SHAPE"] = {"init": 0.0, 
+            if comp_options["abs_line_profile"]=="voigt":
+                line_par_input["OUT_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
-
+            if (comp_options["out_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["OUT_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
         if (comp_options["fit_absorp"]==True) or ("abs" in [line_list[line]["line_type"] for line in line_list]):
-            line_par_input["ABS_FWHM"] = {"init": 100.0, 
+            line_par_input["ABS_DISP"] = {"init": 100.0, 
                                          "plim":(0.0,800.0)}
-            if (comp_options["abs_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["abs_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
-            if comp_options["abs_line_profile"]=="V":
+            if comp_options["abs_line_profile"]=="voigt":
                 line_par_input["ABS_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
-            
+            if (comp_options["abs_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
     # If tie_line_voff = True, we tie all velocity offsets (including any higher order moments) by respective line groups (Na, Br, Out, Abs)	
     if comp_options["tie_line_voff"]==True:
         # Add the common line voffs for na,br,out, and abs lines
@@ -3521,7 +3598,7 @@ def check_hard_cons(lam_gal,galaxy,comp_options,line_list,line_par_input,par_inp
     param_dict = {par:0 for par in {**par_input,**line_par_input}}
     for line in list(line_list):
         for hpar in line_list[line]:
-            if (line_list[line][hpar]!="free") and (hpar in ["amp","fwhm","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]):
+            if (line_list[line][hpar]!="free") and (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]):
                 if (isinstance(line_list[line][hpar],(int,float))):
                     line_list[line][hpar] = float(line_list[line][hpar])
                     pass
@@ -3629,11 +3706,7 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
         else: 
             if verbose:
                 print("\n - %s soft constraint removed because one or more free parameters is not available." % str(con))
-
-    # for p in line_par_input:
-    # 	print(p)
-    # print(out_cons)
-    # sys.exit()
+                
     return out_cons
 
 ##################################################################################
@@ -3933,7 +4006,7 @@ def line_test(param_dict,
               uv_iron_template,
               balmer_template,
               stel_templates,
-              fwhm_gal,
+              disp_res,
               fit_mask,
               velscale,
               run_dir,
@@ -3967,14 +4040,14 @@ def line_test(param_dict,
         print('\n Fitting simpler model without %s...\n' % remove_lines)
 
     # Generate parameters without lines
-    param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,fwhm_gal,fit_mask,velscale,
+    param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                                  comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                  opt_feii_options,uv_iron_options,balmer_options,
                                  run_dir,fit_type='init',fit_stat=fit_stat,
                                  fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
                                  fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
                                  fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
-                                 tie_line_fwhm=comp_options["tie_line_fwhm"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
+                                 tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
 
 
     mcpars_no_line, mccomps_no_line, mcLL_no_line = max_likelihood(param_dict_no_line,
@@ -4000,7 +4073,7 @@ def line_test(param_dict,
                                                                                uv_iron_template,
                                                                                balmer_template,
                                                                                stel_templates,
-                                                                               fwhm_gal,
+                                                                               disp_res,
                                                                                fit_mask,
                                                                                velscale,
                                                                                run_dir,
@@ -4045,7 +4118,7 @@ def line_test(param_dict,
                                                           uv_iron_template,
                                                           balmer_template,
                                                           stel_templates,
-                                                          fwhm_gal,
+                                                          disp_res,
                                                           fit_mask,
                                                           velscale,
                                                           run_dir,
@@ -4174,7 +4247,7 @@ def line_test(param_dict,
     write_log((pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap,
                   f_conf,f_conf_err,f_stat,f_stat_err,f_pval,f_pval_err,
                   chi2_ratio,chi2_ratio_err,chi2_no_line,chi2_no_line_err,chi2_line,chi2_line_err,
-                  # amp_metric,fwhm_metric,voff_metric,voff_metric_err,
+                  # amp_metric,disp_metric,voff_metric,voff_metric_err,
                   ssr_ratio,ssr_ratio_err,ssr_no_line,ssr_no_line_err,ssr_line,ssr_line_err,
                   np.median(noise), np.std(noise), 
                   total_resid_noise,total_resid_noise_err,resid_noise_no_line,resid_noise_no_line_err,resid_noise_line,resid_noise_line_err),
@@ -4234,7 +4307,7 @@ def line_test(param_dict,
                               uv_iron_template,
                               balmer_template,
                               stel_templates,
-                              fwhm_gal,
+                              disp_res,
                               fit_mask,
                               velscale,
                               run_dir,
@@ -4266,7 +4339,7 @@ def line_test(param_dict,
                               uv_iron_template,
                               balmer_template,
                               stel_templates,
-                              fwhm_gal,
+                              disp_res,
                               fit_mask,
                               velscale,
                               run_dir,
@@ -4936,27 +5009,28 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal,
     interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,bounds_error=False)
     # Loop through lines
     for line in lines:
-        # Calculate velocity scale centered on line
-        vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[line]["center"])
-        full_profile = comp_dict[line]
-        # Remove stray lines
-        full_profile = remove_stray_lines(full_profile)
-        #
-        # Normalized line profile
-        norm_profile = full_profile/np.sum(full_profile)
-        # Calculate integrated velocity in pixels units
-        v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
-        # Calculate integrated dispersion and correct for instrumental dispersion
-        d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
-        d_int = np.sqrt(d_int**2 - (line_list[line]["fwhm_res_kms"]/2.3548)**2)
-        # 
-        if ~np.isfinite(d_int): d_int = 0.0
-        if ~np.isfinite(v_int): v_int = 0.0
-        disp_dict[line+"_DISP"] = d_int
-        vint_dict[line+"_VINT"] = v_int
-        if line in combined_line_list:
-            comb_fwhm = combined_fwhm(lam_gal,comp_dict[line],line_list[line]["fwhm_res_kms"],velscale)
-            fwhm_dict[line+"_FWHM"] = comb_fwhm
+        fwhm = combined_fwhm(lam_gal,comp_dict[line],line_list[line]["disp_res_kms"],velscale)
+        fwhm_dict[line+"_FWHM"] = fwhm
+
+        if line in combined_line_list:   
+            # Calculate velocity scale centered on line
+            vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[line]["center"])
+            full_profile = comp_dict[line]
+            # Remove stray lines
+            full_profile = remove_stray_lines(full_profile)
+            #
+            # Normalized line profile
+            norm_profile = full_profile/np.sum(full_profile)
+            # Calculate integrated velocity in pixels units
+            v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
+            # Calculate integrated dispersion and correct for instrumental dispersion
+            d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
+            d_int = np.sqrt(d_int**2 - (line_list[line]["disp_res_kms"])**2)
+            # 
+            if ~np.isfinite(d_int): d_int = 0.0
+            if ~np.isfinite(v_int): v_int = 0.0
+            disp_dict[line+"_DISP"] = d_int
+            vint_dict[line+"_VOFF"] = v_int
     #
     return disp_dict, fwhm_dict, vint_dict
 
@@ -4985,7 +5059,7 @@ def max_likelihood(param_dict,
                    uv_iron_template,
                    balmer_template,
                    stel_templates,
-                   fwhm_gal,
+                   disp_res,
                    fit_mask,
                    velscale,
                    run_dir,
@@ -5056,7 +5130,7 @@ def max_likelihood(param_dict,
                                                          uv_iron_template,
                                                          balmer_template,
                                                          stel_templates,
-                                                         fwhm_gal,
+                                                         disp_res,
                                                          fit_mask,
                                                          velscale,
                                                          run_dir,
@@ -5096,16 +5170,13 @@ def max_likelihood(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
-                          fwhm_gal,
+                          disp_res,
                           fit_mask,
                           velscale,
                           run_dir,
                           fit_type,
                           fit_stat,
                           output_model)
-
-    # if fit_stat=="RCHI2":
-    # 	return {p:result['x'][i] for i,p in enumerate(param_names)},comp_dict
 
     #### Maximum Likelihood Bootstrapping #################################################################
     # Construct random normally-distributed noise
@@ -5123,21 +5194,23 @@ def max_likelihood(param_dict,
     # Storage dictionaries for all calculated paramters at each iteration
     mcpars = {k:np.empty(max_like_niter+1) for k in param_names}
     # flux_dict
-    flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT"]]
+    flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
     mcflux = {k:np.empty(max_like_niter+1) for k in flux_names}
     # lum dict
-    lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT"]]
+    lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
     mclum  = {k:np.empty(max_like_niter+1) for k in lum_names}
     # eqwidth dict
     # line_names = [key+"_EW" for key in {**line_list, **combined_line_list}]
-    line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT"]]
+    line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
     mceqw  = {k:np.empty(max_like_niter+1) for k in line_names}
     # integrated dispersion & velocity dicts
-    line_names = [key+"_DISP" for key in {**line_list, **combined_line_list}]
+    # Since dispersion is calculated for all lines, we only need to calculate the integrated
+    # dispersions and velocities for combined lines, and FWHM for all lines
+    line_names = [key+"_DISP" for key in combined_line_list]
     mcdisp  = {k:np.empty(max_like_niter+1) for k in line_names}
-    line_names = [key+"_FWHM" for key in combined_line_list]
+    line_names = [key+"_FWHM" for key in {**line_list, **combined_line_list}]
     mcfwhm  = {k:np.empty(max_like_niter+1) for k in line_names}
-    line_names = [key+"_VINT" for key in {**line_list, **combined_line_list}]
+    line_names = [key+"_VOFF" for key in combined_line_list]
     mcvint  = {k:np.empty(max_like_niter+1) for k in line_names}
     # component dictionary
     mccomps = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
@@ -5246,7 +5319,7 @@ def max_likelihood(param_dict,
                                              uv_iron_template,
                                              balmer_template,
                                              stel_templates,
-                                             fwhm_gal,
+                                             disp_res,
                                              fit_mask,
                                              velscale,
                                              run_dir,
@@ -5281,7 +5354,7 @@ def max_likelihood(param_dict,
                                   uv_iron_template,
                                   balmer_template,
                                   stel_templates,
-                                  fwhm_gal,
+                                  disp_res,
                                   fit_mask,
                                   velscale,
                                   run_dir,
@@ -5472,7 +5545,7 @@ def max_likelihood(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
-                          fwhm_gal,
+                          disp_res,
                           fit_mask,
                           velscale,
                           run_dir,
@@ -5538,7 +5611,7 @@ def max_like_add_tied_parameters(pdict,line_list):
 
     for line in line_list:
         for par in line_list[line]:
-            if (line_list[line][par]!="free") & (par in ["amp","fwhm","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
+            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
                 expr = line_list[line][par] # expression to evaluate
                 expr_vars = [i for i in param_names if i in expr]
                 med  = ne.evaluate(expr,local_dict = med_dict).item()
@@ -5579,7 +5652,7 @@ def add_tied_parameters(pdict,line_list):
 
     for line in line_list:
         for par in line_list[line]:
-            if (line_list[line][par]!="free") & (par in ["amp","fwhm","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
+            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
                 expr = line_list[line][par] # expression to evaluate
                 expr_vars = [i for i in param_names if i in expr]
                 init	 = pdict[expr_vars[0]]["init"]
@@ -5777,7 +5850,7 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
 
 def gh_penalty_ftn(line,params,param_names):
     
-    # Reconstruct a gaussian of the same amp, fwhm, and voff
+    # Reconstruct a gaussian of the same amp, disp, and voff
     p = dict(zip(param_names, params))
     #
     gh_pnames = [i for i in param_names if i.startswith(line+"_H")]
@@ -5816,7 +5889,7 @@ def lnlike(params,
            uv_iron_template,
            balmer_template,
            stel_templates,
-           fwhm_gal,
+           disp_res,
            fit_mask,
            velscale,
            run_dir,
@@ -5852,7 +5925,7 @@ def lnlike(params,
                                                                                   uv_iron_template,
                                                                                   balmer_template,
                                                                                   stel_templates,
-                                                                                  fwhm_gal,
+                                                                                  disp_res,
                                                                                   fit_mask,
                                                                                   velscale,
                                                                                   run_dir,
@@ -5883,7 +5956,7 @@ def lnlike(params,
         pen = 0 # accumulating penalty
         if np.isfinite(l):
             for line in line_list:
-                if ((line_list[line]["line_profile"]=="GH")):
+                if ((line_list[line]["line_profile"] in ["gauss-hermite","laplace","uniform"])):
                     penalty = gh_penalty_ftn(line,params,param_names)
                     pen+= penalty
 
@@ -5914,7 +5987,7 @@ def lnlike(params,
                                      uv_iron_template,
                                      balmer_template,
                                      stel_templates,
-                                     fwhm_gal,
+                                     disp_res,
                                      fit_mask,
                                      velscale,
                                      run_dir,
@@ -5944,7 +6017,7 @@ def lnlike(params,
         pen = 0 # accumulating penalty
         if np.isfinite(l):
             for line in line_list:
-                if ((line_list[line]["line_profile"]=="GH")):
+                if ((line_list[line]["line_profile"]=="gauss-hermite")):
                     penalty = gh_penalty_ftn(line,params,param_names)
                     pen+= penalty
         #
@@ -6019,7 +6092,7 @@ def lnprob(params,
            uv_iron_template,
            balmer_template,
            stel_templates,
-           fwhm_gal,
+           disp_res,
            fit_mask,
            fit_stat,
            velscale,
@@ -6053,7 +6126,7 @@ def lnprob(params,
                                                                          uv_iron_template,
                                                                          balmer_template,
                                                                          stel_templates,
-                                                                         fwhm_gal,
+                                                                         disp_res,
                                                                          fit_mask,
                                                                          velscale,
                                                                          run_dir,
@@ -6077,77 +6150,81 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
     """
 
     # Gaussian
-    if (line_list[line]["line_profile"]=="G"): # Gaussian line profile
+    if (line_list[line]["line_profile"]=="gaussian"): # Gaussian line profile
         # 
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
         else:
             amp = free_dict[line+"_AMP"]
-        if (isinstance(line_list[line]["fwhm"],(str))) and (line_list[line]["fwhm"]!="free"):
-            fwhm = ne.evaluate(line_list[line]["fwhm"],local_dict = free_dict).item()
+        #
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
         else:
-            fwhm = free_dict[line+"_FWHM"]
+            disp = free_dict[line+"_DISP"]
+        #
         if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
             voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
         else:
             voff = free_dict[line+"_VOFF"]
 
         if ~np.isfinite(amp) : amp  = 0.0
-        if ~np.isfinite(fwhm): fwhm = 100.0
+        if ~np.isfinite(disp): disp = 100.0
         if ~np.isfinite(voff): voff = 0.0
 
         line_model = gaussian_line_profile(lam_gal,
                                            line_list[line]["center"],
                                            amp,
-                                           fwhm,
+                                           disp,
                                            voff,
                                            line_list[line]["center_pix"],
-                                           line_list[line]["fwhm_res_kms"],
+                                           line_list[line]["disp_res_kms"],
                                            velscale
                                            )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
 
-    elif (line_list[line]["line_profile"]=="L"): # Lorentzian line profile
+    elif (line_list[line]["line_profile"]=="lorentzian"): # Lorentzian line profile
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
         else:
             amp = free_dict[line+"_AMP"]
-        if (isinstance(line_list[line]["fwhm"],(str))) and (line_list[line]["fwhm"]!="free"):
-            fwhm = ne.evaluate(line_list[line]["fwhm"],local_dict = free_dict).item()
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
         else:
-            fwhm = free_dict[line+"_FWHM"]
+            disp = free_dict[line+"_DISP"]
         if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
             voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
         else:
             voff = free_dict[line+"_VOFF"]
 
         if ~np.isfinite(amp) : amp  = 0.0
-        if ~np.isfinite(fwhm): fwhm = 100.0
+        if ~np.isfinite(disp): disp = 100.0
         if ~np.isfinite(voff): voff = 0.0
 
         line_model = lorentzian_line_profile(lam_gal,
                                            line_list[line]["center"],
                                            amp,
-                                           fwhm,
+                                           disp,
                                            voff,
                                            line_list[line]["center_pix"],
-                                           line_list[line]["fwhm_res_kms"],
+                                           line_list[line]["disp_res_kms"],
                                            velscale,
                                            noise
                                            )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
 
-    elif (line_list[line]["line_profile"]=="GH"): # Gauss-Hermite line profile
+    elif (line_list[line]["line_profile"]=="gauss-hermite"): # Gauss-Hermite line profile
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
         else:
             amp = free_dict[line+"_AMP"]
-        if (isinstance(line_list[line]["fwhm"],(str))) and (line_list[line]["fwhm"]!="free"):
-            fwhm = ne.evaluate(line_list[line]["fwhm"],local_dict = free_dict).item()
+        #
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
         else:
-            fwhm = free_dict[line+"_FWHM"]
+            disp = free_dict[line+"_DISP"]
+        #
         if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
             voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
         else:
@@ -6165,53 +6242,139 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
             hmoments = None
 
         if ~np.isfinite(amp) : amp  = 0.0
-        if ~np.isfinite(fwhm): fwhm = 100.0
+        if ~np.isfinite(disp): disp = 100.0
         if ~np.isfinite(voff): voff = 0.0
 
         line_model = gauss_hermite_line_profile(lam_gal,
                                                line_list[line]["center"],
                                                amp,
-                                               fwhm,
+                                               disp,
                                                voff,
                                                hmoments,
                                                line_list[line]["center_pix"],
-                                               line_list[line]["fwhm_res_kms"],
+                                               line_list[line]["disp_res_kms"],
                                                velscale,
                                                noise
                                                )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
 
-    elif (line_list[line]["line_profile"]=="V"): # Voigt line profile
+    elif (line_list[line]["line_profile"]=="laplace"): # Laplace line profile
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
         else:
             amp = free_dict[line+"_AMP"]
-        if (isinstance(line_list[line]["fwhm"],(str))) and (line_list[line]["fwhm"]!="free"):
-            fwhm = ne.evaluate(line_list[line]["fwhm"],local_dict = free_dict).item()
+        #
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
         else:
-            fwhm = free_dict[line+"_FWHM"]
+            disp = free_dict[line+"_DISP"]
+        #
         if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
             voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
         else:
             voff = free_dict[line+"_VOFF"]
+
+        hmoments = np.empty(2)
+        for i,m in enumerate(range(3,5,1)):
+            if (isinstance(line_list[line]["h"+str(m)],(str))) and (line_list[line]["h"+str(m)]!="free"):
+                hl = ne.evaluate(line_list[line]["h"+str(m)],local_dict = free_dict).item()
+            else:
+                hl = free_dict[line+"_H"+str(m)]
+            hmoments[i]=hl
+
+        if ~np.isfinite(amp) : amp  = 0.0
+        if ~np.isfinite(disp): disp = 100.0
+        if ~np.isfinite(voff): voff = 0.0
+
+        line_model = laplace_line_profile(lam_gal,
+                                               line_list[line]["center"],
+                                               amp,
+                                               disp,
+                                               voff,
+                                               hmoments,
+                                               line_list[line]["center_pix"],
+                                               line_list[line]["disp_res_kms"],
+                                               velscale,
+                                               noise
+                                               )
+        line_model[~np.isfinite(line_model)] = 0.0
+        comp_dict[line] = line_model
+
+    elif (line_list[line]["line_profile"]=="uniform"): # Uniform line profile
+        if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
+            amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
+        else:
+            amp = free_dict[line+"_AMP"]
+        #
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
+        else:
+            disp = free_dict[line+"_DISP"]
+        #
+        if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
+            voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
+        else:
+            voff = free_dict[line+"_VOFF"]
+
+        hmoments = np.empty(2)
+        for i,m in enumerate(range(3,5,1)):
+            if (isinstance(line_list[line]["h"+str(m)],(str))) and (line_list[line]["h"+str(m)]!="free"):
+                hl = ne.evaluate(line_list[line]["h"+str(m)],local_dict = free_dict).item()
+            else:
+                hl = free_dict[line+"_H"+str(m)]
+            hmoments[i]=hl
+
+        if ~np.isfinite(amp) : amp  = 0.0
+        if ~np.isfinite(disp): disp = 100.0
+        if ~np.isfinite(voff): voff = 0.0
+
+        line_model = uniform_line_profile(lam_gal,
+                                               line_list[line]["center"],
+                                               amp,
+                                               disp,
+                                               voff,
+                                               hmoments,
+                                               line_list[line]["center_pix"],
+                                               line_list[line]["disp_res_kms"],
+                                               velscale,
+                                               noise
+                                               )
+        line_model[~np.isfinite(line_model)] = 0.0
+        comp_dict[line] = line_model
+
+    elif (line_list[line]["line_profile"]=="voigt"): # Voigt line profile
+        if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
+            amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
+        else:
+            amp = free_dict[line+"_AMP"]
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
+        else:
+            disp = free_dict[line+"_DISP"]
+        #
+        if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
+            voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
+        else:
+            voff = free_dict[line+"_VOFF"]
+        #
         if (isinstance(line_list[line]["shape"],(str))) and (line_list[line]["shape"]!="free"):
             shape = ne.evaluate(line_list[line]["shape"],local_dict = free_dict).item()
         else:
             shape = free_dict[line+"_SHAPE"]
 
         if ~np.isfinite(amp) : amp  = 0.0
-        if ~np.isfinite(fwhm): fwhm = 100.0
+        if ~np.isfinite(disp): disp = 100.0
         if ~np.isfinite(voff): voff = 0.0
 
         line_model = voigt_line_profile(lam_gal,
                                         line_list[line]["center"],
                                         amp,
-                                        fwhm,
+                                        disp,
                                         voff,
                                         shape,
                                         line_list[line]["center_pix"],
-                                        line_list[line]["fwhm_res_kms"],
+                                        line_list[line]["disp_res_kms"],
                                         velscale,
                                         noise
                                         )
@@ -6222,9 +6385,9 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
 
 #### Model Function ##############################################################
 
-def combined_fwhm(lam_gal, full_profile, fwhm_res, velscale ):
+def combined_fwhm(lam_gal, full_profile, disp_res, velscale ):
     """
-    Calculate fwhm of combined lines.
+    Calculate fwhm of combined lines directly from the model.
     """
     def lin_interp(x, y, i, half):
         return x[i] + (x[i+1] - x[i]) * ((half - y[i]) / (y[i+1] - y[i]))
@@ -6242,10 +6405,10 @@ def combined_fwhm(lam_gal, full_profile, fwhm_res, velscale ):
 
     hmx = half_max_x(range(len(lam_gal)),full_profile)
     fwhm = np.abs(hmx[1]-hmx[0])
-    fwhm = np.sqrt((fwhm*velscale)**2 - fwhm_res**2)
+    fwhm = np.sqrt((fwhm*velscale)**2 - (disp_res*2.3548)**2)
     if ~np.isfinite(fwhm):
         fwhm = 0.0
-
+    #
     return fwhm
 
 
@@ -6270,7 +6433,7 @@ def fit_model(params,
               uv_iron_template,
               balmer_template,
               stel_templates,
-              fwhm_gal,
+              disp_res,
               fit_mask,
               velscale,
               run_dir,
@@ -6402,10 +6565,10 @@ def fit_model(params,
             balmer_amp = p['BALMER_AMP']
         elif (balmer_options['balmer_amp_const']['bool']==True): 
             balmer_amp = balmer_options['balmer_amp_const']['balmer_amp_val']
-        if (balmer_options['balmer_fwhm_const']['bool']==False): 
-            balmer_fwhm = p['BALMER_FWHM']
-        elif (balmer_options['balmer_fwhm_const']['bool']==True): 
-            balmer_fwhm = balmer_options['balmer_fwhm_const']['balmer_fwhm_val']
+        if (balmer_options['balmer_disp_const']['bool']==False): 
+            balmer_disp = p['BALMER_DISP']
+        elif (balmer_options['balmer_disp_const']['bool']==True): 
+            balmer_disp = balmer_options['balmer_disp_const']['balmer_disp_val']
         if (balmer_options['balmer_voff_const']['bool']==False): 
             balmer_voff = p['BALMER_VOFF']
         elif (balmer_options['balmer_voff_const']['bool']==True): 
@@ -6420,7 +6583,7 @@ def fit_model(params,
             balmer_tau = balmer_options['tau_const']['tau_val']
 
         balmer_cont = generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer, velscale_balmer,
-                      balmer_ratio, balmer_amp, balmer_fwhm, balmer_voff, balmer_Teff, balmer_tau)
+                      balmer_ratio, balmer_amp, balmer_disp, balmer_voff, balmer_Teff, balmer_tau)
 
         host_model = (host_model) - (balmer_cont)
         comp_dict['BALMER_CONT'] = balmer_cont
@@ -6605,7 +6768,7 @@ def fit_model(params,
             # for line in lines:
             if (key in lines):
                 comp = comp_dict[key]
-                # if line_list[key]["line_profile"] in ["V","L"]:
+                # if line_list[key]["line_profile"] in ["voigt","lorentzian"]:
                 # 	# Truncate the component to zero for any values below the median noise level. 
                 # 	# This is necessary because the wings of the Voigt and Lorentzian profiles extend to infinity,
                 # 	# resulting in unrealistic line dispersions.
@@ -6619,7 +6782,10 @@ def fit_model(params,
             eqwidths[key+"_EW"]  = eqwidth
             #
             if (key in lines):
-                # Calculate integrated velocities and dispersions for each line
+                comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
+                int_vel_disp[key+"_FWHM"] = comb_fwhm
+            # Calculate integrated FWHM for combined lines
+            if (key in combined_line_list):
                 # Calculate velocity scale centered on line
                 vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
                 full_profile = comp_dict[key]
@@ -6631,15 +6797,11 @@ def fit_model(params,
                 v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
                 # Calculate integrated dispersion and correct for instrumental dispersion
                 d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
-                d_int = np.sqrt(d_int**2 - (line_list[key]["fwhm_res_kms"]/2.3548)**2)
+                d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
                 if ~np.isfinite(d_int): d_int = 0.0
                 if ~np.isfinite(v_int): v_int = 0.0
                 int_vel_disp[key+"_DISP"] = d_int
-                int_vel_disp[key+"_VINT"] = v_int
-            # Calculate integrated FWHM for combined lines
-            if (key in combined_line_list):
-                comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["fwhm_res_kms"],velscale)
-                int_vel_disp[key+"_FWHM"] = comb_fwhm
+                int_vel_disp[key+"_VOFF"] = v_int
 
         # Continuum fluxes (to obtain continuum luminosities)
         cont_fluxes = {}
@@ -6685,7 +6847,7 @@ def fit_model(params,
 
 #### Host-Galaxy Template##############################################################################
 
-def generate_host_template(lam_gal,host_options,fwhm_gal,fit_mask,velscale,verbose=True):
+def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbose=True):
     """
     
     """
@@ -6719,6 +6881,7 @@ def generate_host_template(lam_gal,host_options,fwhm_gal,fit_mask,velscale,verbo
             ]
     #
     fwhm_temp = 2.51 # FWHM resolution of eMILES in Å
+    disp_temp = fwhm_temp/2.3548
     # Open a fits file
     hdu = fits.open(temp[0])
     ssp = hdu[0].data 
@@ -6734,9 +6897,9 @@ def generate_host_template(lam_gal,host_options,fwhm_gal,fit_mask,velscale,verbo
     sspNew = log_rebin(lamRange_temp, ssp, velscale=velscale)[0]
     templates = np.empty((sspNew.size, len(host_options["age"])))
     # Variable sigma
-    fwhm_gal_interp = np.interp(lam_temp, lam_gal, fwhm_gal)
-    fwhm_dif  = np.sqrt((fwhm_gal_interp**2 - fwhm_temp**2).clip(0))
-    sigma	 = fwhm_dif/2.355/h['CDELT1'] # Sigma difference in pixels
+    disp_res_interp = np.interp(lam_temp, lam_gal, disp_res)
+    disp_dif  = np.sqrt((disp_res_interp**2 - disp_temp**2).clip(0))
+    sigma	 = disp_dif/h['CDELT1'] # Sigma difference in pixels
     #
     for j, age in enumerate(host_options["age"]):
         hdu = fits.open(temp[np.where(ages==age)[0][0]])
@@ -6786,7 +6949,7 @@ def generate_host_template(lam_gal,host_options,fwhm_gal,fit_mask,velscale,verbo
 
 #### Optical FeII Templates ##############################################################
 
-def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
+def initialize_opt_feii(lam_gal, opt_feii_options, disp_res, fit_mask, velscale):
     """
     Generate FeII templates.  Options:
 
@@ -6820,9 +6983,10 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
         spec_feii_na = interp_ftn_na(lam_feii)
         # Convolve templates to the native resolution of SDSS
         fwhm_feii = 1.0 # templates were created with 1.0 FWHM resolution
-        fwhm_gal_interp = np.interp(lam_feii, lam_gal, fwhm_gal)
-        fwhm_diff = np.sqrt((fwhm_gal_interp**2 - fwhm_feii**2).clip(0))
-        sigma = fwhm_diff/2.3548/dlam_feii # Sigma difference in pixels
+        disp_feii = fwhm_feii/2.3548
+        disp_res_interp = np.interp(lam_feii, lam_gal, disp_res)
+        disp_diff = np.sqrt((disp_res_interp**2 - disp_feii**2).clip(0))
+        sigma = disp_diff/dlam_feii # Sigma difference in pixels
         spec_feii_br = gaussian_filter1d(spec_feii_br, sigma)
         spec_feii_na = gaussian_filter1d(spec_feii_na, sigma)
         # log-rebin the spectrum to same velocity scale as the input galaxy
@@ -6844,21 +7008,21 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
         c = 299792.458 # speed of light in km/s
         vsyst = np.log(lam_feii[0]/lam_gal[0])*c
 
-        # If opt_fwhm_const=True AND opt_voff_const=True, we preconvolve the templates so we don't have to 
+        # If opt_disp_const=True AND opt_voff_const=True, we preconvolve the templates so we don't have to 
         # during the fit
-        if (opt_feii_options["opt_fwhm_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
+        if (opt_feii_options["opt_disp_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
 
-            br_fwhm = opt_feii_options["opt_fwhm_const"]["br_opt_feii_val"]
-            na_fwhm = opt_feii_options["opt_fwhm_const"]["na_opt_feii_val"]
+            br_disp = opt_feii_options["opt_disp_const"]["br_opt_feii_val"]
+            na_disp = opt_feii_options["opt_disp_const"]["na_opt_feii_val"]
             #
             br_voff = opt_feii_options["opt_voff_const"]["br_opt_feii_val"]
             na_voff = opt_feii_options["opt_voff_const"]["na_opt_feii_val"]
             #
             br_conv_temp = convolve_gauss_hermite(br_opt_feii_fft, npad, float(velscale),\
-                                          [br_voff, br_fwhm/2.3548], lam_gal.shape[0], 
+                                          [br_voff, br_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
             na_conv_temp = convolve_gauss_hermite(na_opt_feii_fft, npad, float(velscale),\
-                                          [na_voff, na_fwhm/2.3548], lam_gal.shape[0], 
+                                          [na_voff, na_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
             #
             # fig = plt.figure(figsize=(18,7))
@@ -6869,7 +7033,7 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
             #
             opt_feii_templates = (br_conv_temp, na_conv_temp)
 
-        elif (opt_feii_options["opt_fwhm_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
+        elif (opt_feii_options["opt_disp_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
 
         
             # We return a tuple consisting of the FFT of the broad and narrow templates, npad, and vsyst, 
@@ -6887,10 +7051,9 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
         # as a group of templates, which will be convolved together, but relative intensities will be calculated
         # for separately. 
 
-        def gaussian_angstroms(x, center, amp, fwhm, voff):
-            sigma = fwhm/2.3548
+        def gaussian_angstroms(x, center, amp, disp, voff):
             x = x.reshape((len(x),1))
-            g = amp*np.exp(-0.5*(x-(center))**2/(sigma)**2) # construct gaussian
+            g = amp*np.exp(-0.5*(x-(center))**2/(disp)**2) # construct gaussian
             g = np.sum(g,axis=1)
             # Normalize to 1
         #	 g = g/np.max(g)
@@ -6908,12 +7071,13 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
         Z_trans_df = pd.read_csv('badass_data_files/feii_templates/kovacevic_2010/K10_Z_transitions.csv')
         # Generate a high-resolution wavelength scale that is universal to all transitions
         fwhm = 1.0 # Angstroms
+        disp = fwhm/2.3548
         dlam_feii = 0.1 # linear spacing in Angstroms
         npad = 100
         lam_feii = np.arange(np.min(lam_gal)-npad, np.max(lam_gal)+npad, dlam_feii)
         lamRange_feii = [np.min(lam_feii), np.max(lam_feii)]
         # Get size of output log-rebinned spectrum 
-        F = gaussian_angstroms(lam_feii, F_trans_df["wavelength"].to_numpy()[0], 1.0, fwhm, 0.0)   
+        F = gaussian_angstroms(lam_feii, F_trans_df["wavelength"].to_numpy()[0], 1.0, disp, 0.0)   
         new_size, loglam_feii, velscale_feii = log_rebin(lamRange_feii, F, velscale=velscale)
         # Create storage arrays for each emission line of each transition
         F_templates = np.empty(( len(new_size), len(F_trans_df['wavelength'].to_numpy()) ))
@@ -6922,19 +7086,19 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
         Z_templates = np.empty(( len(new_size), len(Z_trans_df['wavelength'].to_numpy()) ))
         # Generate templates with a amplitude of 1.0
         for i in range(np.shape(F_templates)[1]):
-            F = gaussian_angstroms(lam_feii, F_trans_df["wavelength"].to_numpy()[i], 1.0, fwhm, 0.0)	
+            F = gaussian_angstroms(lam_feii, F_trans_df["wavelength"].to_numpy()[i], 1.0, disp, 0.0)	
             new_F = log_rebin(lamRange_feii, F, velscale=velscale)[0]
             F_templates[:,i] = new_F/np.max(new_F)
         for i in range(np.shape(S_templates)[1]): 
-            S = gaussian_angstroms(lam_feii, S_trans_df["wavelength"].to_numpy()[i], 1.0, fwhm, 0.0)
+            S = gaussian_angstroms(lam_feii, S_trans_df["wavelength"].to_numpy()[i], 1.0, disp, 0.0)
             new_S = log_rebin(lamRange_feii, S, velscale=velscale)[0]
             S_templates[:,i] = new_S/np.max(new_S)
         for i in range(np.shape(G_templates)[1]):
-            G = gaussian_angstroms(lam_feii, G_trans_df["wavelength"].to_numpy()[i], 1.0, fwhm, 0.0)
+            G = gaussian_angstroms(lam_feii, G_trans_df["wavelength"].to_numpy()[i], 1.0, disp, 0.0)
             new_G = log_rebin(lamRange_feii, G, velscale=velscale)[0]
             G_templates[:,i] = new_G/np.max(new_G)
         for i in range(np.shape(Z_templates)[1]):
-            Z = gaussian_angstroms(lam_feii, Z_trans_df["wavelength"].to_numpy()[i], 1.0, fwhm, 0.0)
+            Z = gaussian_angstroms(lam_feii, Z_trans_df["wavelength"].to_numpy()[i], 1.0, disp, 0.0)
             new_Z = log_rebin(lamRange_feii, Z, velscale=velscale)[0]
             Z_templates[:,i] = new_Z/np.max(new_Z)
 
@@ -6948,25 +7112,25 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
         c = 299792.458 # speed of light in km/s
         vsyst = np.log(lam_feii[0]/lam_gal[0])*c
 
-        # If opt_fwhm_const=True AND opt_voff_const=True, we preconvolve the templates so we don't have to 
+        # If opt_disp_const=True AND opt_voff_const=True, we preconvolve the templates so we don't have to 
         # during the fit
-        if (opt_feii_options["opt_fwhm_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
+        if (opt_feii_options["opt_disp_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
 
-            feii_fwhm = opt_feii_options["opt_fwhm_const"]["opt_feii_val"]
+            feii_disp = opt_feii_options["opt_disp_const"]["opt_feii_val"]
             #
             feii_voff = opt_feii_options["opt_voff_const"]["opt_feii_val"]
             #
             f_conv_temp = convolve_gauss_hermite(F_trans_fft, F_trans_npad, float(velscale),\
-                                          [feii_voff, feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [feii_voff, feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
             s_conv_temp = convolve_gauss_hermite(S_trans_fft, S_trans_npad, float(velscale),\
-                                          [feii_voff, feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [feii_voff, feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
             g_conv_temp = convolve_gauss_hermite(G_trans_fft, G_trans_npad, float(velscale),\
-                                          [feii_voff, feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [feii_voff, feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
             z_conv_temp = convolve_gauss_hermite(Z_trans_fft, Z_trans_npad, float(velscale),\
-                                          [feii_voff, feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [feii_voff, feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
             #
             opt_feii_templates = (f_conv_temp, F_trans_df['wavelength'].to_numpy() ,F_trans_df['gf'].to_numpy(), F_trans_df['E2_J'].to_numpy(),
@@ -6975,7 +7139,7 @@ def initialize_opt_feii(lam_gal, opt_feii_options, fwhm_gal,fit_mask, velscale):
                     z_conv_temp, Z_trans_df['rel_int'].to_numpy()
                     )
         #
-        elif (opt_feii_options["opt_fwhm_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
+        elif (opt_feii_options["opt_disp_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
 
             opt_feii_templates = (F_trans_fft, F_trans_df['wavelength'].to_numpy() ,F_trans_df['gf'].to_numpy(), F_trans_df['E2_J'].to_numpy(),
                     S_trans_fft, S_trans_df['wavelength'].to_numpy() ,S_trans_df['gf'].to_numpy(), S_trans_df['E2_J'].to_numpy(),
@@ -7001,14 +7165,14 @@ def VC04_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vel
         na_opt_feii_amp = opt_feii_options['opt_amp_const']['na_opt_feii_val']
         br_opt_feii_amp = opt_feii_options['opt_amp_const']['br_opt_feii_val']
     #
-    if (opt_feii_options['opt_fwhm_const']['bool']==False): # if amp not constant
-        na_opt_feii_fwhm = p['NA_OPT_FEII_FWHM']
-        br_opt_feii_fwhm = p['BR_OPT_FEII_FWHM']
-    elif (opt_feii_options['opt_fwhm_const']['bool']==True): # if amp constant
-        na_opt_feii_fwhm = opt_feii_options['opt_fwhm_const']['na_opt_feii_val']
-        br_opt_feii_fwhm = opt_feii_options['opt_fwhm_const']['br_opt_feii_val']
-    if na_opt_feii_fwhm<=0.01: na_opt_feii_fwhm = 0.01
-    if br_opt_feii_fwhm<=0.01: br_opt_feii_fwhm = 0.01
+    if (opt_feii_options['opt_disp_const']['bool']==False): # if amp not constant
+        na_opt_feii_disp = p['NA_OPT_FEII_DISP']
+        br_opt_feii_disp = p['BR_OPT_FEII_DISP']
+    elif (opt_feii_options['opt_disp_const']['bool']==True): # if amp constant
+        na_opt_feii_disp = opt_feii_options['opt_disp_const']['na_opt_feii_val']
+        br_opt_feii_disp = opt_feii_options['opt_disp_const']['br_opt_feii_val']
+    if na_opt_feii_disp<=0.01: na_opt_feii_disp = 0.01
+    if br_opt_feii_disp<=0.01: br_opt_feii_disp = 0.01
     #
     if (opt_feii_options['opt_voff_const']['bool']==False): # if amp not constant
         na_opt_feii_voff = p['NA_OPT_FEII_VOFF']
@@ -7017,7 +7181,7 @@ def VC04_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vel
         na_opt_feii_voff = opt_feii_options['opt_voff_const']['na_opt_feii_val']
         br_opt_feii_voff = opt_feii_options['opt_voff_const']['br_opt_feii_val']
     #
-    if (opt_feii_options["opt_fwhm_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
+    if (opt_feii_options["opt_disp_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
         br_conv_temp, na_conv_temp = opt_feii_templates
         # Templates are already convolved so just normalize and multiplfy by amplitude 
         # br_opt_feii_template = br_conv_temp/np.max(br_conv_temp) * br_opt_feii_amp
@@ -7031,23 +7195,15 @@ def VC04_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vel
         br_opt_feii_template[(lam_gal < 3400) & (lam_gal > 7200)] = 0
         na_opt_feii_template[(lam_gal < 3400) & (lam_gal > 7200)] = 0
         #
-        # print(br_opt_feii_amp,na_opt_feii_amp)
-        # fig = plt.figure(figsize=(18,7))
-        # ax1 = fig.add_subplot(1,1,1)
-        # ax1.plot(lam_gal,na_opt_feii_template, linewidth=0.5)
-        # ax1.plot(lam_gal,br_opt_feii_template, linewidth=0.5)
-        # plt.tight_layout()
-        # sys.exit()
-        #
-    elif (opt_feii_options["opt_fwhm_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
+    elif (opt_feii_options["opt_disp_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
         br_opt_feii_fft, na_opt_feii_fft, npad, vsyst = opt_feii_templates
 
         br_conv_temp = convolve_gauss_hermite(br_opt_feii_fft, npad, float(velscale),
-                                              [br_opt_feii_voff, br_opt_feii_fwhm/2.3548], lam_gal.shape[0], 
+                                              [br_opt_feii_voff, br_opt_feii_disp], lam_gal.shape[0], 
                                                velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
         #
         na_conv_temp = convolve_gauss_hermite(na_opt_feii_fft, npad, float(velscale),
-                                              [na_opt_feii_voff, na_opt_feii_fwhm/2.3548], lam_gal.shape[0], 
+                                              [na_opt_feii_voff, na_opt_feii_disp], lam_gal.shape[0], 
                                                velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
         # Re-normalize to 1
         # br_conv_temp = br_conv_temp/np.max(br_conv_temp)
@@ -7069,7 +7225,7 @@ def VC04_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vel
 
 #### UV Iron Template ##############################################################
     
-def initialize_uv_iron(lam_gal, feii_options, fwhm_gal,fit_mask, velscale):
+def initialize_uv_iron(lam_gal, feii_options, disp_res, fit_mask, velscale):
     """
     Generate UV Iron template.
     """
@@ -7103,7 +7259,7 @@ def initialize_uv_iron(lam_gal, feii_options, fwhm_gal,fit_mask, velscale):
 
 #### Balmer Template ###############################################################
 
-def initialize_balmer(lam_gal, balmer_options, fwhm_gal,fit_mask, velscale):
+def initialize_balmer(lam_gal, balmer_options, disp_res,fit_mask, velscale):
     # Import the template for the higher-order balmer lines (7 <= n <= 500)
     # df = pd.read_csv("badass_data_files/balmer_template/higher_order_balmer.csv")
     df = pd.read_csv("badass_data_files/balmer_template/higher_order_balmer_n8_500.csv")
@@ -7117,9 +7273,10 @@ def initialize_balmer(lam_gal, balmer_options, fwhm_gal,fit_mask, velscale):
     # Calculate the difference in instrumental dispersion between SDSS and the template
     lamRange_balmer = [np.min(lam_balmer), np.max(lam_balmer)]
     fwhm_balmer = 1.0
-    fwhm_gal_interp = np.interp(lam_balmer, lam_gal, fwhm_gal)
-    fwhm_diff = np.sqrt((fwhm_gal_interp**2 - fwhm_balmer**2).clip(0))
-    sigma = fwhm_diff/2.3548/dlam_balmer # Sigma difference in pixels
+    disp_balmer = fwhm_balmer/2.3548
+    disp_res_interp = np.interp(lam_balmer, lam_gal, disp_res)
+    disp_diff = np.sqrt((disp_res_interp**2 - disp_balmer**2).clip(0))
+    sigma = disp_diff/dlam_balmer # Sigma difference in pixels
     # Convolve the FeII templates to the SDSS resolution
     spec_high_balmer = gaussian_filter1d(spec_high_balmer, sigma)
     # Log-rebin to same velocity scale as galaxy
@@ -7135,12 +7292,12 @@ def initialize_balmer(lam_gal, balmer_options, fwhm_gal,fit_mask, velscale):
 ####################################################################################
 
 
-def get_fwhm_res(fwhm_gal_ftn,line_center,line_voff):
+def get_disp_res(disp_res_ftn,line_center,line_voff):
         c = 299792.458
-        fwhm_res = (fwhm_gal_ftn(line_center + 
+        disp_res = (disp_res_ftn(line_center + 
                       (line_voff*line_center/c))/(line_center + 
                    (line_voff*line_center/c))*c)
-        return fwhm_res
+        return disp_res
 
 
 ####################################################################################
@@ -7163,11 +7320,11 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         g_feii_amp  = opt_feii_options['opt_amp_const']['g_feii_val']
         z_feii_amp  = opt_feii_options['opt_amp_const']['z_feii_val']
     #
-    if (opt_feii_options['opt_fwhm_const']['bool']==False): # if fwhm not constant
-        opt_feii_fwhm = p['OPT_FEII_FWHM']
-    elif (opt_feii_options['opt_fwhm_const']['bool']==True): # if fwhm constant
-        opt_feii_fwhm = opt_feii_options['opt_fwhm_const']['opt_feii_val']
-    if opt_feii_fwhm<= 0.01: opt_feii_fwhm = 0.01
+    if (opt_feii_options['opt_disp_const']['bool']==False): # if disp not constant
+        opt_feii_disp = p['OPT_FEII_DISP']
+    elif (opt_feii_options['opt_disp_const']['bool']==True): # if disp constant
+        opt_feii_disp = opt_feii_options['opt_disp_const']['opt_feii_val']
+    if opt_feii_disp<= 0.01: opt_feii_disp = 0.01
     #
     if (opt_feii_options['opt_voff_const']['bool']==False): # if voff not constant
         opt_feii_voff = p['OPT_FEII_VOFF']
@@ -7179,7 +7336,7 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
     elif (opt_feii_options['opt_temp_const']['bool']==True): # if temp constant
         opt_feii_temp = opt_feii_options['opt_temp_const']['opt_feii_val']
 
-    if (opt_feii_options["opt_fwhm_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
+    if (opt_feii_options["opt_disp_const"]["bool"]==True) & (opt_feii_options["opt_voff_const"]["bool"]==True):
         #
         # Unpack tables for each template
         f_conv_temp, f_feii_center, f_feii_gf, f_feii_e2  = (opt_feii_templates[0], opt_feii_templates[1], opt_feii_templates[2], opt_feii_templates[3])
@@ -7238,17 +7395,8 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         z_template = z_template * z_feii_amp
         z_template[(lam_gal <4418) & (lam_gal >5428)] = 0
         #
-        # fig = plt.figure(figsize=(18,7))
-        # ax1 = fig.add_subplot(1,1,1)
-        # ax1.plot(lam_gal,f_template, linewidth=0.5)
-        # ax1.plot(lam_gal,s_template, linewidth=0.5)
-        # ax1.plot(lam_gal,g_template, linewidth=0.5)
-        # ax1.plot(lam_gal,z_template, linewidth=0.5)
-        # plt.tight_layout()
-        # sys.exit()
-        #
 
-    elif (opt_feii_options["opt_fwhm_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
+    elif (opt_feii_options["opt_disp_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
         #
         # Unpack tables for each template
         f_feii_fft, f_feii_center, f_feii_gf, f_feii_e2  = (opt_feii_templates[0], opt_feii_templates[1], opt_feii_templates[2], opt_feii_templates[3])
@@ -7260,7 +7408,7 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         # F-template
         # Perform the convolution
         f_conv_temp = convolve_gauss_hermite(f_feii_fft, npad, float(velscale),\
-                                          [opt_feii_voff, opt_feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [opt_feii_voff, opt_feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
         # Normalize amplitudes to 1
         f_norm = np.array([np.max(f_conv_temp[:,i]) for i in range(np.shape(f_conv_temp)[1])])
@@ -7277,7 +7425,7 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         # S-template
         # Perform the convolution
         s_conv_temp = convolve_gauss_hermite(s_feii_fft, npad, float(velscale),\
-                                          [opt_feii_voff, opt_feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [opt_feii_voff, opt_feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
         # Normalize amplitudes to 1
         s_norm = np.array([np.max(s_conv_temp[:,i]) for i in range(np.shape(s_conv_temp)[1])])
@@ -7294,7 +7442,7 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         # G-template
         # Perform the convolution
         g_conv_temp = convolve_gauss_hermite(g_feii_fft, npad, float(velscale),\
-                                          [opt_feii_voff, opt_feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [opt_feii_voff, opt_feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
         # Normalize amplitudes to 1
         g_norm = np.array([np.max(g_conv_temp[:,i]) for i in range(np.shape(g_conv_temp)[1])])
@@ -7311,7 +7459,7 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         # Z template
         # Perform the convolution
         z_conv_temp = convolve_gauss_hermite(z_feii_fft, npad, float(velscale),\
-                                          [opt_feii_voff, opt_feii_fwhm/2.3548], lam_gal.shape[0], 
+                                          [opt_feii_voff, opt_feii_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
         # Normalize amplitudes to 1
         z_norm = np.array([np.max(z_conv_temp[:,i]) for i in range(np.shape(z_conv_temp)[1])])
@@ -7370,11 +7518,13 @@ def VW01_uv_iron_template(lam_gal, pdict, uv_iron_template, uv_iron_options, vel
         uv_iron_amp = pdict['UV_IRON_AMP']
     elif (uv_iron_options['uv_amp_const']['bool']==True): # if amp constant
         uv_iron_amp = uv_iron_options['uv_amp_const']['uv_iron_val']
-    if (uv_iron_options['uv_fwhm_const']['bool']==False): # if amp not constant
-        uv_iron_fwhm = pdict['UV_IRON_FWHM']
-    elif (uv_iron_options['uv_fwhm_const']['bool']==True): # if amp constant
-        uv_iron_fwhm = uv_iron_options['uv_fwhm_const']['uv_iron_val']
-    if uv_iron_fwhm <= 0.01: uv_iron_fwhm = 0.01
+    #
+    if (uv_iron_options['uv_disp_const']['bool']==False): # if amp not constant
+        uv_iron_disp = pdict['UV_IRON_DISP']
+    elif (uv_iron_options['uv_disp_const']['bool']==True): # if amp constant
+        uv_iron_disp = uv_iron_options['uv_disp_const']['uv_iron_val']
+    if uv_iron_disp <= 0.01: uv_iron_disp = 0.01
+    #
     if (uv_iron_options['uv_voff_const']['bool']==False): # if amp not constant
         uv_iron_voff = pdict['UV_IRON_VOFF']
     elif (uv_iron_options['uv_voff_const']['bool']==True): # if amp constant
@@ -7382,7 +7532,7 @@ def VW01_uv_iron_template(lam_gal, pdict, uv_iron_template, uv_iron_options, vel
 
     # Convolve the UV iron FFT template and return the inverse Fourier transform.
     conv_temp = convolve_gauss_hermite(uv_iron_fft, npad, velscale,
-                                          [uv_iron_voff, uv_iron_fwhm/2.3548], lam_gal.shape[0], 
+                                          [uv_iron_voff, uv_iron_disp], lam_gal.shape[0], 
                                            velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
 
     # Reshape
@@ -7412,7 +7562,7 @@ def VW01_uv_iron_template(lam_gal, pdict, uv_iron_template, uv_iron_options, vel
 ##################################################################################
 
 def generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer,velscale, 
-                              balmer_ratio, balmer_amp, balmer_fwhm, balmer_voff, balmer_Teff, balmer_tau):
+                              balmer_ratio, balmer_amp, balmer_disp, balmer_voff, balmer_Teff, balmer_tau):
     # We need to generate a new grid for the Balmer continuum that matches
     # that we made for the higher-order lines
     def blackbody(lam, balmer_Teff):
@@ -7442,10 +7592,10 @@ def generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer,velscale,
     balmer_fft, balmer_npad = template_rfft(full_balmer)
     c = 299792.458 # speed of light in km/s
     vsyst = np.log(lam_balmer[0]/lam_gal[0])*c
-    if balmer_fwhm<= 0.01: balmer_fwhm = 0.01
+    if balmer_disp<= 0.01: balmer_disp = 0.01
     # Broaden the higher-order Balmer lines
     conv_temp = convolve_gauss_hermite(balmer_fft, balmer_npad, float(velscale),\
-                                       [balmer_voff, balmer_fwhm/2.3548], lam_gal.shape[0], 
+                                       [balmer_voff, balmer_disp], lam_gal.shape[0], 
                                        velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
     conv_temp = conv_temp/conv_temp[find_nearest(lam_gal,lam_edge)[1]] * balmer_ratio
     conv_temp = conv_temp.reshape(-1)
@@ -7541,24 +7691,24 @@ def broken_power_law(x, amp, x_break, alpha_1, alpha_2, delta):
 
 ##################################################################################
 
-
+#### Line Profiles ####
 
 ##################################################################################
 
-def gaussian_line_profile(lam_gal,center,amp,fwhm,voff,center_pix,fwhm_res_kms,velscale):
+def gaussian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,velscale):
     """
     Produces a gaussian vector the length of
     x with the specified parameters.
     """
     # Take into account instrumental dispersion (FWHM resolution)
-    fwhm = np.sqrt(fwhm**2+fwhm_res_kms**2)
-    sigma = fwhm/2.3548 # Gaussian dispersion in km/s
+    disp = np.sqrt(disp**2+disp_res_kms**2)
+    sigma = disp # Gaussian dispersion in km/s
     sigma_pix = sigma/(velscale) # dispersion in pixels (velscale = km/s/pixel)
     if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix = voff/(velscale) # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix = x_pix.reshape((len(x_pix),1)) # reshape into row
     g = amp*np.exp(-0.5*(x_pix-(center_pix))**2/(sigma_pix)**2) # construct gaussian
     g = np.sum(g,axis=1)
@@ -7571,31 +7721,26 @@ def gaussian_line_profile(lam_gal,center,amp,fwhm,voff,center_pix,fwhm_res_kms,v
 
 ##################################################################################
 
-def lorentzian_line_profile(lam_gal,center,amp,fwhm,voff,center_pix,fwhm_res_kms,velscale,noise):
+def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,velscale,noise):
     """
     Produces a lorentzian vector the length of
     x with the specified parameters.
     (See: https://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Lorentz1D.html)
     """
     
-    # Take into account instrumental dispersion (FWHM resolution)
-    fwhm = np.sqrt(fwhm**2+fwhm_res_kms**2)
+    # Take into account instrumental dispersion (dispersion resolution)
+    disp = np.sqrt(disp**2+disp_res_kms**2)
+    fwhm  = disp*2.3548
     fwhm_pix = fwhm/velscale # fwhm in pixels (velscale = km/s/pixel)
     if fwhm_pix<=0.01: fwhm_pix = 0.01
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix = x_pix.reshape((len(x_pix),1)) # reshape into row 
-
     gamma = 0.5*fwhm_pix
     l = amp*( (gamma**2) / (gamma**2+(x_pix-center_pix)**2) ) # construct lorenzian
     l= np.sum(l,axis=1)
-
-    # Truncate wings below noise level
-    l[l<=np.median(noise)] = 0.0
-    l[l>np.median(noise)] -= np.median(noise)
-
     # Make sure edges of gaussian are zero to avoid wierd things
     l[(l>-1e-6) & (l<1e-6)] = 0.0
     l[0]  = l[1]
@@ -7605,26 +7750,25 @@ def lorentzian_line_profile(lam_gal,center,amp,fwhm,voff,center_pix,fwhm_res_kms
 
 ##################################################################################
 
-def gauss_hermite_line_profile(lam_gal,center,amp,fwhm,voff,hmoments,center_pix,fwhm_res_kms,velscale,noise):
+def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
     """
     Produces a Gauss-Hermite vector the length of
     x with the specified parameters.
     """
     
     # Take into account instrumental dispersion (FWHM resolution)
-    fwhm = np.sqrt(fwhm**2+fwhm_res_kms**2)
-    sigma_pix = fwhm/2.3548/velscale # dispersion in pixels (velscale = km/s/pixel)
+    disp = np.sqrt(disp**2+disp_res_kms**2)
+    sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
     if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix = x_pix.reshape((len(x_pix),1)) #- center_pix
-    
     # Taken from Riffel 2010 - profit: a new alternative for emission-line profile fitting
     w = (x_pix-center_pix)/sigma_pix
     alpha = 1.0/np.sqrt(2.0)*np.exp(-w**2/2.0)
-
+    #
     if hmoments is not None:
         mom = len(hmoments)+2
         n = np.arange(3, mom + 1)
@@ -7636,7 +7780,7 @@ def gauss_hermite_line_profile(lam_gal,center,amp,fwhm,voff,hmoments,center_pix,
         coeff = np.array([1, 0, 0])
         h = hermite.hermval(w,coeff)
         g = (amp*alpha)/sigma_pix*h
-
+    #
     g = np.sum(g,axis=1)
     # We ensure any values of the line profile that are negative
     # are zeroed out (See Van der Marel 1993)
@@ -7645,11 +7789,6 @@ def gauss_hermite_line_profile(lam_gal,center,amp,fwhm,voff,hmoments,center_pix,
     g = g/np.max(g)
     # Apply amplitude
     g = amp*g
-
-    # Truncate wings below noise level
-    g[g<=np.median(noise)] = 0.0
-    g[g>np.median(noise)] -= np.median(noise)
-
     # Replace the ends with the same value 
     g[(g>-1e-6) & (g<1e-6)] = 0.0
     g[0]  = g[1]
@@ -7659,50 +7798,109 @@ def gauss_hermite_line_profile(lam_gal,center,amp,fwhm,voff,hmoments,center_pix,
 
 ##################################################################################
 
-def voigt_line_profile(lam_gal,center,amp,fwhm,voff,shape,center_pix,fwhm_res_kms,velscale,noise):
+def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+    """
+    Produces a Laplace kernel vector the length of
+    x with the specified parameters.
+    Laplace kernel from Sanders & Evans (2020):
+    https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract
+    """
+
+    # Take into account instrumental dispersion (FWHM resolution)
+    disp = np.sqrt(disp**2+disp_res_kms**2)
+    sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
+    if sigma_pix<=0.01: sigma_pix = 0.01
+    voff_pix = voff/velscale # velocity offset in pixels
+    center_pix = center_pix + voff_pix # shift the line center by voff in pixels
+    # Note that the pixel vector must be a float type otherwise
+    # the GH alternative functions return NaN.
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
+    # print(sigma_pix,center_pix)
+    g = gh_alt.laplace_kernel_pdf(x_pix,0.0,center_pix,sigma_pix,hmoments[0],hmoments[1])
+    # We ensure any values of the line profile that are negative
+    g[g<0] = 0.0
+    # Normalize to 1
+    g = g/np.nanmax(g)
+    # Apply amplitude
+    g = amp*g
+    # Replace the ends with the same value 
+    g[(g>-1e-6) & (g<1e-6)] = 0.0
+    g[0]  = g[1]
+    g[-1] = g[-2]
+    #
+    return g
+
+##################################################################################
+
+def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+    """
+    Produces a Uniform kernel vector the length of
+    x with the specified parameters.
+    Uniform kernel from Sanders & Evans (2020):
+    https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract
+    """
+    
+    # Take into account instrumental dispersion (FWHM resolution)
+    disp = np.sqrt(disp**2+disp_res_kms**2)
+    sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
+    if sigma_pix<=0.01: sigma_pix = 0.01
+    voff_pix = voff/velscale # velocity offset in pixels
+    center_pix = center_pix + voff_pix # shift the line center by voff in pixels
+    # Note that the pixel vector must be a float type otherwise
+    # the GH alternative functions return NaN.
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
+    # print(sigma_pix,center_pix)
+    g = gh_alt.uniform_kernel_pdf(x_pix,0.0,center_pix,sigma_pix,hmoments[0],hmoments[1])
+    # We ensure any values of the line profile that are negative
+    g[g<0] = 0.0
+    # Normalize to 1
+    g = g/np.nanmax(g)
+    # Apply amplitude
+    g = amp*g
+    # Replace the ends with the same value 
+    g[(g>-1e-6) & (g<1e-6)] = 0.0
+    g[0]  = g[1]
+    g[-1] = g[-2]
+    #
+    return g
+
+##################################################################################
+
+def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_kms,velscale,noise):
     """
     Pseudo-Voigt profile implementation from:
     https://docs.mantidproject.org/nightly/fitting/fitfunctions/PseudoVoigt.html
     """
     # Take into account instrumental dispersion (FWHM resolution)
-    fwhm	   = np.sqrt(fwhm**2+fwhm_res_kms**2)
-    fwhm_pix   = fwhm/velscale # fwhm in pixels (velscale = km/s/pixel)
+    disp	   = np.sqrt(disp**2+disp_res_kms**2)
+    fwhm_pix   = (disp*2.3548)/velscale # fwhm in pixels (velscale = km/s/pixel)
     if fwhm_pix<=0.01: fwhm_pix = 0.01
     sigma_pix  = fwhm_pix/2.3548
     if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix   = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix	  = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix	  = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix	  = x_pix.reshape((len(x_pix),1)) # reshape into row 
-    
     # Gaussian contribution
     a_G = 1.0/(sigma_pix * np.sqrt(2.0*np.pi))
     g = a_G * np.exp(-0.5*(x_pix-(center_pix))**2/(sigma_pix)**2)
     g = np.sum(g,axis=1)
-
     # Lorentzian contribution
     l = (1.0/np.pi) * (fwhm_pix/2.0)/((x_pix-center_pix)**2 + (fwhm_pix/2.0)**2)
     l = np.sum(l,axis=1)
-    
-    # Intensity
-      # I = amp/((float(shape)*a_G) + ((1.0-float(shape))*(2.0/(np.pi*fwhm_pix))))
-
     # Voigt profile
     pv =  (float(shape) * g) + ((1.0-float(shape))*l)
-
     # Normalize and multiply by amplitude
     pv = pv/np.max(pv)*amp
-
     # Truncate wings below noise level
-    pv[pv<=np.median(noise)] = 0.0
-    pv[pv>np.median(noise)] -= np.median(noise)
-
+    # pv[pv<=np.median(noise)] = 0.0
+    # pv[pv>np.median(noise)] -= np.median(noise)
     # Replace the ends with the same value 
     pv[(pv>-1e-6) & (pv<1e-6)] = 0.0
     pv[0]  = pv[1]
     pv[-1] = pv[-2]
-    
+    #
     return pv
 
 ##################################################################################
@@ -9559,7 +9757,7 @@ def plot_best_model(param_dict,
                     uv_iron_template,
                     balmer_template,
                     stel_templates,
-                    fwhm_gal,
+                    disp_res,
                     fit_mask,
                     fit_stat,
                     velscale,
@@ -9614,7 +9812,7 @@ def plot_best_model(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
-                          fwhm_gal,
+                          disp_res,
                           fit_mask,
                           velscale,
                           run_dir,
@@ -10194,7 +10392,7 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_broad',':',str(comp_options['fit_broad']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_outflow',':',str(comp_options['fit_outflow']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_absorp',':',str(comp_options['fit_absorp']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('tie_line_fwhm',':',str(comp_options['tie_line_fwhm']) )) 
+            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('tie_line_disp',':',str(comp_options['tie_line_disp']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('tie_line_voff',':',str(comp_options['tie_line_voff']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('na_line_profile',':',str(comp_options['na_line_profile']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('br_line_profile',':',str(comp_options['br_line_profile']) )) 
@@ -10250,12 +10448,12 @@ def write_log(output_val,output_type,run_dir):
             if (comp_options['fit_opt_feii']==True) and (opt_feii_options['opt_template']['type']=='VC04'):
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_template:',':','type: %s' % str(opt_feii_options['opt_template']['type']) ))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_amp_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_amp_const']['bool']),str(opt_feii_options['opt_amp_const']['br_opt_feii_val']),str(opt_feii_options['opt_amp_const']['na_opt_feii_val']))))
-                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_fwhm_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_fwhm_const']['bool']),str(opt_feii_options['opt_fwhm_const']['br_opt_feii_val']),str(opt_feii_options['opt_fwhm_const']['na_opt_feii_val']))))
+                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_disp_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_disp_const']['bool']),str(opt_feii_options['opt_disp_const']['br_opt_feii_val']),str(opt_feii_options['opt_disp_const']['na_opt_feii_val']))))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_voff_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_voff_const']['bool']),str(opt_feii_options['opt_voff_const']['br_opt_feii_val']),str(opt_feii_options['opt_voff_const']['na_opt_feii_val']))))
             if (comp_options['fit_opt_feii']==True) and (opt_feii_options['opt_template']['type']=='K10'):
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_template:',':','type: %s' % str(opt_feii_options['opt_template']['type']) ))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_amp_const',':','bool: %s, f_feii_val: %s, s_feii_val: %s, g_feii_val: %s, z_feii_val: %s' % (str(opt_feii_options['opt_amp_const']['bool']),str(opt_feii_options['opt_amp_const']['f_feii_val']),str(opt_feii_options['opt_amp_const']['s_feii_val']),str(opt_feii_options['opt_amp_const']['g_feii_val']),str(opt_feii_options['opt_amp_const']['z_feii_val']))))
-                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_fwhm_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_fwhm_const']['bool']),str(opt_feii_options['opt_fwhm_const']['opt_feii_val']),)))
+                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_disp_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_disp_const']['bool']),str(opt_feii_options['opt_disp_const']['opt_feii_val']),)))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_voff_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_voff_const']['bool']),str(opt_feii_options['opt_voff_const']['opt_feii_val']),)))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_temp_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_temp_const']['bool']),str(opt_feii_options['opt_temp_const']['opt_feii_val']),)))
             elif comp_options["fit_opt_feii"]==False:
@@ -10266,7 +10464,7 @@ def write_log(output_val,output_type,run_dir):
             if (comp_options['fit_uv_iron']==True):
                 logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   uv_iron_options:','',''))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('uv_amp_const',':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options['uv_amp_const']['bool']),str(uv_iron_options['uv_amp_const']['uv_iron_val']) )))
-                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('uv_fwhm_const',':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options['uv_fwhm_const']['bool']),str(uv_iron_options['uv_fwhm_const']['uv_iron_val']),)))
+                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('uv_disp_const',':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options['uv_disp_const']['bool']),str(uv_iron_options['uv_disp_const']['uv_iron_val']),)))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('uv_voff_const',':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options['uv_voff_const']['bool']),str(uv_iron_options['uv_voff_const']['uv_iron_val']),)))
             elif comp_options["fit_uv_iron"]==False:
                 logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   uv_iron_options:','',''))
@@ -10277,7 +10475,7 @@ def write_log(output_val,output_type,run_dir):
                 logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   balmer_options:','',''))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('R_const',':','bool: %s, R_val: %s' % (str(balmer_options['R_const']['bool']),str(balmer_options['R_const']['R_val']) )))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('balmer_amp_const',':','bool: %s, balmer_amp_val: %s' % (str(balmer_options['balmer_amp_const']['bool']),str(balmer_options['balmer_amp_const']['balmer_amp_val']),)))
-                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('balmer_fwhm_const',':','bool: %s, balmer_fwhm_val: %s' % (str(balmer_options['balmer_fwhm_const']['bool']),str(balmer_options['balmer_fwhm_const']['balmer_fwhm_val']),)))
+                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('balmer_disp_const',':','bool: %s, balmer_disp_val: %s' % (str(balmer_options['balmer_disp_const']['bool']),str(balmer_options['balmer_disp_const']['balmer_disp_val']),)))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('balmer_voff_const',':','bool: %s, balmer_voff_val: %s' % (str(balmer_options['balmer_voff_const']['bool']),str(balmer_options['balmer_voff_const']['balmer_voff_val']),)))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('Teff_const',':','bool: %s, Teff_val: %s' % (str(balmer_options['Teff_const']['bool']),str(balmer_options['Teff_const']['Teff_val']),)))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('tau_const',':','bool: %s, tau_val: %s' % (str(balmer_options['tau_const']['bool']),str(balmer_options['tau_const']['tau_val']),)))
@@ -10399,7 +10597,7 @@ def write_log(output_val,output_type,run_dir):
         (pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap,
         f_conf,f_conf_err,f_stat,f_stat_err,f_pval,f_pval_err,
         chi2_ratio,chi2_ratio_err,chi2_no_line,chi2_no_line_err,chi2_line,chi2_line_err,
-        # amp_metric,fwhm_metric,voff_metric,voff_metric_err,
+        # amp_metric,disp_metric,voff_metric,voff_metric_err,
         ssr_ratio,ssr_ratio_err,ssr_no_line,ssr_no_line_err,ssr_line,ssr_line_err,
         median_noise, median_noise_err, 
         total_resid_noise,total_resid_noise_err,resid_noise_no_line,resid_noise_no_line_err,resid_noise_line,resid_noise_line_err) = output_val
