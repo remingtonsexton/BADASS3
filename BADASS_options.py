@@ -47,12 +47,12 @@ comp_options={
 "fit_broad"        : True, # broad lines
 "fit_outflow"      : True, # outflow lines
 "fit_absorp"       : False, # absorption lines
-"tie_line_fwhm"    : False, # tie line widths
+"tie_line_disp"    : False, # tie line widths
 "tie_line_voff"    : False, # tie line velocity offsets
-"na_line_profile"  : "G",     # narrow line profile
-"br_line_profile"  : "GH",     # broad line profile
-"out_line_profile" : "G",     # outflow line profile
-"abs_line_profile" : "G",     # absorption line profile
+"na_line_profile"  : "gaussian",     # narrow line profile
+"br_line_profile"  : "gauss-hermite",     # broad line profile
+"out_line_profile" : "gaussian",     # outflow line profile
+"abs_line_profile" : "gaussian",     # absorption line profile
 "n_moments"        : 4, # number of Gauss-Hermite moments for Gauss-Hermite line profiles
                         # must be >2 and <10 for higher-order moments (default = 4)
 }
@@ -121,21 +121,21 @@ poly_options = {
 # The options are:
 # template   : VC04 (Veron-Cetty 2004) or K10 (Kovacevic 2010)
 # amp_const  : constant amplitude (default False)
-# fwhm_const : constant fwhm (default True)
+# disp_const : constant disp (default True)
 # voff_const : constant velocity offset (default True)
 # temp_const : constant temp ('K10' only)
 
 opt_feii_options={
 "opt_template"  :{"type":"VC04"}, 
 "opt_amp_const" :{"bool":False, "br_opt_feii_val":1.0   , "na_opt_feii_val":1.0},
-"opt_fwhm_const":{"bool":False, "br_opt_feii_val":3000.0, "na_opt_feii_val":500.0},
+"opt_disp_const":{"bool":False, "br_opt_feii_val":3000.0, "na_opt_feii_val":500.0},
 "opt_voff_const":{"bool":False, "br_opt_feii_val":0.0   , "na_opt_feii_val":0.0},
 }
 # or
 # opt_feii_options={
 # "opt_template"  :{"type":"K10"},
 # "opt_amp_const" :{"bool":False,"f_feii_val":1.0,"s_feii_val":1.0,"g_feii_val":1.0,"z_feii_val":1.0},
-# "opt_fwhm_const":{"bool":False,"opt_feii_val":1500.0},
+# "opt_disp_const":{"bool":False,"opt_feii_val":1500.0},
 # "opt_voff_const":{"bool":False,"opt_feii_val":0.0},
 # "opt_temp_const":{"bool":True,"opt_feii_val":10000.0},
 # }
@@ -144,7 +144,7 @@ opt_feii_options={
 ############################### UV Iron options ################################
 uv_iron_options={
 "uv_amp_const"  :{"bool":False, "uv_iron_val":1.0},
-"uv_fwhm_const" :{"bool":False, "uv_iron_val":3000.0},
+"uv_disp_const" :{"bool":False, "uv_iron_val":3000.0},
 "uv_voff_const" :{"bool":True,  "uv_iron_val":0.0},
 "uv_legendre_p" :{"bool":False, "uv_iron_val":3},
 }
@@ -156,7 +156,7 @@ uv_iron_options={
 balmer_options = {
 "R_const"          :{"bool":True,  "R_val":1.0}, # ratio between balmer continuum and higher-order balmer lines
 "balmer_amp_const" :{"bool":False, "balmer_amp_val":1.0}, # amplitude of overall balmer model (continuum + higher-order lines)
-"balmer_fwhm_const":{"bool":True,  "balmer_fwhm_val":5000.0}, # broadening of higher-order Balmer lines
+"balmer_disp_const":{"bool":True,  "balmer_disp_val":5000.0}, # broadening of higher-order Balmer lines
 "balmer_voff_const":{"bool":True,  "balmer_voff_val":0.0}, # velocity offset of higher-order Balmer lines
 "Teff_const"       :{"bool":True,  "Teff_val":15000.0}, # effective temperature
 "tau_const"        :{"bool":True,  "tau_val":1.0}, # optical depth
@@ -195,21 +195,21 @@ narrow_lines = {
 
     "NA_H_BETA"	   :{"center":4862.691, 
                      "amp":"free", 
-                     "fwhm":"NA_OIII_5007_FWHM", 
+                     "disp":"NA_OIII_5007_DISP", 
                      "voff":"NA_OIII_5007_VOFF", 
                      "line_type":"na" ,
                      "label":r"H$\beta$"
                     },
     "NA_OIII_4960" :{"center":4960.295, 
                      "amp":"(NA_OIII_5007_AMP/2.98)", 
-                     "fwhm":"NA_OIII_5007_FWHM", 
+                     "disp":"NA_OIII_5007_DISP", 
                      "voff":"NA_OIII_5007_VOFF", 
                      "line_type":"na" ,
                      "label":r"[O III]"
                     },
     "NA_OIII_5007" :{"center":5008.240, 
                      "amp":"free", 
-                     "fwhm":"free", 
+                     "disp":"free", 
                      "voff":"free", 
                      "line_type":"na" ,
                      "label":r"[O III]"
@@ -221,19 +221,19 @@ outlfow_line_profile = "G"
 outflow_lines = {
     "OUT_H_BETA"    :{"center":4862.691, 
                       "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , 
-                      "fwhm":"OUT_OIII_5007_FWHM", 
+                      "disp":"OUT_OIII_5007_DISP", 
                       "voff":"OUT_OIII_5007_VOFF", 
                       "line_type":"out"
                      },
     "OUT_OIII_4960" :{"center":4960.295, 
                       "amp":"OUT_OIII_5007_AMP/2.98", 
-                      "fwhm":"OUT_OIII_5007_FWHM", 
+                      "disp":"OUT_OIII_5007_DISP", 
                       "voff":"OUT_OIII_5007_VOFF", 
                       "line_type":"out"
                      },
     "OUT_OIII_5007" :{"center":5008.240, 
                       "amp":"free", 
-                      "fwhm":"free", 
+                      "disp":"free", 
                       "voff":"free", 
                       "line_type":"out"
                      },
@@ -243,12 +243,12 @@ outflow_lines = {
 broad_lines = {
     "BR_H_BETA"   :{"center":4862.691, 
                     "amp":"free", 
-                    "fwhm":"free", 
+                    "disp":"free", 
                     "voff":"free",
                     "h3":"free",
                     "h4":"free",
-                    "fwhm_plim":(500,5000),
-                    "fwhm_init":1000.0,
+                    "disp_plim":(500,5000),
+                    "disp_init":1000.0,
                     "line_profile":"GH",
                     "line_type":"br"
                    },
@@ -259,7 +259,7 @@ user_lines = {**narrow_lines, **broad_lines, **outflow_lines}#, **absorp_lines}
 user_constraints = [
     # Region 5 (4400 Å - 5500 Å)
     ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),# [OIII]5007 AMP > NA H-BETA AMP
-    ("OUT_OIII_5007_FWHM","NA_OIII_5007_FWHM"), # 2nd [OIII] component FWHM > 1st [OIII] component FWHM
+    ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"), # 2nd [OIII] component DISP > 1st [OIII] component DISP
     ]
 
 combined_lines = {

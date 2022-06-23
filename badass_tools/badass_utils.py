@@ -361,10 +361,10 @@ def check_comp_options(input,verbose=False):
 			"fit_absorp"	   : False, # absorption lines
 			"tie_line_disp"	: False, # tie line widths
 			"tie_line_voff"	: False, # tie line velocity offsets
-			"na_line_profile"  : "G",	 # narrow line profile
-			"br_line_profile"  : "G",	 # broad line profile
-			"out_line_profile" : "G",	 # outflow line profile
-			"abs_line_profile" : "G",	 # absorption line profile
+			"na_line_profile"  : "gaussian",	 # narrow line profile
+			"br_line_profile"  : "gaussian",	 # broad line profile
+			"out_line_profile" : "gaussian",	 # outflow line profile
+			"abs_line_profile" : "gaussian",	 # absorption line profile
 	}
 
 	Note: if fit_losvd and fit_host are both true, fit_losvd will override fit_host
@@ -385,10 +385,10 @@ def check_comp_options(input,verbose=False):
 			"fit_absorp"	   : False, # absorption lines
 			"tie_line_disp"	: False, # tie line widths
 			"tie_line_voff"	: False, # tie line velocity offsets
-			"na_line_profile"  : "G",	 # narrow line profile
-			"br_line_profile"  : "G",	 # broad line profile
-			"out_line_profile" : "G",	 # outflow line profile
-			"abs_line_profile" : "G",	 # absorption line profile
+			"na_line_profile"  : "gaussian",	 # narrow line profile
+			"br_line_profile"  : "gaussian",	 # broad line profile
+			"out_line_profile" : "gaussian",	 # outflow line profile
+			"abs_line_profile" : "gaussian",	 # absorption line profile
 			"n_moments"		   : 4, # number of higher-order moments for GH line profiles
 		}
 		return output
@@ -474,30 +474,30 @@ def check_comp_options(input,verbose=False):
 				  },
 	"na_line_profile" : {"conds":[
 							lambda x: isinstance(x,(str)),
-							lambda x: x in ["G","L","GH","V"]
+							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
 							],
-				  "default": "G",
+				  "default": "gaussian",
 				  "error_message": "\n na_line_profile must be a bool.\n",
 				  },
 	"br_line_profile" : {"conds":[
 							lambda x: isinstance(x,(str)),
-							lambda x: x in ["G","L","GH","V"]
+							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
 							],
-				  "default": "G",
+				  "default": "gaussian",
 				  "error_message": "\n br_line_profile must be a bool.\n",
 				  },
 	"out_line_profile" : {"conds":[
 							lambda x: isinstance(x,(str)),
-							lambda x: x in ["G","L","GH","V"]
+							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
 							],
-				  "default": "G",
+				  "default": "gaussian",
 				  "error_message": "\n out_line_profile must be a bool.\n",
 				  },
 	"abs_line_profile" : {"conds":[
 							lambda x: isinstance(x,(str)),
-							lambda x: x in ["G","L","GH","V"]
+							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
 							],
-				  "default": "G",
+				  "default": "gaussian",
 				  "error_message": "\n abs_line_profile must be a bool.\n",
 				  },
 	"n_moments" : {"conds" : [

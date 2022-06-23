@@ -220,12 +220,12 @@ comp_options={
 	"fit_broad"        : True, # broad lines
 	"fit_outflow"      : True, # outflow lines
 	"fit_absorp"       : False, # absorption lines
-	"tie_line_fwhm"    : False, # tie line widths
+	"tie_line_disp"    : False, # tie line widths
 	"tie_line_voff"    : False, # tie line velocity offsets
-	"na_line_profile"  : "G",     # narrow line profile
-	"br_line_profile"  : "V",     # broad line profile
-	"out_line_profile" : "G",     # outflow line profile
-	"abs_line_profile" : "G",     # absorption line profile
+	"na_line_profile"  : "gaussian",  # narrow line profile
+	"br_line_profile"  : "voigt",     # broad line profile
+	"out_line_profile" : "gaussian",  # outflow line profile
+	"abs_line_profile" : "gaussian",  # absorption line profile
 	"n_moments"        : 4, # number of Gauss-Hermite moments for Gauss-Hermite line profiles
 	                        # must be >2 and <10 for higher-order moments (default = 4)
 }
@@ -267,22 +267,22 @@ Fit lines of the `line_type`:`out` in the line list.  Convenience to easily togg
 **`fit_absorp`**: *Default=False*  
 Fit lines of the `line_type`:`abs` in the line list.  Occasionally one might need to fit a strong absorption feature that isn't described by stellar processes, such as a broad absorption line in a quasar.
 
-**`tie_line_fwhm`**: *Default=False*  
+**`tie_line_disp`**: *Default=False*  
 Ties the widths of all respective line types (all narrow lines are tied, all broad lines are tied, etc.).  This can be done to significantly reduce the number of free parameters in the fit if fitting many lines, however it is not recommended. 
 
 **`tie_line_voff`**: *Default=False*  
 Ties the velocity offsets of all respective line types (all narrow lines are tied, all broad lines are tied, etc.).  This can be done to significantly reduce the number of free parameters in the fit if fitting many lines, however it is not recommended. 
 
-**`na_line_profile`**: *Default="G"*
+**`na_line_profile`**: *Default="gaussian"*
 Line profile shape of the narrow lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH). 
 
-**`br_line_profile`**: *Default="V"*
-Line profile shape of the broad lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH).  Broad line profile shapes are not always Gaussian, and can occasionally be Lorentzian (such as in NLS1 galaxies).
+**`br_line_profile`**: *Default="voigt"*
+Line profile shape of the broad lines.  Options are Gaussian ('gaussian'), Lorentzian ('lorentzian'), pseudo-Voigt ('voigt'), Gauss-Hermite ('gauss-hermite'), Laplace ('laplace'), or Uniform ('uniform').  Broad line profile shapes are not always Gaussian, and can occasionally be Lorentzian (such as in NLS1 galaxies).
 
-**`out_line_profile`**: *Default="G"*
+**`out_line_profile`**: *Default="gaussian"*
 Line profile shape of the outflow lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH). 
 
-**`abs_line_profile`**: *Default="G"*
+**`abs_line_profile`**: *Default="gaussian"*
 Line profile shape of the absorption lines.  Options are Gaussian (G), Lorentzian (L), pseudo-Voigt (V), or Gauss-Hermite (GH). 
 
 **`n_moments`**: *Default=4*
@@ -298,7 +298,7 @@ Additionally, the user can provide additional lines to the default line list dir
 
 ```python
 user_lines = {
-	"na_unknown_1":{"center":6085., "line_type":"na", "line_profile":"G"},
+	"na_unknown_1":{"center":6085., "line_type":"na", "line_profile":"gaussian"},
 }
 ```
 
@@ -306,7 +306,7 @@ Similarly, one can provided additional soft constraints.  For example, if we wan
 
 ```python
 user_constraints = [
-	("br_MgII_2799_fwhm","na_MgII_2799_fwhm"),
+	("BR_MGII_2799_DISP","NA_MGII_2799_DISP"),
 ]
 ```
 
@@ -323,7 +323,7 @@ user_mask = [
 ```
 ## Combined Lines 
 
-One might be interested in the combined sum of two individual line components, and want to calculate the combined FWHM, flux-weighted integrated dispersions, or velocity offsets.  One can define combinations of individual line components, the parameters of which will be computed at every iteration of the fit to include uncertainties on the combined components, which would otherwise be non-trivial in a post-analysis step.
+One might be interested in the combined sum of two individual line components, and want to calculate the combined FWHM, dispersions, or velocity offsets.  One can define combinations of individual line components, the parameters of which will be computed at every iteration of the fit to include uncertainties on the combined components, which would otherwise be non-trivial in a post-analysis step.
 
 Below we define components for the H-beta/[OIII] lines, defined as the sum of the narrow and outflow components:
 
@@ -374,7 +374,7 @@ poly_options = {
 
 ## Optical FeII Options
 
-There are two FeII templates built into BADASS.  The default is the broad and narrow templates from [Véron-Cetty et al. (2004)](https://ui.adsabs.harvard.edu/abs/2004A%26A...417..515V/abstract) (`VC04`).  This model allows the user to have amplitude, FWHM, and velocity offset as free-parameters, with options to constrain them to constant values during the fit.  BADASS can also use the temperature-dependent template from [Kovačević et al. (2010)](https://ui.adsabs.harvard.edu/abs/2010MSAIS..15..176K/abstract) (`K10`), which allows for the fitting of individual F, S, G, and I Zw 1 atomic transitions, as well as temperature.  The K10 template is best suited for modeling FeII in NLS1 objects with strong FeII emission.
+There are two FeII templates built into BADASS.  The default is the broad and narrow templates from [Véron-Cetty et al. (2004)](https://ui.adsabs.harvard.edu/abs/2004A%26A...417..515V/abstract) (`VC04`).  This model allows the user to have amplitude, dispersion, and velocity offset as free-parameters, with options to constrain them to constant values during the fit.  BADASS can also use the temperature-dependent template from [Kovačević et al. (2010)](https://ui.adsabs.harvard.edu/abs/2010MSAIS..15..176K/abstract) (`K10`), which allows for the fitting of individual F, S, G, and I Zw 1 atomic transitions, as well as temperature.  The K10 template is best suited for modeling FeII in NLS1 objects with strong FeII emission.
 
 ```python
 ############################### FeII Fit options ###############################
@@ -388,21 +388,21 @@ There are two FeII templates built into BADASS.  The default is the broad and na
 # The options are:
 # template   : VC04 (Veron-Cetty 2004) or K10 (Kovacevic 2010)
 # amp_const  : constant amplitude (default False)
-# fwhm_const : constant fwhm (default True)
+# disp_const : constant disp (default True)
 # voff_const : constant velocity offset (default True)
 # temp_const : constant temp ('K10' only)
 
 feii_options={
 	'template'  :{'type':'VC04'}, 
 	'amp_const' :{'bool':False,'br_feii_val':1.0,'na_feii_val':1.0},
-	'fwhm_const':{'bool':True,'br_feii_val':3000.0,'na_feii_val':500.0},
+	'disp_const':{'bool':True,'br_feii_val':3000.0,'na_feii_val':500.0},
 	'voff_const':{'bool':True,'br_feii_val':0.0,'na_feii_val':0.0},
 }
 # or
 # feii_options={
 # 'template'  :{'type':'K10'},
 # 'amp_const' :{'bool':False,'f_feii_val':1.0,'s_feii_val':1.0,'g_feii_val':1.0,'z_feii_val':1.0},
-# 'fwhm_const':{'bool':False,'val':1500.0},
+# 'disp_const':{'bool':False,'val':1500.0},
 # 'voff_const':{'bool':False,'val':0.0},
 # 'temp_const':{'bool':True,'val':10000.0} 
 # }
@@ -413,7 +413,7 @@ feii_options={
 ```python
 uv_iron_options={
 	"uv_amp_const"  :{"bool":False, "uv_iron_val":1.0}, # hold amplitude constant?
-	"uv_fwhm_const" :{"bool":False, "uv_iron_val":3000.0},  # hold FWHM constant?
+	"uv_disp_const" :{"bool":False, "uv_iron_val":3000.0},  # hold dispersion constant?
 	"uv_voff_const" :{"bool":True,  "uv_iron_val":0.0}, # hold velocity constant?
 }
 ```
@@ -423,7 +423,7 @@ uv_iron_options={
 balmer_options = {
 	"R_const" :{"bool":True,  "R_val":1.0}, # ratio between balmer continuum and higher-order lines
 	"balmer_amp_const" :{"bool":False, "balmer_amp_val":1.0}, # hold amplitude constant?
-	"balmer_fwhm_const" :{"bool":True,  "balmer_fwhm_val":5000.0}, # hold dispersion constant?
+	"balmer_disp_const" :{"bool":True,  "balmer_disp_val":5000.0}, # hold dispersion constant?
 	"balmer_voff_const" :{"bool":True,  "balmer_voff_val":0.0}, # hold velocity constant?
 	"Teff_const" :{"bool":True,  "Teff_val":15000.0}, # effective temperature
 	"tau_const" :{"bool":True,  "tau_val":1.0}, # optical depth
@@ -686,16 +686,16 @@ The default line list built into BADASS references most of the [standard SDSS li
 				 "amp_init" : float, # initial guess value 
 				 "amp_plim" : tuple, # tuple of (lower,upper) bounds of parameter
 				 
-				 "fwhm"     :"free", # "free" parameter or tied to another valid parameter
-				 "fwhm_init": float, # initial guess value 
-				 "fwhm_plim": tuple, # tuple of (lower,upper) bounds of parameter
+				 "disp"     :"free", # "free" parameter or tied to another valid parameter
+				 "disp_init": float, # initial guess value 
+				 "disp_plim": tuple, # tuple of (lower,upper) bounds of parameter
 				 
 				 "voff"     :"free",  # "free" parameter or tied to another valid parameter
 				 "voff_init": float, # initial guess value 
 				 "voff_plim": tuple, # tuple of (lower,upper) bounds of parameter
 				 
 				 "line_type": "na", # line type ["na","br","out","abs", or "user]
-				 "line_profile": "G" # Gaussian (G), Lorentzian (L), Voigt (V), or Gauss-Hermite (GH)
+				 "line_profile": "gaussian" # gaussian, lorentzian, voigt, gauss-hermite, laplace, or uniform
 				 "label"    : string, # a name for the line for plotting purposes
 				 },
 ```
@@ -707,7 +707,7 @@ For example:
 ```python
 "NA_OIII_5007" :{"center"   : 5008.240, 
 				 "amp"      : "free",
-				 "fwhm"     : "free",
+				 "disp"     : "free",
 				 "voff"     : "free",
 				 "line_type": "na",
 				 "label"    : r"[O III]"
@@ -719,12 +719,12 @@ or in a more general case
 ```python
 "RANDOM_USER_LINE" :{"center"      : 3094.394, # some random wavelength 
 				     "amp"         : "free",
-				     "fwhm"        : "free",
+				     "disp"        : "free",
 				     "voff"        : "free",
 				     "h3"          : "free",
 				     "h4"          : "free",
 				     "line_type"   : "user",
-				     "line_profile": "GH"
+				     "line_profile": "gauss-hermite"
 				     "label"       : r"User Line"
 				 },
 ```
@@ -736,7 +736,7 @@ BADASS uses the `numexpr` module to allow for hard constraints on line parameter
 ```python
 		"NA_OIII_4960" :{"center":4960.295,
 						 "amp":"(NA_OIII_5007_AMP/2.98)", 
-						 "fwhm":"NA_OIII_5007_FWHM", 
+						 "disp":"NA_OIII_5007_DISP", 
 						 "voff":"NA_OIII_5007_VOFF", 
 						 "line_type":"na" ,
 						 "label":r"[O III]"
@@ -744,35 +744,35 @@ BADASS uses the `numexpr` module to allow for hard constraints on line parameter
 						 
 		"NA_OIII_5007" :{"center":5008.240, 
 						 "amp":"free", 
-						 "fwhm":"free", 
+						 "disp":"free", 
 						 "voff":"free", 
 						 "line_type":"na" ,
 						 "label":r"[O III]"
 						 },
 
 ```
-This works because when we define `NA_OIII_5007`, free parameters are created for the amplitude (`NA_OIII_5007_AMP`), FWHM (`NA_OIII_5007_FWHM`) and velocity offset (`NA_OIII_5007_VOFF`), because we specified that they are *free* parameters.  These free parameters are the actual parameters that are solved for.  We can then reference those free valid parameters for `NA_OIII_4960`.  The power of the `numexpr` module is that we can also perform mathematical operations on those parameters *during* the fit, for example we can fix the amplitude of [OIII]4960 to be the [OIII]5007 amplitude divided by 2.93.  This makes implementing hard constraints very easy and is a very powerful feature.  With that said, you can do some pretty wild and unrealistic stuff, so use it responsibly.
+This works because when we define `NA_OIII_5007`, free parameters are created for the amplitude (`NA_OIII_5007_AMP`), dispersion (`NA_OIII_5007_DISP`) and velocity offset (`NA_OIII_5007_VOFF`), because we specified that they are *free* parameters.  These free parameters are the actual parameters that are solved for.  We can then reference those free valid parameters for `NA_OIII_4960`.  The power of the `numexpr` module is that we can also perform mathematical operations on those parameters *during* the fit, for example we can fix the amplitude of [OIII]4960 to be the [OIII]5007 amplitude divided by 2.93.  This makes implementing hard constraints very easy and is a very powerful feature.  With that said, you can do some pretty wild and unrealistic stuff, so use it responsibly.
 
 ## Soft Constraints
 
-BADASS also uses the `numexpr` module to implement soft constrains on free parameters.  A soft constraint is defined here as a limit of a free parameter with respect to another free parameter, i.e., soft constraints are inequality constraints.  For example, if we want BADASS to enforce the requirement that broad H-beta has a greater FWHM than narrow [OIII]5007, we would say 
+BADASS also uses the `numexpr` module to implement soft constrains on free parameters.  A soft constraint is defined here as a limit of a free parameter with respect to another free parameter, i.e., soft constraints are inequality constraints.  For example, if we want BADASS to enforce the requirement that broad H-beta has a greater dispersion than narrow [OIII]5007, we would say 
 
-<img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM})&space;>=&space;(\rm{narrow~[OIII]5007~FWHM})" title="https://latex.codecogs.com/png.image?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM}) >= (\rm{narrow~[OIII]5007~FWHM})" />
+<img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP})&space;>=&space;(\rm{narrow~[OIII]5007~DISP})" title="https://latex.codecogs.com/png.image?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP}) >= (\rm{narrow~[OIII]5007~DISP})" />
 
 or in the way the `scipy.optimize()` module requires it
 
-<img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM}&space;)-&space;&space;(\rm{narrow~[OIII]5007~FWHM})&space;>=&space;0" title="https://latex.codecogs.com/png.image?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~FWHM} )- (\rm{narrow~[OIII]5007~FWHM}) >= 0" />
+<img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP}&space;)-&space;&space;(\rm{narrow~[OIII]5007~DISP})&space;>=&space;0" title="https://latex.codecogs.com/png.image?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP} )- (\rm{narrow~[OIII]5007~DISP}) >= 0" />
 
 In BADASS, this soft constraint would be implemented as a tuple of length 2: 
 ```python
-("BR_H_BETA_FWHM","NA_OIII_5007_FWHM")
+("BR_H_BETA_DISP","NA_OIII_5007_DISP")
 ```
 By default BADASS includes the following list of soft constraints in the `initialize_pars()` function:
 ```python
 soft_cons = [
-			("BR_H_BETA_FWHM","NA_OIII_5007_FWHM"), # broad H-beta width > narrow [OIII] width
-			("BR_H_BETA_FWHM","OUT_OIII_5007_FWHM"), # broad H-beta width > outflow width
-			("OUT_OIII_5007_FWHM","NA_OIII_5007_FWHM"), # outflow width > narrow [OIII] width
+			("BR_H_BETA_DISP","NA_OIII_5007_DISP"), # broad H-beta width > narrow [OIII] width
+			("BR_H_BETA_DISP","OUT_OIII_5007_DISP"), # broad H-beta width > outflow width
+			("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"), # outflow width > narrow [OIII] width
 			]
 ```
 

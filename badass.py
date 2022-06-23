@@ -54,6 +54,7 @@ import spectres
 cwd = os.getcwd() # get current working directory
 sys.path.insert(1,cwd+'/badass_tools/')
 import badass_utils as badass_utils
+import gh_alternative as gh_alt # Gauss-Hermite alternative line profiles
 
 plt.style.use('dark_background') # For cool tron-style dark plots
 import matplotlib
@@ -240,7 +241,7 @@ __status__	 = "Release"
 # -     (https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract; 
 # -      https://github.com/jls713/gh_alternative)
 # - Changed instrumental fwhm keyword to instrumental dispersion "disp_res".  Input resolution for user
-# -     -input spectra is still a "fwhm_res"
+# -     -input spectra is still a "fwhm_res" but changes to disp_res internally.
 
 
 ##########################################################################################################
@@ -2850,10 +2851,10 @@ def generate_comb_line_list(combined_lines,line_list):
         # Check to make sure lines are in line list
         if np.all([True if i in valid_lines else False for i in combined_lines[comb_line] ]):
             all_line_profiles = [line_list[i]["line_profile"] for i in combined_lines[comb_line] ]
-            if ("V" in all_line_profiles) or ("L" in all_line_profiles):
-                line_profile = "V"
+            if ("voigt" in all_line_profiles) or ("lorentzian" in all_line_profiles):
+                line_profile = "voigt"
             else:
-                line_profile = "G"
+                line_profile = "gaussian"
             combined_line_list[comb_line] = {"lines":combined_lines[comb_line],
                                              "center":line_list[combined_lines[comb_line][0]]["center"],
                                              "center_pix":line_list[combined_lines[comb_line][0]]["center_pix"],
@@ -2917,9 +2918,9 @@ def line_list_default():
         # "NA_HEI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
         # "NA_HEII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
 
-        "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"H$\beta$"},
-        "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF", "line_type":"na" ,"label":r"[O III]"},
-        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"			   , "line_type":"na" ,"label":r"[O III]"},
+        "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
+        "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
+        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"			   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
 
         # "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"STEL_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"H$\beta$"},
         # "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"STEL_DISP", "voff":"NA_OIII_5007_VOFF"  , "line_type":"na" ,"label":r"[O III]"},
@@ -2972,13 +2973,13 @@ def line_list_default():
         ##############################################################################################################################################################################################################################################
 
         ### Region Y (9000 Å - 12000 Å)
-        "NA_SIII_9069"    :{"center":9068.600 , "amp":"free", "disp":"NA_SIII_9531_DISP", "voff":"NA_SIII_9531_VOFF","h3":"NA_SIII_9531_H3", "h4":"NA_SIII_9531_H4", "line_type":"na", "line_profile":"GH", "label":r"[S III]"},
-        "NA_SIII_9531"    :{"center":9531.100 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[S III]"},
+        "NA_SIII_9069"    :{"center":9068.600 , "amp":"free", "disp":"NA_SIII_9531_DISP", "voff":"NA_SIII_9531_VOFF","h3":"NA_SIII_9531_H3", "h4":"NA_SIII_9531_H4", "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S III]"},
+        "NA_SIII_9531"    :{"center":9531.100 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S III]"},
 
-        "NA_CI_9824"    :{"center":9824.130 , "amp":"free", "disp":"NA_CI_9850_DISP"  , "voff":"NA_CI_9850_VOFF"  ,"h3":"NA_CI_9850_H3"  , "h4":"NA_CI_9850_H4"  , "line_type":"na", "line_profile":"GH", "label":r"[C I]"},
-        "NA_CI_9850"    :{"center":9850.260 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[C I]"},
+        "NA_CI_9824"    :{"center":9824.130 , "amp":"free", "disp":"NA_CI_9850_DISP"  , "voff":"NA_CI_9850_VOFF"  ,"h3":"NA_CI_9850_H3"  , "h4":"NA_CI_9850_H4"  , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[C I]"},
+        "NA_CI_9850"    :{"center":9850.260 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[C I]"},
 
-        "NA_SVIII_9913" :{"center":9913.000 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"GH", "label":r"[S VIII]"},
+        "NA_SVIII_9913" :{"center":9913.000 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S VIII]"},
 
         # "NA_PA_EPSIL"     :{"center":9548.587 , "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\epsilon$"},
 
@@ -3030,8 +3031,8 @@ def line_list_default():
         "BR_CIII_1908" :{"center":1908.734, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"C III]"},
 
         ### Region 7 (2000 Å - 3500 Å)
-        "BR_CII_2326"  :{"center":2326.000, "amp":"free", "disp":"free", "voff":"free", "line_profile":"G", "line_type":"br","label":r"C II]"},
-        "BR_FEIII_UV47":{"center":2418.000, "amp":"free", "disp":"free", "voff":"free", "line_profile":"G", "line_type":"br","label":r"Fe III"},
+        "BR_CII_2326"  :{"center":2326.000, "amp":"free", "disp":"free", "voff":"free", "line_profile":"gaussian", "line_type":"br","label":r"C II]"},
+        "BR_FEIII_UV47":{"center":2418.000, "amp":"free", "disp":"free", "voff":"free", "line_profile":"gaussian", "line_type":"br","label":r"Fe III"},
         "BR_MGII_2799" :{"center":2799.117, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"Mg II"},
 
         ### Region 6 (3500 Å - 4400 Å):
@@ -3106,7 +3107,7 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
     the "center" wavelength of the line.  If "amp", "disp", "voff", "h3" and "h4" (for Gauss-Hermite)
     line profiles are missing, it assumes these are all "free" parameters in the fitting of that line. 
     If "line_type" is not defined, it is assumed to be "na" (narrow).  If "line_profile" is not defined, 
-    it is assumed to be "G" (Gaussian). 
+    it is assumed to be "gaussian". 
     """
     # Input checking
     # If fit_narrow=False, set fit_outflow=False as well (doesn't make sense to fit outflows without their narrow lines)
@@ -3159,15 +3160,15 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
             line_list[line]["line_profile"] = comp_options["abs_line_profile"]
         if (("line_type" not in line_list[line]) and ("line_profile" not in line_list[line])) or (("line_type" in line_list[line]) and (line_list[line]["line_type"]=="user") and ("line_profile" not in line_list[line])):
             if verbose:
-                print("\n Warning: %s has no defined line_type or line_profile keywords.  Assuming line_profile='G' (Gaussian).\n" % line)
+                print("\n Warning: %s has no defined line_type or line_profile keywords.  Assuming line_profile='gaussian'.\n" % line)
             line_list[line]["line_type"] = "user" # User-defined line
-            line_list[line]["line_profile"] = "G"
+            line_list[line]["line_profile"] = "gaussian"
         if ("line_type" not in line_list[line]) and ("line_profile" in line_list[line]):
             line_list[line]["line_type"] = "user" # User-defined line
         if ("line_type" in line_list[line]) and (line_list[line]["line_type"] not in ["na","br","out","abs","user"]):
             raise ValueError("\n User-input line_type not recognized.  Available options are 'na' (narrow), 'br' (broad), 'out' (outflow), or 'abs' (absorption). If unsure, leave out this keyword.\n ")
-        if ("line_profile" in line_list[line]) and (line_list[line]["line_profile"] not in ["G","L","GH","V"]):
-            raise ValueError("\n User-input line_profile not recognized.  Available options are 'G' (Gaussian), 'L' (Lorentzian), 'GH' (Gauss-Hermite), or 'V' (Voigt).  Default is 'G' (Gaussian).\n ")
+        if ("line_profile" in line_list[line]) and (line_list[line]["line_profile"] not in ["gaussian","lorentzian","gauss-hermite","voigt","laplace","uniform"]):
+            raise ValueError("\n User-input line_profile not recognized.  Available options are 'gaussian', 'lorentzian', 'gauss-hermite', 'voigt', 'laplace', or 'uniform'.  Default is 'gaussian'.\n ")
     #
     # Step 5: Check parameters based on the defined line profile; if line_profile is not defined, add a keyword for the line profile.  If it 
     # is defined, make sure its consisten with the comp_options and line_type:
@@ -3178,19 +3179,24 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
             line_list[line]["disp"]="free"
         if ("voff" not in line_list[line]): # Assume "free"
             line_list[line]["voff"]="free"
-        if (line_list[line]["line_profile"]=="GH") and (comp_options["n_moments"]>2): # If Gauss-Hermite line profile
+        if (line_list[line]["line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2): # If Gauss-Hermite line profile
             for m in range(3,3+(comp_options["n_moments"]-2),1):
                 if ("h"+str(m) not in line_list[line]): # Assume "free"
                     line_list[line]["h"+str(m)]="free"
-        if (line_list[line]["line_profile"]=='V'):
+        if (line_list[line]["line_profile"]=='voigt'):
             if ("shape" not in line_list[line]): # Assume "free"
                 line_list[line]["shape"]="free"
+        if (line_list[line]["line_profile"] in ['laplace','uniform']):
+            if ("h3" not in line_list[line]): # Assume "free"
+                line_list[line]["h3"]="free"
+            if ("h4" not in line_list[line]): # Assume "free"
+                line_list[line]["h4"]="free"
 
         # Remove unnecessary parameters
         # If the line profile is Gauss-Hermite, but the number of higher-order moments is 
         # less than or equal to 2 (for which the line profile is just Gaussian), remove any 
         # unnecessary higher-order line parameters that may be in the line dictionary.
-        if (line_list[line]["line_profile"]=="GH"):
+        if (line_list[line]["line_profile"]=="gauss-hermite"):
             for m in range(comp_options["n_moments"]+1,11,1):
                 if ("h"+str(m) in line_list[line]):
                     line_list[line].pop("h"+str(m),None) # Remove sigma key
@@ -3199,7 +3205,7 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                 if ("h"+str(m)+"_plim" in line_list[line]):
                     line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
         # If line profile is not Gauss-Hermite, parse all higher-order moments and parameters
-        elif (line_list[line]["line_profile"]!="GH"):
+        elif (line_list[line]["line_profile"] not in ["gauss-hermite","laplace","uniform"]):
             for m in range(3,11,1):
                 if ("h"+str(m) in line_list[line]):
                     line_list[line].pop("h"+str(m),None) # Remove sigma key
@@ -3209,11 +3215,11 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                     line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
 
         # Parse unnecessary "shape" parameter is not Voigt profile
-        if (line_list[line]["line_profile"]!="V") and ("shape" in line_list[line]):
+        if (line_list[line]["line_profile"]!="voigt") and ("shape" in line_list[line]):
             line_list[line].pop("shape",None) # Remove sigma key
-        if (line_list[line]["line_profile"]!="V") and ("shape_init" in line_list[line]):
+        if (line_list[line]["line_profile"]!="voigt") and ("shape_init" in line_list[line]):
             line_list[line].pop("shape_init",None) # Remove sigma key
-        if (line_list[line]["line_profile"]!="V") and ("shape_plim" in line_list[line]):
+        if (line_list[line]["line_profile"]!="voigt") and ("shape_plim" in line_list[line]):
             line_list[line].pop("shape_plim",None) # Remove sigma key
     #
     # If tie_line_disp=True, tie line widths (narrow, broad, outflow, and absorption disp) are tied, respectively.
@@ -3233,45 +3239,60 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                 # line_list[line].pop("sigma",None) # Remove sigma key
                 line_list[line]["disp"] = "NA_DISP" # Replace with disp key
                 # If line profile is Gauss-Hermite, add h3 and h4
-                if comp_options["na_line_profile"]=="GH":
+                if comp_options["na_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "NA_H"+str(m)
-                if comp_options["na_line_profile"]=="V":
+                if comp_options["na_line_profile"]=="voigt":
                     line_list[line]["shape"] = "NA_SHAPE"
+                if comp_options["na_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "NA_H3"
+                    line_list[line]["h4"] = "NA_H4"
             # Broad lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="br"): 
                 line_list[line]["disp"] = "BR_DISP" 
-                if comp_options["br_line_profile"]=="GH":
+                if comp_options["br_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "BR_H"+str(m)
-                if comp_options["br_line_profile"]=="V":
+                if comp_options["br_line_profile"]=="voigt":
                     line_list[line]["shape"] = "BR_SHAPE"
+                if comp_options["br_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "BR_H3"
+                    line_list[line]["h4"] = "BR_H4"
             # Outflow lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="out"): 
                 line_list[line]["disp"] = "OUT_DISP"
-                if comp_options["out_line_profile"]=="GH":
+                if comp_options["out_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "OUT_H"+str(m)
-                if comp_options["out_line_profile"]=="V":
+                if comp_options["out_line_profile"]=="voigt":
                     line_list[line]["shape"] = "OUT_SHAPE"
+                if comp_options["out_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "OUT_H3"
+                    line_list[line]["h4"] = "OUT_H4"
             # Absorption lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="abs"): 
                 line_list[line]["disp"] = "ABS_DISP"
-                if comp_options["abs_line_profile"]=="GH":
+                if comp_options["abs_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "ABS_H"+str(m)
-                if comp_options["abs_line_profile"]=="V":
+                if comp_options["abs_line_profile"]=="voigt":
                     line_list[line]["shape"] = "ABS_SHAPE"
+                if comp_options["abs_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "ABS_H3"
+                    line_list[line]["h4"] = "ABS_H4"
             elif ("line_type" not in line_list[line]) or (line_list[line]["line_type"]=="user"):
                 if verbose:
                     print("\n Warning: %s has no line_type keyword specified.  Assuming narrow line." % (line))
                 line_list[line]["disp"] = "NA_DISP"
                 line_list[line]["line_type"] = "na"
-                if comp_options["na_line_profile"]=="GH":
+                if comp_options["na_line_profile"]=="gauss-hermite":
                     for m in range(3,3+(comp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "NA_H"+str(m)
-                if comp_options["na_line_profile"]=="V":
+                if comp_options["na_line_profile"]=="voigt":
                     line_list[line]["shape"] = "NA_SHAPE"
+                if comp_options["na_line_profile"] in ["laplace","uniform"]:
+                    line_list[line]["h3"] = "NA_H3"
+                    line_list[line]["h4"] = "NA_H4"
     #
     # If tie_line_voff=True, tie line velocity offsets (narrow, broad, outflow, and absorption voff) are tied, respectively.
     if comp_options["tie_line_voff"]:
@@ -3367,20 +3388,20 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
     #
     def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
         # default initial widths for lines (if not specified)
-        na_disp_init = 100.0
-        out_disp_init = 250.0
-        br_disp_init = 1200.0
-        abs_disp_init = 100.0
+        na_disp_init = 50.0
+        out_disp_init = 100.0
+        br_disp_init = 500.0
+        abs_disp_init = 50.0
         # default width bounds for lines (if not specified)
         na_disp_lim  = (0.1  , 500.0)
         out_disp_lim = (0.1  , 1000.0)
-        br_disp_lim  = (500.0, 6000.0)
+        br_disp_lim  = (200.0, 6000.0)
         abs_disp_lim = (0.1  , 500.0)
         if line_type in ["na","user"]:
-            if (line_profile=="GH"):
+            if (line_profile in ["gauss-hermite","laplace","uniform"]):
                 # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
                 # able to accomodate excess width from an outflow component.
-                return 100.0, (0.1,2500.0)
+                return 50.0, (0.1,1000.0)
             else:
                 return na_disp_init, na_disp_lim
         elif line_type in ["br"]:
@@ -3388,10 +3409,10 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         elif line_type in ["out"]:
             return out_disp_init, out_disp_lim
         elif line_type in ["abs"]:
-            if (line_profile=="GH"):
+            if (line_profile in ["gauss-hermite","laplace","uniform"]):
                 # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
                 # able to accomodate excess width from an outflow component.
-                return 100.0, (0.1,2500.0)
+                return 50.0, (0.1,1000.0)
             else:
                 return abs_disp_init, abs_disp_lim
     #
@@ -3406,13 +3427,14 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
 
     def h_moment_hyperpars():
         # Higher-order moments for Gauss-Hermite line profiles
+        # extends to Laplace and Uniform kernels
         # all start at the same initial value (0) and parameter limits [-0.5,0.5]
         # You can specify individual higher-order parameters here.
         h_init = 0.0
         h_lim  = (-0.5,0.5)
         return h_init, h_lim
     #
-    def shape_hyperpars(): # shape of the Voigt profile; if line_profile="V" (Voigt)
+    def shape_hyperpars(): # shape of the Voigt profile; if line_profile="voigt"
         shape_init = 0.0
         shape_lim = (0.0,1.0)
         return shape_init, shape_lim	
@@ -3443,7 +3465,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
             if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
                 raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
         
-        if (line_list[line]["line_profile"]=="GH") & (comp_options["n_moments"]>2):
+        if (line_list[line]["line_profile"]=="gauss-hermite") & (comp_options["n_moments"]>2):
             h_default = h_moment_hyperpars()
             for m in range(3,3+(comp_options["n_moments"]-2),1):
                 if ("h"+str(m) in line_list[line]):
@@ -3453,6 +3475,25 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                         # Check to make sure init value is within limits of plim
                         if (line_par_input[line+"_H"+str(m)]["init"]<line_par_input[line+"_H"+str(m)]["plim"][0]) or (line_par_input[line+"_H"+str(m)]["init"]>line_par_input[line+"_H"+str(m)]["plim"][1]):
                             raise ValueError("\n Gauss-Hermite moment h%d initial value (h%d_init) for %s outside of parameter limits (h%d_plim)!\n" % (m,m,line,m))
+
+        if (line_list[line]["line_profile"] in ["laplace","uniform"]):
+            h_default = h_moment_hyperpars()
+            for m in range(3,5,1):
+                if ("h"+str(m) in line_list[line]):
+                    if (line_list[line]["h"+str(m)]=="free"):
+                        line_par_input[line+"_H"+str(m)] = {"init": line_list[line].get("h"+str(m)+"_init",h_default[0]), 
+                                                              "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1])}
+                        # add exceptions for h4 in each line profile; laplace h4>=0, uniform h4<0
+                        if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["init"]=0.01
+                        if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["plim"]=(0,0.2)
+                        if (m==3) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["init"]=0.01
+                        if (m==3) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["plim"]=(-0.15,0.15)
+                        #
+                        if (m==4) and (line_list[line]["line_profile"]=="uniform"): line_par_input[line+"_H"+str(m)]["init"]=-0.01
+                        if (m==4) and (line_list[line]["line_profile"]=="uniform"): line_par_input[line+"_H"+str(m)]["plim"]=(-0.3,-1e-4)#(line_par_input[line+"_H"+str(m)]["plim"][0],-1e-4)
+                        # Check to make sure init value is within limits of plim
+                        if (line_par_input[line+"_H"+str(m)]["init"]<line_par_input[line+"_H"+str(m)]["plim"][0]) or (line_par_input[line+"_H"+str(m)]["init"]>line_par_input[line+"_H"+str(m)]["plim"][1]):
+                            raise ValueError("\n Laplace or Uniform moment h%d initial value (h%d_init) for %s outside of parameter limits (h%d_plim)!\n" % (m,m,line,m))
 
         if (("shape" in line_list[line]) and (line_list[line]["shape"]=="free")):
             shape_default = shape_hyperpars()
@@ -3468,46 +3509,63 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (comp_options["fit_narrow"]==True) or ("na" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["NA_DISP"] = {"init": 250.0, 
                                          "plim":(0.0,1200.0)}
-            if (comp_options["na_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["na_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["NA_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
-            if comp_options["na_line_profile"]=="V":
+            if comp_options["na_line_profile"]=="voigt":
                 line_par_input["NA_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
+            if (comp_options["na_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["NA_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
         if (comp_options["fit_broad"]==True) or ("br" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["BR_DISP"] = {"init": 2500.0, 
                                          "plim":(500.0,15000.0)}
-            if (comp_options["br_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["br_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["BR_H"+str(m)] = {"init": 0.0, 
                                                 "plim":(-0.5,0.5)}
-            if comp_options["br_line_profile"]=="V":
+            if comp_options["br_line_profile"]=="voigt":
                 line_par_input["BR_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
-
+            if (comp_options["br_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["BR_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
         if (comp_options["fit_outflow"]==True) or ("out" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["OUT_DISP"] = {"init": 450.0, 
                                          "plim":(0.1,2500.0)}
-            if (comp_options["abs_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["abs_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
-            if comp_options["abs_line_profile"]=="V":
-                line_par_input["ABS_SHAPE"] = {"init": 0.0, 
+            if comp_options["abs_line_profile"]=="voigt":
+                line_par_input["OUT_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
-
+            if (comp_options["out_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["OUT_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
         if (comp_options["fit_absorp"]==True) or ("abs" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["ABS_DISP"] = {"init": 100.0, 
                                          "plim":(0.0,800.0)}
-            if (comp_options["abs_line_profile"]=="GH") and (comp_options["n_moments"]>2):
+            if (comp_options["abs_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
                     line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
-            if comp_options["abs_line_profile"]=="V":
+            if comp_options["abs_line_profile"]=="voigt":
                 line_par_input["ABS_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
-            
+            if (comp_options["abs_line_profile"] in ["laplace","uniform"]):
+                for m in range(3,5,1):
+                    line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
+                                                      "plim":(-0.5,0.5)}
+            #
     # If tie_line_voff = True, we tie all velocity offsets (including any higher order moments) by respective line groups (Na, Br, Out, Abs)	
     if comp_options["tie_line_voff"]==True:
         # Add the common line voffs for na,br,out, and abs lines
@@ -3592,11 +3650,7 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
         else: 
             if verbose:
                 print("\n - %s soft constraint removed because one or more free parameters is not available." % str(con))
-    
-    # for p in line_par_input:
-    # 	print(p)
-    # print(out_cons)
-    # sys.exit()
+    #
     return out_cons
 
 ##################################################################################
@@ -5846,7 +5900,7 @@ def lnlike(params,
         pen = 0 # accumulating penalty
         if np.isfinite(l):
             for line in line_list:
-                if ((line_list[line]["line_profile"]=="GH")):
+                if ((line_list[line]["line_profile"] in ["gauss-hermite","laplace","uniform"])):
                     penalty = gh_penalty_ftn(line,params,param_names)
                     pen+= penalty
 
@@ -5907,7 +5961,7 @@ def lnlike(params,
         pen = 0 # accumulating penalty
         if np.isfinite(l):
             for line in line_list:
-                if ((line_list[line]["line_profile"]=="GH")):
+                if ((line_list[line]["line_profile"]=="gauss-hermite")):
                     penalty = gh_penalty_ftn(line,params,param_names)
                     pen+= penalty
         #
@@ -6040,7 +6094,7 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
     """
 
     # Gaussian
-    if (line_list[line]["line_profile"]=="G"): # Gaussian line profile
+    if (line_list[line]["line_profile"]=="gaussian"): # Gaussian line profile
         # 
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
@@ -6073,7 +6127,7 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
 
-    elif (line_list[line]["line_profile"]=="L"): # Lorentzian line profile
+    elif (line_list[line]["line_profile"]=="lorentzian"): # Lorentzian line profile
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
         else:
@@ -6104,7 +6158,7 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
 
-    elif (line_list[line]["line_profile"]=="GH"): # Gauss-Hermite line profile
+    elif (line_list[line]["line_profile"]=="gauss-hermite"): # Gauss-Hermite line profile
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
         else:
@@ -6149,7 +6203,91 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
 
-    elif (line_list[line]["line_profile"]=="V"): # Voigt line profile
+    elif (line_list[line]["line_profile"]=="laplace"): # Laplace line profile
+        if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
+            amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
+        else:
+            amp = free_dict[line+"_AMP"]
+        #
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
+        else:
+            disp = free_dict[line+"_DISP"]
+        #
+        if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
+            voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
+        else:
+            voff = free_dict[line+"_VOFF"]
+
+        hmoments = np.empty(2)
+        for i,m in enumerate(range(3,5,1)):
+            if (isinstance(line_list[line]["h"+str(m)],(str))) and (line_list[line]["h"+str(m)]!="free"):
+                hl = ne.evaluate(line_list[line]["h"+str(m)],local_dict = free_dict).item()
+            else:
+                hl = free_dict[line+"_H"+str(m)]
+            hmoments[i]=hl
+
+        if ~np.isfinite(amp) : amp  = 0.0
+        if ~np.isfinite(disp): disp = 100.0
+        if ~np.isfinite(voff): voff = 0.0
+
+        line_model = laplace_line_profile(lam_gal,
+                                               line_list[line]["center"],
+                                               amp,
+                                               disp,
+                                               voff,
+                                               hmoments,
+                                               line_list[line]["center_pix"],
+                                               line_list[line]["disp_res_kms"],
+                                               velscale,
+                                               noise
+                                               )
+        line_model[~np.isfinite(line_model)] = 0.0
+        comp_dict[line] = line_model
+
+    elif (line_list[line]["line_profile"]=="uniform"): # Uniform line profile
+        if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
+            amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
+        else:
+            amp = free_dict[line+"_AMP"]
+        #
+        if (isinstance(line_list[line]["disp"],(str))) and (line_list[line]["disp"]!="free"):
+            disp = ne.evaluate(line_list[line]["disp"],local_dict = free_dict).item()
+        else:
+            disp = free_dict[line+"_DISP"]
+        #
+        if (isinstance(line_list[line]["voff"],(str))) and (line_list[line]["voff"]!="free"):
+            voff = ne.evaluate(line_list[line]["voff"],local_dict = free_dict).item()
+        else:
+            voff = free_dict[line+"_VOFF"]
+
+        hmoments = np.empty(2)
+        for i,m in enumerate(range(3,5,1)):
+            if (isinstance(line_list[line]["h"+str(m)],(str))) and (line_list[line]["h"+str(m)]!="free"):
+                hl = ne.evaluate(line_list[line]["h"+str(m)],local_dict = free_dict).item()
+            else:
+                hl = free_dict[line+"_H"+str(m)]
+            hmoments[i]=hl
+
+        if ~np.isfinite(amp) : amp  = 0.0
+        if ~np.isfinite(disp): disp = 100.0
+        if ~np.isfinite(voff): voff = 0.0
+
+        line_model = uniform_line_profile(lam_gal,
+                                               line_list[line]["center"],
+                                               amp,
+                                               disp,
+                                               voff,
+                                               hmoments,
+                                               line_list[line]["center_pix"],
+                                               line_list[line]["disp_res_kms"],
+                                               velscale,
+                                               noise
+                                               )
+        line_model[~np.isfinite(line_model)] = 0.0
+        comp_dict[line] = line_model
+
+    elif (line_list[line]["line_profile"]=="voigt"): # Voigt line profile
         if (isinstance(line_list[line]["amp"],(str))) and (line_list[line]["amp"]!="free"):
             amp = ne.evaluate(line_list[line]["amp"],local_dict = free_dict).item()
         else:
@@ -6574,7 +6712,7 @@ def fit_model(params,
             # for line in lines:
             if (key in lines):
                 comp = comp_dict[key]
-                # if line_list[key]["line_profile"] in ["V","L"]:
+                # if line_list[key]["line_profile"] in ["voigt","lorentzian"]:
                 # 	# Truncate the component to zero for any values below the median noise level. 
                 # 	# This is necessary because the wings of the Voigt and Lorentzian profiles extend to infinity,
                 # 	# resulting in unrealistic line dispersions.
@@ -7001,14 +7139,6 @@ def VC04_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vel
         br_opt_feii_template[(lam_gal < 3400) & (lam_gal > 7200)] = 0
         na_opt_feii_template[(lam_gal < 3400) & (lam_gal > 7200)] = 0
         #
-        # print(br_opt_feii_amp,na_opt_feii_amp)
-        # fig = plt.figure(figsize=(18,7))
-        # ax1 = fig.add_subplot(1,1,1)
-        # ax1.plot(lam_gal,na_opt_feii_template, linewidth=0.5)
-        # ax1.plot(lam_gal,br_opt_feii_template, linewidth=0.5)
-        # plt.tight_layout()
-        # sys.exit()
-        #
     elif (opt_feii_options["opt_disp_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
         br_opt_feii_fft, na_opt_feii_fft, npad, vsyst = opt_feii_templates
 
@@ -7208,15 +7338,6 @@ def K10_opt_feii_template(p, lam_gal, opt_feii_templates, opt_feii_options, vels
         # Multiply by FeII amplitude
         z_template = z_template * z_feii_amp
         z_template[(lam_gal <4418) & (lam_gal >5428)] = 0
-        #
-        # fig = plt.figure(figsize=(18,7))
-        # ax1 = fig.add_subplot(1,1,1)
-        # ax1.plot(lam_gal,f_template, linewidth=0.5)
-        # ax1.plot(lam_gal,s_template, linewidth=0.5)
-        # ax1.plot(lam_gal,g_template, linewidth=0.5)
-        # ax1.plot(lam_gal,z_template, linewidth=0.5)
-        # plt.tight_layout()
-        # sys.exit()
         #
 
     elif (opt_feii_options["opt_disp_const"]["bool"]==False) | (opt_feii_options["opt_voff_const"]["bool"]==False):
@@ -7531,7 +7652,7 @@ def gaussian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,v
     voff_pix = voff/(velscale) # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix = x_pix.reshape((len(x_pix),1)) # reshape into row
     g = amp*np.exp(-0.5*(x_pix-(center_pix))**2/(sigma_pix)**2) # construct gaussian
     g = np.sum(g,axis=1)
@@ -7559,17 +7680,11 @@ def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix = x_pix.reshape((len(x_pix),1)) # reshape into row 
-
     gamma = 0.5*fwhm_pix
     l = amp*( (gamma**2) / (gamma**2+(x_pix-center_pix)**2) ) # construct lorenzian
     l= np.sum(l,axis=1)
-
-    # # Truncate wings below noise level
-    # l[l<=np.median(noise)] = 0.0
-    # l[l>np.median(noise)] -= np.median(noise)
-
     # Make sure edges of gaussian are zero to avoid wierd things
     l[(l>-1e-6) & (l<1e-6)] = 0.0
     l[0]  = l[1]
@@ -7592,13 +7707,12 @@ def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix = x_pix.reshape((len(x_pix),1)) #- center_pix
-    
     # Taken from Riffel 2010 - profit: a new alternative for emission-line profile fitting
     w = (x_pix-center_pix)/sigma_pix
     alpha = 1.0/np.sqrt(2.0)*np.exp(-w**2/2.0)
-
+    #
     if hmoments is not None:
         mom = len(hmoments)+2
         n = np.arange(3, mom + 1)
@@ -7610,7 +7724,7 @@ def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,
         coeff = np.array([1, 0, 0])
         h = hermite.hermval(w,coeff)
         g = (amp*alpha)/sigma_pix*h
-
+    #
     g = np.sum(g,axis=1)
     # We ensure any values of the line profile that are negative
     # are zeroed out (See Van der Marel 1993)
@@ -7619,11 +7733,74 @@ def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,
     g = g/np.max(g)
     # Apply amplitude
     g = amp*g
+    # Replace the ends with the same value 
+    g[(g>-1e-6) & (g<1e-6)] = 0.0
+    g[0]  = g[1]
+    g[-1] = g[-2]
+    #
+    return g
 
-    # # Truncate wings below noise level
-    # g[g<=np.median(noise)] = 0.0
-    # g[g>np.median(noise)] -= np.median(noise)
+##################################################################################
 
+def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+    """
+    Produces a Laplace kernel vector the length of
+    x with the specified parameters.
+    Laplace kernel from Sanders & Evans (2020):
+    https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract
+    """
+
+    # Take into account instrumental dispersion (FWHM resolution)
+    disp = np.sqrt(disp**2+disp_res_kms**2)
+    sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
+    if sigma_pix<=0.01: sigma_pix = 0.01
+    voff_pix = voff/velscale # velocity offset in pixels
+    center_pix = center_pix + voff_pix # shift the line center by voff in pixels
+    # Note that the pixel vector must be a float type otherwise
+    # the GH alternative functions return NaN.
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
+    # print(sigma_pix,center_pix)
+    g = gh_alt.laplace_kernel_pdf(x_pix,0.0,center_pix,sigma_pix,hmoments[0],hmoments[1])
+    # We ensure any values of the line profile that are negative
+    g[g<0] = 0.0
+    # Normalize to 1
+    g = g/np.nanmax(g)
+    # Apply amplitude
+    g = amp*g
+    # Replace the ends with the same value 
+    g[(g>-1e-6) & (g<1e-6)] = 0.0
+    g[0]  = g[1]
+    g[-1] = g[-2]
+    #
+    return g
+
+##################################################################################
+
+def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+    """
+    Produces a Uniform kernel vector the length of
+    x with the specified parameters.
+    Uniform kernel from Sanders & Evans (2020):
+    https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract
+    """
+    
+    # Take into account instrumental dispersion (FWHM resolution)
+    disp = np.sqrt(disp**2+disp_res_kms**2)
+    sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
+    if sigma_pix<=0.01: sigma_pix = 0.01
+    voff_pix = voff/velscale # velocity offset in pixels
+    center_pix = center_pix + voff_pix # shift the line center by voff in pixels
+    # Note that the pixel vector must be a float type otherwise
+    # the GH alternative functions return NaN.
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
+    # print(sigma_pix,center_pix)
+    g = gh_alt.uniform_kernel_pdf(x_pix,0.0,center_pix,sigma_pix,hmoments[0],hmoments[1])
+    # We ensure any values of the line profile that are negative
+    g[g<0] = 0.0
+    # Normalize to 1
+    g = g/np.nanmax(g)
+    # Apply amplitude
+    g = amp*g
     # Replace the ends with the same value 
     g[(g>-1e-6) & (g<1e-6)] = 0.0
     g[0]  = g[1]
@@ -7647,36 +7824,27 @@ def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_km
     voff_pix   = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix	  = np.array(range(len(lam_gal))) # pixels vector	
+    x_pix	  = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
     x_pix	  = x_pix.reshape((len(x_pix),1)) # reshape into row 
-    
     # Gaussian contribution
     a_G = 1.0/(sigma_pix * np.sqrt(2.0*np.pi))
     g = a_G * np.exp(-0.5*(x_pix-(center_pix))**2/(sigma_pix)**2)
     g = np.sum(g,axis=1)
-
     # Lorentzian contribution
     l = (1.0/np.pi) * (fwhm_pix/2.0)/((x_pix-center_pix)**2 + (fwhm_pix/2.0)**2)
     l = np.sum(l,axis=1)
-    
-    # Intensity
-      # I = amp/((float(shape)*a_G) + ((1.0-float(shape))*(2.0/(np.pi*fwhm_pix))))
-
     # Voigt profile
     pv =  (float(shape) * g) + ((1.0-float(shape))*l)
-
     # Normalize and multiply by amplitude
     pv = pv/np.max(pv)*amp
-
     # Truncate wings below noise level
     # pv[pv<=np.median(noise)] = 0.0
     # pv[pv>np.median(noise)] -= np.median(noise)
-
     # Replace the ends with the same value 
     pv[(pv>-1e-6) & (pv<1e-6)] = 0.0
     pv[0]  = pv[1]
     pv[-1] = pv[-2]
-    
+    #
     return pv
 
 ##################################################################################
