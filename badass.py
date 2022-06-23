@@ -2162,7 +2162,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
         ebv = 0.04  # average Galactic E(B-V)
 
     if format != 'MANGA':
-        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['disp_res'],z,ebv,fit_reg,
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['fwhm_res'],z,ebv,fit_reg,
                                                                                        mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=verbose,plot=plot)
 
         return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good,binnum,spaxelx,spaxely
@@ -2249,7 +2249,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
     # print('\n Size of every pixel: %s (A)' % dlam_gal)
     # wdisp = t['wdisp'][mask]  # Intrinsic dispersion of every pixel, in pixels units
     # disp_res = wdisp * dlam_gal  # Resolution FWHM of every pixel, in angstroms
-    disp_res = t['disp_res'][mask]
+    disp_res = t['fwhm_res'][mask] / 2.3548
     velscale = np.log(frac) * c  # Constant velocity scale in km/s per pixel
 
     # If the galaxy is at significant redshift, one should bring the galaxy
