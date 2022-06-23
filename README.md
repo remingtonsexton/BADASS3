@@ -298,7 +298,7 @@ Additionally, the user can provide additional lines to the default line list dir
 
 ```python
 user_lines = {
-	"na_unknown_1":{"center":6085., "line_type":"na", "line_profile":"gaussian"},
+	"NA_UNKNOWN_1":{"center":6085., "line_type":"na", "line_profile":"gaussian"},
 }
 ```
 
