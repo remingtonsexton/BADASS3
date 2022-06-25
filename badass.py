@@ -6017,7 +6017,7 @@ def lnlike(params,
         pen = 0 # accumulating penalty
         if np.isfinite(l):
             for line in line_list:
-                if ((line_list[line]["line_profile"]=="gauss-hermite")):
+                if ((line_list[line]["line_profile"] in ["gauss-hermite","laplace","uniform"])):
                     penalty = gh_penalty_ftn(line,params,param_names)
                     pen+= penalty
         #
