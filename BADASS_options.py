@@ -182,7 +182,7 @@ output_options={
                          # especially  if you are running multiple objects.  
                          # You only need this if you want to reconstruct chains 
                          # and histograms. 
-"verbose"     : False,  # prints steps of fitting process in Notebook
+"verbose"     : True,  # prints steps of fitting process in Notebook
 }
 ################################################################################
 
@@ -246,7 +246,9 @@ broad_lines = {
                     "disp":"free", 
                     "voff":"free",
                     "h3":"free",
+                    "h3_prior":{"type":"gaussian","loc":0.0,"scale":0.01},
                     "h4":"free",
+                    "h4_prior":{"type":"gaussian","loc":0.0,"scale":0.01},
                     "disp_plim":(500,5000),
                     "disp_init":1000.0,
                     "line_profile":"GH",
@@ -260,6 +262,7 @@ user_constraints = [
     # Region 5 (4400 Å - 5500 Å)
     ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),# [OIII]5007 AMP > NA H-BETA AMP
     ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"), # 2nd [OIII] component DISP > 1st [OIII] component DISP
+    ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"), # 2nd [OIII] component DISP > 1st [OIII] component DISP
     ]
 
 combined_lines = {
