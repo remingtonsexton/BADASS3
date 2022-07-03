@@ -1,5 +1,5 @@
 
-![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_logo.gif)
+![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS2_logo.gif)
 
 Ridiculous acronyms are a [long-running joke in astronomy](https://lweb.cfa.harvard.edu/~gpetitpas/Links/Astroacro.html), but here, spectral fitting ain't no joke!
 
