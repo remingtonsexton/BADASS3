@@ -845,21 +845,21 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
         ypixbin[binnum] = copy.deepcopy(data2['spaxely'])
 
         # Set the par table parameters
-        mcmc = 'sigma_low' in data1.names and 'sigma_upp' in data1.names
+        mcmc = 'ci_68_low' in data1.names and 'ci_68_upp' in data1.names
         for param in parameters:
             w = np.where(data1['parameter'] == param)[0]
             if w.size > 0:
                 w = w[0]
                 parvals[param][binnum] = copy.deepcopy(data1['best_fit'][w])
                 if mcmc:
-                    parvals_low[param][binnum] = copy.deepcopy(data1['sigma_low'][w])
-                    parvals_upp[param][binnum] = copy.deepcopy(data1['sigma_upp'][w])
+                    parvals_low[param][binnum] = copy.deepcopy(data1['ci_68_low'][w])
+                    parvals_upp[param][binnum] = copy.deepcopy(data1['ci_68_upp'][w])
             elif tdata is not None:
                 w2 = np.where(tdata['parameter'] == param)[0]
                 if w2.size > 0:
                     parvals[param][binnum] = copy.deepcopy(tdata['best_fit'][w2])
-                    parvals_low[param][binnum] = copy.deepcopy(tdata['sigma_low'][w2])
-                    parvals_upp[param][binnum] = copy.deepcopy(tdata['sigma_upp'][w2])
+                    parvals_low[param][binnum] = copy.deepcopy(tdata['ci_68_low'][w2])
+                    parvals_upp[param][binnum] = copy.deepcopy(tdata['ci_68_upp'][w2])
 
         # Set the best model components
         for param in bmcparams:
