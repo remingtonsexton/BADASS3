@@ -67,7 +67,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.1.7"
+__version__	= "9.2.0"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -243,6 +243,8 @@ __status__	 = "Release"
 # - Changed instrumental fwhm keyword to instrumental dispersion "disp_res".  Input resolution for user
 # -     -input spectra is still a "fwhm_res" but changes to disp_res internally.
 
+# Version 9.2.0-
+# - options for different priors on free parameters
 
 ##########################################################################################################
 
@@ -878,7 +880,7 @@ def run_single_thread(fits_file,
     param_names  = [key for key in param_dict ]
     init_params  = [param_dict[key]['init'] for key in param_dict ]
     bounds		 = [param_dict[key]['plim'] for key in param_dict ]
-
+    prior_dict   = {key:param_dict[key] for key in param_dict if ("prior" in param_dict[key])}
     # Check number of walkers
     # If number of walkers < 2*(# of params) (the minimum required), then set it to that
     if nwalkers<2*len(param_names):
@@ -894,9 +896,10 @@ def run_single_thread(fits_file,
     # Run emcee
     # args = arguments of lnprob (log-probability function)
     lnprob_args=(param_names,
-                 bounds,
+                 prior_dict,
                  line_list,
                  combined_line_list,
+                 bounds,
                  soft_cons,
                  lam_gal,
                  galaxy,
@@ -917,8 +920,10 @@ def run_single_thread(fits_file,
                  stel_templates,
                  disp_res,
                  fit_mask,
-                 fit_stat,
                  velscale,
+                 "final",
+                 fit_stat,
+                 False,
                  run_dir)
     
     emcee_data = run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
@@ -2478,7 +2483,8 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
         if verbose: 
             print('	 - Adding parameter for unexplained noise to fit reduced Chi-squared.')
         par_input["NOISE_SCALE"] = ({'init':1.0,
-                                           'plim':(0.0001,10.0),
+                                     'plim':(0.0001,100.0),
+                                     'prior':{"type":"jeffreys"},
                                     })
 
     # Galaxy template amplitude
@@ -3313,6 +3319,8 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
     # Do a final check for valid keywords. If any keywords don't belong, raise an error.
     init_hmoments = ["h"+str(m)+"_init" for m in range(3,3+(comp_options["n_moments"]-2),1)]
     plim_hmoments = ["h"+str(m)+"_plim" for m in range(3,3+(comp_options["n_moments"]-2),1)]
+    prior_hmoments = ["h"+str(m)+"_prior" for m in range(3,3+(comp_options["n_moments"]-2),1)]
+
     hmoments	  = ["h"+str(m) for m in range(3,3+(comp_options["n_moments"]-2),1)]
     #
     for line in list(line_list):
@@ -3320,7 +3328,9 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
         for key in line_list[line]:
             if key not in ["center","center_pix","disp_res_kms","disp_res_ang","amp","disp","voff","shape","line_type","line_profile",
                           "amp_init","amp_plim","disp_init","disp_plim","voff_init","voff_plim",
-                          "shape_init","shape_plim","label"]+hmoments+init_hmoments+plim_hmoments:
+                          "shape_init","shape_plim",
+                          "amp_prior","disp_prior","voff_prior","shape_prior",
+                          "label"]+hmoments+init_hmoments+plim_hmoments+prior_hmoments:
                 raise ValueError("\n %s not a valid keyword for the line list! \n" % key)
     #
     return line_list
@@ -3419,8 +3429,8 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
     #
     def voff_hyperpars(line_type, line_center):
         na_voff_init, br_voff_init = 0.001, 0.001
-        na_voff_lim = (-1000,1000)
-        br_voff_lim = (-1000,1000)
+        na_voff_lim = (-500,500)
+        br_voff_lim = (-500,500)
         if line_type in ["na","user"]:
             return na_voff_init, na_voff_lim
         elif line_type in ["br","abs","out"]:
@@ -3461,7 +3471,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (("voff" in line_list[line]) and (line_list[line]["voff"]=="free")):
             voff_default = voff_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
             line_par_input[line+"_VOFF"] = {"init": line_list[line].get("voff_init",voff_default[0]), 
-                                            "plim":line_list[line].get("voff_plim",voff_default[1])}
+                                            "plim":line_list[line].get("voff_plim",voff_default[1]),
+                                            "prior":line_list[line].get("voff_prior",{"type":"gaussian"})
+                                            }
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
                 raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
@@ -3472,7 +3484,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                 if ("h"+str(m) in line_list[line]):
                     if (line_list[line]["h"+str(m)]=="free"):
                         line_par_input[line+"_H"+str(m)] = {"init": line_list[line].get("h"+str(m)+"_init",h_default[0]), 
-                                                              "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1])}
+                                                            "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1]),
+                                                            "prior":line_list[line].get("h"+str(m)+"_prior",{"type":"gaussian"})
+                                                              }
                         # Check to make sure init value is within limits of plim
                         if (line_par_input[line+"_H"+str(m)]["init"]<line_par_input[line+"_H"+str(m)]["plim"][0]) or (line_par_input[line+"_H"+str(m)]["init"]>line_par_input[line+"_H"+str(m)]["plim"][1]):
                             raise ValueError("\n Gauss-Hermite moment h%d initial value (h%d_init) for %s outside of parameter limits (h%d_plim)!\n" % (m,m,line,m))
@@ -3483,7 +3497,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                 if ("h"+str(m) in line_list[line]):
                     if (line_list[line]["h"+str(m)]=="free"):
                         line_par_input[line+"_H"+str(m)] = {"init": line_list[line].get("h"+str(m)+"_init",h_default[0]), 
-                                                              "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1])}
+                                                            "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1]),
+                                                            "prior":line_list[line].get("h"+str(m)+"_prior",{"type":"halfnorm"})
+                                                              }
                         # add exceptions for h4 in each line profile; laplace h4>=0, uniform h4<0
                         if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["init"]=0.01
                         if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["plim"]=(0,0.2)
@@ -3572,16 +3588,24 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         # Add the common line voffs for na,br,out, and abs lines
         if (comp_options["fit_narrow"]==True) or ("na" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["NA_VOFF"] = {"init": 0.0, 
-                                         "plim":(-500.0,500.0)}
+                                         "plim":(-500.0,500.0),
+                                         "prior":{"type":"gaussian"}
+                                         }
         if (comp_options["fit_broad"]==True) or ("br" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["BR_VOFF"] = {"init": 0.0, 
-                                         "plim":(-1000.0,1000.0)}
+                                         "plim":(-500.0,500.0),
+                                         "prior":{"type":"gaussian"}
+                                         }
         if (comp_options["fit_outflow"]==True) or ("out" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["OUT_VOFF"] = {"init": 0.0, 
-                                         "plim":(-1000.0,1000.0)}
+                                         "plim":(-500.0,500.0),
+                                         "prior":{"type":"gaussian"}
+                                         }
         if (comp_options["fit_absorp"]==True) or ("abs" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["ABS_VOFF"] = {"init": 0.0, 
-                                         "plim":(-500.0,500.0)}
+                                         "plim":(-500.0,500.0),
+                                         "prior":{"type":"gaussian"}
+                                         }
         
         
                 
@@ -5081,12 +5105,13 @@ def max_likelihood(param_dict,
     bounds	  = [param_dict[key]['plim'] for key in param_dict ]
     lb, ub = zip(*bounds) 
     param_bounds = op.Bounds(lb,ub,keep_feasible=True)
-    # Generate constraints
-    # cons = []
-    # def lambda_gen(con): 
-    # 	con = copy.deepcopy(con)
-    # 	return lambda p: p[param_names.index(con[0])]-p[param_names.index(con[1])]
-    # cons = [{"type":"ineq","fun": lambda_gen(con)} for con in soft_cons]
+
+    # Extract parameters with priors; only non-uniform priors 
+    # need to be added to the fit
+    # for key in param_dict:
+    #     print(key, param_dict[key])
+
+    prior_dict = {key:param_dict[key] for key in param_dict if ("prior" in param_dict[key])}
 
     def lambda_gen(con): 
         return lambda p: ne.evaluate(con[0],local_dict = {param_names[i]:p[i] for i in range(len(p))}).item()-ne.evaluate(con[1],local_dict = {param_names[i]:p[i] for i in range(len(p))}).item()
@@ -5100,7 +5125,8 @@ def max_likelihood(param_dict,
     # Start a timer
     start_time = time.time()
     # Negative log-likelihood (to minimize the negative maximum)
-    nll = lambda *args: -lnlike(*args)
+    # nll = lambda *args: -lnlike(*args)
+    nll = lambda *args: -lnprob(*args)
     # Perform global optimization using basin-hopping algorithm (superior to minimize(), but slower)
     # We will use minimize() for the monte carlo bootstrap iterations.
     result = op.basinhopping(func = nll, 
@@ -5110,8 +5136,10 @@ def max_likelihood(param_dict,
                              niter = 100, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
+                                                         prior_dict,
                                                          line_list,
                                                          combined_line_list,
+                                                         bounds,
                                                          soft_cons,
                                                          lam_gal,
                                                          galaxy,
@@ -5133,11 +5161,13 @@ def max_likelihood(param_dict,
                                                          disp_res,
                                                          fit_mask,
                                                          velscale,
-                                                         run_dir,
                                                          fit_type,
                                                          fit_stat,
-                                                         output_model),
-                              'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, "options":{"disp":False}},
+                                                         output_model,
+                                                         run_dir
+                                                        ),
+                              'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
+                              "options":{"disp":False}},
                                disp=verbose,
                                niter_success=n_basinhop, # Max # of successive search iterations
                                )
@@ -5295,16 +5325,19 @@ def max_likelihood(param_dict,
             # if (cons is not None):
             if 1:
 
-                nll = lambda *args: -lnlike(*args)
+                # nll = lambda *args: -lnlike(*args)
+                nll = lambda *args: -lnprob(*args)
                 resultmc = op.minimize(fun = nll, 
                                        x0 = result['x'],
                                        args=(param_names,
+                                             prior_dict,
                                              line_list,
                                              combined_line_list,
+                                             bounds,
                                              soft_cons,
                                              lam_gal,
-                                             mcgal, # use mcgal
-                                             mcnoise, # use mcnoise
+                                             galaxy,
+                                             noise,
                                              comp_options,
                                              losvd_options,
                                              host_options,
@@ -5322,10 +5355,11 @@ def max_likelihood(param_dict,
                                              disp_res,
                                              fit_mask,
                                              velscale,
-                                             run_dir,
                                              fit_type,
                                              fit_stat,
-                                             output_model),
+                                             output_model,
+                                             run_dir
+                                             ),
                                        method='SLSQP', 
                                        bounds = param_bounds, 
                                        constraints=cons,
@@ -5892,10 +5926,11 @@ def lnlike(params,
            disp_res,
            fit_mask,
            velscale,
-           run_dir,
            fit_type,
            fit_stat,
-           output_model):
+           output_model,
+           run_dir,
+           ):
     """
     Log-likelihood function.
     """
@@ -5935,7 +5970,7 @@ def lnlike(params,
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2
+            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2 + np.log(2*np.pi*(noise[fit_mask])**2)
             l = np.sum(l,axis=0)
         elif fit_stat=="OLS":
             # Since emcee looks for the maximum, but Least Squares requires a minimum
@@ -5953,14 +5988,14 @@ def lnlike(params,
             l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
 
         # Determine if any Gauss-Hermite lines exist
-        pen = 0 # accumulating penalty
-        if np.isfinite(l):
-            for line in line_list:
-                if ((line_list[line]["line_profile"] in ["gauss-hermite","laplace","uniform"])):
-                    penalty = gh_penalty_ftn(line,params,param_names)
-                    pen+= penalty
+        # pen = 0 # accumulating penalty
+        # if np.isfinite(l):
+        #     for line in line_list:
+        #         if ((line_list[line]["line_profile"] in ["gauss-hermite","laplace","uniform"])):
+        #             penalty = gh_penalty_ftn(line,params,param_names)
+        #             pen+= penalty
 
-        return l + l*pen, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
+        return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
     else:
         # The maximum likelihood routine [by default] minimizes the negative likelihood
@@ -5997,7 +6032,7 @@ def lnlike(params,
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2
+            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2 + np.log(2*np.pi*(noise[fit_mask])**2)
             l = np.sum(l,axis=0)
             # print("Log-Likelihood = %0.4f" % (l))
         elif fit_stat=="OLS":
@@ -6014,14 +6049,14 @@ def lnlike(params,
             l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
 
         # Determine if any Gauss-Hermite lines exist
-        pen = 0 # accumulating penalty
-        if np.isfinite(l):
-            for line in line_list:
-                if ((line_list[line]["line_profile"]=="gauss-hermite")):
-                    penalty = gh_penalty_ftn(line,params,param_names)
-                    pen+= penalty
+        # pen = 0 # accumulating penalty
+        # if np.isfinite(l):
+        #     for line in line_list:
+        #         if ((line_list[line]["line_profile"]=="gauss-hermite")):
+        #             penalty = gh_penalty_ftn(line,params,param_names)
+        #             pen+= penalty
         #
-        return l + l*pen
+        return l #+ l*pen
 
 ##################################################################################
 
@@ -6030,7 +6065,64 @@ def lnlike(params,
 # fitting, simply formatted for use by emcee. 
 # To relax a constraint, simply comment out the condition (*not recommended*).
 
-def lnprior(params,param_names,bounds,soft_cons,comp_options):
+def lnprior_gaussian(x,**kwargs):
+    """
+    Log-Gaussian prior based on user-input.  If not specified, mu and sigma 
+    will be derived from the init and plim, with plim occurring at 5-sigma
+    for the maximum plim from the mean.
+    """
+    sigma_level = 5
+    if "loc" in kwargs["prior"]:
+        loc = kwargs["prior"]["loc"]
+    else:
+        loc = kwargs["init"]
+    #
+    if "scale" in kwargs["prior"]:
+        scale = kwargs["prior"]["scale"]
+    else:
+        scale = np.max(np.abs(kwargs["plim"]))/sigma_level
+    #
+    return stats.norm.logpdf(x,loc=loc,scale=scale)
+
+def lnprior_halfnorm(x,**kwargs):
+    """
+    Half Log-Normal prior based on user-input.  If not specified, mu and sigma 
+    will be derived from the init and plim, with plim occurring at 5-sigma
+    for the maximum plim from the mean.
+    """
+    sigma_level = 5
+    x = np.abs(x)
+    if "loc" in kwargs["prior"]:
+        loc = kwargs["prior"]["loc"]
+    else:
+        loc = kwargs["plim"][0]
+    #
+    if "scale" in kwargs["prior"]:
+        scale = kwargs["prior"]["scale"]
+    else:
+        scale = np.max(np.abs(kwargs["plim"]))/sigma_level
+    #
+    return stats.halfnorm.logpdf(x,loc=loc,scale=scale)
+
+
+def lnprior_jeffreys(x,**kwargs):
+    """
+    Log-Jeffreys prior based on user-input.  If not specified, mu and sigma 
+    will be derived from the init and plim, with plim occurring at 5-sigma
+    for the maximum plim from the mean.
+    """
+    x = np.abs(x)
+    if np.any(x) <=0: x = 1.e-6
+    scale = 1
+    if "loc" in kwargs["prior"]:
+        loc = np.abs(kwargs["prior"]["loc"])
+    else:
+        loc = np.min(np.abs(kwargs["plim"]))
+    a, b = np.min(np.abs(kwargs["plim"])),np.max(np.abs(kwargs["plim"]))
+    if a <= 0: a = 1e-6
+    return stats.loguniform.logpdf(x,a=a,b=b,loc=loc,scale=scale)
+
+def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type):
     """
     Log-prior function.
     """
@@ -6065,15 +6157,26 @@ def lnprior(params,param_names,bounds,soft_cons,comp_options):
             lp_arr.append(-np.inf)
 
 
-    return np.sum(lp_arr)
+    # Loop through parameters with priors on them 
+    prior_map = {'gaussian': lnprior_gaussian, 'halfnorm': lnprior_halfnorm, 'jeffreys': lnprior_jeffreys}
+    p = [prior_map[prior_dict[key]["prior"]["type"]](pdict[key],**prior_dict[key]) for key in prior_dict]
+
+    # If initial fit using maximum likelihood, do not return uniform priors (-inf), otherwise
+    # scipy.optimize.minimize() fails.
+    if fit_type=="init":
+        return np.nansum(p)
+    elif fit_type=="final":
+        lp_arr += p
+        return np.sum(lp_arr)
 
 ##################################################################################
 
 def lnprob(params,
            param_names,
-           bounds,
+           prior_dict,
            line_list,
            combined_line_list,
+           bounds,
            soft_cons,
            lam_gal,
            galaxy,
@@ -6094,52 +6197,101 @@ def lnprob(params,
            stel_templates,
            disp_res,
            fit_mask,
-           fit_stat,
            velscale,
-           run_dir):
+           fit_type,
+           fit_stat,
+           output_model,
+           run_dir
+           ):
     """
     Log-probability function.
     """
     # lnprob (params,args)
+    # MCMC fitting
+    if (fit_type=='final'):
+        output_model = False
+        ll, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob	= lnlike(params,
+                                                                             param_names,
+                                                                             line_list,
+                                                                             combined_line_list,
+                                                                             soft_cons,
+                                                                             lam_gal,
+                                                                             galaxy,
+                                                                             noise,
+                                                                             comp_options,
+                                                                             losvd_options,
+                                                                             host_options,
+                                                                             power_options,
+                                                                             poly_options,
+                                                                             opt_feii_options,
+                                                                             uv_iron_options,
+                                                                             balmer_options,
+                                                                             outflow_test_options,
+                                                                             host_template,
+                                                                             opt_feii_templates,
+                                                                             uv_iron_template,
+                                                                             balmer_template,
+                                                                             stel_templates,
+                                                                             disp_res,
+                                                                             fit_mask,
+                                                                             velscale,
+                                                                             fit_type,
+                                                                             fit_stat,
+                                                                             output_model,
+                                                                             run_dir,
+                                                                             )
 
-    fit_type	 = 'final'
-    output_model = False
-    ll, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob	= lnlike(params,
-                                                                         param_names,
-                                                                         line_list,
-                                                                         combined_line_list,
-                                                                         soft_cons,
-                                                                         lam_gal,
-                                                                         galaxy,
-                                                                         noise,
-                                                                         comp_options,
-                                                                         losvd_options,
-                                                                         host_options,
-                                                                         power_options,
-                                                                         poly_options,
-                                                                         opt_feii_options,
-                                                                         uv_iron_options,
-                                                                         balmer_options,
-                                                                         outflow_test_options,
-                                                                         host_template,
-                                                                         opt_feii_templates,
-                                                                         uv_iron_template,
-                                                                         balmer_template,
-                                                                         stel_templates,
-                                                                         disp_res,
-                                                                         fit_mask,
-                                                                         velscale,
-                                                                         run_dir,
-                                                                         fit_type,
-                                                                         fit_stat,
-                                                                         output_model)
+        lp = lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type)
 
-    lp = lnprior(params,param_names,bounds,soft_cons,comp_options)
+        if not np.isfinite(lp):
+            return -np.inf, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, ll
+        elif (np.isfinite(lp)==True):
+            return lp + ll, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, ll
 
-    if not np.isfinite(lp):
-        return -np.inf, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, ll
-    elif (np.isfinite(lp)==True):
-        return lp + ll, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, ll
+    # Maximum Likelihood, etc. fitting
+    elif (fit_type=='init'):
+        ll = lnlike(params,
+                param_names,
+                line_list,
+                combined_line_list,
+                soft_cons,
+                lam_gal,
+                galaxy,
+                noise,
+                comp_options,
+                losvd_options,
+                host_options,
+                power_options,
+                poly_options,
+                opt_feii_options,
+                uv_iron_options,
+                balmer_options,
+                outflow_test_options,
+                host_template,
+                opt_feii_templates,
+                uv_iron_template,
+                balmer_template,
+                stel_templates,
+                disp_res,
+                fit_mask,
+                velscale,
+                fit_type,
+                fit_stat,
+                output_model,
+                run_dir,
+                )
+
+        if fit_stat in ["ML","RCHI2"]:
+            lp = lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type)
+
+            if ~np.isfinite(lp):
+                return -np.inf
+            elif np.isfinite(lp):
+                return lp + ll
+        else:
+            return ll
+
+
 
 ####################################################################################
 
