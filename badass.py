@@ -67,7 +67,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.2.0"
+__version__	= "9.2.1"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -243,8 +243,9 @@ __status__	 = "Release"
 # - Changed instrumental fwhm keyword to instrumental dispersion "disp_res".  Input resolution for user
 # -     -input spectra is still a "fwhm_res" but changes to disp_res internally.
 
-# Version 9.2.0-
+# Version 9.2.0-9.2.1
 # - options for different priors on free parameters
+# - normalization for log-likelihoods
 
 ##########################################################################################################
 
@@ -5966,40 +5967,24 @@ def lnlike(params,
                                                                                   fit_type,
                                                                                   fit_stat,
                                                                                   output_model)
+        # Normalization factor
+        norm_factor = np.nanmedian(galaxy[fit_mask])
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            norm_factor = np.nanmedian(galaxy[fit_mask])
             l = -0.5*(galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise[fit_mask]/norm_factor)**2)
             l = np.sum(l,axis=0)
         elif fit_stat=="OLS":
-            norm_factor = np.nanmedian(galaxy[fit_mask])
             # Since emcee looks for the maximum, but Least Squares requires a minimum
             # we multiply by negative.
             l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
             l = -np.sum(l,axis=0)
-        elif fit_stat=="RMSE":
-            norm_factor = np.nanmedian(galaxy[fit_mask])
-            # Root-Mean Squared Error
-            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
-            l = -np.sqrt(np.nansum(l,axis=0)/(len(galaxy[fit_mask])-1))
         elif (fit_stat=="RCHI2"):
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
-
-            norm_factor = np.nanmedian(galaxy[fit_mask])
-
             # Calculate log-likelihood
             # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
-
-        # Determine if any Gauss-Hermite lines exist
-        # pen = 0 # accumulating penalty
-        # if np.isfinite(l):
-        #     for line in line_list:
-        #         if ((line_list[line]["line_profile"] in ["gauss-hermite","laplace","uniform"])):
-        #             penalty = gh_penalty_ftn(line,params,param_names)
-        #             pen+= penalty
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
@@ -6035,41 +6020,25 @@ def lnlike(params,
                                      fit_type,
                                      fit_stat,
                                      output_model)
+        # Normalization factor
+        norm_factor = np.nanmedian(galaxy[fit_mask])
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            norm_factor = np.nanmedian(galaxy[fit_mask])
             l = -0.5*(galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise[fit_mask]/norm_factor)**2)
             l = np.sum(l,axis=0)
             # print("Log-Likelihood = %0.4f" % (l))
         elif fit_stat=="OLS":
-            norm_factor = np.nanmedian(galaxy[fit_mask])
             l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
             l = -np.sum(l,axis=0)
-        elif fit_stat=="RMSE":
-            norm_factor = np.nanmedian(galaxy[fit_mask])
-            # Root-Mean Squared Error
-            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
-            l = -np.sqrt(np.nansum(l,axis=0)/(len(galaxy[fit_mask])-1))
         elif (fit_stat=="RCHI2"):
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
-
-            norm_factor = np.nanmedian(galaxy[fit_mask])
-
             # Calculate log-likelihood
             # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
-
-        # Determine if any Gauss-Hermite lines exist
-        # pen = 0 # accumulating penalty
-        # if np.isfinite(l):
-        #     for line in line_list:
-        #         if ((line_list[line]["line_profile"]=="gauss-hermite")):
-        #             penalty = gh_penalty_ftn(line,params,param_names)
-        #             pen+= penalty
         #
-        return l #+ l*pen
+        return l 
 
 ##################################################################################
 
