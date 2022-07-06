@@ -892,7 +892,6 @@ def run_single_thread(fits_file,
 
     # initialize walker starting positions based on parameter estimation from Maximum Likelihood fitting
     pos = initialize_walkers(init_params,param_names,bounds,soft_cons,nwalkers,ndim)
-
     # Run emcee
     # args = arguments of lnprob (log-probability function)
     lnprob_args=(param_names,
@@ -2534,25 +2533,25 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             if verbose:
                 print('  - Fitting polynomial continuum component.')
             #
-            for n in range(int(poly_options['ppoly']['order'])+1):
+            for n in range(1,int(poly_options['ppoly']['order'])+1):
                 par_input["PPOLY_COEFF_%d" % n] = ({'init'  :0.0,
-                                             'plim'  :(-1.0e4,1.0e4),
+                                             'plim'  :(-1.0e2,1.0e2),
                                              })
         if (poly_options["apoly"]["bool"]==True) & (poly_options["apoly"]["order"]>=0):
             if verbose:
                 print('  - Fitting additive legendre polynomial component.')
             #
-            for n in range(int(poly_options['apoly']['order'])+1):
+            for n in range(1,int(poly_options['apoly']['order'])+1):
                 par_input["APOLY_COEFF_%d" % n] = ({'init'  :0.0,
-                                             'plim'  :(-1.0e4,1.0e4),
+                                             'plim'  :(-1.0e2,1.0e2),
                                              })
         if (poly_options["mpoly"]["bool"]==True) & (poly_options["mpoly"]["order"]>=0):
             if verbose:
                 print('  - Fitting multiplicative legendre polynomial component.')
             #
-            for n in range(int(poly_options['mpoly']['order'])+1):
+            for n in range(1,int(poly_options['mpoly']['order'])+1):
                 par_input["MPOLY_COEFF_%d" % n] = ({'init'  :0.0,
-                                             'plim'  :(-1.0e4,1.0e4),
+                                             'plim'  :(-1.0e2,1.0e2),
                                              })
 
     ##############################################################################
@@ -5970,22 +5969,29 @@ def lnlike(params,
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2 + np.log(2*np.pi*(noise[fit_mask])**2)
+            norm_factor = np.nanmedian(galaxy[fit_mask])
+            l = -0.5*(galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise[fit_mask]/norm_factor)**2)
             l = np.sum(l,axis=0)
         elif fit_stat=="OLS":
+            norm_factor = np.nanmedian(galaxy[fit_mask])
             # Since emcee looks for the maximum, but Least Squares requires a minimum
             # we multiply by negative.
-            l = (galaxy[fit_mask]-model[fit_mask])**2
+            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
             l = -np.sum(l,axis=0)
         elif fit_stat=="RMSE":
+            norm_factor = np.nanmedian(galaxy[fit_mask])
             # Root-Mean Squared Error
-            l = (galaxy[fit_mask]-model[fit_mask])**2
-            l = -np.sqrt(np.sum(l,axis=0)/(len(galaxy[fit_mask])-1))
+            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
+            l = -np.sqrt(np.nansum(l,axis=0)/(len(galaxy[fit_mask])-1))
         elif (fit_stat=="RCHI2"):
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
+
+            norm_factor = np.nanmedian(galaxy[fit_mask])
+
             # Calculate log-likelihood
-            l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
+            # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
 
         # Determine if any Gauss-Hermite lines exist
         # pen = 0 # accumulating penalty
@@ -6032,21 +6038,28 @@ def lnlike(params,
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2 + np.log(2*np.pi*(noise[fit_mask])**2)
+            norm_factor = np.nanmedian(galaxy[fit_mask])
+            l = -0.5*(galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise[fit_mask]/norm_factor)**2)
             l = np.sum(l,axis=0)
             # print("Log-Likelihood = %0.4f" % (l))
         elif fit_stat=="OLS":
-            l = (galaxy[fit_mask]-model[fit_mask])**2
+            norm_factor = np.nanmedian(galaxy[fit_mask])
+            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
             l = -np.sum(l,axis=0)
         elif fit_stat=="RMSE":
+            norm_factor = np.nanmedian(galaxy[fit_mask])
             # Root-Mean Squared Error
-            l = (galaxy[fit_mask]-model[fit_mask])**2
-            l = -np.sqrt(np.sum(l,axis=0)/(len(galaxy[fit_mask])-1))
+            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
+            l = -np.sqrt(np.nansum(l,axis=0)/(len(galaxy[fit_mask])-1))
         elif (fit_stat=="RCHI2"):
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
+
+            norm_factor = np.nanmedian(galaxy[fit_mask])
+
             # Calculate log-likelihood
-            l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
+            # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
 
         # Determine if any Gauss-Hermite lines exist
         # pen = 0 # accumulating penalty
@@ -6637,33 +6650,38 @@ def fit_model(params,
         #
         nw = np.linspace(-1,1,len(lam_gal))
         coeff = np.empty(poly_options['ppoly']['order']+1)
-        for n in range(poly_options['ppoly']['order']+1):
+        for n in range(1,poly_options['ppoly']['order']+1):
             coeff[n] = p["PPOLY_COEFF_%d" % n]
         ppoly = np.polynomial.polynomial.polyval(nw, coeff)
-        if np.any(ppoly)<0:
-            ppoly += -np.nanmin(ppoly)
+        # if np.any(ppoly)<0:
+        #     ppoly += -np.nanmin(ppoly)
         comp_dict["PPOLY"] = ppoly
-        host_model += ppoly
+        host_model = host_model - ppoly
         #
     if (comp_options["fit_poly"]==True) & (poly_options["apoly"]["bool"]==True) & (poly_options["apoly"]["order"]>=0):
         #
         nw = np.linspace(-1,1,len(lam_gal))
         coeff = np.empty(poly_options['apoly']['order']+1)
-        for n in range(poly_options['apoly']['order']+1):
+        for n in range(1,poly_options['apoly']['order']+1):
             coeff[n] = p["APOLY_COEFF_%d" % n]
+        coeff[0] = 0.0
         apoly = np.polynomial.legendre.legval(nw, coeff)
+        # if np.any(apoly)<0:
+        #     apoly += (-1*np.nanmin(apoly))
+        host_model = host_model - apoly
         comp_dict["APOLY"] = apoly
-        host_model += apoly
         #
     if (comp_options["fit_poly"]==True) & (poly_options["mpoly"]["bool"]==True) & (poly_options["mpoly"]["order"]>=0):
         #
         nw = np.linspace(-1,1,len(lam_gal))
         coeff = np.empty(poly_options['mpoly']['order']+1)
-        for n in range(poly_options['mpoly']['order']+1):
+        for n in range(1,poly_options['mpoly']['order']+1):
             coeff[n] = p["MPOLY_COEFF_%d" % n]
         mpoly = np.polynomial.legendre.legval(nw, coeff)
         comp_dict["MPOLY"] = mpoly
-        host_model *= mpoly
+        # if np.any(mpoly)<0:
+        #     mpoly += -np.nanmin(mpoly)
+        host_model = host_model * mpoly
         #
 
     ########################################################################################################
