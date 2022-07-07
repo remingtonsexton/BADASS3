@@ -66,7 +66,7 @@ def check_fit_options(input,comp_options,verbose=False):
 				"mask_bad_pix": False, # mask pixels SDSS flagged as 'bad' (careful!)
 				"mask_emline" : False, # automatically mask lines for continuum fitting.
 				"mask_metal": False, # interpolate over metal absorption lines for high-z spectra
-				"fit_stat": "RMSE", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
+				"fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
 				"n_basinhop": 10, # Number of consecutive basinhopping thresholds before solution achieved
 				"test_outflows": False, # only test for outflows; "fit_outflows" must be set to True!
 				"test_line": {"bool":False,
@@ -124,7 +124,7 @@ def check_fit_options(input,comp_options,verbose=False):
 								lambda x: x in ["ML","OLS","RCHI2","RMSE"]
 							   ],
 					 "default" : "ML",
-					 "error_message" : "\n Fit statistic can be either ML (Maximum Likelihood), OLS (Ordinary Least Squares) , RCHI2 (Reduced Chi-Squared), or RMSE (Root-Mean Squared Error).\n",
+					 "error_message" : "\n Fit statistic can be either ML (Maximum Likelihood), OLS (Ordinary Least Squares) , or RCHI2 (Reduced Chi-Squared).\n",
 					},
 	"n_basinhop" : {
 					 "conds" : [
