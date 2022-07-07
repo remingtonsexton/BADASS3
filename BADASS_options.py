@@ -1,4 +1,4 @@
-################################## Fit Options #################################
+################################## Fit Options ################################# #
 # Fitting Parameters
 fit_options={
 "fit_reg"    : (4400,5500),# Fitting region; Note: Indo-US Library=(3460,9464)
