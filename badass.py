@@ -67,7 +67,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.2.1"
+__version__	= "9.2.2"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -243,9 +243,10 @@ __status__	 = "Release"
 # - Changed instrumental fwhm keyword to instrumental dispersion "disp_res".  Input resolution for user
 # -     -input spectra is still a "fwhm_res" but changes to disp_res internally.
 
-# Version 9.2.0-9.2.1
+# Version 9.2.0-9.2.2
 # - options for different priors on free parameters
 # - normalization for log-likelihoods
+# - outflow test region fix
 
 ##########################################################################################################
 
@@ -3880,7 +3881,7 @@ def chi2_metric(eval_ind,
 
     return chi2_outflow, chi2_outflow_err, chi2_no_outflow, chi2_no_outflow_err, chi2_ratio, chi2_ratio_err
 
-def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wave, max_wave, eval_ind, nchannel, ddof, run_dir):
+def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_ind, nchannel, ddof, run_dir):
     """
     Performs a Bayesian A/B hypothesis test for the 
     likelihood distributions for two models.
@@ -3903,8 +3904,6 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wav
     ax1.plot(wave,resid_no_line-resid_line,color="xkcd:bright red",linestyle="-",linewidth=1.0,label=r"$\Delta~\rm{Residuals}$")
     ax1.plot(wave,noise,color="xkcd:lime green",linestyle="-",linewidth=0.5,label="Noise")
     ax1.plot(wave,-noise,color="xkcd:lime green",linestyle="-",linewidth=0.5)
-    # ax1.axvline(min_wave,color="xkcd:red",linestyle="--",linewidth=1,label="Line Test Region")
-    # ax1.axvline(max_wave,color="xkcd:red",linestyle="--",linewidth=1)
     ax1.axhline(0,color="xkcd:white",linestyle="--",linewidth=0.75)
     ax1.set_xlabel(r"$\lambda_{\rm{rest}}$ [$\rm{\AA}$]",fontsize=fontsize)
     ax1.set_ylabel(r"$f_\lambda$ [$10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\rm{\AA}^{-1}$]",fontsize=fontsize)
@@ -4171,17 +4170,24 @@ def line_test(param_dict,
 
 
 
-    # Determine wavelength bounds of F-test. For [OIII]5007, we use the full profile (core + outflow)
-    # and determine the 0.1 and 99.9 percentiles of the flux of the full profile to set the bounds 
-    # of the test.
+    # Determine test channels
+    # Associated lines are those narrow lines associated with outflow lines, which
+    # should be included in the determination of the test channels.
+    assoc_lines = []
+    if np.all([i[:4]=="OUT_" for i in remove_lines]):
+        for i in remove_lines:
+            if ("NA_"+i[4:]) in line_list:
+                assoc_lines.append("NA_"+i[4:])
 
     if isinstance(remove_lines,str):
-        full_profile = np.median(mccomps_line[remove_lines],axis=0)
+        full_profile = np.median(mccomps_line[remove_lines+assoc_lines],axis=0)
     elif isinstance(remove_lines,list):
-        full_profile = np.median(np.sum([mccomps_line[l] for l in remove_lines],axis=1),axis=0)
+        full_profile = np.zeros(len(lam_gal))
+        for i in (remove_lines+assoc_lines):
+            full_profile+=np.median(mccomps_line[i],axis=0)
 
-    # min_wave, max_wave, eval_ind, nchannel = get_wavelength_range(lam_gal,noise,velscale,full_profile,line_list[test_line["line"]])
-    min_wave, max_wave, eval_ind, nchannel = get_wavelength_range(lam_gal[fit_mask],noise[fit_mask],velscale,full_profile[fit_mask])#,line_list[test_line["line"]])
+    eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask])
+
     # storage arrays for residuals in [OIII] test region
     resid_line	  = np.empty((max_like_niter+1,nchannel))
     resid_no_line = np.empty((max_like_niter+1,nchannel))
@@ -4192,7 +4198,7 @@ def line_test(param_dict,
         resid_total[i,:]   = mccomps_line['RESID'][i,:][fit_mask]
 
     # Perform Bayesian A/B test
-    pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap = bayesian_AB_test(mccomps_line['RESID'][0,:][fit_mask], mccomps_no_line['RESID'][0,:][fit_mask], full_profile[fit_mask], lam_gal[fit_mask], noise[fit_mask], galaxy[fit_mask], min_wave, max_wave, eval_ind, nchannel, ddof, run_dir)
+    pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap = bayesian_AB_test(mccomps_line['RESID'][0,:][fit_mask], mccomps_no_line['RESID'][0,:][fit_mask], full_profile[fit_mask], lam_gal[fit_mask], noise[fit_mask], galaxy[fit_mask], eval_ind, nchannel, ddof, run_dir)
 
     # Calculate sum-of-square of residuals and its uncertainty
     ssr_ratio, ssr_ratio_err, ssr_no_line, ssr_no_line_err, ssr_line, ssr_line_err = ssr_test(resid_line,resid_no_line,run_dir)
@@ -4373,7 +4379,7 @@ def line_test(param_dict,
 
     # Make comparison plots of outflow and no-outflow models
     line_test_plot(lam_gal,comp_dict_line,comp_dict_no_line,line_list,line_list_no_line,
-                           params_line,params_no_line,param_names_line,param_names_no_line,min_wave,max_wave,run_dir)
+                           params_line,params_no_line,param_names_line,param_names_no_line,eval_ind,run_dir)
 
     # Write results to FITS
     write_line_test_results(mcpars_line,comp_dict_line,mcpars_no_line,comp_dict_no_line,fit_mask,run_dir,binnum,spaxelx,spaxely)
@@ -4382,10 +4388,14 @@ def line_test(param_dict,
 
 ##################################################################################
 
-def get_wavelength_range(lam_gal, noise, velscale, full_profile):#, line_dict):
+def get_test_range(lam_gal, noise, full_profile):
 
     # Get indices where we perform f-test
-    eval_ind = range(len(lam_gal))
+    eval_ind = np.where(full_profile>=(0.5*noise))[0]#range(len(lam_gal))
+
+    if len(eval_ind)==0:
+        eval_ind = np.arange(len(lam_gal))
+
     # number of channels in the  test region 
     nchannel = len(eval_ind)
     # if the number of channels < 6 (number of degrees of freedom for double-Gaussian model), then the calculated f-statistic
@@ -4396,10 +4406,8 @@ def get_wavelength_range(lam_gal, noise, velscale, full_profile):#, line_dict):
         upper_pad = np.arange(eval_ind[-1]+1,eval_ind[-1]+1+add_chan,1)
         eval_ind = np.concatenate([lower_pad, eval_ind, upper_pad],axis=0)
         nchannel = len(eval_ind)
-
-    min_wave, max_wave = lam_gal[eval_ind[0]], lam_gal[eval_ind[-1]]
         
-    return min_wave, max_wave, eval_ind, nchannel
+    return eval_ind, nchannel
 
 ##################################################################################
 
@@ -4439,7 +4447,7 @@ def write_test_stats(stats_dict,run_dir):
 ##################################################################################
 
 def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outflows,line_list_no_outflows,
-                           params_outflows,params_no_outflows,param_names_outflows,param_names_no_outflows,min_wave,max_wave,run_dir):
+                           params_outflows,params_no_outflows,param_names_outflows,param_names_no_outflows,eval_ind,run_dir):
     """
     The plotting function for test_line().  It plots both the outflow
     and no_outflow results.
@@ -4526,10 +4534,14 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
             if (line_list_outflows[key]["line_type"]=="user"):
                 ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow[key], color='xkcd:electric lime', linewidth=0.5, linestyle='-', label='Other')
 
-    ax1.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax1.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax2.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax2.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
+    # Plot evaluation channels
+    ibad = [i for i in range(len(lam_gal)) if i in eval_ind]
+    if (len(ibad)>0):# and (len(ibad[0])>1):
+        bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
+        ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:aqua',label="eval. pixels")
+        for i in bad_wave[1:]:
+            ax1.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
+            ax2.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
 
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(lam_gal)-10,np.max(lam_gal)+10)
@@ -4639,10 +4651,14 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
             if (line_list_no_outflows[key]["line_type"]=="user"):
                 ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow[key], color='xkcd:electric lime', linewidth=0.5, linestyle='-', label='Other')
 
-    ax3.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax3.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax4.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax4.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
+    # Plot evaluation channels
+    ibad = [i for i in range(len(lam_gal)) if i in eval_ind]
+    if (len(ibad)>0):# and (len(ibad[0])>1):
+        bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
+        ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:aqua',label="eval. pixels")
+        for i in bad_wave[1:]:
+            ax3.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
+            ax4.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
 
     ax3.set_xticklabels([])
     ax3.set_xlim(np.min(lam_gal)-10,np.max(lam_gal)+10)
