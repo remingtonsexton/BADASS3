@@ -4536,7 +4536,7 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
 
     # Plot evaluation channels
     ibad = [i for i in range(len(lam_gal)) if i in eval_ind]
-    if (len(ibad)>0):# and (len(ibad[0])>1):
+    if (len(ibad)>0) & (len(ibad)<len(lam_gal)):# and (len(ibad[0])>1):
         bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
         ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:aqua',label="eval. pixels")
         for i in bad_wave[1:]:
@@ -4653,7 +4653,7 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
 
     # Plot evaluation channels
     ibad = [i for i in range(len(lam_gal)) if i in eval_ind]
-    if (len(ibad)>0):# and (len(ibad[0])>1):
+    if (len(ibad)>0) & (len(ibad)<len(lam_gal)):# and (len(ibad[0])>1):
         bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
         ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:aqua',label="eval. pixels")
         for i in bad_wave[1:]:
