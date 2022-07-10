@@ -3887,6 +3887,9 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_in
     likelihood distributions for two models.
     """
 
+    # Smooth the noise using a 3-pixel Gaussian kernel
+    noise = scipy.ndimage.gaussian_filter1d(noise,2.0,mode="nearest")
+
     # Plot
     fig = plt.figure(figsize=(18,10)) 
     gs = gridspec.GridSpec(2, 4)
@@ -4391,7 +4394,7 @@ def line_test(param_dict,
 def get_test_range(lam_gal, noise, full_profile):
 
     # Get indices where we perform f-test
-    eval_ind = np.where(full_profile>=(0.5*noise))[0]#range(len(lam_gal))
+    eval_ind = np.where(full_profile>=(0.1*noise))[0]#range(len(lam_gal))
 
     if len(eval_ind)==0:
         eval_ind = np.arange(len(lam_gal))
