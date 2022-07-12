@@ -3456,7 +3456,12 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (("amp" in line_list[line]) and (line_list[line]["amp"]=="free")):
             amp_default = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
             line_par_input[line+"_AMP"] = {"init": line_list[line].get("amp_init",amp_default[0]), 
-                                           "plim":line_list[line].get("amp_plim",amp_default[1])}
+                                           "plim":line_list[line].get("amp_plim",amp_default[1]),
+                                           "prior":line_list[line].get("amp_prior")
+                                           }
+            # If prior is None, pop it out
+            if line_par_input[line+"_AMP"]["prior"] is None:
+                line_par_input[line+"_AMP"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_AMP"]["init"]<line_par_input[line+"_AMP"]["plim"][0]) or (line_par_input[line+"_AMP"]["init"]>line_par_input[line+"_AMP"]["plim"][1]):
                 raise ValueError("\n Amplitude (amp) initial value (amp_init) for %s outside of parameter limits (amp_plim)!\n" % (line))
@@ -3464,7 +3469,12 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (("disp" in line_list[line]) and (line_list[line]["disp"]=="free")):
             disp_default = disp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
             line_par_input[line+"_DISP"] = {"init": line_list[line].get("disp_init",disp_default[0]), 
-                                            "plim":line_list[line].get("disp_plim",disp_default[1])}
+                                            "plim":line_list[line].get("disp_plim",disp_default[1]),
+                                            "prior":line_list[line].get("disp_prior")
+                                            }
+            # If prior is None, pop it out
+            if line_par_input[line+"_DISP"]["prior"] is None:
+                line_par_input[line+"_DISP"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_DISP"]["init"]<line_par_input[line+"_DISP"]["plim"][0]) or (line_par_input[line+"_DISP"]["init"]>line_par_input[line+"_DISP"]["plim"][1]):
                 raise ValueError("\n DISP (disp) initial value (disp_init) for %s outside of parameter limits (disp_plim)!\n" % (line))
@@ -3475,6 +3485,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                                             "plim":line_list[line].get("voff_plim",voff_default[1]),
                                             "prior":line_list[line].get("voff_prior",{"type":"gaussian"})
                                             }
+            # If prior is None, pop it out
+            if line_par_input[line+"_VOFF"]["prior"] is None:
+                line_par_input[line+"_VOFF"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
                 raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
@@ -3488,6 +3501,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                                                             "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1]),
                                                             "prior":line_list[line].get("h"+str(m)+"_prior",{"type":"gaussian"})
                                                               }
+                        # If prior is None, pop it out
+                        if line_par_input[line+"_H"+str(m)]["prior"] is None:
+                            line_par_input[line+"_H"+str(m)].pop("prior",None)
                         # Check to make sure init value is within limits of plim
                         if (line_par_input[line+"_H"+str(m)]["init"]<line_par_input[line+"_H"+str(m)]["plim"][0]) or (line_par_input[line+"_H"+str(m)]["init"]>line_par_input[line+"_H"+str(m)]["plim"][1]):
                             raise ValueError("\n Gauss-Hermite moment h%d initial value (h%d_init) for %s outside of parameter limits (h%d_plim)!\n" % (m,m,line,m))
@@ -3501,6 +3517,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                                                             "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1]),
                                                             "prior":line_list[line].get("h"+str(m)+"_prior",{"type":"halfnorm"})
                                                               }
+                        # If prior is None, pop it out
+                        if line_par_input[line+"_H"+str(m)]["prior"] is None:
+                            line_par_input[line+"_H"+str(m)].pop("prior",None)
                         # add exceptions for h4 in each line profile; laplace h4>=0, uniform h4<0
                         if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["init"]=0.01
                         if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["plim"]=(0,0.2)
@@ -3516,7 +3535,12 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (("shape" in line_list[line]) and (line_list[line]["shape"]=="free")):
             shape_default = shape_hyperpars()
             line_par_input[line+"_SHAPE"] = {"init": line_list[line].get("shape_init",shape_default[0]), 
-                                              "plim":line_list[line].get("shape_plim",shape_default[1])}
+                                             "plim":line_list[line].get("shape_plim",shape_default[1]),
+                                             "prior":line_list[line].get("shape_prior")
+                                              }
+            # If prior is None, pop it out
+            if line_par_input[line+"_SHAPE"]["prior"] is None:
+                line_par_input[line+"_SHAPE"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_SHAPE"]["init"]<line_par_input[line+"_SHAPE"]["plim"][0]) or (line_par_input[line+"_SHAPE"]["init"]>line_par_input[line+"_SHAPE"]["plim"][1]):
                 raise ValueError("\n Voigt profile shape parameter (shape) initial value (shape_init) for %s outside of parameter limits (shape_plim)!\n" % (line))
