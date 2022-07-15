@@ -1,3 +1,5 @@
+import numpy as np
+
 from utils.verify.verify import ValueVerifier, CrossOptionVerifier
 
 class DefaultVerifySet:
@@ -42,6 +44,15 @@ class DefaultVerifySet:
                                         [],
                                         False,
                                         'Mask SDSS-flagged bad pixels (mask_bad_pix) must be either True or False.'
+                        ))
+
+        verifiers.append(ValueVerifier(['fit_options', 'user_mask'],
+                                        (list),
+                                        [
+                                            lambda x: all([isinstance(i, tuple) for i in x]),
+                                        ],
+                                        [],
+                                        'User mask must be list of tuples.'
                         ))
 
         verifiers.append(ValueVerifier(['fit_options', 'mask_emline'],
@@ -325,6 +336,171 @@ class DefaultVerifySet:
         # TODO:
         #   if fit_losvd & fit_host: fit_host = False
 
+
+        verifiers.append(ValueVerifier(['user_lines'],
+                                        (dict),
+                                        [
+                                            lambda x: all([isinstance(line, (dict)) for line in x]),
+                                        ],
+                                        {},
+                                        'Each user-input emission line must be a dictionary that includes the central wavelength (in Å) of the line to be fit.'
+                        ))
+
+        verifiers.append(ValueVerifier(['user_constraints'],
+                                        (list),
+                                        [
+                                            lambda x: all([((isinstance(con, (list,tuple))) and (len(con)==2) and (isinstance(con[0], (str))) and (isinstance(con[1], (str)))) for con in x])
+                                        ],
+                                        [],
+                                        'User constraints must be in the form of a list of tuples, each of length 2.  The format for soft constraints (paramter1, parameter2) defined as (parameter1 - parameter2) >= 0.0 OR (parameter1 >= parameter2).'
+                        ))
+
+        verifiers.append(ValueVerifier(['user_mask'],
+                                        (list, tuple),
+                                        [
+                                            lambda x: all([((isinstance(con, (list,tuple))) and (len(con)==2) and (isinstance(con[0], (int,float))) and (isinstance(con[1], (int,float))) and (con[0]<=con[1])) for con in x])
+                                        ],
+                                        [],
+                                        'User mask must be in the form of a list of tuples, each of length 2.',
+                        ))
+
+        # Power Options
+        verifiers.append(ValueVerifier(['power_options', 'type'],
+                                        (str),
+                                        [
+                                            lambda x: x in ['simple', 'broken'],
+                                        ],
+                                        {'type': 'simple'},
+                                        'Power-law type must be a string and options are \'simple\' or \'broken\'.'
+                        ))
+
+        # LOSVD Options
+        verifiers.append(ValueVerifier(['losvd_options', 'library'],
+                                        (str),
+                                        [
+                                            lambda x: x in ['IndoUS', 'Vazdekis2010', 'eMILES'],
+                                        ],
+                                        'IndoUS',
+                                        'Stellar template library must be a string.  Available options: \'IndoUS\', \'Vazdekis2010\', \'eMILES\'.'
+                        ))
+
+        # TODO: remove bool
+        verifiers.append(ValueVerifier(['losvd_options', 'vel_const'],
+                                        (dict),
+                                        [],
+                                        {'bool':False, 'val':0.0},
+                                        'vel_const must be a dictionary.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'vel_const', 'bool'],
+                                        (bool),
+                                        [],
+                                        True,
+                                        'vel_const bool must be True or False.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'vel_const', 'val'],
+                                        (int, float),
+                                        [
+                                            lambda x: x >= 0,
+                                        ],
+                                        0.0,
+                                        'vel_const val must be an integer or float.'
+                        ))
+
+        # TODO: remove bool
+        verifiers.append(ValueVerifier(['losvd_options', 'disp_const'],
+                                        (dict),
+                                        [],
+                                        {'bool':False, 'val':100.0},
+                                        'vel_const must be a dictionary.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'disp_const', 'bool'],
+                                        (bool),
+                                        [],
+                                        True,
+                                        'disp_const bool must be True or False.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'disp_const', 'val'],
+                                        (int, float),
+                                        [
+                                            lambda x: x >= 0,
+                                        ],
+                                        100.0,
+                                        'disp_const val must be an integer or float.'
+                        ))
+
+        # TODO: remove bool
+        verifiers.append(ValueVerifier(['losvd_options', 'losvd_apoly'],
+                                        (dict),
+                                        [],
+                                        {'bool':False, 'order':3.0},
+                                        'vel_const must be a dictionary.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'losvd_apoly', 'bool'],
+                                        (bool),
+                                        [],
+                                        False,
+                                        'losvd_apoly bool must be True or False.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'losvd_apoly', 'order'],
+                                        (int, float),
+                                        [
+                                            lambda x: x >= 0,
+                                        ],
+                                        3.0,
+                                        'losvd_apoly val must be an integer or float.'
+                        ))
+
+        # Host Options
+        verifiers.append(ValueVerifier(['host_options', 'age'],
+                                        (list, tuple),
+                                        [
+                                            lambda x: np.all([a in [0.9,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0] for a in x]),
+                                        ],
+                                        [0.1,1.0,10.0],
+                                        'SSP host template age must by an integer or float in the range 0.9-14.0.  Available options are [0.9, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0].'
+                        ))
+
+        verifiers.append(ValueVerifier(['host_options', 'vel_const'],
+                                        (dict),
+                                        [],
+                                        {'bool':True, 'val':0.0},
+                                        'vel_const must be a dictionary.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'vel_const', 'bool'],
+                                        (bool),
+                                        [],
+                                        True,
+                                        'vel_const bool must be True or False.'
+                        ))
+
+        verifiers.append(ValueVerifier(['losvd_options', 'vel_const', 'val'],
+                                        (int, float),
+                                        [
+                                            lambda x: x >= 0,
+                                        ],
+                                        100.0,
+                                        'vel_const val must be an integer or float.'
+                        ))
+
+        verifiers.append(ValueVerifier(['host_options', 'disp_const'],
+                                        (dict),
+                                        [],
+                                        {'bool':True, 'val':100.0},
+                                        'disp_const must be a dictionary.'
+                        ))
+
+
+
+        # TODO:
+        # if output["disp_const"]["val"]<=0: # convolution error if dispersion equal to zero
+        #     output["disp_const"]["val"]=1.e-3
 
 
 
