@@ -62,27 +62,18 @@ class TestBADASS(unittest.TestCase):
         if cube_subdir.exists():
             shutil.rmtree(str(cube_subdir))
 
-        # wave, flux, ivar, mask, fwhm_res, binnum, npixels, xpixbin, ypixbin, z, dataid, objname = ifu.prepare_ifu(str(cube), z, format='muse', 
-        #                                                                                             aperture=ap, 
-        #                                                                                             targetsn=25.0 ,
-        #                                                                                             snr_threshold=0.,
-        #                                                                                             voronoi_binning=False,
-        #                                                                                             use_and_mask=False,
-        #                                                                                             )
-
-        # self.assertTrue(cube_subdir.exists())
-        # spaxel_dirs = list(cube_subdir.glob('spaxel*'))
-        # self.assertGreater(len(spaxel_dirs), 0)
-
-        # badass.run_BADASS(cube_subdir, nprocesses=4, options_file=options_file, sdss_spec=False, ifu_spec=True)
-
         ret = badass.BadassRunner(cube, options_file).run()
+
+        spaxel_dirs = list(cube_subdir.glob('spaxel*'))
+        self.assertGreater(len(spaxel_dirs), 0)
 
         for spaxel_dir in spaxel_dirs:
             output_dir = spaxel_dir.joinpath('MCMC_output')
             self.assertTrue(output_dir.exists())
 
-            for file in ['fitting_region.pdf', 'max_likelihood_fit.pdf']:
+            # TODO: add fitting_region.pdf back in after implementing plotting
+            # for file in ['fitting_region.pdf', 'max_likelihood_fit.pdf']:
+            for file in ['max_likelihood_fit.pdf']:
                 self.assertTrue(output_dir.joinpath(file).exists())
 
             log_dir = output_dir.joinpath('log')
@@ -93,6 +84,12 @@ class TestBADASS(unittest.TestCase):
     # TODO: Add manga test
 
     # TODO: Add user spec test
+
+
+    # TODO: Option tests:
+    #   fit_reg: 'auto' and 'full'
+
+
 
 
 if __name__ == '__main__':
