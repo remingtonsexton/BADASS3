@@ -254,8 +254,8 @@ class BadassRunner:
 		if (len(self.options) != 1) and (len(self.targets) != len(self.options)):
 			return 'Target and options count mismatch'
 
-		
 		jobs = []
+		print('Starting badass for {n} targets!'.format(n=len(self.targets)))
 		for i, target in enumerate(self.targets):
 			topts = self.options[0]
 			if len(self.options) > 1:
@@ -282,9 +282,6 @@ class BadassContext(mp.Process):
 		self.options = options
 		# TODO: set outdir to default to None in options validation
 		self.outdir = self.options.io_options.output_dir or get_default_outdir(self.target.infile)
-
-		print(self.target)
-		print(self.target.__dict__)
 
 
 	def run(self):
@@ -373,44 +370,36 @@ class BadassContext(mp.Process):
 		print('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
 		sys.stdout.flush()
 		# Start a timer to record the total runtime
-		start_time = time.time()
+		self.start_time = time.time()
 
-		# Determine validity of fitting region
-		min_fit_reg = 25 # in Å; set the minimum fitting region size here
-		if (sdss_spec) or (ifu_spec): # if user-input spectrum is an SDSS spectrum
-			#
-			fit_reg,good_frac = determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose)
-			if (fit_reg is None) or ((fit_reg[1]-fit_reg[0]) < min_fit_reg):
-				print('\n Fitting region too small! The fitting region must be at least %d A!  Moving to next object... \n' % (min_fit_reg))
-				cleanup(run_dir)
-				return None
-			elif (good_frac < fit_options["good_thresh"]) and (fit_reg is not None): # if fraction of good pixels is less than good_threshold, then move to next object
-				print('\n Not enough good channels above threshold! Moving onto next object...')
-				cleanup(run_dir)
-				return None
-			elif (good_frac >= fit_options["good_thresh"]) and (fit_reg is not None):
-				pass
-		elif (not sdss_spec): # if user-input spectrum is not an SDSS spectrum
-			fit_reg,good_frac = determine_fit_reg_user(wave, z, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose)
-			if (fit_reg is None) or ((fit_reg[1]-fit_reg[0]) < min_fit_reg):
-				print('\n Fitting region too small! The fitting region must be at least %d A!  Moving to next object... \n' % (min_fit_reg))
-				cleanup(run_dir)
-				return None
-			elif (fit_reg is not None):
-				pass
+		self.set_fit_region()
+		# TODO: validate in function
+		if (self.fit_reg is None) or ((self.fit_reg.max-self.fit_reg.min) < constants.MIN_FIT_REGION):
+			print('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
+			return None
 
-		# Prepare spectrum for fitting
-		# SDSS spectrum
-		if (sdss_spec):
-			lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_sdss_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
-			binnum = spaxelx = spaxely = None
-		# ifu spectrum
-		elif (ifu_spec):
-			lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask,binnum,spaxelx,spaxely = prepare_ifu_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
-		# non-SDSS spectrum
-		elif (not sdss_spec):
-			lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
-			binnum = spaxelx = spaxely = None
+		# TODO: remove, for testing
+		# fit_reg = self.fit_reg
+		fit_reg = (self.fit_reg.min, self.fit_reg.max)
+		good_frac = self.good_frac
+
+		self.prepare_context()
+		# TODO: prepare_user_spec
+
+		# TODO: remove, for testing
+		lam_gal = self.wave
+		galaxy = self.spec
+		noise = self.noise
+		z = self.z
+		velscale = self.velscale
+		fwhm_gal = self.fwhm_res
+		fit_mask = self.fit_mask_good
+		binnum = spaxelx = spaxely = None
+		if hasattr(self.target, 'binnum_i'):
+			binnum = self.target.binnum_i
+			spaxelx = self.target.xi
+			spaxely = self.target.yi
+
 
 		# Write to Log 
 		write_log((fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
@@ -877,7 +866,7 @@ class BadassContext(mp.Process):
 		cleanup(run_dir)
 		
 		# Total time
-		elap_time = (time.time() - start_time)
+		elap_time = (time.time() - self.start_time)
 		if verbose:
 			print("\n Total Runtime = %s" % (time_convert(elap_time)))
 		# Write to log
@@ -886,7 +875,166 @@ class BadassContext(mp.Process):
 		sys.stdout.flush()
 		return
 
-##################################################################################
+
+	def set_fit_region(self):
+		"""
+		Determines the fitting region for an input spectrum and fit options.
+		"""
+
+		min_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].min_losvd
+		max_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].max_losvd
+
+		fit_reg = self.options.fit_options.fit_reg
+		self.fit_reg = fit_reg
+		verbose = self.options.output_options.verbose # TODO: remove in favor of logging
+
+		# Edges of wavelength vector
+		first_good = self.target.wave[0]
+		last_good  = self.target.wave[-1]
+
+		if fit_reg in ['auto', 'full']:
+			self.fit_reg = (np.floor(first_good),np.ceil(last_good))
+			# The lower limit of the spectrum must be the lower limit of our stellar templates
+			if self.options.comp_options.fit_losvd and ((first_good < min_losvd) or (last_good > max_losvd)):
+				if verbose:
+					print("\n Warning: Fitting LOSVD requires wavelenth range between %d Å and %d Å for stellar templates. BADASS will adjust your fitting range to fit the LOSVD..." % (min_losvd,max_losvd))
+					print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
+				auto_low = np.max([min_losvd,first_good]) # Indo-US Library of Stellar Templates has a lower limit of 3460
+				auto_upp = np.min([max_losvd,last_good])
+				self.fit_reg = (np.floor(auto_low),np.ceil(auto_upp))   
+
+		elif isinstance(fit_reg,(tuple,list)):
+			# Check to see if tuple/list makes sense
+			if fit_reg[0] > fit_reg[1]: # if boundaries overlap
+				raise Exception('Fitting boundaries overlap!')
+			if (fit_reg[0] > last_good) | (fit_reg[1] < first_good):
+				raise Exception('\n Fitting region not available! \n')
+
+			self.fit_reg = (np.floor(fit_reg[0]),np.ceil(fit_reg[1]))
+			if self.options.comp_options.fit_losvd and ((fit_reg[0] < min_losvd) or (fit_reg[1] > max_losvd)):
+				if verbose:
+					print("\n Warning: Fitting LOSVD requires wavelenth range between 3460 A and 9464 A for stellar templates. BADASS will adjust your fitting range to fit the LOSVD...")
+					print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
+					print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
+				wave_low = np.max([min_losvd,fit_reg[0],first_good])
+				wave_upp = np.min([max_losvd,fit_reg[1],last_good])
+				self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
+
+			elif (fit_reg[0] < first_good) or (fit_reg[1] > last_good):
+				if verbose:
+					print("\n Input fitting region exceeds available wavelength range.  BADASS will adjust your fitting range automatically...")
+					print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
+					print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
+				wave_low = np.max([fit_reg[0],first_good])
+				wave_upp = np.min([fit_reg[1],last_good])
+				self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
+
+		self.fit_reg = type('FitReg', (object,), dict(min=self.fit_reg[0], max=self.fit_reg[1]))
+
+		if verbose:
+			print("     - New fitting region is (%d, %d). \n" % (self.fit_reg.min, self.fit_reg.max) )
+
+		mask = ((self.target.wave >= self.fit_reg.min) & (self.target.wave <= self.fit_reg.max))
+		igood = np.where((self.target.spec[mask]>0) & (self.target.noise[mask]>0) & (self.target.mask[mask]==0))[0]
+		self.good_frac = (len(igood)*1.0)/len(self.target.spec[mask])
+
+
+	def prepare_context(self):
+
+		low, low_idx = find_nearest(self.target.wave, self.fit_reg.min)
+		low = self.target.wave[low_idx-1] if ((low > self.fit_reg.min) and (low_idx > 0)) else low
+
+		upp, upp_idx = find_nearest(self.target.wave, self.fit_reg.max)
+		upp = self.target.wave[upp_idx+1] if ((upp < self.fit_reg.max) and (upp_idx < len(self.target.wave)-1)) else upp
+
+		fit_reg_mask = (self.target.wave >= low) & (self.target.wave <= upp)
+
+		# Mask the value arrays for the BadassContext to the fitting region
+		self.wave = self.target.wave[fit_reg_mask]
+		self.spec = self.target.spec[fit_reg_mask]
+		self.noise = self.target.noise[fit_reg_mask]
+		self.mask = self.target.mask[fit_reg_mask]
+		self.fwhm_res = self.target.fwhm_res[fit_reg_mask]
+		self.velscale = self.target.velscale
+		self.z = self.target.z
+
+		# Interpolate over nans and infs if in spec or noise
+		inan = np.where((~np.isfinite(self.spec)) | (~np.isfinite(self.noise)))[0]
+		self.noise[inan] = np.nan
+		self.noise[inan] = 1.0 if all(np.isnan(self.noise)) else np.nanmedian(self.noise)
+
+		# Masks set by user options
+		fit_mask_bad = []
+		if self.options.fit_options.mask_bad_pix:
+			bad_pix = np.where(self.mask != 0)[0]
+			fit_mask_bad.extend(bad_pix)
+		if self.options.fit_options.mask_emline:
+			fit_mask_bad.extend(self.emline_masker())
+
+		for lo,hi in self.options.fit_options.user_mask:
+			ibad = np.where((self.wave >= lo) & (self.wave <= hi))[0]
+			fit_mask_bad.extend(ibad)
+
+		if self.options.fit_options.mask_metal:
+			fit_mask_bad.extend(self.metal_masker())
+
+		self.fit_mask_bad = np.sort(np.unique(fit_mask_bad))
+		self.fit_mask_good = np.setdiff1d(np.arange(0,len(self.wave),1,dtype=int), fit_mask_bad)
+
+		self.spec = ccm_unred(self.wave, self.spec, get_ebv(self.target.ra, self.target.dec))
+
+		# TODO: write to log
+		# TODO: plot
+
+
+	def emline_masker(self):
+		"""
+		Runs a multiple moving window median to determine location of emission lines
+		to generate an emission line mask for continuum fitting.
+		"""
+		# Do a series of median filters with window sizes up to 20 
+		window_sizes = [2,5,10,50,100,250,500]#np.arange(10,510,10,dtype=int)
+		med_spec = np.empty((len(self.wave), len(window_sizes)))
+
+		for i in range(len(window_sizes)):
+			med_spec[:,i] = window_filter(self.spec, window_sizes[i])
+
+		mask_bad = np.unique(np.where((np.std(med_spec,axis=1) > self.noise) | (np.std(med_spec,axis=1) > np.nanmedian(self.noise)))[0])
+		return mask_bad
+
+
+	def metal_masker(self):
+		# Do a series of median filters with window sizes up to 25 
+		bandwidths = [5, 10, 15, 20, 25,100,500]
+		sig_clip = 3.0 # sigma threshold
+		nclip = 10 # number of clipping iterations
+		buffer = 2 # buffers # pixels each side 
+		all_nans = []
+		for i in range(len(bandwidths)):
+			count=0
+			new_spec = np.copy(self.spec)
+			while (count<=nclip):
+				med_spec = window_filter(new_spec,bandwidths[i])
+				count+=1
+
+				nan_spec = np.where((med_spec>new_spec) & (np.abs(med_spec-new_spec)>np.median(self.noise)*sig_clip))[0]
+				inan_buffer_upp = np.array([range(i,i+buffer+1) for i in nan_spec if (i+buffer) < len(self.spec)],dtype=int)
+				inan_buffer_upp = inan_buffer_upp.flatten()
+				inan_buffer_low = np.array([range(i-buffer-1,i) for i in nan_spec if (i-buffer) > 0],dtype=int)
+				inan_buffer_low = inan_buffer_low.flatten()
+				inan = np.concatenate([nan_spec,inan_buffer_low, inan_buffer_upp])
+				all_nans.append(inan)
+				new_spec = med_spec
+
+				if len(nan_spec) <= 0:
+					break
+
+		return np.unique(np.concatenate(all_nans))
+
+
+
+
+#### NON-CLASSIFIED FUNCTIONS ####
 
 
 def initialize_walkers(init_params,param_names,bounds,soft_cons,nwalkers,ndim):
@@ -1005,391 +1153,7 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
 
 ##################################################################################
 
-#### Find Nearest Function #######################################################
 
-def find_nearest(array, value):
-	"""
-	This function finds the nearest value in an array and returns the 
-	closest value and the corresponding index.
-	"""
-	array = np.asarray(array)
-	idx = (np.abs(array - value)).argmin()
-	return array[idx],idx
-
-##################################################################################
-
-
-#### Convert Seconds to Minutes ##################################################
-
-# Python Program to Convert seconds 
-# into hours, minutes and seconds 
-  
-def time_convert(seconds): 
-	"""
-	Converts runtimes in seconds to hours:minutes:seconds format.
-	"""
-	seconds = seconds % (24. * 3600.) 
-	hour = seconds // 3600.
-	seconds %= 3600.
-	minutes = seconds // 60.
-	seconds %= 60.
-	  
-	return "%d:%02d:%02d" % (hour, minutes, seconds)
-
-##################################################################################
-
-
-#### Setup Directory Structure ###################################################
-
-def setup_dirs(work_dir,verbose=True):
-	"""
-	This sets up the BADASS directory structure for each spectra.  It creates
-	the "MCMC_output_#" folders.  
-	"""
-
-	def atoi(text):
-		return int(text) if text.isdigit() else text
-
-	def natural_keys(text):
-		'''
-		alist.sort(key=natural_keys) sorts in human order
-		http://nedbatchelder.com/blog/200712/human_sorting.html
-		(See Toothy's implementation in the comments)
-		'''
-		return [ atoi(c) for c in re.split('(\d+)', text) ]
-	
-	# Get list of folders in work_dir:
-	folders = glob.glob(work_dir+'MCMC_output_*')
-	folders.sort(key=natural_keys)
-	if (len(folders)==0):
-		if verbose:
-			print(' Folder has not been created.  Creating MCMC_output folder...')
-		# Create the first MCMC_output file starting with index 1
-		os.mkdir(work_dir+'MCMC_output_1')
-		run_dir = os.path.join(work_dir,'MCMC_output_1/') # running directory
-		prev_dir = None
-	else: 
-		# Get last folder name
-		s = folders[-1]
-		result = re.search('MCMC_output_(.*)', s)
-		# The next folder is named with this number
-		fnum = str(int(result.group(1))+1)
-		prev_num = str(int(result.group(1)))
-		# Create the first MCMC_output file starting with index 1
-		new_fold = work_dir+'MCMC_output_'+fnum+'/'
-		prev_fold = work_dir+'MCMC_output_'+prev_num+'/'
-		os.mkdir(new_fold)
-		run_dir = new_fold
-		if os.path.exists(prev_fold+'MCMC_chain.csv')==True:
-			prev_dir = prev_fold
-		else:
-			prev_dir = prev_fold
-		if verbose:
-			print(' Storing MCMC_output in %s' % run_dir)
-
-	return run_dir,prev_dir
-
-##################################################################################
-
-
-#### Determine fitting region ####################################################
-
-# SDSS spectra
-def determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose):
-	"""
-	Determines the fitting region for SDSS spectra.
-	"""
-	# Limits of the stellar template wavelength range
-	# The stellar templates packaged with BADASS are from the Indo-US Coude Feed Stellar Template Library
-	# with the below wavelength ranges.
-	if (losvd_options["library"]=="IndoUS"):
-		min_losvd, max_losvd = 3460, 9464
-	if (losvd_options["library"]=="Vazdekis2010"):
-		min_losvd, max_losvd = 3540.5, 7409.6
-	if (losvd_options["library"]=="eMILES"):
-		min_losvd, max_losvd = 1680.2, 49999.4
-
-	# TODO: use:
-	# 	min_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].min_losvd
-	# 	max_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].max_losvd
-
-	# Open spectrum file
-	hdu = fits.open(fits_file)
-	specobj = hdu[2].data
-	z = specobj['z'][0]
-	# t = hdu['COADD'].data
-	t = hdu[1].data	
-	lam_gal = (10**(t['loglam']))/(1+z)
-
-	gal  = t['flux']
-	ivar = t['ivar']
-	and_mask = t['and_mask']
-	# Edges of wavelength vector
-	first_good = lam_gal[0]
-	last_good  = lam_gal[-1]
-
-	if ((fit_reg=='auto') or (fit_reg=='full')):
-		# The lower limit of the spectrum must be the lower limit of our stellar templates
-		if ((fit_losvd==True) & (first_good < min_losvd)) | ((fit_losvd==True) & (last_good > max_losvd)):
-			if verbose:
-				print("\n Warning: Fitting LOSVD requires wavelenth range between %d Å and %d Å for stellar templates. BADASS will adjust your fitting range to fit the LOSVD..." % (min_losvd,max_losvd))
-				print("		- Available wavelength range: (%d, %d)" % (first_good, last_good) )
-			auto_low = np.max([min_losvd,first_good]) # Indo-US Library of Stellar Templates has a lower limit of 3460
-			# auto_upp = determine_upper_bound(first_good,last_good)
-			auto_upp = np.min([max_losvd,last_good])
-			# if (auto_upp is not None):
-			new_fit_reg = (np.floor(auto_low),np.ceil(auto_upp))	
-			if verbose:
-				print("		- New fitting region is (%d, %d). \n" % (new_fit_reg[0], new_fit_reg[1]) )
-			# elif (auto_upp is None):
-				# new_fit_reg = None
-				# return None, None
-		elif (fit_losvd==False):
-			new_fit_reg = (np.floor(first_good),np.ceil(last_good))
-
-	elif isinstance(fit_reg,(tuple,list)):
-		# Check to see if tuple/list makes sense
-		if ((fit_reg[0]>fit_reg[1]) | (fit_reg[1]<fit_reg[0])): # if boundaries overlap
-			if verbose:
-				print('\n Fitting boundaries overlap! \n')
-			new_fit_reg = None
-			return None, None
-		elif (fit_reg[0] > last_good) | (fit_reg[1] < first_good):
-			if verbose:
-				print('\n Fitting region not available! \n')
-			new_fit_reg = None
-			return None, None
-		elif ((fit_losvd==True) & (fit_reg[0]<min_losvd)) | ((fit_losvd==True) & (fit_reg[1]>max_losvd)):
-			if verbose:
-				print("\n Warning: Fitting LOSVD requires wavelenth range between 3460 A and 9464 A for stellar templates. BADASS will adjust your fitting range to fit the LOSVD...")
-				print("		- Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-				print("		- Available wavelength range: (%d, %d)" % (first_good, last_good) )
-			wave_low = np.max([min_losvd,fit_reg[0],first_good])
-			wave_upp = np.min([max_losvd,fit_reg[1],last_good])
-			new_fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
-			if verbose:
-				print("		- New fitting region is (%d, %d). \n" % (new_fit_reg[0], new_fit_reg[1]) )
-		else:# (fit_losvd==False):
-			if (fit_reg[0] < first_good) | (fit_reg[1] > last_good):
-				if verbose:
-					print("\n Input fitting region exceeds available wavelength range.  BADASS will adjust your fitting range automatically...")
-					print("		- Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-					print("		- Available wavelength range: (%d, %d)" % (first_good, last_good) )
-				wave_low = np.max([fit_reg[0],first_good])
-				wave_upp = np.min([fit_reg[1],last_good])
-				new_fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
-				if verbose:
-					print("		- New fitting region is (%d, %d). \n" % (new_fit_reg[0], new_fit_reg[1]) )
-			else:
-				new_fit_reg = (np.floor(fit_reg[0]),np.ceil(fit_reg[1]))
-
-	# Determine number of good pixels in new fitting region
-	mask = ((lam_gal >= new_fit_reg[0]) & (lam_gal <= new_fit_reg[1]))
-	igood = np.where((gal[mask]>0) & (ivar[mask]>0) & (and_mask[mask]==0))[0]
-	# igood = np.where((self.target.flux[mask]>0) & (self.target.ivar[mask]>0) & (and_mask[mask]==0))[0]
-	ibad  = np.where(and_mask[mask]!=0)[0]
-	good_frac = (len(igood)*1.0)/len(gal[mask])
-	# good_frac = (len(igood)*1.0)/len(self.target.flux[mask])
-
-	return new_fit_reg,good_frac
-
-# User (non-SDSS) spectra
-def determine_fit_reg_user(wave, z, run_dir, fit_reg, good_thresh, fit_losvd, losvd_options, verbose):
-	"""
-	Determines valid fitting region for a user-input spectrum.
-	"""
-	# Limits of the stellar template wavelength range
-	# The stellar templates packaged with BADASS are from the Indo-US Coude Feed Stellar Template Library
-	# with the below wavelength ranges.
-	min_losvd = 3460
-	max_losvd = 9464
-	lam_gal   = wave/(1+z)		
-	# Edges of wavelength vector
-	first_good = lam_gal[0]
-	last_good  = lam_gal[-1]
-
-	if ((fit_reg=='auto') or (fit_reg=='full')):
-		# The lower limit of the spectrum must be the lower limit of our stellar templates
-		if ((fit_losvd==True) & (first_good < min_losvd)) | ((fit_losvd==True) & (last_good > max_losvd)):
-			if verbose:
-				print("\n Warning: Fitting LOSVD requires wavelenth range between %d Å and %d Å for stellar templates. BADASS will adjust your fitting range to fit the LOSVD..." % (min_losvd,max_losvd))
-				print("		- Available wavelength range: (%d, %d)" % (first_good, last_good) )
-			auto_low = np.max([min_losvd,first_good]) # Indo-US Library of Stellar Templates has a lower limit of 3460
-			# auto_upp = determine_upper_bound(first_good,last_good)
-			auto_upp = np.min([max_losvd,last_good])
-			# if (auto_upp is not None):
-			new_fit_reg = (np.floor(auto_low),np.ceil(auto_upp))	
-			if verbose:
-				print("		- New fitting region is (%d, %d). \n" % (new_fit_reg[0], new_fit_reg[1]) )
-			# elif (auto_upp is None):
-				# new_fit_reg = None
-				# return None, None
-		elif (fit_losvd==False):
-			new_fit_reg = (np.floor(first_good),np.ceil(last_good))
-
-	elif isinstance(fit_reg,(tuple,list)):
-		# Check to see if tuple/list makes sense
-		if ((fit_reg[0]>fit_reg[1]) | (fit_reg[1]<fit_reg[0])): # if boundaries overlap
-			if verbose:
-				print('\n Fitting boundaries overlap! \n')
-			new_fit_reg = None
-			return None, None
-		elif (fit_reg[0] > last_good) | (fit_reg[1] < first_good):
-			if verbose:
-				print('\n Fitting region not available! \n')
-			new_fit_reg = None
-			return None, None
-		elif ((fit_losvd==True) & (fit_reg[0]<min_losvd)) | ((fit_losvd==True) & (fit_reg[1]>max_losvd)):
-			if verbose:
-				print("\n Warning: Fitting LOSVD requires wavelenth range between 3460 A and 9464 A for stellar templates. BADASS will adjust your fitting range to fit the LOSVD...")
-				print("		- Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-				print("		- Available wavelength range: (%d, %d)" % (first_good, last_good) )
-			wave_low = np.max([min_losvd,fit_reg[0],first_good])
-			wave_upp = np.min([max_losvd,fit_reg[1],last_good])
-			new_fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
-			if verbose:
-				print("		- New fitting region is (%d, %d). \n" % (new_fit_reg[0], new_fit_reg[1]) )
-		else:# (fit_losvd==False):
-			if (fit_reg[0] < first_good) | (fit_reg[1] > last_good):
-				if verbose:
-					print("\n Input fitting region exceeds available wavelength range.  BADASS will adjust your fitting range automatically...")
-					print("		- Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-					print("		- Available wavelength range: (%d, %d)" % (first_good, last_good) )
-				wave_low = np.max([fit_reg[0],first_good])
-				wave_upp = np.min([fit_reg[1],last_good])
-				new_fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
-				if verbose:
-					print("		- New fitting region is (%d, %d). \n" % (new_fit_reg[0], new_fit_reg[1]) )
-			else:
-				new_fit_reg = (np.floor(fit_reg[0]),np.ceil(fit_reg[1]))
-
-	##################################################################################
-
-	return new_fit_reg,1.0
-
-##################################################################################
-
-
-#### Galactic Extinction Correction ##############################################
-
-def ccm_unred(wave, flux, ebv, r_v=""):
-	"""ccm_unred(wave, flux, ebv, r_v="")
-	Deredden a flux vector using the CCM 1989 parameterization 
-	Returns an array of the unreddened flux
-	
-	INPUTS:
-	wave - array of wavelengths (in Angstroms)
-	dec - calibrated flux array, same number of elements as wave
-	ebv - colour excess E(B-V) float. If a negative ebv is supplied
-		  fluxes will be reddened rather than dereddened	 
-	
-	OPTIONAL INPUT:
-	r_v - float specifying the ratio of total selective
-		  extinction R(V) = A(V)/E(B-V). If not specified,
-		  then r_v = 3.1
-			
-	OUTPUTS:
-	funred - unreddened calibrated flux array, same number of 
-			 elements as wave
-			 
-	NOTES:
-	1. This function was converted from the IDL Astrolib procedure
-	   last updated in April 1998. All notes from that function
-	   (provided below) are relevant to this function 
-	   
-	2. (From IDL:) The CCM curve shows good agreement with the Savage & Mathis (1979)
-	   ultraviolet curve shortward of 1400 A, but is probably
-	   preferable between 1200 and 1400 A.
-	3. (From IDL:) Many sightlines with peculiar ultraviolet interstellar extinction 
-	   can be represented with a CCM curve, if the proper value of 
-	   R(V) is supplied.
-	4. (From IDL:) Curve is extrapolated between 912 and 1000 A as suggested by
-	   Longo et al. (1989, ApJ, 339,474)
-	5. (From IDL:) Use the 4 parameter calling sequence if you wish to save the 
-	   original flux vector.
-	6. (From IDL:) Valencic et al. (2004, ApJ, 616, 912) revise the ultraviolet CCM
-	   curve (3.3 -- 8.0 um-1).	But since their revised curve does
-	   not connect smoothly with longer and shorter wavelengths, it is
-	   not included here.
-	
-	7. For the optical/NIR transformation, the coefficients from 
-	   O'Donnell (1994) are used
-	
-	>>> ccm_unred([1000, 2000, 3000], [1, 1, 1], 2 ) 
-	array([9.7976e+012, 1.12064e+07, 32287.1])
-	"""
-	wave = np.array(wave, float)
-	flux = np.array(flux, float)
-	
-	if wave.size != flux.size: raise TypeError( 'ERROR - wave and flux vectors must be the same size')
-	
-	if not bool(r_v): r_v = 3.1 
-
-	x = 10000.0/wave
-	# Correction invalid for x>11:
-	if np.any(x>11):
-		return flux 
-
-	npts = wave.size
-	a = np.zeros(npts, float)
-	b = np.zeros(npts, float)
-	
-	###############################
-	#Infrared
-	
-	good = np.where( (x > 0.3) & (x < 1.1) )
-	a[good] = 0.574 * x[good]**(1.61)
-	b[good] = -0.527 * x[good]**(1.61)
-	
-	###############################
-	# Optical & Near IR
-
-	good = np.where( (x  >= 1.1) & (x < 3.3) )
-	y = x[good] - 1.82
-	
-	c1 = np.array([ 1.0 , 0.104,   -0.609,	0.701,  1.137, \
-				  -1.718,   -0.827,	1.647, -0.505 ])
-	c2 = np.array([ 0.0,  1.952,	2.908,   -3.989, -7.985, \
-				  11.102,	5.491,  -10.805,  3.347 ] )
-
-	a[good] = np.polyval(c1[::-1], y)
-	b[good] = np.polyval(c2[::-1], y)
-
-	###############################
-	# Mid-UV
-	
-	good = np.where( (x >= 3.3) & (x < 8) )   
-	y = x[good]
-	F_a = np.zeros(np.size(good),float)
-	F_b = np.zeros(np.size(good),float)
-	good1 = np.where( y > 5.9 )	
-	
-	if np.size(good1) > 0:
-		y1 = y[good1] - 5.9
-		F_a[ good1] = -0.04473 * y1**2 - 0.009779 * y1**3
-		F_b[ good1] =   0.2130 * y1**2  +  0.1207 * y1**3
-
-	a[good] =  1.752 - 0.316*y - (0.104 / ( (y-4.67)**2 + 0.341 )) + F_a
-	b[good] = -3.090 + 1.825*y + (1.206 / ( (y-4.62)**2 + 0.263 )) + F_b
-	
-	###############################
-	# Far-UV
-	
-	good = np.where( (x >= 8) & (x <= 11) )   
-	y = x[good] - 8.0
-	c1 = [ -1.073, -0.628,  0.137, -0.070 ]
-	c2 = [ 13.670,  4.257, -0.420,  0.374 ]
-	a[good] = np.polyval(c1[::-1], y)
-	b[good] = np.polyval(c2[::-1], y)
-
-	# Applying Extinction Correction
-	
-	a_v = r_v * ebv
-	a_lambda = a_v * (a + b/r_v)
-	
-	funred = flux * 10.0**(0.4*a_lambda)   
-
-	return funred #,a_lambda
 
 ##################################################################################
 
@@ -1428,308 +1192,17 @@ def insert_nan(spec,ibad):
 		return spec
 
 
-def emline_masker(wave,spec,noise):
-	"""
-	Runs a multiple moving window median  
-	to determine location of emission lines
-	to generate an emission line mask for 
-	continuum fitting.
-	"""
-	# Do a series of median filters with window sizes up to 20 
-	window_sizes = [2,5,10,50,100,250,500]#np.arange(10,510,10,dtype=int)
-	med_spec = np.empty((len(wave),len(window_sizes)))
-	# 
-	for i in range(len(window_sizes)):
-		med_spec[:,i] = window_filter(spec,window_sizes[i])
-	#
-	mask_bad = np.unique(np.where((np.std(med_spec,axis=1)>noise) | (np.std(med_spec,axis=1)>np.nanmedian(noise)))[0])
-	# mask_good = np.unique(np.where((np.std(med_spec,axis=1)<noise) & (np.std(med_spec,axis=1)<np.nanmedian(noise)))[0])
-	#
-	return mask_bad#,mask_good
-
-
-def metal_masker(wave,spec,noise):
-	"""
-	Runs a multiple moving window median  
-	to determine location of emission lines
-	to generate an emission line mask for 
-	continuum fitting.
-	"""
-	# Do a series of median filters with window sizes up to 25 
-	bandwidths = [5, 10, 15, 20, 25,100,500]
-	sig_clip = 3.0 # sigma threshold
-	nclip = 10 # number of clipping iterations
-	buffer = 2 # buffers # pixels each side 
-	all_nans = []
-	for i in range(len(bandwidths)):
-		count=0
-		new_spec = np.copy(spec)
-		while (count<=nclip):
-			med_spec = window_filter(new_spec,bandwidths[i])
-			count+=1
-
-			# fig = plt.figure(figsize=(20,10))
-			# ax1 = fig.add_subplot(111)
-			# ax1.plot(wave,spec)
-			# ax1.plot(wave,med_spec)
-			# ax1.plot(wave,noise)
-			# plt.tight_layout()
-			# sys.exit()
-
-			nan_spec = np.where((med_spec>new_spec) & (np.abs(med_spec-new_spec)>np.median(noise)*sig_clip))[0]
-			inan_buffer_upp = np.array([range(i,i+buffer+1) for i in nan_spec if (i+buffer) < len(spec)],dtype=int)
-			inan_buffer_upp = inan_buffer_upp.flatten()
-			inan_buffer_low = np.array([range(i-buffer-1,i) for i in nan_spec if (i-buffer) > 0],dtype=int)
-			inan_buffer_low = inan_buffer_low.flatten()
-			inan = np.concatenate([nan_spec,inan_buffer_low, inan_buffer_upp])
-			all_nans.append(inan)
-			new_spec = med_spec
-
-			if len(nan_spec)>0:
-				pass
-
-			else:
-				break
-
-	mask_bad = np.unique(np.concatenate(all_nans))
-
-	return mask_bad
 
 
 
-def window_filter(spec,size):
-	"""
-	Estimates the median value of the spectrum 
-	within a pixel window.
-	"""
-	med_spec = np.empty(len(spec))
-	pix = np.arange(0,len(spec),1)
-	for i,p in enumerate(pix):
-		# Get n-nearest pixels
-		# Calculate distance from i to each pixel
-		i_sort =np.argsort(np.abs(i-pix))
-		idx = pix[i_sort][:size] # indices we estimate from
-		med = np.median(spec[idx])
-		med_spec[i] = med
-	#
-	return med_spec
-
-def interpolate_metal(spec,noise):
-	"""
-	Interpolates over metal absorption lines for 
-	high-redshift spectra using a moving median
-	filter.
-	"""
-	sig_clip = 3.0
-	nclip = 10
-	bandwidth= 15
-	med_spec = window_filter(spec,bandwidth)
-	count = 0 
-	new_spec = np.copy(spec)
-	while (count<=nclip) and ((np.std(new_spec-med_spec)*sig_clip)>np.median(noise)):
-		count+=1
-		# Get locations of nan or -inf pixels
-		nan_spec = np.where((np.abs(new_spec-med_spec)>(np.std(new_spec-med_spec)*sig_clip)) & (new_spec < (med_spec-sig_clip*noise)) )[0]
-		if len(nan_spec)>0:
-			inan = np.unique(np.concatenate([nan_spec]))
-			buffer = 0
-			inan_buffer_upp = np.array([(i+buffer) for i in inan if (i+buffer) < len(spec)],dtype=int)
-			inan_buffer_low = np.array([(i-buffer) for i in inan if (i-buffer) > 0],dtype=int)
-			inan = np.concatenate([inan,inan_buffer_low, inan_buffer_upp])
-			# Interpolate over nans and infs if in spec
-			new_spec[inan] = np.nan
-			new_spec = insert_nan(new_spec,inan)
-			nans, x= nan_helper(new_spec)
-			new_spec[nans]= np.interp(x(nans), x(~nans), new_spec[~nans])
-		else:
-			break
-	#
-	return new_spec
 
 
-##################################################################################
 
-#### Prepare SDSS spectrum #######################################################
 
-def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=False):
-	"""
-	Adapted from example from Cappellari's pPXF (Cappellari et al. 2004,2017)
-	Prepare an SDSS spectrum for pPXF, returning all necessary 
-	parameters. 
-	"""
 
-	# Load the data
-	hdu = fits.open(fits_file)
-	header_cols = [i.keyword for i in hdu[0].header.cards]
-	# Retrieve redshift from spectrum file (specobj table)
-	specobj = hdu[2].data
-	z = specobj['z'][0]
 
-	# For featureless objects, we force z = 0
-	# fit_reg = (0,20000)
 
-	# Retrieve RA and DEC from spectrum file
-	# if RA and DEC not present, assume an average Galactic E(B-V)
-	if ("RA" in header_cols) and ("DEC" in header_cols):
-		ra  = hdu[0].header['RA']
-		dec = hdu[0].header['DEC']
-		ebv_corr = True
-	else:
-		ebv_corr = False
-
-	# t = hdu['COADD'].data
-	t = hdu[1].data
-	hdu.close()
-
-	# Only use the wavelength range in common between galaxy and stellar library.
-	# Determine limits of spectrum vs templates
-	# mask = ( (t['loglam'] > np.log10(3540)) & (t['loglam'] < np.log10(7409)) )
-	fit_min,fit_max = float(fit_reg[0]),float(fit_reg[1])
-	# mask = ( ((t['loglam']) >= np.log10(fit_min*(1+z))) & ((t['loglam']) <= np.log10(fit_max*(1+z))) )
-
-	def generate_mask(fit_min, fit_max, lam):
-		"""
-		This function generates a mask that includes all
-		channnels *including* the user-input fit_min and fit_max.
-		"""
-		# Get lower limit
-		low, low_idx = find_nearest(lam, fit_min) 
-		if (low > fit_min) & (low_idx!=0):
-			low_idx -= 1
-		low_val, _ = find_nearest(lam, lam[low_idx])
-		# Get upper limit
-		upp, upp_idx = find_nearest(lam, fit_max) 
-		if (upp < fit_max) & (upp_idx == len(lam)): 
-			upp_idx += 1
-		upp_val, _ = find_nearest(lam, lam[upp_idx])
-
-		mask = ( ( ((10**t['loglam'])/(1+z)) >= low_val) & ( ((10**t['loglam'])/(1+z)) <= upp_val) )
-		return mask
-
-	mask = generate_mask(fit_min, fit_max, (10**t['loglam'])/(1+z) )
-	
-	# Unpack the spectra
-	galaxy = t['flux'][mask]
-	# SDSS spectra are already log10-rebinned
-	loglam_gal = t['loglam'][mask] # This is the observed SDSS wavelength range, NOT the rest wavelength range of the galaxy
-	lam_gal = 10**loglam_gal
-	ivar = t['ivar'][mask] # inverse variance
-	noise = np.sqrt(1.0/ivar) # 1-sigma spectral noise
-	and_mask = t['and_mask'][mask] # bad pixels 
-	bad_pix  = np.where(and_mask!=0)[0]
-
-	### Interpolating over bad pixels ############################
-
-	# Get locations of nan or -inf pixels
-	nan_gal   = np.where(~np.isfinite(galaxy))[0]
-	nan_noise = np.where(~np.isfinite(noise))[0]
-	inan = np.unique(np.concatenate([nan_gal,nan_noise]))
-	# Interpolate over nans and infs if in galaxy or noise
-	noise[inan] = np.nan
-	noise[inan] = 1.0 if all(np.isnan(noise)) else np.nanmedian(noise)
-
-	fit_mask_bad = []
-	if mask_bad_pix:
-		for b in bad_pix:
-			fit_mask_bad.append(b)
-
-	if mask_emline:
-		emline_mask_bad = emline_masker(lam_gal,galaxy,noise)
-		for b in emline_mask_bad:
-			fit_mask_bad.append(b)
-
-	if len(user_mask)>0:
-		for i in user_mask:
-			ibad = np.where((lam_gal/(1.0+z)>=i[0]) & (lam_gal/(1.0+z)<=i[1]))[0]
-			for b in ibad:
-				fit_mask_bad.append(b)
-	
-	if mask_metal:
-		# galaxy = interpolate_metal(galaxy,noise)
-		metal_mask_bad = metal_masker(lam_gal,galaxy,noise)
-		for b in metal_mask_bad:
-			fit_mask_bad.append(b)
-
-	fit_mask_bad = np.sort(np.unique(fit_mask_bad))
-	fit_mask_good = np.setdiff1d(np.arange(0,len(lam_gal),1,dtype=int),fit_mask_bad)
-
-	###############################################################
-
-	c = 299792.458				  # speed of light in km/s
-	frac = lam_gal[1]/lam_gal[0]	# Constant lambda fraction per pixel
-	dlam_gal = (frac - 1)*lam_gal   # Size of every pixel in Angstrom
-	# print('\n Size of every pixel: %s (A)' % dlam_gal)
-	wdisp = t['wdisp'][mask]		# Intrinsic dispersion of every pixel, in pixels units
-	fwhm_gal = 2.355*wdisp*dlam_gal # Resolution FWHM of every pixel, in angstroms
-	velscale = np.log(frac)*c	   # Constant velocity scale in km/s per pixel
-
-	# If the galaxy is at significant redshift, one should bring the galaxy
-	# spectrum roughly to the rest-frame wavelength, before calling pPXF
-	# (See Sec2.4 of Cappellari 2017). In practice there is no
-	# need to modify the spectrum in any way, given that a red shift
-	# corresponds to a linear shift of the log-rebinned spectrum.
-	# One just needs to compute the wavelength range in the rest-frame
-	# and adjust the instrumental resolution of the galaxy observations.
-	# This is done with the following three commented lines:
-	#
-	lam_gal = lam_gal/(1.0+z)  # Compute approximate restframe wavelength
-	fwhm_gal = fwhm_gal/(1.0+z)   # Adjust resolution in Angstrom
-
-	# fwhm_gal = np.full_like(lam_gal,0.0)
-	# We pass this interp1d class to the fit_model function to correct for 
-	# the instrumental resolution of emission lines in our model
-	# fwhm_gal_ftn = interp1d(lam_gal,fwhm_gal,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10)) 
-
-	val,idx = find_nearest(lam_gal,5175)
-
-	################################################################################
-
-	#################### Correct for galactic extinction ##################
-
-	if ebv_corr==True:
-		co = coordinates.SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg), frame='fk5')
-		try: 
-			table = IrsaDust.get_query_table(co,section='ebv')
-			ebv = table['ext SandF mean'][0]
-		except: 
-			ebv = 0.04 # average Galactic E(B-V)
-		# If E(B-V) is large, it can significantly affect normalization of the 
-		# spectrum, in addition to changing its shape.  Re-normalizing the spectrum
-		# throws off the maximum likelihood fitting, so instead of re-normalizing, 
-		# we set an upper limit on the allowed ebv value for Galactic de-reddening.
-		if (ebv>=1.0):
-			ebv = 0.04 # average Galactic E(B-V)
-	elif ebv_corr==False:
-		ebv = 0.04 # average Galactic E(B-V)
-
-	galaxy = ccm_unred(lam_gal,galaxy,ebv)
-
-	#######################################################################
-
-	# Write to log
-	write_log((fits_file,ra,dec,z,cosmology,fit_min,fit_max,velscale,ebv),'prepare_sdss_spec',run_dir)
-
-	################################################################################
-
-	if plot: 
-		prepare_sdss_plot(lam_gal,galaxy,noise,fit_mask_bad,run_dir)
-	
-	if verbose:
-
-		print('\n')
-		print('-----------------------------------------------------------')
-		print('{0:<30}{1:<30}'.format(' file:'		   , fits_file.name				  ))
-		print('{0:<30}{1:<30}'.format(' SDSS redshift:'  , '%0.5f' % z						  ))
-		print('{0:<30}{1:<30}'.format(' fitting region:' , '(%d,%d) [A]' % (fit_reg[0],fit_reg[1])  ))
-		print('{0:<30}{1:<30}'.format(' velocity scale:' , '%0.2f [km/s/pixel]' % velscale	  ))
-		print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
-		print('-----------------------------------------------------------')
-	################################################################################
-
-	return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good
-
-##################################################################################
-
+# TODO: add
 def prepare_sdss_plot(lam_gal,galaxy,noise,ibad,run_dir):
 	# Plot the galaxy fitting region
 	fig = plt.figure(figsize=(14,4))
@@ -1762,6 +1235,7 @@ def prepare_sdss_plot(lam_gal,galaxy,noise,ibad,run_dir):
 
 #### Prepare User Spectrum #######################################################
 
+# TODO: incorporate most of this into the default BadassInput class
 def prepare_user_spec(fits_file,spec,wave,err,fwhm,z,ebv,fit_reg,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=True):
 	"""
 	Prepares user-input spectrum for BADASS fitting.
@@ -1930,192 +1404,6 @@ def prepare_user_plot(lam_gal,galaxy,noise,ibad,run_dir):
 	#
 	return
 
-##################################################################################
-
-def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=False):
-	"""
-	Adapted from example from Cappellari's pPXF (Cappellari et al. 2004,2017)
-	Prepare an SDSS spectrum for pPXF, returning all necessary
-	parameters.
-	"""
-
-	# Load the data
-	hdu = fits.open(fits_file)
-	format = hdu[0].header['FORMAT']
-
-	specobj = hdu[2].data
-	z = specobj['z'][0]
-	try:
-		ra  = hdu[0].header['RA']
-		dec = hdu[0].header['DEC']
-	except:
-		ra = specobj['PLUG_RA'][0]
-		dec = specobj['PLUG_DEC'][0]
-
-	binnum = hdu[0].header['BINNUM']
-	spaxelx = hdu[3].data['spaxelx']
-	spaxely = hdu[3].data['spaxely']
-
-	# t = hdu['COADD'].data
-	t = hdu[1].data
-	hdu.close()
-
-	co = coordinates.SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg), frame='fk5')
-	try:
-		table = IrsaDust.get_query_table(co, section='ebv')
-		ebv = table['ext SandF mean'][0]
-	except:
-		ebv = 0.04  # average Galactic E(B-V)
-	# If E(B-V) is large, it can significantly affect normalization of the
-	# spectrum, in addition to changing its shape.  Re-normalizing the spectrum
-	# throws off the maximum likelihood fitting, so instead of re-normalizing,
-	# we set an upper limit on the allowed ebv value for Galactic de-reddening.
-	if (ebv >= 1.0):
-		ebv = 0.04  # average Galactic E(B-V)
-
-	if format != 'MANGA':
-		lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['fwhm_res'],z,ebv,fit_reg,
-																					   mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=verbose,plot=plot)
-
-		return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good,binnum,spaxelx,spaxely
-
-
-	# Only use the wavelength range in common between galaxy and stellar library.
-	# Determine limits of spectrum vs templates
-	# mask = ( (t['loglam'] > np.log10(3540)) & (t['loglam'] < np.log10(7409)) )
-	fit_min, fit_max = float(fit_reg[0]), float(fit_reg[1])
-
-	# mask = ( ((t['loglam']) >= np.log10(fit_min*(1+z))) & ((t['loglam']) <= np.log10(fit_max*(1+z))) )
-
-	def generate_mask(fit_min, fit_max, lam):
-		"""
-		This function generates a mask that includes all
-		channnels *including* the user-input fit_min and fit_max.
-		"""
-		# Get lower limit
-		low, low_idx = find_nearest(lam, fit_min)
-		if (low > fit_min) & (low_idx != 0):
-			low_idx -= 1
-		low_val, _ = find_nearest(lam, lam[low_idx])
-		# Get upper limit
-		upp, upp_idx = find_nearest(lam, fit_max)
-		if (upp < fit_max) & (upp_idx == len(lam)):
-			upp_idx += 1
-		upp_val, _ = find_nearest(lam, lam[upp_idx])
-
-		mask = ((((10 ** t['loglam']) / (1 + z)) >= low_val) & (((10 ** t['loglam']) / (1 + z)) <= upp_val))
-		return mask
-
-	mask = generate_mask(fit_min, fit_max, (10 ** t['loglam']) / (1 + z))
-
-	# Unpack the spectra
-	galaxy = t['flux'][mask]
-	# SDSS spectra are already log10-rebinned
-	loglam_gal = t['loglam'][mask]  # This is the observed SDSS wavelength range, NOT the rest wavelength range of the galaxy
-	lam_gal = 10 ** loglam_gal
-	ivar = t['ivar'][mask]  # inverse variance
-	noise = np.sqrt(1.0/ivar)  # 1-sigma spectral noise
-	and_mask = t['and_mask'][mask]  # bad pixels
-	bad_pix = np.where(and_mask != 0)[0]
-
-	### Interpolating over bad pixels ############################
-
-	# Get locations of nan or -inf pixels
-	nan_gal = np.where(galaxy / galaxy != 1)[0]
-	nan_noise = np.where(noise / noise != 1)[0]
-	inan = np.unique(np.concatenate([nan_gal, nan_noise]))
-	# Interpolate over nans and infs if in galaxy or noise
-	noise[inan] = np.nan
-	noise[inan] = 1.0 if all(np.isnan(noise)) else np.nanmedian(noise)
-
-	fit_mask_bad = []
-	if mask_bad_pix:
-		for b in bad_pix:
-			fit_mask_bad.append(b)
-
-	if mask_emline:
-		emline_mask_bad = emline_masker(lam_gal, galaxy, noise)
-		for b in emline_mask_bad:
-			fit_mask_bad.append(b)
-
-	if len(user_mask) > 0:
-		for i in user_mask:
-			ibad = np.where((lam_gal / (1.0 + z) >= i[0]) & (lam_gal / (1.0 + z) <= i[1]))[0]
-			for b in ibad:
-				fit_mask_bad.append(b)
-
-	if mask_metal:
-		# galaxy = interpolate_metal(galaxy,noise)
-		metal_mask_bad = metal_masker(lam_gal, galaxy, noise)
-		for b in metal_mask_bad:
-			fit_mask_bad.append(b)
-
-	fit_mask_bad = np.sort(np.unique(fit_mask_bad))
-	fit_mask_good = np.setdiff1d(np.arange(0, len(lam_gal), 1, dtype=int), fit_mask_bad)
-
-	###############################################################
-
-	c = 299792.458  # speed of light in km/s
-	frac = lam_gal[1] / lam_gal[0]  # Constant lambda fraction per pixel
-	# dlam_gal = (frac - 1) * lam_gal  # Size of every pixel in Angstrom
-	# print('\n Size of every pixel: %s (A)' % dlam_gal)
-	# wdisp = t['wdisp'][mask]  # Intrinsic dispersion of every pixel, in pixels units
-	# fwhm_gal = 2.355 * wdisp * dlam_gal  # Resolution FWHM of every pixel, in angstroms
-	fwhm_gal = t['fwhm_res'][mask]
-	velscale = np.log(frac) * c  # Constant velocity scale in km/s per pixel
-
-	# If the galaxy is at significant redshift, one should bring the galaxy
-	# spectrum roughly to the rest-frame wavelength, before calling pPXF
-	# (See Sec2.4 of Cappellari 2017). In practice there is no
-	# need to modify the spectrum in any way, given that a red shift
-	# corresponds to a linear shift of the log-rebinned spectrum.
-	# One just needs to compute the wavelength range in the rest-frame
-	# and adjust the instrumental resolution of the galaxy observations.
-	# This is done with the following three commented lines:
-	#
-	lam_gal = lam_gal / (1.0 + z)  # Compute approximate restframe wavelength
-	fwhm_gal = fwhm_gal / (1.0 + z)  # Adjust resolution in Angstrom
-
-	# fwhm_gal = np.full_like(lam_gal,0.0)
-	# We pass this interp1d class to the fit_model function to correct for
-	# the instrumental resolution of emission lines in our model
-	# fwhm_gal_ftn = interp1d(lam_gal,fwhm_gal,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-
-	val, idx = find_nearest(lam_gal, 5175)
-
-	################################################################################
-
-	#################### Correct for galactic extinction ##################
-
-	galaxy = ccm_unred(lam_gal, galaxy, ebv)
-
-	#######################################################################
-
-	# Write to log
-	write_log((fits_file, ra, dec, z, cosmology, fit_min, fit_max, velscale, ebv), 'prepare_sdss_spec', run_dir)
-
-	################################################################################
-
-	if plot:
-		prepare_sdss_plot(lam_gal, galaxy, noise, fit_mask_bad, run_dir)
-
-	if verbose:
-		print('\n')
-		print('-----------------------------------------------------------')
-		print('{0:<30}{1:<30}'.format(' file:'		, fits_file.name				  ))
-		print('{0:<30}{1:<30}'.format(' SDSS redshift:'  , '%0.5f' % z						  ))
-		print('{0:<30}{1:<30}'.format(' fitting region' , '(%d,%d) [A]' % (fit_reg[0 ],fit_reg[1])  ))
-		print('{0:<30}{1:<30}'.format(' velocity scale' , '%0.2f [km/s/pixel]' % velscale	  ))
-		print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
-		print('-----------------------------------------------------------')
-	################################################################################
-
-	return lam_gal,galaxy,noise,z,ebv,velscale,fwhm_gal,fit_mask_good,binnum,spaxelx,spaxely
-
-##################################################################################
-
-# Alias function
-prepare_ifu_plot = prepare_sdss_plot
 
 #### Prepare stellar templates ###################################################
 
