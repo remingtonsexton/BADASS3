@@ -1,6 +1,6 @@
 ################################# IO Options ################################
 io_options={
-    "infmt" : "muse_ifu",
+    "infmt" : "muse",
     "output_dir" : None, # same directory as input file
     "dust_cache" : None,
 }
