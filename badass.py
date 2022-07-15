@@ -4420,9 +4420,8 @@ def get_test_range(lam_gal, noise, full_profile):
     # Get indices where we perform f-test
     eval_ind = np.where(full_profile>=(0.10*noise))[0]#range(len(lam_gal))
 
-    if len(eval_ind)==0:
+    if len(eval_ind)<=1:
         eval_ind = np.arange(len(lam_gal))
-
     else: 
         eval_ind = np.arange(np.min(eval_ind),np.max(eval_ind),1)
 
