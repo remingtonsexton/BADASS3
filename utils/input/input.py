@@ -36,21 +36,46 @@ class MetaRegistry(type):
         return cls
 
 
-
 class BadassInput(metaclass=MetaRegistry):
 
+    @classmethod
+    def read_user(cls, input_data, options):
+        # Custom user data is provided via dict
+        # See validate_input below for expected values
+
+        if not isinstance(input_data, dict):
+            raise Exception('User input data must be a dict')
+
+        return cls(input_dict=input_data, options=options)
+
+
     # TODO: needs to be a prodict?
-    def __init__(self, input_dict=None):
+    def __init__(self, input_dict=None, options=None):
+
+        self.context = None # BadassContext
+        self.infile = None # pathlib.Path to original path of input file
+        self.options = options # BadassOptions
+
+        self.ra = None
+        self.dec = None
+        self.z = None
+
+        self.wave = None # the restframe wavelengths: wave = observed_wave / (1 + z)
+        self.spec = None # actual spectrum data to be fit
+        self.noise = None # noise = sqrt(1 / ivar)
+        self.ebv = None # TODO: set to default here? need here?
+        self.fwhm_res = None
+        self.velscale = None
+
+        # TODO: need?
+        # self.ivar = None
+        # self.velscale = None
+        # self.fit_mask = None
+        # self.mask = None
+
         if input_dict:
+            # TODO: implement similar functionality to prepare_user_spec?
             self.__dict__.update(input_dict)
-
-
-    def validate_input(self):
-        return True
-
-
-    def prepare_input(self, ba_ctx):
-        return
 
 
     @classmethod
@@ -93,7 +118,8 @@ class BadassInput(metaclass=MetaRegistry):
             if not infile.is_file():
                 continue
 
-            inputs.append(cls.from_format(infile, options))
+            ret = cls.from_format(infile, options)
+            inputs.extend(ret if isinstance(ret, list) else [ret])
         return inputs
 
 
@@ -129,12 +155,15 @@ class BadassInput(metaclass=MetaRegistry):
                 return ret if isinstance(ret, list) else [ret]
             # if not, could be actual data
 
-        return [cls.from_format(input_data, options)]
+        ret = cls.from_format(input_data, options)
+        return ret if isinstance(ret, list) else [ret]
 
 
     def validate_input(self):
-        pass
-        # TODO: implement
-        # expected instance variables: spec, wave, err, fwhm, z, ebv
-        # returned from prepare_*_spec functions:
-        #       lam_gal, galaxy, noise, z, ebv, velscale, fwhm_gal, fit_mask_good
+        # Custom input parsers or input dict should provide these values
+        # TODO: further validation for each value?
+        for attr in ['infile', 'options', 'ra', 'dec', 'z', 'wave', 'spec', 'noise', 'fwhm_res']:
+            if not hasattr(self, attr) or getattr(self, attr) is None:
+                raise Exception('BADASS input missing expected value: {attr}'.format(attr=attr))
+
+        return True
