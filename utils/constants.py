@@ -5,7 +5,7 @@ DEFAULT_OUTDIR = 'MCMC_output'
 C = 299792.458 # speed of light in km/s
 
 # TODO: should be a fit_option?
-MIN_FIT_REGION = 20 # in Å, the minimum fitting region size
+MIN_FIT_REGION = 25 # in Å, the minimum fitting region size
 
 
 # For direct fitting of the stellar kinematics (stellar LOSVD), one can 
