@@ -5405,10 +5405,11 @@ def max_likelihood(param_dict,
                                              output_model,
                                              run_dir
                                              ),
-                                       method='SLSQP', 
+                                       # method='SLSQP', 
+                                       method='Nelder-Mead',
                                        bounds = param_bounds, 
-                                       constraints=cons,
-                                       options={'maxiter':2500,'disp': False})
+                                       # constraints=cons,
+                                       options={'maxiter':1000,'disp': False})
             mcLL[n] = resultmc["fun"] # add best fit function values to mcLL
             # Get best-fit model components to calculate fluxes and equivalent widths
             output_model = True
@@ -5490,10 +5491,11 @@ def max_likelihood(param_dict,
     # Add parameter names to pdict
     for i,key in enumerate(param_names):
         param_flags = 0
-        mc_med = np.median(mcpars[key])
-        mc_std = np.std(mcpars[key])
-        if ~np.isfinite(mc_med): mc_med = 0
-        if ~np.isfinite(mc_std): mc_std = 0
+        mc_med = np.nanmedian(mcpars[key])
+        mc_std = np.nanstd(mcpars[key])
+        print(i,key,mc_med,mc_std)
+        # if ~np.isfinite(mc_med): mc_med = 0
+        # if ~np.isfinite(mc_std): mc_std = 0
         if (mc_med-mc_std <= bounds[i][0]):
             param_flags += 1
         if (mc_med+mc_std >= bounds[i][1]):
