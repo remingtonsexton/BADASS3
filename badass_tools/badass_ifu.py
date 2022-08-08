@@ -859,8 +859,9 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
                 w2 = np.where(tdata['parameter'] == param)[0]
                 if w2.size > 0:
                     parvals[param][binnum] = copy.deepcopy(tdata['best_fit'][w2])
-                    parvals_low[param][binnum] = copy.deepcopy(tdata['ci_68_low'][w2])
-                    parvals_upp[param][binnum] = copy.deepcopy(tdata['ci_68_upp'][w2])
+                    if mcmc:
+                        parvals_low[param][binnum] = copy.deepcopy(tdata['ci_68_low'][w2])
+                        parvals_upp[param][binnum] = copy.deepcopy(tdata['ci_68_upp'][w2])
 
         # Set the best model components
         for param in bmcparams:
