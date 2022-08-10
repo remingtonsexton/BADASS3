@@ -1020,7 +1020,7 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
         map_ = ax.imshow(data, origin='lower', cmap='cubehelix',
                   vmin=np.nanpercentile(data, 1),
                   vmax=np.nanpercentile(data, 99),
-                  extent=[ox-.5, ox+imagehdu.data.shape[0]-.5, oy-.5, oy+imagehdu.data.shape[1]-.5])
+                  extent=[ox-.5, ox+imagehdu.data.shape[1]-.5, oy-.5, oy+imagehdu.data.shape[0]-.5])
         plt.colorbar(map_, ax=ax, label=imagehdu.name)
         ax.set_title(mcmc_output_dir.split(os.sep)[-1])
         plt.savefig(os.path.join(mcmc_output_dir, 'partable_plots', f'{imagehdu.name}.pdf'), bbox_inches='tight', dpi=300)
@@ -1044,7 +1044,7 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
             map_ = ax.imshow(dataavg, origin='lower', cmap='cubehelix',
                              vmin=np.nanpercentile(dataavg, 1),
                              vmax=np.nanpercentile(dataavg, 99),
-                             extent=[ox-.5, ox+imagehdu.data.shape[1]-.5, oy-.5, oy+imagehdu.data.shape[2]-.5])
+                             extent=[ox-.5, ox+imagehdu.data.shape[2]-.5, oy-.5, oy+imagehdu.data.shape[1]-.5])
             plt.colorbar(map_, ax=ax, label=imagehdu.name)
             ax.set_title(mcmc_output_dir.split(os.sep)[-1])
             plt.savefig(os.path.join(mcmc_output_dir, 'best_model_components_plots', f'{imagehdu.name}.pdf'), bbox_inches='tight', dpi=300)
@@ -1080,7 +1080,7 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
             im = ax1.imshow(a, origin='lower', cmap='cubehelix',
                             vmin=np.nanpercentile(dataavg, 1),
                             vmax=np.nanpercentile(dataavg, 99),
-                            extent=[ox-.5, ox+imagehdu.data.shape[1]-.5, oy-.5, oy+imagehdu.data.shape[2]-.5])
+                            extent=[ox-.5, ox+imagehdu.data.shape[2]-.5, oy-.5, oy+imagehdu.data.shape[1]-.5])
             plt.colorbar(im, cax=ax3, label=imagehdu.name)
             ax2.hlines(6,bmchdu['WAVE'].data['wave'][0],bmchdu['WAVE'].data['wave'][-1])
             ln, = ax2.plot(bmchdu['WAVE'].data['wave'][0], 24, '|', ms=20, color='y')
