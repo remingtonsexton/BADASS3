@@ -2828,8 +2828,8 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             #
             ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
             #
-            ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
-            ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
+            # ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
+            # ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
             #
             # ("BR_PA_DELTA_AMP","BR_PA_EPSIL_AMP"),
             # ("BR_PA_GAMMA_AMP","BR_PA_DELTA_AMP"),
@@ -3405,15 +3405,15 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         br_disp_init = 500.0
         abs_disp_init = 50.0
         # default width bounds for lines (if not specified)
-        na_disp_lim  = (0.1  , 500.0)
-        out_disp_lim = (0.1  , 1000.0)
+        na_disp_lim  = (0.001  , 500.0)
+        out_disp_lim = (0.001  , 1000.0)
         br_disp_lim  = (200.0, 6000.0)
-        abs_disp_lim = (0.1  , 500.0)
+        abs_disp_lim = (0.001  , 500.0)
         if line_type in ["na","user"]:
             if (line_profile in ["gauss-hermite","laplace","uniform"]):
                 # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
                 # able to accomodate excess width from an outflow component.
-                return 50.0, (0.1,1000.0)
+                return 50.0, (0.001,1000.0)
             else:
                 return na_disp_init, na_disp_lim
         elif line_type in ["br"]:
@@ -3424,7 +3424,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
             if (line_profile in ["gauss-hermite","laplace","uniform"]):
                 # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
                 # able to accomodate excess width from an outflow component.
-                return 50.0, (0.1,1000.0)
+                return 50.0, (0.001,1000.0)
             else:
                 return abs_disp_init, abs_disp_lim
     #
@@ -5493,7 +5493,6 @@ def max_likelihood(param_dict,
         param_flags = 0
         mc_med = np.nanmedian(mcpars[key])
         mc_std = np.nanstd(mcpars[key])
-        print(i,key,mc_med,mc_std)
         # if ~np.isfinite(mc_med): mc_med = 0
         # if ~np.isfinite(mc_std): mc_std = 0
         if (mc_med-mc_std <= bounds[i][0]):
