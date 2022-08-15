@@ -67,7 +67,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.2.1"
+__version__	= "9.2.2"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -243,9 +243,10 @@ __status__	 = "Release"
 # - Changed instrumental fwhm keyword to instrumental dispersion "disp_res".  Input resolution for user
 # -     -input spectra is still a "fwhm_res" but changes to disp_res internally.
 
-# Version 9.2.0-9.2.1
+# Version 9.2.0-9.2.2
 # - options for different priors on free parameters
 # - normalization for log-likelihoods
+# - outflow test region fix
 
 ##########################################################################################################
 
@@ -3455,7 +3456,12 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (("amp" in line_list[line]) and (line_list[line]["amp"]=="free")):
             amp_default = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
             line_par_input[line+"_AMP"] = {"init": line_list[line].get("amp_init",amp_default[0]), 
-                                           "plim":line_list[line].get("amp_plim",amp_default[1])}
+                                           "plim":line_list[line].get("amp_plim",amp_default[1]),
+                                           "prior":line_list[line].get("amp_prior")
+                                           }
+            # If prior is None, pop it out
+            if line_par_input[line+"_AMP"]["prior"] is None:
+                line_par_input[line+"_AMP"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_AMP"]["init"]<line_par_input[line+"_AMP"]["plim"][0]) or (line_par_input[line+"_AMP"]["init"]>line_par_input[line+"_AMP"]["plim"][1]):
                 raise ValueError("\n Amplitude (amp) initial value (amp_init) for %s outside of parameter limits (amp_plim)!\n" % (line))
@@ -3463,7 +3469,12 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (("disp" in line_list[line]) and (line_list[line]["disp"]=="free")):
             disp_default = disp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
             line_par_input[line+"_DISP"] = {"init": line_list[line].get("disp_init",disp_default[0]), 
-                                            "plim":line_list[line].get("disp_plim",disp_default[1])}
+                                            "plim":line_list[line].get("disp_plim",disp_default[1]),
+                                            "prior":line_list[line].get("disp_prior")
+                                            }
+            # If prior is None, pop it out
+            if line_par_input[line+"_DISP"]["prior"] is None:
+                line_par_input[line+"_DISP"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_DISP"]["init"]<line_par_input[line+"_DISP"]["plim"][0]) or (line_par_input[line+"_DISP"]["init"]>line_par_input[line+"_DISP"]["plim"][1]):
                 raise ValueError("\n DISP (disp) initial value (disp_init) for %s outside of parameter limits (disp_plim)!\n" % (line))
@@ -3474,6 +3485,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                                             "plim":line_list[line].get("voff_plim",voff_default[1]),
                                             "prior":line_list[line].get("voff_prior",{"type":"gaussian"})
                                             }
+            # If prior is None, pop it out
+            if line_par_input[line+"_VOFF"]["prior"] is None:
+                line_par_input[line+"_VOFF"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
                 raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
@@ -3487,6 +3501,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                                                             "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1]),
                                                             "prior":line_list[line].get("h"+str(m)+"_prior",{"type":"gaussian"})
                                                               }
+                        # If prior is None, pop it out
+                        if line_par_input[line+"_H"+str(m)]["prior"] is None:
+                            line_par_input[line+"_H"+str(m)].pop("prior",None)
                         # Check to make sure init value is within limits of plim
                         if (line_par_input[line+"_H"+str(m)]["init"]<line_par_input[line+"_H"+str(m)]["plim"][0]) or (line_par_input[line+"_H"+str(m)]["init"]>line_par_input[line+"_H"+str(m)]["plim"][1]):
                             raise ValueError("\n Gauss-Hermite moment h%d initial value (h%d_init) for %s outside of parameter limits (h%d_plim)!\n" % (m,m,line,m))
@@ -3500,6 +3517,9 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                                                             "plim":line_list[line].get("h"+str(m)+"_plim",h_default[1]),
                                                             "prior":line_list[line].get("h"+str(m)+"_prior",{"type":"halfnorm"})
                                                               }
+                        # If prior is None, pop it out
+                        if line_par_input[line+"_H"+str(m)]["prior"] is None:
+                            line_par_input[line+"_H"+str(m)].pop("prior",None)
                         # add exceptions for h4 in each line profile; laplace h4>=0, uniform h4<0
                         if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["init"]=0.01
                         if (m==4) and (line_list[line]["line_profile"]=="laplace"): line_par_input[line+"_H"+str(m)]["plim"]=(0,0.2)
@@ -3515,7 +3535,12 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (("shape" in line_list[line]) and (line_list[line]["shape"]=="free")):
             shape_default = shape_hyperpars()
             line_par_input[line+"_SHAPE"] = {"init": line_list[line].get("shape_init",shape_default[0]), 
-                                              "plim":line_list[line].get("shape_plim",shape_default[1])}
+                                             "plim":line_list[line].get("shape_plim",shape_default[1]),
+                                             "prior":line_list[line].get("shape_prior")
+                                              }
+            # If prior is None, pop it out
+            if line_par_input[line+"_SHAPE"]["prior"] is None:
+                line_par_input[line+"_SHAPE"].pop("prior",None)
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_SHAPE"]["init"]<line_par_input[line+"_SHAPE"]["plim"][0]) or (line_par_input[line+"_SHAPE"]["init"]>line_par_input[line+"_SHAPE"]["plim"][1]):
                 raise ValueError("\n Voigt profile shape parameter (shape) initial value (shape_init) for %s outside of parameter limits (shape_plim)!\n" % (line))
@@ -3880,11 +3905,14 @@ def chi2_metric(eval_ind,
 
     return chi2_outflow, chi2_outflow_err, chi2_no_outflow, chi2_no_outflow_err, chi2_ratio, chi2_ratio_err
 
-def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wave, max_wave, eval_ind, nchannel, ddof, run_dir):
+def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_ind, nchannel, ddof, run_dir):
     """
     Performs a Bayesian A/B hypothesis test for the 
     likelihood distributions for two models.
     """
+
+    # Smooth the noise using a 3-pixel Gaussian kernel
+    noise = scipy.ndimage.gaussian_filter1d(noise,2.0,mode="nearest")
 
     # Plot
     fig = plt.figure(figsize=(18,10)) 
@@ -3903,8 +3931,6 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, min_wav
     ax1.plot(wave,resid_no_line-resid_line,color="xkcd:bright red",linestyle="-",linewidth=1.0,label=r"$\Delta~\rm{Residuals}$")
     ax1.plot(wave,noise,color="xkcd:lime green",linestyle="-",linewidth=0.5,label="Noise")
     ax1.plot(wave,-noise,color="xkcd:lime green",linestyle="-",linewidth=0.5)
-    # ax1.axvline(min_wave,color="xkcd:red",linestyle="--",linewidth=1,label="Line Test Region")
-    # ax1.axvline(max_wave,color="xkcd:red",linestyle="--",linewidth=1)
     ax1.axhline(0,color="xkcd:white",linestyle="--",linewidth=0.75)
     ax1.set_xlabel(r"$\lambda_{\rm{rest}}$ [$\rm{\AA}$]",fontsize=fontsize)
     ax1.set_ylabel(r"$f_\lambda$ [$10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\rm{\AA}^{-1}$]",fontsize=fontsize)
@@ -4171,17 +4197,24 @@ def line_test(param_dict,
 
 
 
-    # Determine wavelength bounds of F-test. For [OIII]5007, we use the full profile (core + outflow)
-    # and determine the 0.1 and 99.9 percentiles of the flux of the full profile to set the bounds 
-    # of the test.
+    # Determine test channels
+    # Associated lines are those narrow lines associated with outflow lines, which
+    # should be included in the determination of the test channels.
+    assoc_lines = []
+    if np.all([i[:4]=="OUT_" for i in remove_lines]):
+        for i in remove_lines:
+            if ("NA_"+i[4:]) in line_list:
+                assoc_lines.append("NA_"+i[4:])
 
     if isinstance(remove_lines,str):
-        full_profile = np.median(mccomps_line[remove_lines],axis=0)
+        full_profile = np.median(mccomps_line[remove_lines+assoc_lines],axis=0)
     elif isinstance(remove_lines,list):
-        full_profile = np.median(np.sum([mccomps_line[l] for l in remove_lines],axis=1),axis=0)
+        full_profile = np.zeros(len(lam_gal))
+        for i in (remove_lines+assoc_lines):
+            full_profile+=np.median(mccomps_line[i],axis=0)
 
-    # min_wave, max_wave, eval_ind, nchannel = get_wavelength_range(lam_gal,noise,velscale,full_profile,line_list[test_line["line"]])
-    min_wave, max_wave, eval_ind, nchannel = get_wavelength_range(lam_gal[fit_mask],noise[fit_mask],velscale,full_profile[fit_mask])#,line_list[test_line["line"]])
+    eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask])
+
     # storage arrays for residuals in [OIII] test region
     resid_line	  = np.empty((max_like_niter+1,nchannel))
     resid_no_line = np.empty((max_like_niter+1,nchannel))
@@ -4192,7 +4225,7 @@ def line_test(param_dict,
         resid_total[i,:]   = mccomps_line['RESID'][i,:][fit_mask]
 
     # Perform Bayesian A/B test
-    pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap = bayesian_AB_test(mccomps_line['RESID'][0,:][fit_mask], mccomps_no_line['RESID'][0,:][fit_mask], full_profile[fit_mask], lam_gal[fit_mask], noise[fit_mask], galaxy[fit_mask], min_wave, max_wave, eval_ind, nchannel, ddof, run_dir)
+    pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap = bayesian_AB_test(mccomps_line['RESID'][0,:][fit_mask], mccomps_no_line['RESID'][0,:][fit_mask], full_profile[fit_mask], lam_gal[fit_mask], noise[fit_mask], galaxy[fit_mask], eval_ind, nchannel, ddof, run_dir)
 
     # Calculate sum-of-square of residuals and its uncertainty
     ssr_ratio, ssr_ratio_err, ssr_no_line, ssr_no_line_err, ssr_line, ssr_line_err = ssr_test(resid_line,resid_no_line,run_dir)
@@ -4373,7 +4406,7 @@ def line_test(param_dict,
 
     # Make comparison plots of outflow and no-outflow models
     line_test_plot(lam_gal,comp_dict_line,comp_dict_no_line,line_list,line_list_no_line,
-                           params_line,params_no_line,param_names_line,param_names_no_line,min_wave,max_wave,run_dir)
+                           params_line,params_no_line,param_names_line,param_names_no_line,eval_ind,run_dir)
 
     # Write results to FITS
     write_line_test_results(mcpars_line,comp_dict_line,mcpars_no_line,comp_dict_no_line,fit_mask,run_dir,binnum,spaxelx,spaxely)
@@ -4382,24 +4415,28 @@ def line_test(param_dict,
 
 ##################################################################################
 
-def get_wavelength_range(lam_gal, noise, velscale, full_profile):#, line_dict):
+def get_test_range(lam_gal, noise, full_profile):
 
     # Get indices where we perform f-test
-    eval_ind = range(len(lam_gal))
+    eval_ind = np.where(full_profile>=(0.10*noise))[0]#range(len(lam_gal))
+
+    if len(eval_ind)<=1:
+        eval_ind = np.arange(len(lam_gal))
+    else: 
+        eval_ind = np.arange(np.min(eval_ind),np.max(eval_ind),1)
+
     # number of channels in the  test region 
     nchannel = len(eval_ind)
     # if the number of channels < 6 (number of degrees of freedom for double-Gaussian model), then the calculated f-statistic
     # will be zero.  To resolve this, we extend the range by one pixel on each side, i.e. nchannel = 8.
-    if nchannel <= 6: 
-        add_chan = 7 - nchannel# number of channels to add to each side; minimum is 7 channels since deg. of freedom  = 6
+    if nchannel <= 25: 
+        add_chan = 26 - nchannel# number of channels to add to each side; minimum is 7 channels since deg. of freedom  = 6
         lower_pad = np.arange(eval_ind[0]-add_chan,eval_ind[0],1)#np.arange(eval_ind[0]-add_chan,eval_ind[0],1)
         upper_pad = np.arange(eval_ind[-1]+1,eval_ind[-1]+1+add_chan,1)
         eval_ind = np.concatenate([lower_pad, eval_ind, upper_pad],axis=0)
         nchannel = len(eval_ind)
-
-    min_wave, max_wave = lam_gal[eval_ind[0]], lam_gal[eval_ind[-1]]
         
-    return min_wave, max_wave, eval_ind, nchannel
+    return eval_ind, nchannel
 
 ##################################################################################
 
@@ -4439,7 +4476,7 @@ def write_test_stats(stats_dict,run_dir):
 ##################################################################################
 
 def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outflows,line_list_no_outflows,
-                           params_outflows,params_no_outflows,param_names_outflows,param_names_no_outflows,min_wave,max_wave,run_dir):
+                           params_outflows,params_no_outflows,param_names_outflows,param_names_no_outflows,eval_ind,run_dir):
     """
     The plotting function for test_line().  It plots both the outflow
     and no_outflow results.
@@ -4526,10 +4563,14 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
             if (line_list_outflows[key]["line_type"]=="user"):
                 ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow[key], color='xkcd:electric lime', linewidth=0.5, linestyle='-', label='Other')
 
-    ax1.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax1.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax2.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax2.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
+    # Plot evaluation channels
+    ibad = [i for i in range(len(lam_gal)) if i in eval_ind]
+    if (len(ibad)>0) & (len(ibad)<len(lam_gal)):# and (len(ibad[0])>1):
+        bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
+        ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:aqua',label="eval. pixels")
+        for i in bad_wave[1:]:
+            ax1.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
+            ax2.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
 
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(lam_gal)-10,np.max(lam_gal)+10)
@@ -4639,10 +4680,14 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
             if (line_list_no_outflows[key]["line_type"]=="user"):
                 ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow[key], color='xkcd:electric lime', linewidth=0.5, linestyle='-', label='Other')
 
-    ax3.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax3.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax4.axvline(min_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
-    ax4.axvline(max_wave,color="xkcd:yellow",linewidth=1,linestyle="--")
+    # Plot evaluation channels
+    ibad = [i for i in range(len(lam_gal)) if i in eval_ind]
+    if (len(ibad)>0) & (len(ibad)<len(lam_gal)):# and (len(ibad[0])>1):
+        bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
+        ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:aqua',label="eval. pixels")
+        for i in bad_wave[1:]:
+            ax3.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
+            ax4.axvspan(i[0],i[0],alpha=0.15,color='xkcd:aqua')
 
     ax3.set_xticklabels([])
     ax3.set_xlim(np.min(lam_gal)-10,np.max(lam_gal)+10)
@@ -5360,10 +5405,11 @@ def max_likelihood(param_dict,
                                              output_model,
                                              run_dir
                                              ),
-                                       method='SLSQP', 
+                                       # method='SLSQP', 
+                                       method='Nelder-Mead',
                                        bounds = param_bounds, 
-                                       constraints=cons,
-                                       options={'maxiter':2500,'disp': False})
+                                       # constraints=cons,
+                                       options={'maxiter':1000,'disp': False})
             mcLL[n] = resultmc["fun"] # add best fit function values to mcLL
             # Get best-fit model components to calculate fluxes and equivalent widths
             output_model = True
@@ -5445,10 +5491,11 @@ def max_likelihood(param_dict,
     # Add parameter names to pdict
     for i,key in enumerate(param_names):
         param_flags = 0
-        mc_med = np.median(mcpars[key])
-        mc_std = np.std(mcpars[key])
-        if ~np.isfinite(mc_med): mc_med = 0
-        if ~np.isfinite(mc_std): mc_std = 0
+        mc_med = np.nanmedian(mcpars[key])
+        mc_std = np.nanstd(mcpars[key])
+        print(i,key,mc_med,mc_std)
+        # if ~np.isfinite(mc_med): mc_med = 0
+        # if ~np.isfinite(mc_std): mc_std = 0
         if (mc_med-mc_std <= bounds[i][0]):
             param_flags += 1
         if (mc_med+mc_std >= bounds[i][1]):

@@ -1,7 +1,7 @@
 ################################## Fit Options ################################# #######
 # Fitting Parameters
 fit_options={
-"fit_reg"    : (4400,5500),# Fitting region; Note: Indo-US Library=(3460,9464)
+"fit_reg"    : (4750,5100),# Fitting region; Note: Indo-US Library=(3460,9464)
 "good_thresh": 0.0, # percentage of "good" pixels required in fig_reg for fit.
 "mask_bad_pix": False, # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False, # automatically mask lines for continuum fitting.
