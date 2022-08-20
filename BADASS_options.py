@@ -7,11 +7,11 @@ fit_options={
 "mask_emline" : False, # automatically mask lines for continuum fitting.
 "mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 "fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , LS = Least Squares, RCHI2 = reduced chi2
-"n_basinhop": 10, # Number of consecutive basinhopping thresholds before solution achieved
+"n_basinhop": 2, # Number of consecutive basinhopping thresholds before solution achieved
 "test_outflows": False, # only test for outflows; "fit_outflows" must be set to True!
 "test_line": {"bool":False,
               "line":"NA_OIII_5007"},
-"max_like_niter": 10, # number of maximum likelihood iterations
+"max_like_niter": 2, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 "cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
 }
@@ -58,6 +58,16 @@ comp_options={
 }
 ################################################################################
 
+############################ Principal Component Analysis (PCA) options #############################
+# Used for reconstructing a spectrum using templates from SDSS spectra.
+
+pca_options = {
+'do_pca'       : True,          # boolean, if True will perform principal component analysis then run BADASS on the reconstructed spectrum
+'n_components' : 20,            # number of PCA components to include. Should be integer > 0 or None (to fit all possible components, a few thousand). 
+'pca_masks'    : [(4760,4800),] # list of regions (wavelength, in Angstroms) to perform PCA on. If list is empty, will perform PCA over entire spectrum. 
+}
+
+################################################################################
 
 
 # User defined masked regions (list of tuples)
@@ -171,6 +181,7 @@ plot_options={
 "plot_lum_hist"      : False,# Plot MCMC hist. and chains for component luminosities
 "plot_eqwidth_hist"  : False, # Plot MCMC hist. and chains for equivalent widths 
 "plot_HTML"          : False,# make interactive plotly HTML best-fit plot
+"plot_pca"           : True, # Plot PCA reconstructed spectrum. If doing PCA, you probably want this as True
 }
 ################################################################################
 
