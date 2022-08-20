@@ -55,6 +55,8 @@ cwd = os.getcwd() # get current working directory
 sys.path.insert(1,cwd+'/badass_tools/')
 import badass_utils as badass_utils
 import gh_alternative as gh_alt # Gauss-Hermite alternative line profiles
+from sklearn.decomposition import PCA
+from astroML.datasets import sdss_corrected_spectra # SDSS templates for PCA analysis
 
 plt.style.use('dark_background') # For cool tron-style dark plots
 import matplotlib
@@ -261,6 +263,7 @@ def run_BADASS(data,
                fit_options=False,
                mcmc_options=False,
                comp_options=False,
+               pca_options=False,
                user_lines=None,
                user_constraints=None,
                user_mask=None,
@@ -304,7 +307,7 @@ def run_BADASS(data,
         print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
 
         files = [glob.glob(os.path.join(wd, '*.fits'))[0] for wd in work_dirs]
-        arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, user_lines, user_constraints, user_mask,
+        arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, pca_options, user_lines, user_constraints, user_mask,
                       combined_lines, losvd_options, host_options, power_options, poly_options, opt_feii_options, uv_iron_options, balmer_options,
                       outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv) for file in files]
 
@@ -323,7 +326,7 @@ def run_BADASS(data,
         process = psutil.Process(os.getpid())
         print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
 
-        run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options,
+        run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options, pca_options,
                           user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options, poly_options,
                           opt_feii_options, uv_iron_options, balmer_options, outflow_test_options, plot_options, output_options,
                           sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv)
@@ -340,6 +343,7 @@ def run_single_thread(fits_file,
                fit_options=False,
                mcmc_options=False,
                comp_options=False,
+               pca_options=False,
                user_lines=None,
                user_constraints=None,
                user_mask=None,
@@ -389,6 +393,8 @@ def run_single_thread(fits_file,
                 comp_options		 = options.comp_options
             if hasattr(options,"mcmc_options"):
                 mcmc_options		 = options.mcmc_options
+            if hasattr(options,"pca_options"):
+                pca_options          = options.pca_options
             if hasattr(options,"user_lines"):
                 user_lines			 = options.user_lines
             if hasattr(options,"user_constraints"):
@@ -426,6 +432,7 @@ def run_single_thread(fits_file,
     fit_options			 = badass_utils.check_fit_options(fit_options,comp_options)
     comp_options		 = badass_utils.check_comp_options(comp_options)
     mcmc_options		 = badass_utils.check_mcmc_options(mcmc_options)
+    pca_options          = badass_utils.check_pca_options(pca_options)
     user_lines			 = badass_utils.check_user_lines(user_lines)
     user_constraints	 = badass_utils.check_user_constraints(user_constraints)
     user_mask			 = badass_utils.check_user_mask(user_mask)
@@ -473,6 +480,10 @@ def run_single_thread(fits_file,
     burn_in 			= mcmc_options["burn_in"]
     min_iter			= mcmc_options["min_iter"]
     max_iter			= mcmc_options["max_iter"]
+    # pca_options
+    do_pca              = pca_options['do_pca']
+    n_components        = pca_options['n_components']
+    pca_masks           = pca_options['pca_masks']
     # comp_options
     fit_opt_feii		= comp_options["fit_opt_feii"]
     fit_uv_iron			= comp_options["fit_uv_iron"]
@@ -494,6 +505,7 @@ def run_single_thread(fits_file,
     plot_lum_hist		= plot_options["plot_lum_hist"]
     plot_eqwidth_hist   = plot_options["plot_eqwidth_hist"]
     plot_HTML			= plot_options["plot_HTML"]
+    plot_pca            = plot_options["plot_pca"]
 
     # Set up run ('MCMC_output_#') directory
     work_dir = os.path.dirname(fits_file)+"/"
@@ -504,7 +516,7 @@ def run_single_thread(fits_file,
     if plot_HTML==True:
         if importlib.util.find_spec('plotly'):
             pass
-    else: plot_HTML=False
+    else: plot_HTML=False # wrong indentation level?
 
     # output_options
     write_chain			= output_options["write_chain"]
@@ -553,9 +565,39 @@ def run_single_thread(fits_file,
         lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm_res, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
         binnum = spaxelx = spaxely = None
 
+    # Do PCA reconstruction if desired
+
+    # Regardless of PCA, check for nans in flux and flux error arrays. If found, raise an error because they will prevent fit optimization
+    pca_nan_fix = False # boolean, just for diagnostic purposes in output log. If you have nans in your spectrum that were "fixed" by PCA, it's good to know. 
+    if ( (np.isnan(galaxy).any() ) or (np.isnan(noise).any() ) ) and  (not do_pca):
+        raise ValueError(f"\n The flux or flux error in fitting region {fit_reg} is nan, stopping fit. Change fitting region or enable PCA to cover nan region.\n")
+    elif ( (np.isnan(galaxy).any() ) or (np.isnan(noise).any() ) ) and (do_pca):
+        pca_nan_fix = True
+        print(f"Performing PCA on a spectrum with nans over region(s) {pca_masks}. Be careful to ensure PCA covers all nan regions, else PCA will fail.\n")
+        
+    if do_pca:
+        print("\n---------------------------------------\n")
+        print(" Performing PCA analysis...\n")
+        if len(pca_masks):
+            pca_reg_test = [(i[0]>=fit_reg[0],i[1]<=fit_reg[1]) for i in pca_masks] # check that pca mask regions are within fitting region
+            if not np.all(pca_reg_test):
+                raise ValueError(f"PCA region masks {pca_masks} must be within fitting region {fit_reg}")
+        else:
+            pca_masks = ([fit_reg])
+        galaxy,galaxy_pca_resid,noise,evecs,evals_cs,spec_mean_pca,pca_coeff = do_pca_fill(lam_gal,galaxy,noise,n_components=n_components, pca_masks=pca_masks, plot_pca=plot_pca, run_dir=run_dir)
+        pca_exp_var = evals_cs[-1]
+        print(" PCA analysis complete!")
+        print("\n---------------------------------------\n\n")
+
+    else:
+        pca_exp_var = None
+        
+
     # Write to Log 
-    write_log((fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,poly_options,opt_feii_options,uv_iron_options,balmer_options,
+    write_log((fit_options,mcmc_options,comp_options,pca_options,losvd_options,host_options,power_options,poly_options,opt_feii_options,uv_iron_options,balmer_options,
                plot_options,output_options),'fit_information',run_dir)
+               
+    write_log((do_pca,n_components,pca_masks,pca_nan_fix,pca_exp_var),'pca_information',run_dir)
 
     ####################################################################################################################################################################################
     # Generate host-galaxy template
@@ -10219,6 +10261,163 @@ def fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,
                                                }
 
     return fit_quality_dict
+    
+def do_pca_fill(wave_input, flux_input, err_input, n_components = 20, pca_masks = [(4400,4500), ], plot_pca = False, run_dir='' ):
+    '''
+    Performs principal component analysis (PCA) on input spectrum using SDSS template spectra to reconstruct specific, user-specified, spectral regions.
+    Input:
+        wave_input - The input spectrum wavelength array
+        flux_input - The input spectrum flux array
+        err_input - The input spectrum flux error array
+        n_components - Int or None. If int, chooses how many principal components to calculate and return. If None, calculates all available components. Default is 20.
+        masks - List of tuples that define regions over which PCA should be performed. Default is 4000-4500 A. 
+        plot_pca - Boolean of plot PCA or not. If True, returns PCA spectrum overplotting original spectrum, with residuals shown below.  
+        
+    Output:
+        new_flux - New flux array, with PCA reconstruction of corresponding flux values
+        flux_resid - Residual flux array of input spectrum and PCA reconstructed spectrum 
+        err_flux - Final flux error (either 0.1*flux or the original error (if original error has no nans) )
+        evecs - Eigenvectors from PCA
+        evals_cs - Cummulative sum of normalized eigenvalues, i-th component tells us percentage of explained variance using i eigenspectra. evals_csv[-1] is explained variance of final component
+        spec_mean - Array of mean values of eigenspectra
+        coeff - Coefficients used in reconstruction of spectrum
+    '''
+    wave_input = np.array(wave_input)
+    flux_input = np.array(flux_input)
+    err_input = np.array(err_input)
+    flux_mean = np.nanmean(flux_input)
+    # download reconstructed SDSS spectra to be used as templates 
+    data = sdss_corrected_spectra.fetch_sdss_corrected_spectra()
+    #spectra_raw = data['spectra']
+    spectra_corr = sdss_corrected_spectra.reconstruct_spectra(data) # "eigenspectra"
+    wavelengths = sdss_corrected_spectra.compute_wavelengths(data)
+    spectra_corr_interp = []
+    
+    flux_nan_check = np.isnan(flux_input).any()
+    err_nan_check = np.isnan(err_input).any()
+    
+    if flux_nan_check:
+        print('    nans detected in spectrum flux. Setting to spectrum mean and performing PCA.\n')
+        flux_nan, flux_nan_func = nan_helper(flux_input)
+        flux_nan_ind = flux_nan_func(flux_nan)
+        for fni in flux_nan_ind:
+            mask_check = []
+            flux_wave_nan = wave_input[fni]
+            for m in pca_masks:
+                chk = ( (m[0] <= flux_wave_nan) and  ( m[1] >= flux_wave_nan) )
+                mask_check.append(chk)
+               
+            if not np.any(mask_check):
+                raise ValueError(f"Wavelength {flux_wave_nan} has a nan flux, but is not covered by PCA. Adjust your PCA region.\n")
+                
+        flux_input[flux_nan_ind] = flux_mean*np.ones(len(flux_nan_ind))
+        
+    if err_nan_check:
+        print('    nans detected in spectrum flux error. Setting to 0.1*flux at corresponding wavelength.\n')
+        err_nan, err_nan_func = nan_helper(err_input)
+        err_nan_ind = err_nan_func(err_nan)
+        
+        for eni in err_nan_ind:
+            mask_check = []
+            err_wave_nan = wave_input[eni]
+            for m in pca_masks:
+                chk = ( (m[0] <= err_wave_nan) and  ( m[1] >= err_wave_nan) )
+                mask_check.append(chk)
+                
+            if not np.any(mask_check):
+                raise ValueError(f"Wavelength {err_wave_nan} has a nan flux err, but is not covered by PCA. Adjust your PCA region.\n")
+        
+        if not flux_nan_check:
+            err_input[err_nan_ind] = np.abs(0.1* flux_input[err_wave_nan])  #flux_mean*np.ones(len(err_nan_ind)) # if only errors have nans, then correct right away
+        
+        
+    # interpolate reconstructed SDSS spectra to match input spectrum dimension. Assumes template dimension is less than input dimension
+    for spec in spectra_corr:
+        s_interp = np.interp(wave_input,wavelengths,spec)
+        spectra_corr_interp.append(s_interp)
+    
+    spectra_corr_interp = np.array(spectra_corr_interp) # need to convert to numpy array for consistency
+    
+    # fit spectrum for eigenvalues 
+    if isinstance(n_components, int):
+        pca = PCA(n_components = n_components) # optional n_components = 4,5,... argument here
+    elif isinstance(n_components, type(None)):
+        pca = PCA()
+    else:
+        print(f"\n  Warning: {n_components} is invalid argument for number of PCA components. Must be int or None. Defaulting to 20 components. \n")
+        pca = PCA(n_components = 20)
+        
+    # gather relevant output results
+    pca.fit(spectra_corr_interp)
+    evals = pca.explained_variance_ratio_ # eigenvalue ratio -- tells us PERCENTAGE of explained variance. NOT ACTUAL EIGENVALUES. Use explained_variance_ to get eigenvalues of covariance matrix
+    evals_cs = evals.cumsum()
+    evecs = pca.components_ # corresponding eigenvectors
+    #print(evecs, evecs.shape, 'evecs')
+    
+    # calculate template spectra means
+    spec_mean = spectra_corr_interp.mean(0)
+
+    coeff = np.dot(evecs, flux_input-spec_mean) # project CENTERED input spectrum onto eigenspectra
+    final_flux = spec_mean + np.dot(coeff, evecs) # flux arr of reconstructed spectrum using all computed components 
+    
+    # replace original flux with new flux, but only for masked region(s)
+    new_flux = np.array(flux_input) # if not array, will break
+
+    err_flux = np.array(err_input) # initialize flux error array
+    # for each mask, replace original flux values with PCA flux values
+    for mask in pca_masks:
+        
+        ind_low = find_nearest(wave_input, mask[0])[1]
+        ind_upp = find_nearest(wave_input, mask[1])[1]
+
+        new_flux_vals = final_flux[ind_low:ind_upp]
+        new_flux[ind_low:ind_upp] = new_flux_vals
+        
+    if err_nan_check and flux_nan_check:
+        err_flux[err_nan_ind] = np.abs(0.1 * new_flux[err_nan_ind]) # if both flux and errors have nans, then replace error nans with errors from pca flux 
+        
+    flux_resid = flux_input-new_flux
+    if plot_pca:
+        plt.style.use('default') # lazy way of switching plot styles to default (and back)
+        fig,ax = plt.subplots(nrows = 2, ncols = 1, sharex = False, sharey = False, figsize = (18,10))
+        fig.suptitle('PCA Reconstruction',size = 22)
+        ax0 = ax[0]
+        ax1 = ax[1]
+        ax0.plot(wave_input, flux_input, label = 'Input Spectrum', color = 'dimgray')
+        ax0.plot(wave_input, new_flux, label = 'PCA Spectrum', color = 'k')
+        ax1.plot(wave_input, flux_resid, color = 'k')
+        
+        #ax0.set_ylabel('Flux', size = 16)
+        ax0.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)', size = 16)
+        ax1.set_ylabel(r'$f_\lambda$ Residual', size = 16)
+        
+        for i,mask in enumerate(pca_masks):
+            #print(mask)
+            ax0.axvspan(mask[0], mask[1], color = 'lightgray', label = 'PCA Region(s)' if i == 0 else "", alpha = 0.5)
+        ax0.legend()
+        
+        if n_components == 0:
+                text = "mean + 0 components"
+        elif n_components == 1:
+            text = "mean + 1 component\n"
+            text += r"$(\sigma^2_{{tot}} = {0:.4f})$".format(evals_cs[-1])
+        elif n_components is None:
+            text = "mean + all components\n"
+            text += r"$(\sigma^2_{{tot}} = {0:.4f})$".format(evals_cs[-1])
+        else:
+            text = f"mean + {n_components} components\n"
+            text += r"$(\sigma^2_{{tot}} = {0:.4f})$".format(evals_cs[-1])
+    
+        ax1.text(0.01, 0.97, text, ha='left', va='top', transform=ax1.transAxes, bbox = dict(facecolor='none', edgecolor='black',boxstyle='round,pad=0.5'))
+        plt.xlabel(r'${\rm Wavelength\ (\AA)}$', size = 16)
+        plt.tight_layout()
+        plt.savefig(run_dir.joinpath('pca_spectrum.pdf'))
+        #plt.show()
+        plt.style.use('dark_background')
+        plt.close(fig)
+        
+    
+    return new_flux, flux_resid, err_flux, evecs, evals_cs, spec_mean, coeff
 
 def write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,
                            binnum=None,spaxelx=None,spaxely=None):
@@ -10473,7 +10672,7 @@ def write_log(output_val,output_type,run_dir):
     log_file_path.parent.mkdir(parents=True, exist_ok=True)
     if not log_file_path.is_file():
         with log_file_path.open(mode='w') as logfile:
-            logfile.write('\n############################### BADASS v9.1.1 LOGFILE ####################################\n')
+            logfile.write(f'\n############################### BADASS {__version__} LOGFILE ####################################\n')
 
     # sdss_prepare
     # output_val=(file,ra,dec,z,fit_min,fit_max,velscale,ebv), output_type=0
@@ -10526,7 +10725,7 @@ def write_log(output_val,output_type,run_dir):
         return None
 
     if (output_type=='fit_information'):
-        fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,poly_options,opt_feii_options,uv_iron_options,balmer_options,\
+        fit_options,mcmc_options,comp_options,pca_options,losvd_options,host_options,power_options,poly_options,opt_feii_options,uv_iron_options,balmer_options,\
         plot_options,output_options = output_val
         with log_file_path.open(mode='a') as logfile:
             logfile.write('\n')
@@ -10675,6 +10874,7 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_flux_hist',':',str(plot_options['plot_flux_hist']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_lum_hist',':',str(plot_options['plot_lum_hist']) ))
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_eqwidth_hist',':',str(plot_options['plot_eqwidth_hist']) ))
+            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_pca',':',str(plot_options['plot_pca']) ))
             # Output options
             logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   output_options:','',''))
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('write_chain',':',str(output_options['write_chain']) )) 
@@ -10683,6 +10883,36 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n')
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
         return None
+    
+    if (output_type=='pca_information'):
+        do_pca,n_components,pca_masks,pca_nan_fix,pca_exp_var = output_val
+        with log_file_path.open(mode='a') as logfile:
+            logfile.write('\n\n### PCA Options ###')
+            logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
+            logfile.write('\n')
+            logfile.write('{0:<30}{1:<2}{2:<30}\n'.format(   'pca_options:', '', ''))
+            if do_pca:
+                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('do_pca', ':', 'True'))
+                logfile.write('\n{0:>30}{1:<2}{2:<30.8f}'.format('exp_var', ':', pca_exp_var))
+                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('pca_nan_fix', ':', str(pca_nan_fix)))
+                if n_components is not None:
+                    logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('n_components', ':', n_components))
+                else:
+                    logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('n_components', ':', 'All'))
+                logfile.write('\n{0:>30}{1:<2}'.format('pca_masks', ':'))
+                for ind, m in enumerate(pca_masks):
+                    logfile.write('({0},{1})'.format(m[0], m[1]))
+                    if ind != len(pca_masks)-1:
+                        print(ind,len(pca_masks))
+                        logfile.write(', ')
+                        
+            else:
+                logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('do_pca', ':', 'False'))
+                
+            logfile.write('\n')
+            logfile.write('\n-----------------------------------------------------------------------------------------------------------------\n') 
+        return None
+            
     
     if (output_type=='update_opt_feii'):
         with log_file_path.open(mode='a') as logfile:

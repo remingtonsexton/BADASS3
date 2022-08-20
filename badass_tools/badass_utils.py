@@ -523,6 +523,60 @@ def check_comp_options(input,verbose=False):
 
 ##################################################################################
 
+#### Check PCA options #####################################################
+
+def check_pca_options(input,verbose=False):
+    '''
+    Checks the inputs of the pca_options dictionary and ensures that
+    all keywords have valid values.
+    pca_options = {
+        'do_pca'       : False,         # boolean, if True will perform principal component analysis then run BADASS on the reconstructed spectrum
+        'n_components' : 20,            # number of PCA components to include. Should be integer > 0 or None (to fit all possible components, a few thousand). 
+        'pca_masks'    : [(4400,4500),] # list of regions (wavelength, in Angstroms) to perform PCA on
+    }
+    '''
+    
+    if not input:
+        output={
+        'do_pca'       : False,         # boolean, if True will perform principal component analysis then run BADASS on the reconstructed spectrum
+        'n_components' : 20,            # number of PCA components to include. Should be integer > 0 or None (to fit all possible components, a few thousand). 
+        'pca_masks'    : [] # list of regions (wavelength, in Angstroms) to perform PCA on
+        }
+        return output
+    
+    output = {}
+    keyword_dict = {
+    "do_pca" : {"conds":[ 
+                         lambda x: isinstance(x, (bool))
+                         ],
+                     "default": False,
+                     "error_message": "\n do_pca must be a bool.\n",
+                },
+    "n_components" : {"conds":[
+                        lambda x: isinstance(x, (int, type(None))),
+                        lambda x: x>=0 if x is not None else x is None
+                        ],
+                     "default": 20,
+                     "error_message": "\n Number of components {n_components} must be positive integer.\n"
+                     },
+    "pca_masks" : {"conds":[
+                    lambda x: isinstance(x, (tuple,list)),
+                    lambda x: np.all([len(i)==2 for i in x]),
+                    lambda x: np.all([isinstance(i[0], (int,float)) for i in x]),
+                    lambda x: np.all([isinstance(i[1], (int,float)) for i in x]),
+                    lambda x: np.all([i[1]>i[0] for i in x])
+                    ],
+                   "default": [],
+                   "error_message": "\n pca masks {pca_masks} must be an ordered tuple or list of the lower and upper wavelength limits (in Å) of the spectral region to perform PCA on, and must be within fitting region.\n",
+                  },
+    }
+    
+    output = check_dict(input, keyword_dict)
+    
+    return output 
+
+##################################################################################
+
 #### User Emission Lines #######################################################
 
 def check_user_lines(input,verbose=False):
@@ -1393,11 +1447,12 @@ def check_plot_options(input,verbose=False):
 
 	if not input:
 		output={
-			"plot_param_hist"	: True,# Plot MCMC histograms and chains for each parameter
+			"plot_param_hist"	 : True,# Plot MCMC histograms and chains for each parameter
 			"plot_flux_hist"	 : False,# Plot MCMC hist. and chains for component fluxes
-			"plot_lum_hist"	  : False,# Plot MCMC hist. and chains for component luminosities
+			"plot_lum_hist"	     : False,# Plot MCMC hist. and chains for component luminosities
 			"plot_eqwidth_hist"  : False, # Plot MCMC hist. and chains for equivalent widths 
 			"plot_HTML"          : False,# make interactive plotly HTML best-fit plot
+            "plot_pca"           : False, # Plot PCA reconstructed spectrum. If doing PCA, you probably want this as True
 		}
 
 		return output
@@ -1433,6 +1488,12 @@ def check_plot_options(input,verbose=False):
 				  		"default": False,
 				  		"error_message": "\n plot_HTML must be a bool.\n",
 				  },
+    "plot_pca" : {"conds":[
+                           lambda x: isinstance(x, (bool))
+                           ],
+                        "default": False,
+                        "error_message": "\n plot_pca must be a bool.\n",             
+                 },
 	
 	}
 	
