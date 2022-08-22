@@ -335,7 +335,7 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
         # Average along the wavelength axis so each spaxel has one s/n value
         # Note to self: Y AXIS IS ALWAYS FIRST ON NUMPY ARRAYS
         signal = np.nanmean(flux[:, miny:maxy, minx:maxx], axis=0)
-        noise = np.sqrt(1 / np.nanmean(ivar[:, miny:maxy, minx:maxx], axis=0))
+        noise = np.sqrt(np.nanmean(1/ivar[:, miny:maxy, minx:maxx], axis=0))
 
         sr = signal.ravel()
         nr = noise.ravel()
@@ -390,17 +390,18 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
         for j in range(xpixbin.size):
             xpixbin[j] = []
             ypixbin[j] = []
-        # Average flux/ivar in each bin
+        # Sum flux/ivar in each bin
         for i, bin in enumerate(binnum):
             # there is probably a better way to do this, but I'm lazy
             xi, yi = _x[i], _y[i]
             out_flux[:, bin] += flux[:, yi, xi]
-            out_ivar[:, bin] += ivar[:, yi, xi]
+            out_ivar[:, bin] += 1/ivar[:, yi, xi]
             out_mask[:, bin] += mask[:, yi, xi]
             xpixbin[bin].append(xi)
             ypixbin[bin].append(yi)
-        out_flux /= npixels
-        out_ivar /= npixels
+        # out_flux /= npixels
+        # out_ivar /= npixels
+        out_ivar = 1/out_ivar
         irange = np.nanmax(binnum)+1
 
         for bin in binnum:
@@ -441,13 +442,13 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
                 ybin, xbin = np.meshgrid(np.arange(ylo, yhi, 1), np.arange(xlo, xhi, 1))
                 ypixbin[indx] = ybin.flatten().tolist()
                 xpixbin[indx] = xbin.flatten().tolist()
-                out_flux[:, indx] = np.apply_over_axes(np.nanmean, flux[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
-                out_ivar[:, indx] = np.apply_over_axes(np.nanmean, ivar[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
+                out_flux[:, indx] = np.apply_over_axes(np.nansum, flux[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
+                out_ivar[:, indx] = 1/np.apply_over_axes(np.nansum, 1/ivar[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 out_mask[:, indx] = np.apply_over_axes(np.nansum, mask[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 npixels[indx] = len(ybin)
                 
                 signal = np.nanmean(flux[:, ylo:yhi, xlo:xhi], axis=0)
-                noise = np.sqrt(1/np.nanmean(ivar[:, ylo:yhi, xlo:xhi], axis=0))
+                noise = np.sqrt(np.nanmean(1/ivar[:, ylo:yhi, xlo:xhi], axis=0))
                 SNR[indx] = np.nansum(signal) / np.sqrt(np.nansum(noise**2))
                 if SNR[indx] < snr_threshold:
                     flux[:, ylo:yhi, xlo:xhi] = np.nan
@@ -471,7 +472,7 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
         irange = (maxx-minx)*(maxy-miny)
 
         signal = np.nanmean(flux, axis=0)
-        noise = np.sqrt(1 / np.nanmean(ivar, axis=0))
+        noise = np.sqrt(np.nanmean(1/ivar, axis=0))
         SNR = signal / noise
 
         flux[:, SNR < snr_threshold] = np.nan
