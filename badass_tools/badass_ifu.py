@@ -188,7 +188,7 @@ def read_manga_ifu(fits_file,z=0):
 
 
 
-def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binning=False,targetsn=None,cvt=True,voronoi_plot=True,quiet=True,wvt=False,
+def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binning=False,targetsn=None,cvt=True,voronoi_plot=True,quiet=True,wvt=False,bin_avg=False,
                 maxbins=800,snr_threshold=0.5,fixed_bin_size=10,use_and_mask=True,nx=None,ny=None,nz=None,ra=None,dec=None,dataid=None,wave=None,flux=None,ivar=None,
                 specres=None,mask=None,objname=None):
     """
@@ -216,6 +216,8 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
         Vorbin quiet option (see the vorbin package docs). Default True.
     :param wvt: bool
         Vorbin wvt option (see the vorbin package docs). Default False.
+    :param bin_avg: bool
+        Take the average of the fluxes in each bin instead of the sum. Default False.
     :param maxbins: int
         If no target SNR is provided for voronoi binning, maxbins may be specified, which will automatically calculate
         the target SNR required to reach the number of bins desired. Default 800.
@@ -399,8 +401,9 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
             out_mask[:, bin] += mask[:, yi, xi]
             xpixbin[bin].append(xi)
             ypixbin[bin].append(yi)
-        # out_flux /= npixels
-        # out_ivar /= npixels
+        if bin_avg:
+            out_flux /= npixels
+            out_ivar /= npixels
         out_ivar = 1/out_ivar
         irange = np.nanmax(binnum)+1
 
@@ -442,8 +445,10 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
                 ybin, xbin = np.meshgrid(np.arange(ylo, yhi, 1), np.arange(xlo, xhi, 1))
                 ypixbin[indx] = ybin.flatten().tolist()
                 xpixbin[indx] = xbin.flatten().tolist()
-                out_flux[:, indx] = np.apply_over_axes(np.nansum, flux[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
-                out_ivar[:, indx] = 1/np.apply_over_axes(np.nansum, 1/ivar[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
+                out_flux[:, indx] = np.apply_over_axes(np.nansum if not bin_avg else np.nanmean, 
+                                        flux[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
+                out_ivar[:, indx] = 1/np.apply_over_axes(np.nansum if not bin_avg else np.nanmean, 
+                                        1/ivar[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 out_mask[:, indx] = np.apply_over_axes(np.nansum, mask[:, ylo:yhi, xlo:xhi], (1,2)).flatten()
                 npixels[indx] = len(ybin)
                 
