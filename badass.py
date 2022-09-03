@@ -4471,7 +4471,7 @@ def get_test_range(lam_gal, noise, full_profile):
     nchannel = len(eval_ind)
     # if the number of channels < 6 (number of degrees of freedom for double-Gaussian model), then the calculated f-statistic
     # will be zero.  To resolve this, we extend the range by one pixel on each side, i.e. nchannel = 8.
-    if nchannel <= 25: 
+    if (nchannel <= 25) & (len(lam_gal)>25): 
         add_chan = 26 - nchannel# number of channels to add to each side; minimum is 7 channels since deg. of freedom  = 6
         lower_pad = np.arange(eval_ind[0]-add_chan,eval_ind[0],1)#np.arange(eval_ind[0]-add_chan,eval_ind[0],1)
         upper_pad = np.arange(eval_ind[-1]+1,eval_ind[-1]+1+add_chan,1)
