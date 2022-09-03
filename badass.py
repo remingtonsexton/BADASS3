@@ -232,6 +232,7 @@ __status__	 = "Release"
 from utils.input.input import BadassInput
 from utils.options import BadassOptions
 from utils.utils import *
+from utils.logger import BadassLogger
 
 import utils.constants as constants
 
@@ -285,7 +286,9 @@ class BadassContext(mp.Process):
 
 
 	def run(self):
-		print('bactx %d' % os.getpid())
+
+		# Initialize logging here since it is by process
+		self.log = BadassLogger(self)
 
 		# TODO: remove, for testing
 		fit_options = self.options.fit_options
@@ -367,15 +370,15 @@ class BadassContext(mp.Process):
 			self.options.plot_options.plot_HTML = False
 
 		# Start fitting process
-		print('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
-		sys.stdout.flush()
+		self.log.info('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
+		sys.stdout.flush() # TODO: need?
 		# Start a timer to record the total runtime
 		self.start_time = time.time()
 
 		self.set_fit_region()
 		# TODO: validate in function
 		if (self.fit_reg is None) or ((self.fit_reg.max-self.fit_reg.min) < constants.MIN_FIT_REGION):
-			print('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
+			self.log.warning('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
 			return None
 
 		# TODO: remove, for testing
@@ -400,10 +403,11 @@ class BadassContext(mp.Process):
 			spaxelx = self.target.xi
 			spaxely = self.target.yi
 
+		self.log.log_target_info()
+		self.log.log_fit_information()
 
-		# Write to Log 
-		write_log((fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,
-				   plot_options,output_options),'fit_information',run_dir)
+		# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
 
 		####################################################################################################################################################################################
 		# Generate host-galaxy template
@@ -956,7 +960,7 @@ class BadassContext(mp.Process):
 		self.mask = self.target.mask[fit_reg_mask]
 		self.fwhm_res = self.target.fwhm_res[fit_reg_mask]
 		self.velscale = self.target.velscale
-		self.z = self.target.z
+		self.ra, self.dec, self.z = self.target.ra, self.target.dec, self.target.z
 
 		# Interpolate over nans and infs if in spec or noise
 		inan = np.where((~np.isfinite(self.spec)) | (~np.isfinite(self.noise)))[0]
@@ -981,7 +985,8 @@ class BadassContext(mp.Process):
 		self.fit_mask_bad = np.sort(np.unique(fit_mask_bad))
 		self.fit_mask_good = np.setdiff1d(np.arange(0,len(self.wave),1,dtype=int), fit_mask_bad)
 
-		self.spec = ccm_unred(self.wave, self.spec, get_ebv(self.target.ra, self.target.dec))
+		self.ebv = get_ebv(self.target.ra, self.target.dec)
+		self.spec = ccm_unred(self.wave, self.spec, self.ebv)
 
 		# TODO: write to log
 		# TODO: plot
@@ -993,7 +998,7 @@ class BadassContext(mp.Process):
 		to generate an emission line mask for continuum fitting.
 		"""
 		# Do a series of median filters with window sizes up to 20 
-		window_sizes = [2,5,10,50,100,250,500]#np.arange(10,510,10,dtype=int)
+		window_sizes = [2,5,10,50,100,250,500]
 		med_spec = np.empty((len(self.wave), len(window_sizes)))
 
 		for i in range(len(window_sizes)):
@@ -8961,206 +8966,6 @@ def write_log(output_val,output_type,run_dir):
 
 	log_file_path = run_dir.joinpath('log', 'log_file.txt')
 	log_file_path.parent.mkdir(parents=True, exist_ok=True)
-	if not log_file_path.is_file():
-		with log_file_path.open(mode='w') as logfile:
-			logfile.write('\n############################### BADASS v9.1.1 LOGFILE ####################################\n')
-
-	# sdss_prepare
-	# output_val=(file,ra,dec,z,fit_min,fit_max,velscale,ebv), output_type=0
-	if (output_type=='prepare_sdss_spec'):
-		fits_file,ra,dec,z,cosmology,fit_min,fit_max,velscale,ebv = output_val
-		with log_file_path.open(mode='a') as logfile:
-			logfile.write('\n')
-			logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-			logfile.write('\n{0:<30}{1:<30}'.format('file:'		   , fits_file.name			))
-			logfile.write('\n{0:<30}{1:<30}'.format('(RA, DEC):'	  , '(%0.6f,%0.6f)' % (ra,dec)	 ))
-			logfile.write('\n{0:<30}{1:<30}'.format('SDSS redshift:'  , '%0.5f' % z					))
-			logfile.write('\n{0:<30}{1:<30}'.format('fitting region:' , '(%d,%d) [A]' % (fit_min,fit_max)  ))
-			logfile.write('\n{0:<30}{1:<30}'.format('velocity scale:' , '%0.2f [km/s/pixel]' % velscale))
-			logfile.write('\n{0:<30}{1:<30}'.format('Galactic E(B-V):', '%0.3f' % ebv))
-			logfile.write('\n')
-			logfile.write('\n{0:<30}'.format('Units:'))
-			logfile.write('\n{0:<30}'.format('	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]'))
-			logfile.write('\n{0:<30}'.format('	- Velocity, dispersion, and FWHM have units of [km/s]'))
-			logfile.write('\n{0:<30}'.format('	- Fluxes and Luminosities are in log-10'))
-			logfile.write('\n')
-			logfile.write('\n{0:<30}'.format('Cosmology:'))
-			logfile.write('\n{0:<30}'.format('	H0 = %0.1f' % cosmology["H0"]))
-			logfile.write('\n{0:<30}'.format('	Om0 = %0.2f' % cosmology["Om0"]))
-			logfile.write('\n')
-			logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-		return None
-
-	if (output_type=='prepare_user_spec'):
-		fits_file,z,cosmology,fit_min,fit_max,velscale,ebv = output_val
-		with log_file_path.open(mode='a') as logfile:
-			logfile.write('\n')
-			logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-			logfile.write('\n{0:<30}{1:<30}'.format('file:'		   , fits_file.name			))
-			# logfile.write('\n{0:<30}{1:<30}'.format('(RA, DEC):'	  , '(%0.6f,%0.6f)' % (ra,dec)	 ))
-			logfile.write('\n{0:<30}{1:<30}'.format('SDSS redshift:'  , '%0.5f' % z					))
-			logfile.write('\n{0:<30}{1:<30}'.format('fitting region:' , '(%d,%d) [A]' % (fit_min,fit_max)  ))
-			logfile.write('\n{0:<30}{1:<30}'.format('velocity scale:' , '%0.2f [km/s/pixel]' % velscale))
-			logfile.write('\n{0:<30}{1:<30}'.format('Galactic E(B-V):', '%0.3f' % ebv))
-			logfile.write('\n')
-			logfile.write('\n{0:<30}'.format('Units:'))
-			logfile.write('\n{0:<30}'.format('	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]'))
-			logfile.write('\n{0:<30}'.format('	- Velocity, dispersion, and FWHM have units of [km/s]'))
-			logfile.write('\n{0:<30}'.format('	- Fluxes and Luminosities are in log-10'))
-			logfile.write('\n')
-			logfile.write('\n{0:<30}'.format('Cosmology:'))
-			logfile.write('\n{0:<30}'.format('	H0 = %0.1f' % cosmology["H0"]))
-			logfile.write('\n{0:<30}'.format('	Om0 = %0.2f' % cosmology["Om0"]))
-			logfile.write('\n')
-			logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-		return None
-
-	if (output_type=='fit_information'):
-		fit_options,mcmc_options,comp_options,losvd_options,host_options,power_options,opt_feii_options,uv_iron_options,balmer_options,\
-		plot_options,output_options = output_val
-		with log_file_path.open(mode='a') as logfile:
-			logfile.write('\n')
-			logfile.write('\n### User-Input Fitting Paramters & Options ###')
-			logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-			logfile.write('\n')
-			# General fit options
-			logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   fit_options:','',''))
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_reg',':',str(fit_options['fit_reg']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('good_thresh',':',str(fit_options['good_thresh']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('mask_bad_pix',':',str(fit_options['mask_bad_pix']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('n_basinhop',':',str(fit_options['n_basinhop']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('test_outflows',':',str(fit_options['test_outflows']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('test_line',':',str(fit_options['test_line']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('max_like_niter',':',str(fit_options['max_like_niter']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('output_pars',':',str(fit_options['output_pars']) )) 
-			logfile.write('\n')
-			# MCMC options
-			if mcmc_options['mcmc_fit']==False:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   mcmc_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','MCMC fitting is turned off.' )) 
-				logfile.write('\n')
-			elif mcmc_options['mcmc_fit']==True:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   mcmc_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('mcmc_fit',':',str(mcmc_options['mcmc_fit']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('nwalkers',':',str(mcmc_options['nwalkers']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('auto_stop',':',str(mcmc_options['auto_stop']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('conv_type',':',str(mcmc_options['conv_type']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('min_samp',':',str(mcmc_options['min_samp']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('ncor_times',':',str(mcmc_options['ncor_times']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('autocorr_tol',':',str(mcmc_options['autocorr_tol']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('write_iter',':',str(mcmc_options['write_iter']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('write_thresh',':',str(mcmc_options['write_thresh']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('burn_in',':',str(mcmc_options['burn_in']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('min_iter',':',str(mcmc_options['min_iter']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('max_iter',':',str(mcmc_options['max_iter']) )) 
-				logfile.write('\n')
-			# Fit Component options
-			logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   comp_options:','',''))
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_opt_feii',':',str(comp_options['fit_opt_feii']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_uv_iron',':',str(comp_options['fit_uv_iron']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_balmer',':',str(comp_options['fit_balmer']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_losvd',':',str(comp_options['fit_losvd']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_host',':',str(comp_options['fit_host']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_power',':',str(comp_options['fit_power']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_narrow',':',str(comp_options['fit_narrow']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_broad',':',str(comp_options['fit_broad']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_outflow',':',str(comp_options['fit_outflow']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_absorp',':',str(comp_options['fit_absorp']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('tie_line_fwhm',':',str(comp_options['tie_line_fwhm']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('tie_line_voff',':',str(comp_options['tie_line_voff']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('na_line_profile',':',str(comp_options['na_line_profile']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('br_line_profile',':',str(comp_options['br_line_profile']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('out_line_profile',':',str(comp_options['out_line_profile']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('abs_line_profile',':',str(comp_options['abs_line_profile']) )) 
-
-			logfile.write('\n')
-			# LOSVD options
-			if comp_options["fit_losvd"]==True:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   losvd_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('library',':',str(losvd_options['library']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('vel_const',':',str(losvd_options['vel_const']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('disp_const',':',str(losvd_options['disp_const']) )) 
-				logfile.write('\n')
-			elif comp_options["fit_losvd"]==False:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   losvd_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','LOSVD fitting is turned off.' )) 
-				logfile.write('\n')
-			# Host Options
-			if comp_options["fit_host"]==True:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   host_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('age',':',str(host_options['age']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('vel_const',':',str(host_options['vel_const']) )) 
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('disp_const',':',str(host_options['disp_const']) )) 
-				logfile.write('\n')
-			elif comp_options["fit_host"]==False:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   host_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Host-galaxy template fitting is turned off.' )) 
-				logfile.write('\n')
-			# Power-law continuum options
-			if comp_options['fit_power']==True:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   power_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('type',':',str(power_options['type']) )) 
-				logfile.write('\n')
-			elif comp_options["fit_power"]==False:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   power_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Power Law fitting is turned off.' )) 
-				logfile.write('\n')
-			# Optical FeII fitting options
-			if (comp_options['fit_opt_feii']==True):
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   opt_feii_options:','',''))
-			if (comp_options['fit_opt_feii']==True) and (opt_feii_options['opt_template']['type']=='VC04'):
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_template:',':','type: %s' % str(opt_feii_options['opt_template']['type']) ))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_amp_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_amp_const']['bool']),str(opt_feii_options['opt_amp_const']['br_opt_feii_val']),str(opt_feii_options['opt_amp_const']['na_opt_feii_val']))))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_fwhm_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_fwhm_const']['bool']),str(opt_feii_options['opt_fwhm_const']['br_opt_feii_val']),str(opt_feii_options['opt_fwhm_const']['na_opt_feii_val']))))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_voff_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_voff_const']['bool']),str(opt_feii_options['opt_voff_const']['br_opt_feii_val']),str(opt_feii_options['opt_voff_const']['na_opt_feii_val']))))
-			if (comp_options['fit_opt_feii']==True) and (opt_feii_options['opt_template']['type']=='K10'):
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_template:',':','type: %s' % str(opt_feii_options['opt_template']['type']) ))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_amp_const',':','bool: %s, f_feii_val: %s, s_feii_val: %s, g_feii_val: %s, z_feii_val: %s' % (str(opt_feii_options['opt_amp_const']['bool']),str(opt_feii_options['opt_amp_const']['f_feii_val']),str(opt_feii_options['opt_amp_const']['s_feii_val']),str(opt_feii_options['opt_amp_const']['g_feii_val']),str(opt_feii_options['opt_amp_const']['z_feii_val']))))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_fwhm_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_fwhm_const']['bool']),str(opt_feii_options['opt_fwhm_const']['opt_feii_val']),)))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_voff_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_voff_const']['bool']),str(opt_feii_options['opt_voff_const']['opt_feii_val']),)))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('opt_temp_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_temp_const']['bool']),str(opt_feii_options['opt_temp_const']['opt_feii_val']),)))
-			elif comp_options["fit_opt_feii"]==False:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   opt_feii_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Optical FeII fitting is turned off.' )) 
-				logfile.write('\n')
-			# UV Iron options
-			if (comp_options['fit_uv_iron']==True):
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   uv_iron_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('uv_amp_const',':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options['uv_amp_const']['bool']),str(uv_iron_options['uv_amp_const']['uv_iron_val']) )))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('uv_fwhm_const',':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options['uv_fwhm_const']['bool']),str(uv_iron_options['uv_fwhm_const']['uv_iron_val']),)))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('uv_voff_const',':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options['uv_voff_const']['bool']),str(uv_iron_options['uv_voff_const']['uv_iron_val']),)))
-			elif comp_options["fit_uv_iron"]==False:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   uv_iron_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','UV Iron fitting is turned off.' )) 
-				logfile.write('\n')	
-			# Balmer options
-			if (comp_options['fit_balmer']==True):
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   balmer_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('R_const',':','bool: %s, R_val: %s' % (str(balmer_options['R_const']['bool']),str(balmer_options['R_const']['R_val']) )))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('balmer_amp_const',':','bool: %s, balmer_amp_val: %s' % (str(balmer_options['balmer_amp_const']['bool']),str(balmer_options['balmer_amp_const']['balmer_amp_val']),)))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('balmer_fwhm_const',':','bool: %s, balmer_fwhm_val: %s' % (str(balmer_options['balmer_fwhm_const']['bool']),str(balmer_options['balmer_fwhm_const']['balmer_fwhm_val']),)))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('balmer_voff_const',':','bool: %s, balmer_voff_val: %s' % (str(balmer_options['balmer_voff_const']['bool']),str(balmer_options['balmer_voff_const']['balmer_voff_val']),)))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('Teff_const',':','bool: %s, Teff_val: %s' % (str(balmer_options['Teff_const']['bool']),str(balmer_options['Teff_const']['Teff_val']),)))
-				logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('tau_const',':','bool: %s, tau_val: %s' % (str(balmer_options['tau_const']['bool']),str(balmer_options['tau_const']['tau_val']),)))
-			elif comp_options["fit_balmer"]==False:
-				logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   balmer_options:','',''))
-				logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('','','Balmer pseudo-continuum fitting is turned off.' )) 
-				logfile.write('\n')
-
-			# Plotting options
-			logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   plot_options:','',''))
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_param_hist',':',str(plot_options['plot_param_hist']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_flux_hist',':',str(plot_options['plot_flux_hist']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_lum_hist',':',str(plot_options['plot_lum_hist']) ))
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_eqwidth_hist',':',str(plot_options['plot_eqwidth_hist']) ))
-			# Output options
-			logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   output_options:','',''))
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('write_chain',':',str(output_options['write_chain']) )) 
-			logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('verbose',':',str(output_options['verbose']) )) 
-			#
-			logfile.write('\n')
-			logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-		return None
 	
 	if (output_type=='update_opt_feii'):
 		with log_file_path.open(mode='a') as logfile:

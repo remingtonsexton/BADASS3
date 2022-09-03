@@ -3,6 +3,7 @@ io_options={
     "infmt" : "sdss_spec",
     "output_dir" : None, # same directory as input file
     "dust_cache" : None,
+    "log_level" : "debug",
 }
 
 ################################## Fit Options #################################
