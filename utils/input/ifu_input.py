@@ -5,7 +5,6 @@ from astropy.io import fits
 from vorbin.voronoi_2d_binning import voronoi_2d_binning
 
 from utils.input.input import BadassInput
-from utils.constants import C
 
 
 class IFUInput(BadassInput):

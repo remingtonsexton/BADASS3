@@ -48,7 +48,7 @@ comp_options={
 "fit_uv_iron"      : False, # UV Iron 
 "fit_balmer"       : False, # Balmer continuum (<4000 A)
 "fit_losvd"        : True, # stellar LOSVD
-"fit_host"         : False, # host template
+"fit_host"         : True, # host template
 "fit_power"        : True, # AGN power-law
 "fit_narrow"       : True, # narrow lines
 "fit_broad"        : True, # broad lines

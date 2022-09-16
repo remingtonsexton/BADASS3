@@ -71,10 +71,3 @@ class MuseIFU(IFUInput):
         inobj.specres = specres
 
         return inobj.ifu_common(inobj, spec, noise, mask)
-
-
-
-
-
-
-

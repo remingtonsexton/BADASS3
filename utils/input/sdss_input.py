@@ -4,7 +4,7 @@ import pathlib
 
 from utils.input.input import BadassInput, SDSS_FMT
 from utils.utils import find_nearest
-from utils.constants import C
+import utils.constants as consts
 
 class SDSSSpec(BadassInput):
 
@@ -45,4 +45,4 @@ class SDSSSpec(BadassInput):
             dlam_gal = (frac - 1)*self.wave # Size of every pixel in Angstrom
             wdisp = t['wdisp'] # Intrinsic dispersion of every pixel, in pixels units
             self.fwhm_res = 2.355*wdisp*dlam_gal # Resolution FWHM of every pixel, in angstroms
-            self.velscale = np.log(frac) * C
+            self.velscale = np.log(frac) * consts.c

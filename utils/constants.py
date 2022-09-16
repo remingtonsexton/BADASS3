@@ -1,8 +1,10 @@
+import pathlib
 import prodict
 
 DEFAULT_OUTDIR = 'MCMC_output'
 
-C = 299792.458 # speed of light in km/s
+c = 299792.458 # speed of light in km/s
+k = 1.38064852e-23 # Boltzmann constant; m2 kg s-2 K-1
 
 # TODO: should be a fit_option?
 MIN_FIT_REGION = 25 # in Å, the minimum fitting region size
@@ -32,3 +34,6 @@ LOSVD_LIBRARIES = prodict.Prodict.from_dict({
         'max_losvd': 49999.4,
     },
 })
+
+
+BADASS_DATA_DIR = pathlib.Path(__file__).parent.parent.joinpath('badass_data_files')

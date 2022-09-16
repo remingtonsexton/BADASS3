@@ -190,3 +190,11 @@ class BadassLogger:
 
 		self.logger.info('\n')
 		self.logger.info('-----------------------------------------------------------------------------------------------------------------')
+
+
+	def update_opt_feii(self):
+		self.logger.info('\t* optical FeII templates outside of fitting region and disabled.')
+
+
+
+
