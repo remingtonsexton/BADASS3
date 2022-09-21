@@ -3,7 +3,6 @@ import pathlib
 from astropy.io import fits
 
 from utils.input.ifu_input import IFUInput
-import utils.verify.verify
 
 class MuseIFU(IFUInput):
     @classmethod

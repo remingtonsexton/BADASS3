@@ -4,6 +4,7 @@ import numpy as np
 from astropy.io import fits
 from vorbin.voronoi_2d_binning import voronoi_2d_binning
 
+import utils.constants as consts
 from utils.input.input import BadassInput
 
 
@@ -49,7 +50,7 @@ class IFUInput(BadassInput):
 
         # FWHM Resolution in angstroms:
         base.fwhm_res = base.wave / base.specres  # dlambda = lambda / R; R = lambda / dlambda
-        base.velscale = np.log(base.wave[1] / base.wave[0]) * C
+        base.velscale = np.log(base.wave[1] / base.wave[0]) * consts.c
 
         if not options.ifu_options.use_and_mask:
             mask = np.zeros(spec.shape, dtype=int)
