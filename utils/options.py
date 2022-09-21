@@ -3,11 +3,24 @@ import json
 import pathlib
 import prodict
 
-from utils.verify.verify_default import DefaultVerifySet
+import utils.constants as consts
+from utils.schema import DefaultValidator, DEFAULT_OPTIONS_SCHEMA
 
-# TODO: validation, all expected options are supplied
 
 class BadassOptions(prodict.Prodict):
+
+    @classmethod
+    def from_dict(cls, input_dict):
+        # Override Prodict.from_dict to normalize and validate input
+        v = DefaultValidator(DEFAULT_OPTIONS_SCHEMA)
+
+        # Update dict with default values if needed
+        input_dict = v.normalized(input_dict)
+        if not v.validate(input_dict):
+            raise Exception('Options validation failed: %s' % v.errors)
+
+        return super().from_dict(input_dict)
+
     @classmethod
     def from_file(cls, _filepath):
         filepath = pathlib.Path(_filepath)
@@ -20,6 +33,12 @@ class BadassOptions(prodict.Prodict):
             raise Exception('Unsupported option file type: %s' % ext)
 
         return getattr(cls, parse_func_name)(filepath)
+
+
+    # Custom file type parsers
+    # Note: each parser should parse options to a dict and use
+    #   BadassOptions.from_dict to initialize, allowing for
+    #   option normalization and validation
 
     @classmethod
     def parse_json(cls, filepath):
@@ -47,5 +66,3 @@ class BadassOptions(prodict.Prodict):
 
         return []
 
-    def verify(self, verify_set=DefaultVerifySet):
-        verify_set(self).verify()

@@ -48,10 +48,6 @@ import psutil
 import pathlib
 import importlib
 import multiprocessing as mp
-# Import BADASS tools modules
-cwd = os.getcwd() # get current working directory
-sys.path.insert(1,cwd+'/badass_tools/')
-import badass_tools.badass_utils as badass_utils
 
 plt.style.use('dark_background') # For cool tron-style dark plots
 import matplotlib
@@ -248,7 +244,6 @@ USE_MULTIPROCESS = True
 class BadassRunner:
 	def __init__(self, input_data, options_data):
 		self.options = BadassOptions.get_options(options_data)
-		[o.verify() for o in self.options]
 		self.targets = BadassInput.get_inputs(input_data, self.options)
 
 	def run(self):
@@ -305,7 +300,7 @@ class BadassContext(mp.Process):
 		opt_feii_options = self.options.opt_feii_options
 		uv_iron_options = self.options.uv_iron_options
 		balmer_options = self.options.balmer_options
-		outflow_test_options = self.options.outflow_test_options
+		outflow_test_options = None
 		plot_options = self.options.plot_options
 		output_options = self.options.output_options
 
@@ -940,7 +935,7 @@ class BadassContext(mp.Process):
 		if self.options.fit_options.mask_emline:
 			fit_mask_bad.extend(self.emline_masker())
 
-		for lo,hi in self.options.fit_options.user_mask:
+		for lo,hi in self.options.user_mask:
 			ibad = np.where((self.wave >= lo) & (self.wave <= hi))[0]
 			fit_mask_bad.extend(ibad)
 
