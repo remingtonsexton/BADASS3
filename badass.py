@@ -413,9 +413,9 @@ class BadassContext(mp.Process):
 		self.templates = initialize_templates(self)
 
 		# TODO: remove, for classify transition
-		host_template = self.templates[0]
-		stel_templates = self.templates[1]
-		opt_feii_templates = self.templates[2]
+		host_template = self.templates['HostTemplate'] if 'HostTemplate' in self.templates else None
+		stel_templates = self.templates['StellarTemplate'] if 'StellarTemplate' in self.templates else None
+		opt_feii_templates = self.templates['OpticalFeIITemplate'] if 'OpticalFeIITemplate' in self.templates else None
 
 
 		# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv

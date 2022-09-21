@@ -163,7 +163,11 @@ class BadassTemplate:
 
 
 def initialize_templates(ctx):
-	templates = []
+	# TODO: eventually make templates a list that BADASS
+	# 		can iterate over as needed
+	#		Is there a reason it *really* needs to know
+	# 		which template is which?
+	templates = {}
 
 	from utils.templates.host import HostTemplate
 	from utils.templates.stellar import StellarTemplate
@@ -172,6 +176,6 @@ def initialize_templates(ctx):
 	for temp_class in [HostTemplate, StellarTemplate, OpticalFeIITemplate]:
 		temp = temp_class.initialize_template(ctx)
 		if temp:
-			templates.append(temp)
+			templates[temp_class.__name__] = temp
 
 	return templates
