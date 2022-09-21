@@ -1,14 +1,16 @@
 import pathlib
 import shutil
+import sys
 import unittest
-
-import badass
-import badass_tools.badass_ifu as ifu
 
 TESTING_DIR = pathlib.Path(__file__).resolve().parent
 BADASS_DIR = TESTING_DIR.parent
 EXAMPLES_DIR =  BADASS_DIR.joinpath('examples')
 OPTIONS_DIR = TESTING_DIR.joinpath('options')
+
+sys.path.insert(0, str(BADASS_DIR))
+
+import badass
 
 
 class TestBADASS(unittest.TestCase):
@@ -30,7 +32,7 @@ class TestBADASS(unittest.TestCase):
             test_dir = fits_file.parent
 
             # Clean up old test output directories
-            for d in test_dir.glob('MCMC_output_*'):
+            for d in test_dir.glob('MCMC_output*'):
                 shutil.rmtree(d)
 
         # Run tests all at once so BADASS will use multiprocessing
@@ -42,7 +44,9 @@ class TestBADASS(unittest.TestCase):
             output_dir = test_dir.joinpath('MCMC_output')
             self.assertTrue(output_dir.exists())
 
-            for file in ['best_fit_model.pdf', 'fitting_region.pdf', 'max_likelihood_fit.pdf']:
+            # TODO: add fitting_region.pdf back in after implementing plotting
+            # for file in ['best_fit_model.pdf', 'fitting_region.pdf', 'max_likelihood_fit.pdf']:
+            for file in ['best_fit_model.pdf', 'max_likelihood_fit.pdf']:
                 self.assertTrue(output_dir.joinpath(file).exists())
 
             log_dir = output_dir.joinpath('log')
@@ -61,6 +65,10 @@ class TestBADASS(unittest.TestCase):
         cube_subdir = cube.with_suffix('')
         if cube_subdir.exists():
             shutil.rmtree(str(cube_subdir))
+
+        # Clean up old test output directories
+        for d in cube.parent.glob('MCMC_output*'):
+            shutil.rmtree(d)
 
         ret = badass.BadassRunner(cube, options_file).run()
 
@@ -82,6 +90,10 @@ class TestBADASS(unittest.TestCase):
 
 
     # TODO: Add manga test
+
+    # TODO: Add miri test
+
+    # TODO: Add nirspec test
 
     # TODO: Add user spec test
 
