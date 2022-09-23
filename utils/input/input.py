@@ -113,6 +113,7 @@ class BadassInput(metaclass=MetaRegistry):
             return cls.from_format(path, options)
 
         inputs = []
+        # TODO: add search string option and recursion option
         for infile in path.glob('*'):
             # TODO: support recursion into subdirs?
             if not infile.is_file():

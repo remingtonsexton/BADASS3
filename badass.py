@@ -239,6 +239,9 @@ from utils.templates.common import initialize_templates, template_rfft, convolve
 USE_MULTIPROCESS = True
 
 
+# TODO: if output_dir already exists, check for overwrite option
+
+
 # BadassRunner handles parsing input data and options and
 # running a BadassContext for each target file
 class BadassRunner:
@@ -856,7 +859,9 @@ class BadassContext(mp.Process):
 		first_good = self.target.wave[0]
 		last_good  = self.target.wave[-1]
 
+		# TODO: account for auto and full in options schema
 		if fit_reg in ['auto', 'full']:
+			# TODO: floor and ceil needed? can we use floats for fit_reg?
 			self.fit_reg = (np.floor(first_good),np.ceil(last_good))
 			# The lower limit of the spectrum must be the lower limit of our stellar templates
 			if self.options.comp_options.fit_losvd and ((first_good < min_losvd) or (last_good > max_losvd)):

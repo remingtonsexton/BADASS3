@@ -1,6 +1,9 @@
 import logging
 import sys
 
+# TODO: create error file with warning +
+# 			check err_level option
+
 class BadassLogger:
 	def __init__(self, ba_ctx):
 		self.ctx = ba_ctx # BadassContext
