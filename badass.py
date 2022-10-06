@@ -1696,6 +1696,10 @@ def metal_masker(wave,spec,noise,fits_file):
     cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
     # Additional challenge -- re-mapping cwave back onto the original wave array
     remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
+    # Convolve the remap by a small kernel such that neighboring pixels are also masked
+    conf = gaussian_filter1d(conf,3)
+    # Normalize to 1
+    conf = (conf-np.nanmin(conf))/(np.nanmax(conf)-np.nanmin(conf))
     # Mask all pixels where the confidence is over 50%
     mask_bad = remap[conf > 0.5]
 
@@ -4255,7 +4259,7 @@ def line_test(param_dict,
         for i in (remove_lines+assoc_lines):
             full_profile+=np.median(mccomps_line[i],axis=0)
 
-    eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask])
+    eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask], original_line_list, remove_lines, velscale)
 
     # storage arrays for residuals in [OIII] test region
     resid_line	  = np.empty((max_like_niter+1,nchannel))
@@ -4457,13 +4461,22 @@ def line_test(param_dict,
 
 ##################################################################################
 
-def get_test_range(lam_gal, noise, full_profile):
+def get_test_range(lam_gal, noise, full_profile, line_list, remove_lines, velscale):
 
     # Get indices where we perform f-test
     eval_ind = np.where(full_profile>=(0.10*noise))[0]#range(len(lam_gal))
 
     if len(eval_ind)<=1:
-        eval_ind = np.arange(len(lam_gal))
+        # eval_ind = np.arange(len(lam_gal))
+        # If the line is zero, then eval_ind will also be zero.  So we take the +/- 2500 km/s around
+        # the line(s) being tested as the default test range.
+        cen_pix = np.empty(len(remove_lines))
+        for l,line in enumerate(remove_lines):
+            cen_pix[l] = line_list[line]["center_pix"]
+
+        vpad = 2500.0 # padding around test lines in km/s
+        delta_pix = int(np.min(cen_pix)-vpad/velscale), int(np.ceil(np.max(cen_pix)+vpad/velscale))
+        eval_ind = np.arange(delta_pix[0],delta_pix[1],1)
     else: 
         eval_ind = np.arange(np.min(eval_ind),np.max(eval_ind),1)
 
