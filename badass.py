@@ -4493,6 +4493,7 @@ def get_test_range(lam_gal, noise, full_profile, line_list, remove_lines, velsca
         lower_pad = np.arange(eval_ind[0]-add_chan,eval_ind[0],1)#np.arange(eval_ind[0]-add_chan,eval_ind[0],1)
         upper_pad = np.arange(eval_ind[-1]+1,eval_ind[-1]+1+add_chan,1)
         eval_ind = np.concatenate([lower_pad, eval_ind, upper_pad],axis=0)
+        eval_ind = eval_ind[(eval_ind>=0)&(eval_ind<len(lam_gal))] # ensures that eval_ind is at most the same size as lam_gal
         nchannel = len(eval_ind)
         
     return eval_ind, nchannel
