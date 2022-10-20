@@ -1783,6 +1783,10 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
         ra  = hdu[0].header['RA']
         dec = hdu[0].header['DEC']
         ebv_corr = True
+    elif ("PLUG_RA" in header_cols) and ("PLUG_DEC" in header_cols):
+        ra  = hdu[0].header['PLUG_RA']
+        dec = hdu[0].header['PLUG_DEC']
+        ebv_corr = True
     else:
         ebv_corr = False
 
