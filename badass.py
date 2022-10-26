@@ -314,6 +314,34 @@ class BadassContext(mp.Process):
 		# Initialize logging here since it is by process
 		self.log = BadassLogger(self)
 
+		# TODO: populated dust cache before multiprocessing started?
+		# TODO: check the IrsaDust multiprocessing cache'ing bug still exists
+		if self.options.io_options.dust_cache != None:
+			IrsaDust.cache_location = str(self.options.io_options.dust_cache)
+
+		# Start fitting process
+		self.log.info('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
+		sys.stdout.flush() # TODO: need?
+		# Start a timer to record the total runtime
+		self.start_time = time.time()
+
+		self.set_fit_region()
+		# TODO: validate in function
+		if (self.fit_reg is None) or ((self.fit_reg.max-self.fit_reg.min) < constants.MIN_FIT_REGION):
+			self.log.warning('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
+			return None
+
+		self.prepare_context()
+		# TODO: prepare_user_spec
+
+		self.log.log_target_info()
+		self.log.log_fit_information()
+
+		# Generate any needed templates
+		self.templates = initialize_templates(self)
+
+
+		# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 		# TODO: remove, for classify transition
 		fit_options = self.options.fit_options
 		mcmc_options = self.options.mcmc_options
@@ -329,10 +357,7 @@ class BadassContext(mp.Process):
 		outflow_test_options = None
 		plot_options = self.options.plot_options
 		output_options = self.options.output_options
-
 		verbose = self.options.output_options.verbose # TODO: move output_options to io_options
-
-		# TODO: remove, for classify transition
 		fit_reg				= self.options.fit_options.fit_reg
 		good_thresh			= self.options.fit_options.good_thresh
 		mask_bad_pix	  	= self.options.fit_options.mask_bad_pix
@@ -379,46 +404,15 @@ class BadassContext(mp.Process):
 		plot_lum_hist		= self.options.plot_options.plot_lum_hist
 		plot_eqwidth_hist   = self.options.plot_options.plot_eqwidth_hist
 		poly_options = self.poly_options
-
 		write_chain = self.options.output_options.write_chain
 		plot_HTML = self.options.plot_options.plot_HTML
-
-		# TODO: remove, for classify transition
 		sdss_spec = True
 		fits_file = self.target.infile
 		run_dir = self.outdir
 		user_mask = []
 		combined_lines = {}
-
-		if self.options.io_options.dust_cache != None:
-			IrsaDust.cache_location = str(self.options.io_options.dust_cache)
-
-		# TODO: do this in option validation
-		# Check to make sure plotly is installed for HTML interactive plots:
-		if self.options.plot_options.plot_HTML and not importlib.util.find_spec('plotly'):
-			self.options.plot_options.plot_HTML = False
-
-		# Start fitting process
-		self.log.info('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
-		sys.stdout.flush() # TODO: need?
-		# Start a timer to record the total runtime
-		self.start_time = time.time()
-
-		self.set_fit_region()
-		# TODO: validate in function
-		if (self.fit_reg is None) or ((self.fit_reg.max-self.fit_reg.min) < constants.MIN_FIT_REGION):
-			self.log.warning('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
-			return None
-
-		# TODO: remove, for classify transition
-		# fit_reg = self.fit_reg
 		fit_reg = (self.fit_reg.min, self.fit_reg.max)
 		good_frac = self.good_frac
-
-		self.prepare_context()
-		# TODO: prepare_user_spec
-
-		# TODO: remove, for classify transition
 		lam_gal = self.wave
 		galaxy = self.spec
 		noise = self.noise
@@ -433,6 +427,15 @@ class BadassContext(mp.Process):
 			spaxelx = self.target.xi
 			spaxely = self.target.yi
 
+		# TODO: do this in option validation
+		# Check to make sure plotly is installed for HTML interactive plots:
+		if self.options.plot_options.plot_HTML and not importlib.util.find_spec('plotly'):
+			self.options.plot_options.plot_HTML = False
+
+		# TODO: remove, for classify transition
+		host_template = self.templates['HostTemplate'] if 'HostTemplate' in self.templates else None
+		stel_templates = self.templates['StellarTemplate'] if 'StellarTemplate' in self.templates else None
+		opt_feii_templates = self.templates['OpticalFeIITemplate'] if 'OpticalFeIITemplate' in self.templates else None
 
 
 		#######################################################
@@ -464,22 +467,6 @@ class BadassContext(mp.Process):
 
 	    else:
 	        pca_exp_var = None
-	    #######################################################
-
-
-		self.log.log_target_info()
-		self.log.log_fit_information()
-
-		# Generate any needed templates
-		self.templates = initialize_templates(self)
-
-		# TODO: remove, for classify transition
-		host_template = self.templates['HostTemplate'] if 'HostTemplate' in self.templates else None
-		stel_templates = self.templates['StellarTemplate'] if 'StellarTemplate' in self.templates else None
-		opt_feii_templates = self.templates['OpticalFeIITemplate'] if 'OpticalFeIITemplate' in self.templates else None
-
-
-		# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 			
 		# Generate UV Iron template - Vestergaard & Wilkes (2001)
 		if (fit_uv_iron==True) & (lam_gal[-1]>=1074.0) & (lam_gal[0]<=3100.0):
