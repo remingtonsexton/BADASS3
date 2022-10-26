@@ -2,3 +2,6 @@
 **/__pycache__/
 **/MCMC_output*/
 **/spaxel_*/
+**/.DS_Store
+**.pyc
+neuralnet_training_data/
