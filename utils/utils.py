@@ -269,6 +269,7 @@ def log_rebin(lamRange, spec, oversample=1, velscale=None, flux=False):
     borders = np.linspace(*lim, num=n+1)     # Linearly
     logLim = np.log(lim)
 
+    # TODO: use from constants
     c = 299792.458                         # Speed of light in km/s
     if velscale is None:                     # Velocity scale is set by user
         velscale = np.diff(logLim)/m*c     # Only for output

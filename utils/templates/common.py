@@ -110,6 +110,10 @@ def gaussian_filter1d(spec, sig):
 	:return: spec convolved with a Gaussian with dispersion sig
 
 	"""
+
+	if isinstance(sig,(int,float)):
+        sig = np.full_like(spec,float(sig))
+
 	sig = sig.clip(0.01)  # forces zero sigmas to have 0.01 pixels
 	p = int(np.ceil(np.max(3*sig)))
 	m = 2*p + 1  # kernel size

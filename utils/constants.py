@@ -9,8 +9,8 @@ k = 1.38064852e-23 # Boltzmann constant; m2 kg s-2 K-1
 # TODO: should be a fit_option?
 MIN_FIT_REGION = 25 # in Å, the minimum fitting region size
 
-FIT_STATS = ['ML','OLS','RCHI2']
-LINE_PROFILES = ['G','L','GH','V']
+FIT_STATS = ['ML','OLS','RCHI2','RMSE']
+LINE_PROFILES = ['gaussian','lorentzian','voigt','gauss-hermite','laplace','uniform']
 
 # For direct fitting of the stellar kinematics (stellar LOSVD), one can 
 # specify a stellar template library (Indo-US, Vazdekis 2010, or eMILES).

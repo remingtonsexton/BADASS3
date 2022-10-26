@@ -89,9 +89,10 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 
 		# Convolve templates to the native resolution of SDSS
 		fwhm_feii = 1.0 # templates were created with 1.0 FWHM resolution
-		fwhm_gal_interp = np.interp(lam_feii, self.ctx.wave, self.ctx.fwhm_res)
-		fwhm_diff = np.sqrt((fwhm_gal_interp**2 - fwhm_feii**2).clip(0))
-		sigma = fwhm_diff/2.3548/dlam_feii # Sigma difference in pixels
+		disp_feii = fwhm_feii/2.3548
+		disp_res_interp = np.interp(lam_feii, self.ctx.wave, self.ctx.fwhm_res)
+		disp_diff = np.sqrt((fwhm_gal_interp**2 - disp_feii**2).clip(0))
+		sigma = disp_diff/dlam_feii # Sigma difference in pixels
 		spec_feii_br = gaussian_filter1d(spec_feii_br, sigma)
 		spec_feii_na = gaussian_filter1d(spec_feii_na, sigma)
 
@@ -110,15 +111,15 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 
 		# If opt_fwhm_const AND opt_voff_const, we preconvolve the templates so we don't have to during the fit
 		opt_feii_options = self.ctx.options.opt_feii_options
-		self.pre_convolve = (opt_feii_options.opt_fwhm_const.bool) and (opt_feii_options.opt_voff_const.bool)
+		self.pre_convolve = (opt_feii_options.opt_disp_const.bool) and (opt_feii_options.opt_voff_const.bool)
 		if self.pre_convolve:
 
 			br_voff = opt_feii_options.opt_voff_const.br_opt_feii_val
-			br_fwhm = opt_feii_options.opt_fwhm_const.br_opt_feii_val
+			br_fwhm = opt_feii_options.opt_disp_const.br_opt_feii_val
 			self.br_conv_temp = self.convolve(self.br_opt_feii_fft, br_voff, br_fwhm)
 
 			na_voff = opt_feii_options.opt_voff_const.na_opt_feii_val
-			na_fwhm = opt_feii_options.opt_fwhm_const.na_opt_feii_val
+			na_fwhm = opt_feii_options.opt_disp_const.na_opt_feii_val
 			self.na_conv_temp = self.convolve(self.na_opt_feii_fft, na_voff, na_fwhm)
 
 
@@ -139,12 +140,12 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 			br_opt_feii_amp = params['BR_OPT_FEII_AMP']
 			na_opt_feii_amp = params['NA_OPT_FEII_AMP']
 
-		if opt_feii_options.opt_fwhm_const.bool:
-			br_opt_feii_fwhm = opt_feii_options.opt_fwhm_const.br_opt_feii_val
-			na_opt_feii_fwhm = opt_feii_options.opt_fwhm_const.na_opt_feii_val
+		if opt_feii_options.opt_disp_const.bool:
+			br_opt_feii_disp = opt_feii_options.opt_disp_const.br_opt_feii_val
+			na_opt_feii_disp = opt_feii_options.opt_disp_const.na_opt_feii_val
 		else:
-			br_opt_feii_fwhm = params['BR_OPT_FEII_FWHM']
-			na_opt_feii_fwhm = params['NA_OPT_FEII_FWHM']
+			br_opt_feii_disp = params['BR_OPT_FEII_DISP']
+			na_opt_feii_disp = params['NA_OPT_FEII_DISP']
 
 		if opt_feii_options.opt_voff_const.bool:
 			br_opt_feii_voff = opt_feii_options.opt_voff_const.br_opt_feii_val
@@ -154,8 +155,8 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 			na_opt_feii_voff = params['NA_OPT_FEII_VOFF']
 
 		if not self.pre_convolve:
-			self.br_conv_temp = self.convolve(self.br_opt_feii_fft, br_opt_feii_voff, br_opt_feii_fwhm)
-			self.na_conv_temp = self.convolve(self.na_opt_feii_fft, na_opt_feii_voff, na_opt_feii_fwhm)
+			self.br_conv_temp = self.convolve(self.br_opt_feii_fft, br_opt_feii_voff, br_opt_feii_disp)
+			self.na_conv_temp = self.convolve(self.na_opt_feii_fft, na_opt_feii_voff, na_opt_feii_disp)
 
 		br_opt_feii_template = br_opt_feii_amp * self.br_conv_temp
 		na_opt_feii_template = na_opt_feii_amp * self.na_conv_temp
@@ -295,12 +296,13 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 
 		# Generate a high-resolution wavelength scale that is universal to all transitions
 		fwhm = 1.0 # Angstroms
+		disp = fwhm/2.3548
 		dlam_feii = 0.1 # linear spacing in Angstroms
 		npad = 100
 		lam_feii = np.arange(np.min(self.ctx.wave)-npad, np.max(self.ctx.wave)+npad, dlam_feii)
 		lamRange_feii = [np.min(lam_feii), np.max(lam_feii)]
 		# Get size of output log-rebinned spectrum 
-		ga = gaussian_angstroms(lam_feii, self.transitions[0].wavelength[0], 1.0, fwhm, 0.0)   
+		ga = gaussian_angstroms(lam_feii, self.transitions[0].wavelength[0], 1.0, disp, 0.0)   
 		new_size, loglam_feii, velscale_feii = log_rebin(lamRange_feii, ga, velscale=velscale)
 
 		for trans in self.transitions.values():
@@ -309,7 +311,7 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 
 			# Generate templates with an amplitude of 1.0
 			for i in range(np.shape(trans.templates)[1]):
-				ga = gaussian_angstroms(lam_feii, trans.wavelength[i], 1.0, fwhm, 0.0)	
+				ga = gaussian_angstroms(lam_feii, trans.wavelength[i], 1.0, disp, 0.0)	
 				new_temp = log_rebin(lamRange_feii, ga, velscale=self.ctx.velscale)[0]
 				templates[:,i] = new_temp/np.max(new_temp)
 
@@ -321,14 +323,14 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 
 		# If opt_fwhm_const AND opt_voff_const, we preconvolve the templates so we don't have to during the fit
 		opt_feii_options = self.ctx.options.opt_feii_options
-		self.pre_convolve = (opt_feii_options.opt_fwhm_const.bool) and (opt_feii_options.opt_voff_const.bool)
+		self.pre_convolve = (opt_feii_options.opt_disp_const.bool) and (opt_feii_options.opt_voff_const.bool)
 		if self.pre_convolve:
 
 			feii_voff = opt_feii_options.opt_voff_const.opt_feii_val
-			feii_fwhm = opt_feii_options.opt_fwhm_const.opt_feii_val
+			feii_fwhm = opt_feii_options.opt_disp_const.opt_feii_val
 
 			for trans in self.transitions.values():
-				trans.conv_temp = convolve(trans.fft, feii_voff, feii_fwhm, npad=trans.npad)
+				trans.conv_temp = convolve(trans.fft, feii_voff, feii_disp, npad=trans.npad)
 
 
 	def initialize_parameters(self, params):

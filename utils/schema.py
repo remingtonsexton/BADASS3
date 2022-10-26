@@ -15,7 +15,20 @@ rules_set_registry.add('intfl_d0', {
                                         'type': ['integer', 'float'],
                                         'default': 0.0,
                                    })
-rules_set_registry.add('line_profile', {'type':'string', 'allowed':consts.LINE_PROFILES, 'default':'G'})
+rules_set_registry.add('line_profile', {'type':'string', 'allowed':consts.LINE_PROFILES, 'default':'gaussian'})
+rules_set_registry.add('poly_dict', {
+                                        'type': 'dict',
+                                        'default': {},
+                                        'schema': {
+                                            'bool': 'bool_false',
+                                            'order': {
+                                                'type': ['integer', 'float'],
+                                                'default': 3.0,
+                                                'min': 0.0,
+                                                'max': 99.0,
+                                            },
+                                        },
+                                    })
 
 
 class DefaultValidator(Validator):
@@ -124,7 +137,7 @@ DEFAULT_FIT_OPTIONS = {
     'fit_stat': {
         'type': 'string',
         'allowed': consts.FIT_STATS,
-        'default': 'ML',
+        'default': 'RCHI2',
     },
     # Number of consecutive basinhopping thresholds before solution achieved
     'n_basinhop': {
@@ -286,7 +299,7 @@ DEFAULT_COMP_OPTIONS = {
     'fit_broad': 'bool_true', # broad lines
     'fit_outflow': 'bool_true', # outflow lines
     'fit_absorp': 'bool_true', # absorption lines
-    'tie_line_fwhm': 'bool_false', # tie line widths
+    'tie_line_disp': 'bool_false', # tie line widths
     'tie_line_voff': 'bool_false', # tie line velocity offsets
     'na_line_profile': 'line_profile', # narrow line profile
     'br_line_profile': 'line_profile', # broad line profile
@@ -298,7 +311,25 @@ DEFAULT_COMP_OPTIONS = {
         'min': 2,
         'max': 10,
         'default': 4
-    }
+    },
+}
+
+
+# pca_options
+DEFAULT_PCA_OPTIONS = {
+    'do_pcs': 'bool_false',
+    'n_components': {
+        'type': 'integer',
+        'nullable': True,
+        'min': 1,
+        'default': 20,
+    },
+    'pca_masks': {
+        'type': 'list',
+        'schema': {
+            'is_lohi': True,
+        },
+    },
 }
 
 
@@ -367,18 +398,14 @@ DEFAULT_LOSVD_OPTIONS = {
             },
         },
     },
-    'losvd_apoly': {
-        'type': 'dict',
-        'default': {},
-        'schema': {
-            'bool': 'bool_false',
-            'order': {
-                'type': 'integer',
-                'min': 0,
-                'default': 3,
-            },
-        },
-    },
+}
+
+
+# poly_options
+DEFAULT_POLY_OPTIONS = {
+    'ppoly': 'poly_dict',
+    'apoly': 'poly_dict',
+    'mpoly': 'poly_dict',
 }
 
 
@@ -441,7 +468,7 @@ DEFAULT_OPT_FEII_VC04_OPTIONS = {
             'na_opt_feii_val' : 'intfl_min0_d1',
         },
     },
-    'opt_fwhm_const': {
+    'opt_disp_const': {
         'type': 'dict',
         'default': {},
         'schema': {
@@ -537,7 +564,7 @@ DEFAULT_UV_IRON_OPTIONS = {
             'uv_iron_val': 'intfl_min0_d1',
         },
     },
-    'uv_fwhm_const' : {
+    'uv_disp_const' : {
         'type': 'dict',
         'default': {},
         'schema': {
@@ -555,17 +582,6 @@ DEFAULT_UV_IRON_OPTIONS = {
         'schema': {
             'bool': 'bool_true',
             'uv_iron_val': 'intfl_d0',
-        },
-    },
-    'uv_legendre_p' : {
-        'type': 'dict',
-        'default': {},
-        'schema': {
-            'bool': 'bool_false',
-            'uv_iron_val': {
-                'type': 'integer',
-                'default': 3,
-            },
         },
     },
 }
@@ -595,7 +611,7 @@ DEFAULT_BALMER_OPTIONS = {
         },
     },
     # broadening of higher-order Balmer lines
-    'balmer_fwhm_const': {
+    'balmer_disp_const': {
         'type': 'dict',
         'default': {},
         'schema': {
@@ -657,6 +673,8 @@ DEFAULT_PLOT_OPTIONS = {
     'plot_eqwidth_hist': 'bool_false',
     # make interactive plotly HTML best-fit plot
     'plot_HTML': 'bool_false',
+    # Plot PCA reconstructed spectrum
+    'plot_pca': 'bool_false',
 }
 
 
@@ -680,8 +698,10 @@ dict_options = {
     'ifu_options': DEFAULT_IFU_OPTIONS,
     'mcmc_options': DEFAULT_MCMC_OPTIONS,
     'comp_options': DEFAULT_COMP_OPTIONS,
+    'pca_options': DEFAULT_PCA_OPTIONS,
     'power_options': DEFAULT_POWER_OPTIONS,
     'losvd_options': DEFAULT_LOSVD_OPTIONS,
+    'poly_options': DEFAULT_POLY_OPTIONS,
     'host_options': DEFAULT_HOST_OPTIONS,
     'uv_iron_options': DEFAULT_UV_IRON_OPTIONS,
     'balmer_options': DEFAULT_BALMER_OPTIONS,
