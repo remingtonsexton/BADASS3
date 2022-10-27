@@ -1045,7 +1045,7 @@ def run_single_thread(fits_file,
 
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-    fit_quality_dict = fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type="mcmc",fit_stat=fit_stat)
+    fit_quality_dict = fit_quality_pars(param_dict,len(param_dict),line_list,combined_line_list,comp_dict,fit_mask,fit_type="mcmc",fit_stat=fit_stat)
     param_dict = {**param_dict,**fit_quality_dict}
 
     # Write best fit parameters to fits table
@@ -2533,9 +2533,13 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_stat=="RCHI2"):
         if verbose: 
             print('	 - Adding parameter for unexplained noise to fit reduced Chi-squared.')
-        par_input["NOISE_SCALE"] = ({'init':1.0,
+        # par_input["NOISE_SCALE"] = ({'init':1.0,
+        #                              'plim':(0.0001,100.0),
+        #                              'prior':{"type":"jeffreys"},
+        #                             })
+        par_input["NOISE_SCALE"] = ({'init': 0.001,
                                      'plim':(0.0001,100.0),
-                                     'prior':{"type":"jeffreys"},
+                                     'prior':{"type":"gaussian"},
                                     })
 
     # Galaxy template amplitude
@@ -4938,16 +4942,53 @@ def write_line_test_results(result_dict_outflows,
 
 ####################################################################################
 
-def calc_max_like_flux(comp_dict, lam_gal):
+def subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale):
+
+    # fig = plt.figure(figsize=(32,10))
+    # ax1 = fig.add_subplot(1,1,1)
+    # ax1.plot(comp_dict["WAVE"],comp_dict["DATA"],linewidth=0.5)
+    # ax1.plot(comp_dict["WAVE"],comp_dict["NA_H_BETA"],linewidth=0.5)
+    # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_4960"],linewidth=0.5)
+    # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_5007"],linewidth=0.5)
+    # plt.tight_layout()
+    comp_dict_subsamp = copy.deepcopy(comp_dict)
+    new_line_list     = copy.deepcopy(line_list)
+    new_comb_list     = copy.deepcopy(combined_line_list)
+
+    subsamp_factor = 1000 # factor by which we subsample the data
+
+    lam_gal_subsamp = scipy.ndimage.zoom(input=lam_gal,zoom=subsamp_factor,order=3)
+    velscale_subsamp = velscale/subsamp_factor
+    p = dict(zip(param_names, par_best))
+
+    cw_interp = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp)),bounds_error=False)
+
+    for line in new_line_list:
+        new_line_list[line]["center_pix"] = cw_interp(new_line_list[line]["center"])
+        comp_dict_subsamp = line_constructor(lam_gal_subsamp,p,comp_dict_subsamp,comp_options,line,new_line_list,velscale_subsamp)
+
+    for line in new_comb_list:
+        new_comb_list[line]["center_pix"] = cw_interp(new_comb_list[line]["center"])
+
+    for comp in comp_dict:
+        if (comp not in new_line_list):
+            comp_dict_subsamp[comp] = scipy.ndimage.zoom(input=comp_dict[comp],zoom=subsamp_factor,order=3)
+
+    return comp_dict_subsamp, new_line_list, new_comb_list, velscale_subsamp
+
+####################################################################################
+
+def calc_max_like_flux(comp_dict):
     """
     Calculates component fluxes for maximum likelihood fitting.
     Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood().
 
     """
+
     flux_dict = {}
     for key in comp_dict: 
         if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-            flux = np.log10(1.e-17*(simps(comp_dict[key],lam_gal)))
+            flux = np.log10(1.e-17*(np.trapz(comp_dict[key],comp_dict["WAVE"])))
             # Add to flux_dict
             flux_dict[key+"_FLUX"]  = flux
 
@@ -4980,14 +5021,14 @@ def calc_max_like_lum(flux_dict, z, H0=70.0,Om0=0.30):
 
 ####################################################################################
 
-def calc_max_like_eqwidth(comp_dict, line_list, lam_gal, noise, velscale):
+def calc_max_like_eqwidth(comp_dict, line_list, velscale):
     """
     Calculates component fluxes for maximum likelihood fitting.
     Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood().
 
     """
     # Create a single continuum component based on what was fit
-    cont = np.zeros(len(lam_gal))
+    cont = np.zeros(len(comp_dict["WAVE"]))
     for key in comp_dict:
         if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             cont+=comp_dict[key]
@@ -5002,7 +5043,7 @@ def calc_max_like_eqwidth(comp_dict, line_list, lam_gal, noise, velscale):
         for c in spec_comps:
             if 1:#c in lines: # component is a line
                 # print(c,comp_dict[c],cont)
-                eqwidth = simps(comp_dict[c]/cont,lam_gal)
+                eqwidth = np.trapz(comp_dict[c]/cont,comp_dict["WAVE"])
             #
                 if ~np.isfinite(eqwidth):
                     eqwidth=0.0
@@ -5016,14 +5057,14 @@ def calc_max_like_eqwidth(comp_dict, line_list, lam_gal, noise, velscale):
 
 ##################################################################################
 
-def calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=70.0, Om0=0.30):
+def calc_max_like_cont_lum(clum, comp_dict, z, H0=70.0, Om0=0.30):
     """
     Calculate monochromatic continuum luminosities
     """
     clum_dict  = {}
-    total_cont = np.zeros(len(lam_gal))
-    agn_cont   = np.zeros(len(lam_gal))
-    host_cont  = np.zeros(len(lam_gal))
+    total_cont = np.zeros(len(comp_dict["WAVE"]))
+    agn_cont   = np.zeros(len(comp_dict["WAVE"]))
+    host_cont  = np.zeros(len(comp_dict["WAVE"]))
     for key in comp_dict:
         if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             total_cont+=comp_dict[key]
@@ -5037,9 +5078,9 @@ def calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=70.0, Om0=0.30):
     d_mpc = cosmo.luminosity_distance(z).value
     d_cm  = d_mpc * 3.086E+24 # 1 Mpc = 3.086e+24 cm
     # Interpolation function for the continuum 
-    interp_tot  = interp1d(lam_gal,total_cont,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    interp_agn  = interp1d(lam_gal,agn_cont  ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    interp_host = interp1d(lam_gal,host_cont ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
+    interp_tot  = interp1d(comp_dict["WAVE"],total_cont,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
+    interp_agn  = interp1d(comp_dict["WAVE"],agn_cont  ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
+    interp_host = interp1d(comp_dict["WAVE"],host_cont ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
     for c in clum:
         # Total luminosities
         if (c=="L_CONT_TOT_1350"):
@@ -5103,30 +5144,32 @@ def calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=70.0, Om0=0.30):
 
 ##################################################################################
 
-def remove_stray_lines(line_profile):
+# def remove_stray_lines(line_profile):
     
-    line_profile[line_profile<0] = 0
-    max_idx = np.where(line_profile==np.max(line_profile))[0][0]
-    # print(max_idx)
-    #
-    left_bad = [i for i in np.arange(max_idx,-1,-1) if line_profile[i]>0]
-#     print(left_bad)
-    left_bad_idx = [max_idx-np.where(np.abs(np.diff(left_bad))>1)[0]-1][0]
-    # print(left_bad_idx)
-    if len(left_bad_idx)>0:
-        l0 = left_bad_idx[0]
-        line_profile[range(0,l0+1,1)]= 0 
-    #
-    right_bad = [i for i in np.arange(max_idx,len(line_profile),1) if line_profile[i]>0]
-    right_bad_idx = [max_idx+np.where(np.abs(np.diff(right_bad))>1)[0]+1][0]
-    if len(right_bad_idx)>0:
-        r0 = right_bad_idx[0]
-        line_profile[range(r0,len(line_profile),1)]= 0 
-    # print(right_bad_idx)
-    #
-    return line_profile
+#     line_profile[line_profile<0] = 0
+#     max_idx = np.where(line_profile==np.max(line_profile))[0][0]
+#     # print(max_idx)
+#     #
+#     left_bad = [i for i in np.arange(max_idx,-1,-1) if line_profile[i]>0]
+# #     print(left_bad)
+#     left_bad_idx = [max_idx-np.where(np.abs(np.diff(left_bad))>1)[0]-1][0]
+#     # print(left_bad_idx)
+#     if len(left_bad_idx)>0:
+#         l0 = left_bad_idx[0]
+#         line_profile[range(0,l0+1,1)]= 0 
+#     #
+#     right_bad = [i for i in np.arange(max_idx,len(line_profile),1) if line_profile[i]>0]
+#     right_bad_idx = [max_idx+np.where(np.abs(np.diff(right_bad))>1)[0]+1][0]
+#     if len(right_bad_idx)>0:
+#         r0 = right_bad_idx[0]
+#         line_profile[range(r0,len(line_profile),1)]= 0 
+#     # print(right_bad_idx)
+#     #
+#     return line_profile
 
-def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal, noise, velscale):
+##################################################################################
+
+def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, velscale):
 
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [i for i in line_list]
@@ -5135,25 +5178,25 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal,
     fwhm_dict = {}
     vint_dict = {}
     #
-    interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,bounds_error=False)
+    interp_ftn = interp1d(comp_dict["WAVE"],np.arange(len(comp_dict["WAVE"]))*velscale,bounds_error=False)
     # Loop through lines
     for line in lines:
-        fwhm = combined_fwhm(lam_gal,comp_dict[line],line_list[line]["disp_res_kms"],velscale)
+        fwhm = combined_fwhm(comp_dict["WAVE"],comp_dict[line],line_list[line]["disp_res_kms"],velscale)
         fwhm_dict[line+"_FWHM"] = fwhm
 
         if line in combined_line_list:   
             # Calculate velocity scale centered on line
-            vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[line]["center"])
+            vel = np.arange(len(comp_dict["WAVE"]))*velscale - interp_ftn(line_list[line]["center"])
             full_profile = comp_dict[line]
             # Remove stray lines
-            full_profile = remove_stray_lines(full_profile)
+            # full_profile = remove_stray_lines(full_profile)
             #
             # Normalized line profile
             norm_profile = full_profile/np.sum(full_profile)
             # Calculate integrated velocity in pixels units
-            v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
+            v_int = np.trapz(vel*norm_profile,vel)/simps(norm_profile,vel)
             # Calculate integrated dispersion and correct for instrumental dispersion
-            d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
+            d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/np.trapz(norm_profile,vel) - (v_int**2))
             d_int = np.sqrt(d_int**2 - (line_list[line]["disp_res_kms"])**2)
             # 
             if ~np.isfinite(d_int): d_int = 0.0
@@ -5162,6 +5205,60 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal,
             vint_dict[line+"_VOFF"] = v_int
     #
     return disp_dict, fwhm_dict, vint_dict
+
+##################################################################################
+
+def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
+
+    # for p in param_dict:
+        # print(p,param_dict[p])
+
+    # for p in comp_dict:
+    #     print(p,len(comp_dict[p]))
+
+    npix_dict = {}
+    aon_dict  = {}
+
+
+
+    if fit_stat=="RCHI2":
+        # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
+        noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"])**2
+        noise = noise2**0.5
+    elif fit_stat!="RCHI2":
+        noise = comp_dict["NOISE"]
+
+    # compute NPIX for each line in the line list
+    for l in line_list:
+        npix = len(np.where(comp_dict[l]>noise)[0])
+        npix_dict[l+"_NPIX"] = npix
+    # compute NPIX for any combined lines
+    if len(combined_line_list)>0:
+        for c in combined_line_list:
+            comb_line = np.zeros(len(noise))
+            for l in combined_line_list[c]["lines"]:
+                comb_line+=comp_dict[l]
+            npix = len(np.where(comb_line>noise)[0])
+            npix_dict[c+"_NPIX"] = npix
+
+    for n in npix_dict:
+        print(n,npix_dict[n])
+
+    sys.exit()
+
+    # compute a total chi-squared and r-squared
+    r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    #
+    nu = len(comp_dict["DATA"])-n_free_pars
+    rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+    #
+    # fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
+    # fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
+
+    return r_sqaured, rchi_squared, npix_dict, aon_dict
+
+##################################################################################
+
 
 #### Maximum Likelihood Fitting ##################################################
 
@@ -5210,7 +5307,7 @@ def max_likelihood(param_dict,
     bounds	  = [param_dict[key]['plim'] for key in param_dict ]
     lb, ub = zip(*bounds) 
     param_bounds = op.Bounds(lb,ub,keep_feasible=True)
-
+    n_free_pars = len(params) # number of free parameters
     # Extract parameters with priors; only non-uniform priors 
     # need to be added to the fit
     # for key in param_dict:
@@ -5314,16 +5411,6 @@ def max_likelihood(param_dict,
                           output_model)
 
     #### Maximum Likelihood Bootstrapping #################################################################
-    # Construct random normally-distributed noise
-    # How we do the monte carlo bootstrapping (i.e., the proper way):
-    # (1) The 1-sigma uncertainty (spectral "noise") from inverse variance of the SDSS spectra is 
-    # 	  the pixel-to-pixel variation in the spectrum when rows of pixels are added to form the final 1-d spectrum. 
-    # 	  This is always an underestimate of the true noise in the spectrum. 
-    # (2) The residual noise from a fit, taken to be the median absolute deviation of the residuals from a fit.  This 
-    #	 is always greater than the "noise" from (1), but closer to the actual value of the noise across the fitting 
-    #	  region.  
-    #  We add (1) and (2) in quadrature to simulate the noise at /every/ pixel in the fitting region.
-    # Note: the SDSS noise is likely underestimated, but this is the best we can do.
 
     mcnoise = np.array(noise)
     # Storage dictionaries for all calculated paramters at each iteration
@@ -5347,7 +5434,15 @@ def max_likelihood(param_dict,
     mcfwhm  = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_VOFF" for key in combined_line_list]
     mcvint  = {k:np.empty(max_like_niter+1) for k in line_names}
-    # component dictionary
+    # fit quality dictionaries (R_SQUARED, RCHI_SQUARED, NPIX, AON,)
+    mcR2    = np.empty(max_like_niter+1)
+    mcRCHI2 = np.empty(max_like_niter+1)
+
+    line_names = [key+"_NPIX" for key in {**line_list, **combined_line_list}]
+    mcnpix  = {k:np.empty(max_like_niter+1) for k in line_names}
+    line_names = [key+"_AON" for key in {**line_list, **combined_line_list}]
+    mcaon   = {k:np.empty(max_like_niter+1) for k in line_names}
+    # model component dictionary
     mccomps = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
     # log-likelihood array
     mcLL = np.empty(max_like_niter+1)
@@ -5373,16 +5468,25 @@ def max_likelihood(param_dict,
         clum.append("AGN_FRAC_7000")
     mccont = {k:np.empty(max_like_niter+1) for k in clum}
 
+
+    # Subsample comp dict
+    comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
     # Calculate fluxes 
-    flux_dict = calc_max_like_flux(comp_dict, lam_gal)
+    flux_dict = calc_max_like_flux(comp_dict_subsamp)
     # Calculate luminosities
     lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+
     # Calculate equivalent widths
-    eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, lam_gal, noise, velscale)
+    eqwidth_dict = calc_max_like_eqwidth(comp_dict_subsamp, {**_line_list, **_combined_line_list}, velscale_subsamp)
+
     # Calculate continuum luminosities
-    clum_dict = calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+    clum_dict = calc_max_like_cont_lum(clum, comp_dict_subsamp, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+
     # Calculate integrated line dispersions
-    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, lam_gal, noise, velscale)
+    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict_subsamp, {**_line_list, **_combined_line_list}, _combined_line_list, velscale_subsamp)
+
+    # Calculate fit quality parameters
+    r2, rchi2, npix_dict, aon_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
 
     # Add first iteration to arrays
     # Add to mcpars dict
@@ -5406,7 +5510,7 @@ def max_likelihood(param_dict,
         mcfwhm[key][0] = fwhm_dict[key]
     for key in vint_dict:
         mcvint[key][0] = vint_dict[key]
-    # Add components to mccomps
+    # Add original components to mccomps
     for key in comp_dict:
         mccomps[key][0,:] = comp_dict[key]
     # Add log-likelihood to mcLL
@@ -5467,10 +5571,18 @@ def max_likelihood(param_dict,
                                              ),
                                        # method='SLSQP', 
                                        method='Nelder-Mead',
+                                       # method="Powell",
                                        bounds = param_bounds, 
                                        # constraints=cons,
                                        options={'maxiter':1000,'disp': False})
             mcLL[n] = resultmc["fun"] # add best fit function values to mcLL
+
+            # Used for checking MC outputs
+            # print("\n MC iteration: %d:" % n)
+            # for p,pn in enumerate(param_names):
+            #     print(pn,resultmc["x"][p])
+
+
             # Get best-fit model components to calculate fluxes and equivalent widths
             output_model = True
             comp_dict = fit_model(resultmc["x"],
@@ -5501,16 +5613,19 @@ def max_likelihood(param_dict,
                                   fit_type,
                                   fit_stat,
                                   output_model)
+
+            # Subsample comp dict
+            comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,resultmc["x"],param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
             # Calculate fluxes 
-            flux_dict = calc_max_like_flux(comp_dict, lam_gal)
+            flux_dict = calc_max_like_flux(comp_dict_subsamp)
             # Calculate luminosities
             lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate equivalent widths
-            eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, lam_gal, noise, velscale)
+            eqwidth_dict = calc_max_like_eqwidth(comp_dict_subsamp, {**_line_list, **_combined_line_list}, velscale_subsamp)
             # Calculate continuum luminosities
-            clum_dict = calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+            clum_dict = calc_max_like_cont_lum(clum, comp_dict_subsamp, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate integrated line dispersions
-            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, lam_gal, noise, velscale)
+            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict_subsamp, {**_line_list, **_combined_line_list}, _combined_line_list, velscale_subsamp)
 
             # Add to mc storage dictionaries
             # Add to mcpars dict
@@ -5543,6 +5658,7 @@ def max_likelihood(param_dict,
 
             if verbose:
                 print('	   Completed %d of %d iterations.' % (n,max_like_niter) )
+
 
     # Iterate through every parameter to determine if the fit is "good" (more than 1-sigma away from bounds)
     # if not, then add 1 to that parameter flag value			
@@ -5657,7 +5773,8 @@ def max_likelihood(param_dict,
     #
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-    fit_quality_dict = fit_quality_pars(best_param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type="max_like",fit_stat=fit_stat)
+
+    fit_quality_dict = fit_quality_pars(best_param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type="max_like",fit_stat=fit_stat)
     pdict = {**pdict,**fit_quality_dict}
 
     if (test_outflows==True):
@@ -5764,6 +5881,12 @@ def max_like_add_tied_parameters(pdict,line_list):
 
     return pdict
 
+def isFloat(num):
+    try:
+        float(num)
+        return True
+    except ValueError:
+        return False
 
 def add_tied_parameters(pdict,line_list):
 
@@ -5792,7 +5915,7 @@ def add_tied_parameters(pdict,line_list):
 
     for line in line_list:
         for par in line_list[line]:
-            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
+            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]) & (isFloat(line_list[line][par]) is False):
                 expr = line_list[line][par] # expression to evaluate
                 expr_vars = [i for i in param_names if i in expr]
                 init	 = pdict[expr_vars[0]]["init"]
@@ -5819,6 +5942,10 @@ def add_tied_parameters(pdict,line_list):
                                                "median":median, "med_abs_dev":med_abs_dev,
                                                "flag":flag}
 
+            # the case where the parameter was set to a constant value
+            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]) & (isFloat(line_list[line][par]) is True):
+
+                continue
     # for key in pdict:
     # 	print(key,pdict[key])
 
@@ -6090,7 +6217,9 @@ def lnlike(params,
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
             # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
+            # l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
+            sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/sn2 + np.log(2*np.pi*sn2),axis=0)
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
@@ -6142,7 +6271,9 @@ def lnlike(params,
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
             # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
+            # l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
+            sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/sn2 + np.log(2*np.pi*sn2),axis=0)
         #
         return l 
 
@@ -6383,7 +6514,7 @@ def lnprob(params,
 
 ####################################################################################
 
-def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,velscale,noise):
+def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,velscale):
     """
     Constructs an emission line given a line_list, and returns an updated component
     dictionary that includes the generated line.
@@ -6449,7 +6580,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                            line_list[line]["center_pix"],
                                            line_list[line]["disp_res_kms"],
                                            velscale,
-                                           noise
                                            )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -6494,7 +6624,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                                line_list[line]["center_pix"],
                                                line_list[line]["disp_res_kms"],
                                                velscale,
-                                               noise
                                                )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -6536,7 +6665,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                                line_list[line]["center_pix"],
                                                line_list[line]["disp_res_kms"],
                                                velscale,
-                                               noise
                                                )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -6578,7 +6706,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                                line_list[line]["center_pix"],
                                                line_list[line]["disp_res_kms"],
                                                velscale,
-                                               noise
                                                )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -6616,7 +6743,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                         line_list[line]["center_pix"],
                                         line_list[line]["disp_res_kms"],
                                         velscale,
-                                        noise
                                         )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -6693,7 +6819,7 @@ def fit_model(params,
     c = 299792.458 # speed of light
     host_model = np.copy(galaxy)
     # Initialize empty dict to store model components
-    comp_dict  = {}
+    comp_dict  = {} # used for fitting/likelihood calculation; sampled identically to the data
 
     ############################# Power-law Component ######################################################
 
@@ -6839,7 +6965,7 @@ def fit_model(params,
 
     # Iteratively generate lines from the line list using the line_constructor()
     for line in line_list:
-        comp_dict = line_constructor(lam_gal,p,comp_dict,comp_options,line,line_list,velscale,noise)
+        comp_dict = line_constructor(lam_gal,p,comp_dict,comp_options,line,line_list,velscale)
         host_model = host_model - comp_dict[line]
 
     ########################################################################################################
@@ -7035,7 +7161,7 @@ def fit_model(params,
                 vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
                 full_profile = comp_dict[key]
                 # Remove stray lines
-                full_profile = remove_stray_lines(full_profile)
+                # full_profile = remove_stray_lines(full_profile)
                 # Normalized line profile
                 norm_profile = full_profile/np.sum(full_profile)
                 # Calculate integrated velocity in pixels units
@@ -7966,7 +8092,7 @@ def gaussian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,v
 
 ##################################################################################
 
-def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,velscale,noise):
+def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,velscale):
     """
     Produces a lorentzian vector the length of
     x with the specified parameters.
@@ -7995,7 +8121,7 @@ def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms
 
 ##################################################################################
 
-def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale):
     """
     Produces a Gauss-Hermite vector the length of
     x with the specified parameters.
@@ -8043,7 +8169,7 @@ def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,
 
 ##################################################################################
 
-def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale):
     """
     Produces a Laplace kernel vector the length of
     x with the specified parameters.
@@ -8077,7 +8203,7 @@ def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_r
 
 ##################################################################################
 
-def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale):
     """
     Produces a Uniform kernel vector the length of
     x with the specified parameters.
@@ -8111,7 +8237,7 @@ def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_r
 
 ##################################################################################
 
-def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_kms,velscale,noise):
+def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_kms,velscale):
     """
     Pseudo-Voigt profile implementation from:
     https://docs.mantidproject.org/nightly/fitting/fitfunctions/PseudoVoigt.html
@@ -10214,15 +10340,23 @@ def plot_best_model(param_dict,
     
     return comp_dict
 
-def fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
+
+
+def fit_quality_pars(param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
+
+    norm_factor = np.nanmedian(comp_dict["DATA"][fit_mask])
 
     fit_quality_dict = {}
     if fit_stat=="RCHI2":
         if fit_type=="max_like":
-            noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
+            # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
+            noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["med"])**2
+            noise = noise2**0.5
         elif fit_type=="mcmc":
-            noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["par_best"]
-    elif fit_stat!="RHIC2":
+            # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["par_best"]
+            noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["par_best"])**2
+            noise = noise2**0.5
+    elif fit_stat!="RCHI2":
         noise = comp_dict["NOISE"]
     # compute NPIX for each line in the line list
     for l in line_list:
@@ -10257,11 +10391,14 @@ def fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,
 
     # compute a total chi-squared and r-squared
     r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
-    nu = len(comp_dict["DATA"])-len(param_dict)
-    rchi_squared = (np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/(noise[fit_mask])**2,axis=0))/nu
+    #
+    nu = len(comp_dict["DATA"])-n_free_pars
+    rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+    #
     if fit_type=="max_like":
         fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
         fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
+    #
     elif fit_type=="mcmc": 
         fit_quality_dict["R_SQUARED"] =  {"par_best":r_sqaured,
                                                "ci_68_low":0,"ci_68_upp":0,
