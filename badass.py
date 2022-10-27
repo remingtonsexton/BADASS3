@@ -5217,9 +5217,7 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     #     print(p,len(comp_dict[p]))
 
     npix_dict = {}
-    aon_dict  = {}
-
-
+    snr_dict  = {}
 
     if fit_stat=="RCHI2":
         # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
@@ -5228,10 +5226,12 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     elif fit_stat!="RCHI2":
         noise = comp_dict["NOISE"]
 
-    # compute NPIX for each line in the line list
+    # compute number of pixels (NPIX) for each line in the line list;
+    # this is done by determining the number of pixels of the line model
+    # that are above the raw noise.
     for l in line_list:
         npix = len(np.where(comp_dict[l]>noise)[0])
-        npix_dict[l+"_NPIX"] = npix
+        npix_dict[l+"_NPIX"] = int(npix)
     # compute NPIX for any combined lines
     if len(combined_line_list)>0:
         for c in combined_line_list:
@@ -5239,23 +5239,40 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
             for l in combined_line_list[c]["lines"]:
                 comb_line+=comp_dict[l]
             npix = len(np.where(comb_line>noise)[0])
-            npix_dict[c+"_NPIX"] = npix
+            npix_dict[c+"_NPIX"] = int(npix)
 
-    for n in npix_dict:
-        print(n,npix_dict[n])
+    # for n in npix_dict:
+        # print(n,npix_dict[n])
 
-    sys.exit()
+    # compute the signal-to-noise ratio (SNR) for each line;
+    # this is done by calculating the maximum value of the line model 
+    # above the MEAN value of the noise within the channels.
+    for l in line_list:
+        eval_ind = np.where(comp_dict[l]>noise)[0]
+        snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(noise[eval_ind])
+        snr_dict[l+"_SNR"] = snr
+    # compute for combined lines
+    if len(combined_line_list)>0:
+        for c in combined_line_list:
+            comb_line = np.zeros(len(noise))
+            for l in combined_line_list[c]["lines"]:
+                comb_line+=comp_dict[l]
+            eval_ind = np.where(comb_line>noise)[0]
+            snr = np.nanmax(comb_line[eval_ind])/np.nanmean(noise[eval_ind])
+            snr_dict[c+"_SNR"] = snr
+
+    # for s in snr_dict:
+        # print(s,snr_dict[s])
 
     # compute a total chi-squared and r-squared
-    r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    r_squared = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    # print(r_squared)
     #
     nu = len(comp_dict["DATA"])-n_free_pars
     rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+    # print(rchi_squared)
     #
-    # fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
-    # fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
-
-    return r_sqaured, rchi_squared, npix_dict, aon_dict
+    return r_squared, rchi_squared, npix_dict, snr_dict
 
 ##################################################################################
 
@@ -5414,38 +5431,37 @@ def max_likelihood(param_dict,
 
     mcnoise = np.array(noise)
     # Storage dictionaries for all calculated paramters at each iteration
-    mcpars = {k:np.empty(max_like_niter+1) for k in param_names}
+    mcpars  = {k:np.empty(max_like_niter+1) for k in param_names}
     # flux_dict
     flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
-    mcflux = {k:np.empty(max_like_niter+1) for k in flux_names}
+    mcflux     = {k:np.empty(max_like_niter+1) for k in flux_names}
     # lum dict
     lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
-    mclum  = {k:np.empty(max_like_niter+1) for k in lum_names}
+    mclum     = {k:np.empty(max_like_niter+1) for k in lum_names}
     # eqwidth dict
     # line_names = [key+"_EW" for key in {**line_list, **combined_line_list}]
     line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
-    mceqw  = {k:np.empty(max_like_niter+1) for k in line_names}
+    mceqw      = {k:np.empty(max_like_niter+1) for k in line_names}
     # integrated dispersion & velocity dicts
     # Since dispersion is calculated for all lines, we only need to calculate the integrated
     # dispersions and velocities for combined lines, and FWHM for all lines
     line_names = [key+"_DISP" for key in combined_line_list]
-    mcdisp  = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcdisp     = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_FWHM" for key in {**line_list, **combined_line_list}]
-    mcfwhm  = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcfwhm     = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_VOFF" for key in combined_line_list]
-    mcvint  = {k:np.empty(max_like_niter+1) for k in line_names}
-    # fit quality dictionaries (R_SQUARED, RCHI_SQUARED, NPIX, AON,)
-    mcR2    = np.empty(max_like_niter+1)
-    mcRCHI2 = np.empty(max_like_niter+1)
-
+    mcvint     = {k:np.empty(max_like_niter+1) for k in line_names}
+    # fit quality dictionaries (R_SQUARED, RCHI_SQUARED, NPIX, SNR)
+    mcR2       = np.empty(max_like_niter+1)
+    mcRCHI2    = np.empty(max_like_niter+1)
     line_names = [key+"_NPIX" for key in {**line_list, **combined_line_list}]
-    mcnpix  = {k:np.empty(max_like_niter+1) for k in line_names}
-    line_names = [key+"_AON" for key in {**line_list, **combined_line_list}]
-    mcaon   = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcnpix     = {k:np.empty(max_like_niter+1) for k in line_names}
+    line_names = [key+"_SNR" for key in {**line_list, **combined_line_list}]
+    mcsnr      = {k:np.empty(max_like_niter+1) for k in line_names}
     # model component dictionary
-    mccomps = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
+    mccomps    = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
     # log-likelihood array
-    mcLL = np.empty(max_like_niter+1)
+    mcLL       = np.empty(max_like_niter+1)
     # Monochromatic continuum luminosities array
     clum = []
     if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
@@ -5486,7 +5502,7 @@ def max_likelihood(param_dict,
     disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict_subsamp, {**_line_list, **_combined_line_list}, _combined_line_list, velscale_subsamp)
 
     # Calculate fit quality parameters
-    r2, rchi2, npix_dict, aon_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
+    r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
 
     # Add first iteration to arrays
     # Add to mcpars dict
@@ -5503,13 +5519,20 @@ def max_likelihood(param_dict,
         # Add to mceqw dict
         for key in eqwidth_dict:
             mceqw[key][0] = eqwidth_dict[key]
-    # Add to mcdisp dict
+    # Add to mcdisp dict, fwhm_dict, vint_dict
     for key in disp_dict:
         mcdisp[key][0] = disp_dict[key]
     for key in fwhm_dict:
         mcfwhm[key][0] = fwhm_dict[key]
     for key in vint_dict:
         mcvint[key][0] = vint_dict[key]
+    # Add to fit quality dicts
+    for key in npix_dict:
+        mcnpix[key][0] = npix_dict[key]
+    for key in snr_dict:
+        mcsnr[key][0] = snr_dict[key]
+    mcR2[0] = r2 
+    mcRCHI2[0] = rchi2 
     # Add original components to mccomps
     for key in comp_dict:
         mccomps[key][0,:] = comp_dict[key]
@@ -5626,6 +5649,8 @@ def max_likelihood(param_dict,
             clum_dict = calc_max_like_cont_lum(clum, comp_dict_subsamp, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate integrated line dispersions
             disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict_subsamp, {**_line_list, **_combined_line_list}, _combined_line_list, velscale_subsamp)
+            # Calculate fit quality parameters
+            r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
 
             # Add to mc storage dictionaries
             # Add to mcpars dict
@@ -5648,17 +5673,23 @@ def max_likelihood(param_dict,
             # Add continuum luminosities
             for key in clum_dict:
                 mccont[key][n] = clum_dict[key]
-            # Add to mcdisp dict
+            # Add to mcdisp
             for key in disp_dict:
                 mcdisp[key][n] = disp_dict[key]
             for key in fwhm_dict:
                 mcfwhm[key][n] = fwhm_dict[key]
             for key in vint_dict:
                 mcvint[key][n] = vint_dict[key]
+            # Add to fit quality dicts
+            for key in npix_dict:
+                mcnpix[key][n] = npix_dict[key]
+            for key in snr_dict:
+                mcsnr[key][n] = snr_dict[key]
+            mcR2[n] = r2 
+            mcRCHI2[n] = rchi2 
 
             if verbose:
                 print('	   Completed %d of %d iterations.' % (n,max_like_niter) )
-
 
     # Iterate through every parameter to determine if the fit is "good" (more than 1-sigma away from bounds)
     # if not, then add 1 to that parameter flag value			
@@ -5749,6 +5780,33 @@ def max_likelihood(param_dict,
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
+
+    # Add NPIX to pdict
+    for key in mcnpix:
+        param_flags = 0
+        mc_med = np.median(mcnpix[key])
+        mc_std = np.std(mcnpix[key])
+        if ~np.isfinite(mc_med): mc_med = 0
+        if ~np.isfinite(mc_std): mc_std = 0
+        pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
+    # Add SNR to pdict
+    for key in mcsnr:
+        param_flags = 0
+        mc_med = np.median(mcsnr[key])
+        mc_std = np.std(mcsnr[key])
+        if ~np.isfinite(mc_med): mc_med = 0
+        if ~np.isfinite(mc_std): mc_std = 0
+        pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
+
+    # Add R-squared values to pdict
+    mc_med = np.median(mcR2)
+    mc_std = np.std(mcR2)
+    pdict["R_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
+#    Add RCHI2 values to pdict
+    mc_med = np.median(mcRCHI2)
+    mc_std = np.std(mcRCHI2)
+    pdict["RCHI_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
+
     # Add continuum luminosities to pdict
     for key in mccont:
         param_flags = 0
@@ -5769,6 +5827,11 @@ def max_likelihood(param_dict,
     #
     # Add tied parameters explicitly to final parameter dictionary
     pdict = max_like_add_tied_parameters(pdict,line_list)
+
+    for p in pdict:
+        print(p,pdict[p])
+
+    sys.exit(0)
 
     #
     # Calculate some fit quality parameters which will be added to the dictionary
