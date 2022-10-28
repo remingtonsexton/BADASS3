@@ -5948,7 +5948,7 @@ def isFloat(num):
     try:
         float(num)
         return True
-    except ValueError:
+    except (ValueError,TypeError) as e:
         return False
 
 def add_tied_parameters(pdict,line_list):
