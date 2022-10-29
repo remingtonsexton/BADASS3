@@ -5828,17 +5828,17 @@ def max_likelihood(param_dict,
     # Add tied parameters explicitly to final parameter dictionary
     pdict = max_like_add_tied_parameters(pdict,line_list)
 
-    for p in pdict:
-        print(p,pdict[p])
+    # for p in pdict:
+        # print(p,pdict[p])
 
-    sys.exit(0)
+    # sys.exit(0)
 
     #
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
 
-    fit_quality_dict = fit_quality_pars(best_param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type="max_like",fit_stat=fit_stat)
-    pdict = {**pdict,**fit_quality_dict}
+    # fit_quality_dict = fit_quality_pars(best_param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type="max_like",fit_stat=fit_stat)
+    # pdict = {**pdict,**fit_quality_dict}
 
     if (test_outflows==True):
         return pdict, mccomps, mcLL
