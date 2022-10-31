@@ -5216,6 +5216,8 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     # for p in comp_dict:
     #     print(p,len(comp_dict[p]))
 
+    subsamp_factor = 1000 # factor by which we subsample the data
+
     npix_dict = {}
     snr_dict  = {}
 
@@ -5225,6 +5227,7 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
         noise = noise2**0.5
     elif fit_stat!="RCHI2":
         noise = comp_dict["NOISE"]
+        noise2 = noise**2
 
     # compute number of pixels (NPIX) for each line in the line list;
     # this is done by determining the number of pixels of the line model
@@ -5249,7 +5252,10 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     # above the MEAN value of the noise within the channels.
     for l in line_list:
         eval_ind = np.where(comp_dict[l]>noise)[0]
-        snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(noise[eval_ind])
+        if len(eval_ind)>0:
+            snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(noise[eval_ind])
+        else: 
+            snr = 0
         snr_dict[l+"_SNR"] = snr
     # compute for combined lines
     if len(combined_line_list)>0:
@@ -5258,7 +5264,10 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
             for l in combined_line_list[c]["lines"]:
                 comb_line+=comp_dict[l]
             eval_ind = np.where(comb_line>noise)[0]
-            snr = np.nanmax(comb_line[eval_ind])/np.nanmean(noise[eval_ind])
+            if len(eval_ind)>0:
+                snr = np.nanmax(comb_line[eval_ind])/np.nanmean(noise[eval_ind])
+            else:
+                snr = 0
             snr_dict[c+"_SNR"] = snr
 
     # for s in snr_dict:
@@ -5270,7 +5279,7 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     #
     nu = len(comp_dict["DATA"])-n_free_pars
     rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
-    # print(rchi_squared)
+    print(rchi_squared)
     #
     return r_squared, rchi_squared, npix_dict, snr_dict
 
@@ -5718,11 +5727,11 @@ def max_likelihood(param_dict,
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         if (key[:-5] in line_list):
-            if (line_list[key[:-5]]["line_type"]=="abs") & (mc_med+mc_std >= 0.0):
+            if (line_list[key[:-5]]["line_type"]=="abs") & (mc_med+mc_std >= -18.0):
                 param_flags += 1
-            elif (line_list[key[:-5]]["line_type"]!="abs") & (mc_med-mc_std <= 0.0):
+            elif (line_list[key[:-5]]["line_type"]!="abs") & (mc_med-mc_std <= -18.0):
                 param_flags += 1
-        elif ((key[:-5] not in line_list) & (mc_med-mc_std <= 0.0)) or (mc_std==0):
+        elif ((key[:-5] not in line_list) & (mc_med-mc_std <= -18.0)) or (mc_std==0):
             param_flags += 1
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add luminosities to pdict
@@ -6281,8 +6290,9 @@ def lnlike(params,
             # Calculate log-likelihood
             # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
             # l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
-            sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/sn2 + np.log(2*np.pi*sn2),axis=0)
+            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2
+            sn2 = ((noise_scale*noise[fit_mask])/norm_factor)**2
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
@@ -6335,8 +6345,9 @@ def lnlike(params,
             # Calculate log-likelihood
             # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
             # l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
-            sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/sn2 + np.log(2*np.pi*sn2),axis=0)
+            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2
+            sn2 = ((noise_scale*noise[fit_mask])/norm_factor)**2
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
         return l 
 
