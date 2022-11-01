@@ -2980,7 +2980,7 @@ def line_list_default():
         # "NA_HEI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
         # "NA_HEII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
 
-        # "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
+        "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
         "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
         "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"			   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
 
@@ -4942,39 +4942,47 @@ def write_line_test_results(result_dict_outflows,
 
 ####################################################################################
 
-def subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale):
+# def subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale):
 
-    # fig = plt.figure(figsize=(32,10))
-    # ax1 = fig.add_subplot(1,1,1)
-    # ax1.plot(comp_dict["WAVE"],comp_dict["DATA"],linewidth=0.5)
-    # ax1.plot(comp_dict["WAVE"],comp_dict["NA_H_BETA"],linewidth=0.5)
-    # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_4960"],linewidth=0.5)
-    # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_5007"],linewidth=0.5)
-    # plt.tight_layout()
-    comp_dict_subsamp = copy.deepcopy(comp_dict)
-    new_line_list     = copy.deepcopy(line_list)
-    new_comb_list     = copy.deepcopy(combined_line_list)
+#     # fig = plt.figure(figsize=(32,10))
+#     # ax1 = fig.add_subplot(1,1,1)
+#     # ax1.plot(comp_dict["WAVE"],comp_dict["DATA"],linewidth=0.5)
+#     # ax1.plot(comp_dict["WAVE"],comp_dict["NA_H_BETA"],linewidth=0.5)
+#     # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_4960"],linewidth=0.5)
+#     # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_5007"],linewidth=0.5)
+#     # plt.tight_layout()
+#     comp_dict_subsamp = copy.deepcopy(comp_dict)
+#     new_line_list     = copy.deepcopy(line_list)
+#     new_comb_list     = copy.deepcopy(combined_line_list)
 
-    subsamp_factor = 1000 # factor by which we subsample the data
+#     subsamp_factor = 1000 # factor by which we subsample the data
 
-    lam_gal_subsamp = scipy.ndimage.zoom(input=lam_gal,zoom=subsamp_factor,order=3)
-    velscale_subsamp = velscale/subsamp_factor
-    p = dict(zip(param_names, par_best))
+#     lam_gal_subsamp = scipy.ndimage.zoom(input=lam_gal,zoom=subsamp_factor,order=3)
+#     velscale_subsamp = velscale/subsamp_factor
+#     p = dict(zip(param_names, par_best))
 
-    cw_interp = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp)),bounds_error=False)
+#     cw_interp = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp)),bounds_error=False)
 
-    for line in new_line_list:
-        new_line_list[line]["center_pix"] = cw_interp(new_line_list[line]["center"])
-        comp_dict_subsamp = line_constructor(lam_gal_subsamp,p,comp_dict_subsamp,comp_options,line,new_line_list,velscale_subsamp)
+#     for line in new_line_list:
+#         new_line_list[line]["center_pix"] = cw_interp(new_line_list[line]["center"])
+#         # comp_dict_subsamp = line_constructor(lam_gal_subsamp,p,comp_dict_subsamp,comp_options,line,new_line_list,velscale_subsamp)
+#         comp_dict_subsamp[line] = scipy.ndimage.zoom(input=comp_dict[line],zoom=subsamp_factor,order=3)
 
-    for line in new_comb_list:
-        new_comb_list[line]["center_pix"] = cw_interp(new_comb_list[line]["center"])
+#     for line in new_comb_list:
+#         new_comb_list[line]["center_pix"] = cw_interp(new_comb_list[line]["center"])
 
-    for comp in comp_dict:
-        if (comp not in new_line_list):
-            comp_dict_subsamp[comp] = scipy.ndimage.zoom(input=comp_dict[comp],zoom=subsamp_factor,order=3)
+#     # Add combined lines to comp_dict_subsamp
+#     for comb_line in combined_line_list:
+#         comp_dict_subsamp[comb_line] = np.zeros(len(lam_gal_subsamp))
+#         for indiv_line in combined_line_list[comb_line]["lines"]:
+#             comp_dict_subsamp[comb_line]+=comp_dict_subsamp[indiv_line]
 
-    return comp_dict_subsamp, new_line_list, new_comb_list, velscale_subsamp
+#     # For non-line components, we simply zoom.
+#     for comp in comp_dict:
+#         if (comp not in {*line_list,*combined_line_list}):
+#             comp_dict_subsamp[comp] = scipy.ndimage.zoom(input=comp_dict[comp],zoom=subsamp_factor,order=3)
+
+#     return comp_dict_subsamp, new_line_list, new_comb_list, velscale_subsamp
 
 ####################################################################################
 
@@ -5142,30 +5150,6 @@ def calc_max_like_cont_lum(clum, comp_dict, z, H0=70.0, Om0=0.30):
 
     return clum_dict
 
-##################################################################################
-
-# def remove_stray_lines(line_profile):
-    
-#     line_profile[line_profile<0] = 0
-#     max_idx = np.where(line_profile==np.max(line_profile))[0][0]
-#     # print(max_idx)
-#     #
-#     left_bad = [i for i in np.arange(max_idx,-1,-1) if line_profile[i]>0]
-# #     print(left_bad)
-#     left_bad_idx = [max_idx-np.where(np.abs(np.diff(left_bad))>1)[0]-1][0]
-#     # print(left_bad_idx)
-#     if len(left_bad_idx)>0:
-#         l0 = left_bad_idx[0]
-#         line_profile[range(0,l0+1,1)]= 0 
-#     #
-#     right_bad = [i for i in np.arange(max_idx,len(line_profile),1) if line_profile[i]>0]
-#     right_bad_idx = [max_idx+np.where(np.abs(np.diff(right_bad))>1)[0]+1][0]
-#     if len(right_bad_idx)>0:
-#         r0 = right_bad_idx[0]
-#         line_profile[range(r0,len(line_profile),1)]= 0 
-#     # print(right_bad_idx)
-#     #
-#     return line_profile
 
 ##################################################################################
 
@@ -5230,33 +5214,17 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
         noise = comp_dict["NOISE"]
         noise2 = noise**2
 
-    # noise = comp_dict["NOISE"]
-    # noise2 = noise**2
-
-
     # compute number of pixels (NPIX) for each line in the line list;
     # this is done by determining the number of pixels of the line model
     # that are above the raw noise.
-    for l in line_list:
-        npix = len(np.where(comp_dict[l]>noise)[0])
-        npix_dict[l+"_NPIX"] = int(npix)
-    # compute NPIX for any combined lines
-    if len(combined_line_list)>0:
-        for c in combined_line_list:
-            comb_line = np.zeros(len(noise))
-            for l in combined_line_list[c]["lines"]:
-                comb_line+=comp_dict[l]
-            npix = len(np.where(comb_line>noise)[0])
-            npix_dict[c+"_NPIX"] = int(npix)
-
-    # for n in npix_dict:
-        # print(n,npix_dict[n])
 
     # compute the signal-to-noise ratio (SNR) for each line;
     # this is done by calculating the maximum value of the line model 
     # above the MEAN value of the noise within the channels.
     for l in line_list:
         eval_ind = np.where(comp_dict[l]>noise)[0]
+        npix = len(eval_ind)
+        npix_dict[l+"_NPIX"] = int(npix)
         if len(eval_ind)>0:
             snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(noise[eval_ind])
         else: 
@@ -5265,41 +5233,20 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     # compute for combined lines
     if len(combined_line_list)>0:
         for c in combined_line_list:
-            # comb_line = np.zeros(len(noise))
-            # for l in combined_line_list[c]["lines"]:
-            #     comb_line+=comp_dict[l]
             eval_ind = np.where(comp_dict[c]>noise)[0]
+            npix = len(eval_ind)
+            npix_dict[c+"_NPIX"] = int(npix)
             if len(eval_ind)>0:
                 snr = np.nanmax(comp_dict[c][eval_ind])/np.nanmean(noise[eval_ind])
             else:
                 snr = 0
             snr_dict[c+"_SNR"] = snr
 
-    # Line RSQR (R-sqaured; recovered flux)
-    for l in line_list:
-        eval_ind = np.where(comp_dict[l]>noise)[0]
-        line_data = comp_dict["RESID"]+comp_dict[l]
-        if len(eval_ind)>0:
-            rsqr = 1-(np.sum((line_data[eval_ind]-comp_dict[l][eval_ind])**2)/np.sum(comp_dict["DATA"][eval_ind])**2)
-        else: 
-            rsqr = 0
-        rsqr_dict[l+"_RSQR"] = rsqr
-    # compute for combined lines
-    if len(combined_line_list)>0:
-        for c in combined_line_list:
-            eval_ind = np.where(comp_dict[c]>noise)[0]
-            line_data = comp_dict["RESID"]+comp_dict[c]
-            if len(eval_ind)>0:
-                rsqr = 1-(np.sum((comp_dict["DATA"][eval_ind]-comp_dict[c][eval_ind])**2)/np.sum(comp_dict["DATA"][eval_ind])**2)
-            else:
-                rsqr = 0
-            rsqr_dict[c+"_RSQR"] = rsqr
+    # for n in npix_dict:
+        # print(n,npix_dict[n])
 
     # for s in snr_dict:
         # print(s,snr_dict[s])
-
-    for r in rsqr_dict:
-        print(r,rsqr_dict[r])
 
     # compute a total chi-squared and r-squared
     r_squared = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
@@ -5307,7 +5254,6 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     #
     nu = len(comp_dict["DATA"])-n_free_pars
     rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
-    print(rchi_squared)
     #
     return r_squared, rchi_squared, npix_dict, snr_dict
 
@@ -5523,20 +5469,20 @@ def max_likelihood(param_dict,
 
 
     # Subsample comp dict
-    comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
+    # comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
     # Calculate fluxes 
-    flux_dict = calc_max_like_flux(comp_dict_subsamp)
+    flux_dict = calc_max_like_flux(comp_dict)
     # Calculate luminosities
     lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
 
     # Calculate equivalent widths
-    eqwidth_dict = calc_max_like_eqwidth(comp_dict_subsamp, {**_line_list, **_combined_line_list}, velscale_subsamp)
+    eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
 
     # Calculate continuum luminosities
-    clum_dict = calc_max_like_cont_lum(clum, comp_dict_subsamp, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+    clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
 
     # Calculate integrated line dispersions
-    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict_subsamp, {**_line_list, **_combined_line_list}, _combined_line_list, velscale_subsamp)
+    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, velscale)
 
     # Calculate fit quality parameters
     r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
@@ -5675,17 +5621,17 @@ def max_likelihood(param_dict,
                                   output_model)
 
             # Subsample comp dict
-            comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,resultmc["x"],param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
+            # comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,resultmc["x"],param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
             # Calculate fluxes 
-            flux_dict = calc_max_like_flux(comp_dict_subsamp)
+            flux_dict = calc_max_like_flux(comp_dict)
             # Calculate luminosities
             lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate equivalent widths
-            eqwidth_dict = calc_max_like_eqwidth(comp_dict_subsamp, {**_line_list, **_combined_line_list}, velscale_subsamp)
+            eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
             # Calculate continuum luminosities
-            clum_dict = calc_max_like_cont_lum(clum, comp_dict_subsamp, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+            clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate integrated line dispersions
-            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict_subsamp, {**_line_list, **_combined_line_list}, _combined_line_list, velscale_subsamp)
+            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, velscale)
             # Calculate fit quality parameters
             r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
 
@@ -6877,6 +6823,11 @@ def combined_fwhm(lam_gal, full_profile, disp_res, velscale ):
     #
     return fwhm
 
+##################################################################################
+
+# The fit_model() function controls the model for both the initial and MCMC fits.
+
+##################################################################################
 
 def fit_model(params,
               param_names,
@@ -7212,94 +7163,14 @@ def fit_model(params,
     ########################## Fluxes & Equivalent Widths ###################################################
     # Equivalent widths of emission lines are stored in a dictionary and returned to emcee as metadata blob.
     # Velocity interpolation function
-    interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,bounds_error=False)
+
+    
     if (fit_type=='final') and (output_model==False):
-        # Create a single continuum component based on what was fit
-        total_cont = np.zeros(len(lam_gal))
-        agn_cont   = np.zeros(len(lam_gal))
-        host_cont  = np.zeros(len(lam_gal))
-        for key in comp_dict:
-            if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-                total_cont+=comp_dict[key]
-            if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-                agn_cont+=comp_dict[key]
-            if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
-                host_cont+=comp_dict[key]
-        # Get all spectral components, not including data, model, resid, and noise
-        spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
-        # Get keys of any lines that were fit for which we will compute eq. widths for
-        lines = [line for line in line_list]
-        fluxes	= {}
-        eqwidths  = {}
-        int_vel_disp = {}
-        for key in spec_comps:
-            flux = simps(comp_dict[key],lam_gal)
-            # add key/value pair to dictionary
-            fluxes[key+"_FLUX"] = flux
-            # for line in lines:
-            if (key in lines):
-                comp = comp_dict[key]
-                # if line_list[key]["line_profile"] in ["voigt","lorentzian"]:
-                # 	# Truncate the component to zero for any values below the median noise level. 
-                # 	# This is necessary because the wings of the Voigt and Lorentzian profiles extend to infinity,
-                # 	# resulting in unrealistic line dispersions.
-                # 	comp[comp < np.nanmedian(noise)] = 0
-                eqwidth = simps(comp/total_cont,lam_gal)
-            else: 
-                eqwidth = simps(comp_dict[key]/total_cont,lam_gal)
-            if ~np.isfinite(eqwidth):
-                eqwidth=0.0
-            # Add to eqwidth_dict
-            eqwidths[key+"_EW"]  = eqwidth
-            #
-            if (key in lines):
-                comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
-                int_vel_disp[key+"_FWHM"] = comb_fwhm
-            # Calculate integrated FWHM for combined lines
-            if (key in combined_line_list):
-                # Calculate velocity scale centered on line
-                vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
-                full_profile = comp_dict[key]
-                # Remove stray lines
-                # full_profile = remove_stray_lines(full_profile)
-                # Normalized line profile
-                norm_profile = full_profile/np.sum(full_profile)
-                # Calculate integrated velocity in pixels units
-                v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
-                # Calculate integrated dispersion and correct for instrumental dispersion
-                d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
-                d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
-                if ~np.isfinite(d_int): d_int = 0.0
-                if ~np.isfinite(v_int): v_int = 0.0
-                int_vel_disp[key+"_DISP"] = d_int
-                int_vel_disp[key+"_VOFF"] = v_int
 
-        # Continuum fluxes (to obtain continuum luminosities)
-        cont_fluxes = {}
-        #
-        interp_tot  = interp1d(lam_gal,total_cont,kind='linear',bounds_error=False,fill_value=0.0)
-        interp_agn  = interp1d(lam_gal,agn_cont  ,kind='linear',bounds_error=False,fill_value=0.0)
-        interp_host = interp1d(lam_gal,host_cont ,kind='linear',bounds_error=False,fill_value=0.0)
-        if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
-            cont_fluxes["F_CONT_TOT_1350"]  = interp_tot(1350.0) #total_cont[find_nearest(lam_gal,1350.0)[1]]#
-            cont_fluxes["F_CONT_AGN_1350"]  = interp_agn(1350.0) #agn_cont[find_nearest(lam_gal,1350.0)[1]]  #
-            cont_fluxes["F_CONT_HOST_1350"] = interp_host(1350.0) #host_cont[find_nearest(lam_gal,1350.0)[1]] #
-        if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
-            cont_fluxes["F_CONT_TOT_3000"]  = interp_tot(3000.0) #total_cont[find_nearest(lam_gal,3000.0)[1]]
-            cont_fluxes["F_CONT_AGN_3000"]  = interp_agn(3000.0) #agn_cont[find_nearest(lam_gal,3000.0)[1]]  
-            cont_fluxes["F_CONT_HOST_3000"] = interp_host(3000.0) #host_cont[find_nearest(lam_gal,3000.0)[1]] 
-        if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
-            cont_fluxes["F_CONT_TOT_5100"]  = interp_tot(5100.0) #total_cont[find_nearest(lam_gal,5100.0)[1]]#
-            cont_fluxes["F_CONT_AGN_5100"]  = interp_agn(5100.0) #agn_cont[find_nearest(lam_gal,5100.0)[1]]  #
-            cont_fluxes["F_CONT_HOST_5100"] = interp_host(5100.0) #host_cont[find_nearest(lam_gal,5100.0)[1]] #
-        if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
-            cont_fluxes["HOST_FRAC_4000"] = interp_host(4000.0)/interp_tot(4000.0) #host_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]]#
-            cont_fluxes["AGN_FRAC_4000"]  = interp_agn(4000.0)/interp_tot(4000.0) #agn_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]] #
-        if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
-            cont_fluxes["HOST_FRAC_7000"] = interp_host(7000.0)/interp_tot(7000.0) #host_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]]#
-            cont_fluxes["AGN_FRAC_7000"]  = interp_agn(7000.0)/interp_tot(7000.0) #agn_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]] #
-        #		
 
+        fluxes, eqwidths, cont_fluxes, int_vel_disp = calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, fit_mask, fit_stat, velscale)
+
+        
     ########################################################################################################
 
     if (fit_type=='init') and (output_model==False): # For max. likelihood fitting
@@ -7315,6 +7186,157 @@ def fit_model(params,
 
 ########################################################################################################
 
+
+# This function generates blob parameters for the MCMC routine,
+# including continuum luminosities, fluxes, equivalent widths, 
+# widths, and fit quality parameters (R-squared, reduced chi-squared)
+
+def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, fit_mask, fit_stat, velscale):
+
+    # for l in line_list:
+    #     print(l,line_list[l]["center_pix"])
+
+    # First we subsample the components
+    comp_dict_subsamp = copy.deepcopy(comp_dict)
+    new_line_list     = copy.deepcopy(line_list)
+    new_comb_list     = copy.deepcopy(combined_line_list)
+
+    subsamp_factor = 1000 # factor by which we subsample the data
+
+    lam_gal_subsamp = scipy.ndimage.zoom(input=lam_gal,zoom=subsamp_factor,order=3)
+    velscale_subsamp = velscale/subsamp_factor
+
+    cw_interp = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp)),bounds_error=False)
+
+    for line in new_line_list:
+        new_line_list[line]["center_pix"] = cw_interp(new_line_list[line]["center"])
+        if line not in combined_line_list:
+            comp_dict_subsamp = line_constructor(lam_gal_subsamp,p,comp_dict_subsamp,comp_options,line,new_line_list,velscale_subsamp)
+
+    for line in new_comb_list:
+        new_comb_list[line]["center_pix"] = cw_interp(new_comb_list[line]["center"])
+
+    # Add combined lines to comp_dict_subsamp
+    for comb_line in combined_line_list:
+        comp_dict_subsamp[comb_line] = np.zeros(len(lam_gal_subsamp))
+        for indiv_line in combined_line_list[comb_line]["lines"]:
+            comp_dict_subsamp[comb_line]+=comp_dict_subsamp[indiv_line]
+
+    # For non-line components, we simply zoom.
+    for comp in comp_dict:
+        if (comp not in {*line_list,*combined_line_list}) & (comp!="WAVE"):
+            comp_dict_subsamp[comp] = scipy.ndimage.zoom(input=comp_dict[comp],zoom=subsamp_factor,order=3)
+
+    # for l in new_line_list:
+    #     print(l,new_line_list[l]["center_pix"])
+
+    interp_ftn = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp))*velscale_subsamp,bounds_error=False)
+
+    # Now we calculate blob parameter using the subsampled components.
+
+    # Continuum luminosities
+    # Create a single continuum component based on what was fit
+    total_cont = np.zeros(len(lam_gal_subsamp))
+    agn_cont   = np.zeros(len(lam_gal_subsamp))
+    host_cont  = np.zeros(len(lam_gal_subsamp))
+    for key in comp_dict_subsamp:
+        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+            total_cont+=comp_dict_subsamp[key]
+        if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+            agn_cont+=comp_dict_subsamp[key]
+        if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
+            host_cont+=comp_dict_subsamp[key]
+
+
+    # Get all spectral components, not including data, model, resid, and noise
+    spec_comps = [i for i in comp_dict_subsamp if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
+    # Get keys of any lines that were fit for which we will compute eq. widths for
+    lines = [line for line in line_list]
+    fluxes  = {}
+    eqwidths  = {}
+    int_vel_disp = {}
+    for key in spec_comps:
+        flux = np.trapz(comp_dict_subsamp[key],lam_gal_subsamp)
+        # add key/value pair to dictionary
+        fluxes[key+"_FLUX"] = flux
+        #
+        if (key in lines):
+            comp = comp_dict_subsamp[key]
+            eqwidth = np.trapz(comp/total_cont,lam_gal_subsamp)
+        else: 
+            eqwidth = np.trapz(comp_dict_subsamp[key]/total_cont,lam_gal_subsamp)
+        if ~np.isfinite(eqwidth):
+            eqwidth=0.0
+        # Add to eqwidth_dict
+        eqwidths[key+"_EW"]  = eqwidth
+        #
+        if (key in lines):
+            comb_fwhm = combined_fwhm(lam_gal_subsamp,comp_dict_subsamp[key],new_line_list[key]["disp_res_kms"],velscale_subsamp)
+            int_vel_disp[key+"_FWHM"] = comb_fwhm
+        # Calculate integrated FWHM for combined lines
+        if (key in combined_line_list):
+            # Calculate velocity scale centered on line
+            vel = np.arange(len(lam_gal_subsamp))*velscale_subsamp - interp_ftn(new_line_list[key]["center"])
+            full_profile = comp_dict_subsamp[key]
+            # Normalized line profile
+            norm_profile = full_profile/np.sum(full_profile)
+            # Calculate integrated velocity in pixels units
+            v_int = np.trapz(vel*norm_profile,vel)/np.trapz(norm_profile,vel)
+            # Calculate integrated dispersion and correct for instrumental dispersion
+            d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
+            d_int = np.sqrt(d_int**2 - (new_line_list[key]["disp_res_kms"])**2)
+            if ~np.isfinite(d_int): d_int = 0.0
+            if ~np.isfinite(v_int): v_int = 0.0
+            int_vel_disp[key+"_DISP"] = d_int
+            int_vel_disp[key+"_VOFF"] = v_int
+
+    
+    # Continuum fluxes (to obtain continuum luminosities)
+    cont_fluxes = {}
+    #
+    interp_tot  = interp1d(lam_gal_subsamp,total_cont,kind='linear',bounds_error=False,fill_value=0.0)
+    interp_agn  = interp1d(lam_gal_subsamp,agn_cont  ,kind='linear',bounds_error=False,fill_value=0.0)
+    interp_host = interp1d(lam_gal_subsamp,host_cont ,kind='linear',bounds_error=False,fill_value=0.0)
+    if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
+        cont_fluxes["F_CONT_TOT_1350"]  = interp_tot(1350.0) #total_cont[find_nearest(lam_gal,1350.0)[1]]#
+        cont_fluxes["F_CONT_AGN_1350"]  = interp_agn(1350.0) #agn_cont[find_nearest(lam_gal,1350.0)[1]]  #
+        cont_fluxes["F_CONT_HOST_1350"] = interp_host(1350.0) #host_cont[find_nearest(lam_gal,1350.0)[1]] #
+    if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
+        cont_fluxes["F_CONT_TOT_3000"]  = interp_tot(3000.0) #total_cont[find_nearest(lam_gal,3000.0)[1]]
+        cont_fluxes["F_CONT_AGN_3000"]  = interp_agn(3000.0) #agn_cont[find_nearest(lam_gal,3000.0)[1]]  
+        cont_fluxes["F_CONT_HOST_3000"] = interp_host(3000.0) #host_cont[find_nearest(lam_gal,3000.0)[1]] 
+    if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
+        cont_fluxes["F_CONT_TOT_5100"]  = interp_tot(5100.0) #total_cont[find_nearest(lam_gal,5100.0)[1]]#
+        cont_fluxes["F_CONT_AGN_5100"]  = interp_agn(5100.0) #agn_cont[find_nearest(lam_gal,5100.0)[1]]  #
+        cont_fluxes["F_CONT_HOST_5100"] = interp_host(5100.0) #host_cont[find_nearest(lam_gal,5100.0)[1]] #
+    if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
+        cont_fluxes["HOST_FRAC_4000"] = interp_host(4000.0)/interp_tot(4000.0) #host_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]]#
+        cont_fluxes["AGN_FRAC_4000"]  = interp_agn(4000.0)/interp_tot(4000.0) #agn_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]] #
+    if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
+        cont_fluxes["HOST_FRAC_7000"] = interp_host(7000.0)/interp_tot(7000.0) #host_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]]#
+        cont_fluxes["AGN_FRAC_7000"]  = interp_agn(7000.0)/interp_tot(7000.0) #agn_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]] #
+    #       
+
+    # for c in cont_fluxes:
+    #     print(c,cont_fluxes[c])
+
+    # for f in fluxes:
+    #     print(f,fluxes[f])
+
+    # for e in eqwidths:
+    #     print(e,eqwidths[e])
+
+    # for v in int_vel_disp:
+    #     print(v,int_vel_disp[v])
+
+    # sys.exit(0)
+
+    return fluxes, eqwidths, cont_fluxes, int_vel_disp
+
+
+
+
+########################################################################################################
 
 #### Host-Galaxy Template##############################################################################
 
