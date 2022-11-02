@@ -1045,8 +1045,8 @@ def run_single_thread(fits_file,
 
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-    fit_quality_dict = fit_quality_pars(param_dict,len(param_dict),line_list,combined_line_list,comp_dict,fit_mask,fit_type="mcmc",fit_stat=fit_stat)
-    param_dict = {**param_dict,**fit_quality_dict}
+    # fit_quality_dict = fit_quality_pars(param_dict,len(param_dict),line_list,combined_line_list,comp_dict,fit_mask,fit_type="mcmc",fit_stat=fit_stat)
+    # param_dict = {**param_dict,**fit_quality_dict}
 
     # Write best fit parameters to fits table
     # Header information
@@ -2537,7 +2537,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
         #                              'plim':(0.0001,100.0),
         #                              'prior':{"type":"jeffreys"},
         #                             })
-        par_input["NOISE_SCALE"] = ({'init': 0.001,
+        par_input["NOISE_SCALE"] = ({'init': 1.0,
                                      'plim':(0.0001,100.0),
                                      'prior':{"type":"gaussian"},
                                     })
@@ -5200,15 +5200,15 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     # for p in comp_dict:
         # print(p,len(comp_dict[p]))
 
-    subsamp_factor = 1000 # factor by which we subsample the data
+    # subsamp_factor = 1000 # factor by which we subsample the data
 
     npix_dict = {}
     snr_dict  = {}
-    rsqr_dict = {}
 
     if fit_stat=="RCHI2":
         # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]*comp_dict["MODEL"])**2
-        noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"])**2
+        # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"])**2 # Additive constant noise factor
+        noise2 = (comp_dict["NOISE"]*param_dict["NOISE_SCALE"])**2 # multiplicative noise factor
         noise = noise2**0.5
     elif fit_stat!="RCHI2":
         noise = comp_dict["NOISE"]
@@ -6262,10 +6262,9 @@ def lnlike(params,
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
-            # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
-            # l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
-            sn2 = ((noise_scale/norm_factor)**2*(model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2
-            # sn2 = ((noise_scale*noise[fit_mask])/norm_factor)**2
+            # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
+            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
+            sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
@@ -6318,7 +6317,8 @@ def lnlike(params,
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
             # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
-            sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # noise factor is thus an intrinsic nois
+            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
+            sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
         return l 
@@ -7193,98 +7193,84 @@ def fit_model(params,
 
 def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, fit_mask, fit_stat, velscale):
 
-    # for l in line_list:
-    #     print(l,line_list[l]["center_pix"])
+    # Interpolation function 
+    interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,kind='linear',bounds_error=False)
 
-    # First we subsample the components
-    comp_dict_subsamp = copy.deepcopy(comp_dict)
-    new_line_list     = copy.deepcopy(line_list)
-    new_comb_list     = copy.deepcopy(combined_line_list)
-
-    subsamp_factor = 1000 # factor by which we subsample the data
-
-    lam_gal_subsamp = scipy.ndimage.zoom(input=lam_gal,zoom=subsamp_factor,order=3)
-    velscale_subsamp = velscale/subsamp_factor
-
-    cw_interp = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp)),bounds_error=False)
-
-    for line in new_line_list:
-        new_line_list[line]["center_pix"] = cw_interp(new_line_list[line]["center"])
-        if line not in combined_line_list:
-            comp_dict_subsamp = line_constructor(lam_gal_subsamp,p,comp_dict_subsamp,comp_options,line,new_line_list,velscale_subsamp)
-
-    for line in new_comb_list:
-        new_comb_list[line]["center_pix"] = cw_interp(new_comb_list[line]["center"])
-
-    # Add combined lines to comp_dict_subsamp
-    for comb_line in combined_line_list:
-        comp_dict_subsamp[comb_line] = np.zeros(len(lam_gal_subsamp))
-        for indiv_line in combined_line_list[comb_line]["lines"]:
-            comp_dict_subsamp[comb_line]+=comp_dict_subsamp[indiv_line]
-
-    # For non-line components, we simply zoom.
-    for comp in comp_dict:
-        if (comp not in {*line_list,*combined_line_list}) & (comp!="WAVE"):
-            comp_dict_subsamp[comp] = scipy.ndimage.zoom(input=comp_dict[comp],zoom=subsamp_factor,order=3)
-
-    # for l in new_line_list:
-    #     print(l,new_line_list[l]["center_pix"])
-
-    interp_ftn = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp))*velscale_subsamp,bounds_error=False)
-
-    # Now we calculate blob parameter using the subsampled components.
+    # If noise_scale is calculated (fit_stat="RCHI2"), rescale the noise appropriately
+    if fit_stat=="RCHI2":
+        noise2 = (comp_dict["NOISE"]*p["NOISE_SCALE"])**2 # multiplicative noise factor
+        noise = noise2**0.5
+    elif fit_stat!="RCHI2":
+        noise = comp_dict["NOISE"]
+        noise2 = noise**2
 
     # Continuum luminosities
     # Create a single continuum component based on what was fit
-    total_cont = np.zeros(len(lam_gal_subsamp))
-    agn_cont   = np.zeros(len(lam_gal_subsamp))
-    host_cont  = np.zeros(len(lam_gal_subsamp))
-    for key in comp_dict_subsamp:
+    total_cont = np.zeros(len(lam_gal))
+    agn_cont   = np.zeros(len(lam_gal))
+    host_cont  = np.zeros(len(lam_gal))
+    for key in comp_dict:
         if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-            total_cont+=comp_dict_subsamp[key]
+            total_cont+=comp_dict[key]
         if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-            agn_cont+=comp_dict_subsamp[key]
+            agn_cont+=comp_dict[key]
         if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
-            host_cont+=comp_dict_subsamp[key]
+            host_cont+=comp_dict[key]
 
 
     # Get all spectral components, not including data, model, resid, and noise
-    spec_comps = [i for i in comp_dict_subsamp if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
+    spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
     # Get keys of any lines that were fit for which we will compute eq. widths for
-    lines = [line for line in line_list]
-    fluxes  = {}
-    eqwidths  = {}
+    lines = [line for line in line_list] # list of all lines (individual lines and combined lines)
+    # Storage dicts
+    fluxes       = {}
+    eqwidths     = {}
     int_vel_disp = {}
+    npix_dict    = {}
+    snr_dict     = {}
+    #
     for key in spec_comps:
-        flux = np.trapz(comp_dict_subsamp[key],lam_gal_subsamp)
+        flux = np.trapz(comp_dict[key],lam_gal)
         # add key/value pair to dictionary
         fluxes[key+"_FLUX"] = flux
         #
-        if (key in lines):
-            comp = comp_dict_subsamp[key]
-            eqwidth = np.trapz(comp/total_cont,lam_gal_subsamp)
-        else: 
-            eqwidth = np.trapz(comp_dict_subsamp[key]/total_cont,lam_gal_subsamp)
+        eqwidth = np.trapz(comp_dict[key]/total_cont,lam_gal)
+        # if (key in lines):
+            # comp = comp_dict[key]
+            # eqwidth = np.trapz(comp/total_cont,lam_gal)
+        # else: 
+        #     eqwidth = np.trapz(comp_dict[key]/total_cont,lam_gal)
         if ~np.isfinite(eqwidth):
             eqwidth=0.0
         # Add to eqwidth_dict
         eqwidths[key+"_EW"]  = eqwidth
-        #
+        # For lines AND combined lines, calculate the model FWHM (NOTE: THIS IS NOT GAUSSIAN FWHM, i.e. 2.3548*DISP)
         if (key in lines):
-            comb_fwhm = combined_fwhm(lam_gal_subsamp,comp_dict_subsamp[key],new_line_list[key]["disp_res_kms"],velscale_subsamp)
+            # Calculate FWHM
+            comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
             int_vel_disp[key+"_FWHM"] = comb_fwhm
-        # Calculate integrated FWHM for combined lines
+            # Calculate NPIX and SNR for all lines
+            eval_ind = np.where(comp_dict[key]>noise)[0]
+            npix = len(eval_ind)
+            npix_dict[key+"_NPIX"] = int(npix)
+            if len(eval_ind)>0:
+                snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(noise[eval_ind])
+            else: 
+                snr = 0
+            snr_dict[key+"_SNR"] = snr
+
+        # For combined lines ONLY, calculate integrated dispersions and velocity 
         if (key in combined_line_list):
             # Calculate velocity scale centered on line
-            vel = np.arange(len(lam_gal_subsamp))*velscale_subsamp - interp_ftn(new_line_list[key]["center"])
-            full_profile = comp_dict_subsamp[key]
+            vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
+            full_profile = comp_dict[key]
             # Normalized line profile
             norm_profile = full_profile/np.sum(full_profile)
             # Calculate integrated velocity in pixels units
             v_int = np.trapz(vel*norm_profile,vel)/np.trapz(norm_profile,vel)
             # Calculate integrated dispersion and correct for instrumental dispersion
             d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
-            d_int = np.sqrt(d_int**2 - (new_line_list[key]["disp_res_kms"])**2)
+            d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
             if ~np.isfinite(d_int): d_int = 0.0
             if ~np.isfinite(v_int): v_int = 0.0
             int_vel_disp[key+"_DISP"] = d_int
@@ -7294,9 +7280,9 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     # Continuum fluxes (to obtain continuum luminosities)
     cont_fluxes = {}
     #
-    interp_tot  = interp1d(lam_gal_subsamp,total_cont,kind='linear',bounds_error=False,fill_value=0.0)
-    interp_agn  = interp1d(lam_gal_subsamp,agn_cont  ,kind='linear',bounds_error=False,fill_value=0.0)
-    interp_host = interp1d(lam_gal_subsamp,host_cont ,kind='linear',bounds_error=False,fill_value=0.0)
+    interp_tot  = interp1d(lam_gal,total_cont,kind='linear',bounds_error=False,fill_value=0.0)
+    interp_agn  = interp1d(lam_gal,agn_cont  ,kind='linear',bounds_error=False,fill_value=0.0)
+    interp_host = interp1d(lam_gal,host_cont ,kind='linear',bounds_error=False,fill_value=0.0)
     if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
         cont_fluxes["F_CONT_TOT_1350"]  = interp_tot(1350.0) #total_cont[find_nearest(lam_gal,1350.0)[1]]#
         cont_fluxes["F_CONT_AGN_1350"]  = interp_agn(1350.0) #agn_cont[find_nearest(lam_gal,1350.0)[1]]  #
@@ -7331,7 +7317,18 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
 
     # sys.exit(0)
 
-    return fluxes, eqwidths, cont_fluxes, int_vel_disp
+    print(npix_dict)
+    print(snr_dict)
+    print(int_vel_disp)
+
+    a = {**int_vel_disp, **npix_dict, **snr_dict}
+
+    for key in a:
+        print(key,a[key])
+
+    sys.exit()
+
+    return fluxes, eqwidths, cont_fluxes, {*int_vel_disp, *npix_dict, *snr_dict}
 
 
 
@@ -10464,80 +10461,80 @@ def plot_best_model(param_dict,
 
 
 
-def fit_quality_pars(param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
+# def fit_quality_pars(param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
 
-    norm_factor = np.nanmedian(comp_dict["DATA"][fit_mask])
+#     norm_factor = np.nanmedian(comp_dict["DATA"][fit_mask])
 
-    fit_quality_dict = {}
-    if fit_stat=="RCHI2":
-        if fit_type=="max_like":
-            # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
-            noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["med"])**2
-            noise = noise2**0.5
-        elif fit_type=="mcmc":
-            # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["par_best"]
-            noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["par_best"])**2
-            noise = noise2**0.5
-    elif fit_stat!="RCHI2":
-        noise = comp_dict["NOISE"]
-    # compute NPIX for each line in the line list
-    for l in line_list:
-        npix = len(np.where(comp_dict[l]>noise)[0])
-        if fit_type=="max_like":
-            fit_quality_dict[l+"_NPIX"] = {"med":npix,"std":0,"flag":0}
-        elif fit_type=="mcmc":
-            fit_quality_dict[l+"_NPIX"] = {"par_best":npix,
-                                           "ci_68_low":0,"ci_68_upp":0,
-                                           "ci_95_low":0,"ci_95_upp":0,
-                                           "mean":0,"std_dev":0,
-                                           "median":0,"med_abs_dev":0,
-                                           "flag":0
-                                          }
-    # compute NPIX for any combined lines
-    if len(combined_line_list)>0:
-        for c in combined_line_list:
-            comb_line = np.zeros(len(noise))
-            for l in combined_line_list[c]["lines"]:
-                comb_line+=comp_dict[l]
-            npix = len(np.where(comb_line>noise)[0])
-            if fit_type=="max_like":
-                fit_quality_dict[c+"_NPIX"] = {"med":npix,"std":0,"flag":0}
-            elif fit_type=="mcmc":
-                fit_quality_dict[c+"_NPIX"] = {"par_best":npix,
-                                               "ci_68_low":0,"ci_68_upp":0,
-                                               "ci_95_low":0,"ci_95_upp":0,
-                                               "mean":0,"std_dev":0,
-                                               "median":0,"med_abs_dev":0,
-                                               "flag":0
-                                               }
+#     fit_quality_dict = {}
+#     if fit_stat=="RCHI2":
+#         if fit_type=="max_like":
+#             # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
+#             noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["med"])**2
+#             noise = noise2**0.5
+#         elif fit_type=="mcmc":
+#             # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["par_best"]
+#             noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["par_best"])**2
+#             noise = noise2**0.5
+#     elif fit_stat!="RCHI2":
+#         noise = comp_dict["NOISE"]
+#     # compute NPIX for each line in the line list
+#     for l in line_list:
+#         npix = len(np.where(comp_dict[l]>noise)[0])
+#         if fit_type=="max_like":
+#             fit_quality_dict[l+"_NPIX"] = {"med":npix,"std":0,"flag":0}
+#         elif fit_type=="mcmc":
+#             fit_quality_dict[l+"_NPIX"] = {"par_best":npix,
+#                                            "ci_68_low":0,"ci_68_upp":0,
+#                                            "ci_95_low":0,"ci_95_upp":0,
+#                                            "mean":0,"std_dev":0,
+#                                            "median":0,"med_abs_dev":0,
+#                                            "flag":0
+#                                           }
+#     # compute NPIX for any combined lines
+#     if len(combined_line_list)>0:
+#         for c in combined_line_list:
+#             comb_line = np.zeros(len(noise))
+#             for l in combined_line_list[c]["lines"]:
+#                 comb_line+=comp_dict[l]
+#             npix = len(np.where(comb_line>noise)[0])
+#             if fit_type=="max_like":
+#                 fit_quality_dict[c+"_NPIX"] = {"med":npix,"std":0,"flag":0}
+#             elif fit_type=="mcmc":
+#                 fit_quality_dict[c+"_NPIX"] = {"par_best":npix,
+#                                                "ci_68_low":0,"ci_68_upp":0,
+#                                                "ci_95_low":0,"ci_95_upp":0,
+#                                                "mean":0,"std_dev":0,
+#                                                "median":0,"med_abs_dev":0,
+#                                                "flag":0
+#                                                }
 
-    # compute a total chi-squared and r-squared
-    r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
-    #
-    nu = len(comp_dict["DATA"])-n_free_pars
-    rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
-    #
-    if fit_type=="max_like":
-        fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
-        fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
-    #
-    elif fit_type=="mcmc": 
-        fit_quality_dict["R_SQUARED"] =  {"par_best":r_sqaured,
-                                               "ci_68_low":0,"ci_68_upp":0,
-                                               "ci_95_low":0,"ci_95_upp":0,
-                                               "mean":0,"std_dev":0,
-                                               "median":0,"med_abs_dev":0,
-                                               "flag":0
-                                               }
-        fit_quality_dict["RCHI_SQUARED"] =  {"par_best":rchi_squared,
-                                               "ci_68_low":0,"ci_68_upp":0,
-                                               "ci_95_low":0,"ci_95_upp":0,
-                                               "mean":0,"std_dev":0,
-                                               "median":0,"med_abs_dev":0,
-                                               "flag":0
-                                               }
+#     # compute a total chi-squared and r-squared
+#     r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+#     #
+#     nu = len(comp_dict["DATA"])-n_free_pars
+#     rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+#     #
+#     if fit_type=="max_like":
+#         fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
+#         fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
+#     #
+#     elif fit_type=="mcmc": 
+#         fit_quality_dict["R_SQUARED"] =  {"par_best":r_sqaured,
+#                                                "ci_68_low":0,"ci_68_upp":0,
+#                                                "ci_95_low":0,"ci_95_upp":0,
+#                                                "mean":0,"std_dev":0,
+#                                                "median":0,"med_abs_dev":0,
+#                                                "flag":0
+#                                                }
+#         fit_quality_dict["RCHI_SQUARED"] =  {"par_best":rchi_squared,
+#                                                "ci_68_low":0,"ci_68_upp":0,
+#                                                "ci_95_low":0,"ci_95_upp":0,
+#                                                "mean":0,"std_dev":0,
+#                                                "median":0,"med_abs_dev":0,
+#                                                "flag":0
+#                                                }
 
-    return fit_quality_dict
+#     return fit_quality_dict
     
 def do_pca_fill(wave_input, flux_input, err_input, n_components = 20, pca_masks = [(4400,4500), ], plot_pca = False, run_dir='' ):
     '''
