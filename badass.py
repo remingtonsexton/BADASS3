@@ -7315,20 +7315,12 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     # for v in int_vel_disp:
     #     print(v,int_vel_disp[v])
 
+
+    # a = {**int_vel_disp, **npix_dict, **snr_dict}
+    # print(a)
     # sys.exit(0)
 
-    print(npix_dict)
-    print(snr_dict)
-    print(int_vel_disp)
-
-    a = {**int_vel_disp, **npix_dict, **snr_dict}
-
-    for key in a:
-        print(key,a[key])
-
-    sys.exit()
-
-    return fluxes, eqwidths, cont_fluxes, {*int_vel_disp, *npix_dict, *snr_dict}
+    return fluxes, eqwidths, cont_fluxes, {**int_vel_disp, **npix_dict, **snr_dict}
 
 
 
