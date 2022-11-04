@@ -249,6 +249,12 @@ __status__	 = "Release"
 # - options for different priors on free parameters
 # - normalization for log-likelihoods
 # - outflow test region fix
+ 
+# Version 9.3.0
+# - NPIX and SNR (signal-to-noise ratio) is computed for all lines and now includes an 
+#   uncertainty.
+# - Removed interpolation inside of fit_model() to reduce computational expense.
+# - General bug fixes and cleaning up.
 
 ##########################################################################################################
 
@@ -600,37 +606,6 @@ def run_single_thread(fits_file,
                
     write_log((do_pca,n_components,pca_masks,pca_nan_fix,pca_exp_var),'pca_information',run_dir)
 
-    ####################################################################################################################################################################################    
-
-    # Construct blob-pars
-    # The blob-parameter dictionary is a dictionary for any non-free "blob" parameters for values that need 
-    # to be calculated during the fit.  For MCMC, these equate to non-fitted parameters like fluxes, equivalent widths, 
-    # or continuum fluxes that aren't explicitly fit as free paramters, but need to be calculated as output /during the fitting process/
-    # such that full chains can be constructed out of their values (as opposed to calculated after the fitting is over).
-    # We mainly use blob-pars for the indices of the wavelength vector at which to calculate continuum luminosities, so we don't have to 
-    # interpolate during the fit, which is computationally expensive.
-    # This needs to be passed throughout the fit_model() algorithm so it can be used.
-
-    def get_blob_pars(lam_gal):
-
-        blob_pars = {}
-        
-        if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
-            blob_pars["INDEX_1350"] = find_nearest(lam_gal,1350.)[1]
-        if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
-            blob_pars["INDEX_3000"] = find_nearest(lam_gal,3000.)[1]
-        if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
-            blob_pars["INDEX_4000"] = find_nearest(lam_gal,4000.)[1]
-        if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
-            blob_pars["INDEX_5100"] = find_nearest(lam_gal,5100.)[1]
-        if (lam_gal[0]<7000) & (lam_gal[-1]>7000): 
-            blob_pars["INDEX_7000"] = find_nearest(lam_gal,7000.)[1]
-
-        return blob_pars
-
-
-    blob_pars = get_blob_pars(lam_gal)
-
     ####################################################################################################################################################################################
     # Generate host-galaxy template
     if (fit_host==True) & (lam_gal[0]>1680.2):
@@ -731,6 +706,47 @@ def run_single_thread(fits_file,
         write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
     elif not output_pars and not verbose:
         write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
+
+
+####################################################################################################################################################################################    
+
+    # Construct blob-pars
+    # The blob-parameter dictionary is a dictionary for any non-free "blob" parameters for values that need 
+    # to be calculated during the fit.  For MCMC, these equate to non-fitted parameters like fluxes, equivalent widths, 
+    # or continuum fluxes that aren't explicitly fit as free paramters, but need to be calculated as output /during the fitting process/
+    # such that full chains can be constructed out of their values (as opposed to calculated after the fitting is over).
+    # We mainly use blob-pars for the indices of the wavelength vector at which to calculate continuum luminosities, so we don't have to 
+    # interpolate during the fit, which is computationally expensive.
+    # This needs to be passed throughout the fit_model() algorithm so it can be used.
+
+    def get_blob_pars(lam_gal, line_list, combined_line_list, velscale):
+
+        blob_pars = {}
+
+        # Values of velocity scale corresponding to wavelengths; this is used to calculate
+        # integrated dispersions and velocity offsets for combined lines.
+        interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,kind='linear',bounds_error=False)
+        
+        for line in combined_line_list:
+            blob_pars[line+"_LINE_VEL"] = interp_ftn(combined_line_list[line]["center"])
+
+        # Indices for continuum wavelengths
+        if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
+            blob_pars["INDEX_1350"] = find_nearest(lam_gal,1350.)[1]
+        if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
+            blob_pars["INDEX_3000"] = find_nearest(lam_gal,3000.)[1]
+        if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
+            blob_pars["INDEX_4000"] = find_nearest(lam_gal,4000.)[1]
+        if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
+            blob_pars["INDEX_5100"] = find_nearest(lam_gal,5100.)[1]
+        if (lam_gal[0]<7000) & (lam_gal[-1]>7000): 
+            blob_pars["INDEX_7000"] = find_nearest(lam_gal,7000.)[1]
+
+        return blob_pars
+
+
+    blob_pars = get_blob_pars(lam_gal, line_list, combined_line_list, velscale)
+
 
     #### Line Testing ################################################################################################################################################################################
     
@@ -4983,50 +4999,6 @@ def write_line_test_results(result_dict_outflows,
 
 ####################################################################################
 
-# def subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale):
-
-#     # fig = plt.figure(figsize=(32,10))
-#     # ax1 = fig.add_subplot(1,1,1)
-#     # ax1.plot(comp_dict["WAVE"],comp_dict["DATA"],linewidth=0.5)
-#     # ax1.plot(comp_dict["WAVE"],comp_dict["NA_H_BETA"],linewidth=0.5)
-#     # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_4960"],linewidth=0.5)
-#     # ax1.plot(comp_dict["WAVE"],comp_dict["NA_OIII_5007"],linewidth=0.5)
-#     # plt.tight_layout()
-#     comp_dict_subsamp = copy.deepcopy(comp_dict)
-#     new_line_list     = copy.deepcopy(line_list)
-#     new_comb_list     = copy.deepcopy(combined_line_list)
-
-#     subsamp_factor = 1000 # factor by which we subsample the data
-
-#     lam_gal_subsamp = scipy.ndimage.zoom(input=lam_gal,zoom=subsamp_factor,order=3)
-#     velscale_subsamp = velscale/subsamp_factor
-#     p = dict(zip(param_names, par_best))
-
-#     cw_interp = interp1d(lam_gal_subsamp,np.arange(len(lam_gal_subsamp)),bounds_error=False)
-
-#     for line in new_line_list:
-#         new_line_list[line]["center_pix"] = cw_interp(new_line_list[line]["center"])
-#         # comp_dict_subsamp = line_constructor(lam_gal_subsamp,p,comp_dict_subsamp,comp_options,line,new_line_list,velscale_subsamp)
-#         comp_dict_subsamp[line] = scipy.ndimage.zoom(input=comp_dict[line],zoom=subsamp_factor,order=3)
-
-#     for line in new_comb_list:
-#         new_comb_list[line]["center_pix"] = cw_interp(new_comb_list[line]["center"])
-
-#     # Add combined lines to comp_dict_subsamp
-#     for comb_line in combined_line_list:
-#         comp_dict_subsamp[comb_line] = np.zeros(len(lam_gal_subsamp))
-#         for indiv_line in combined_line_list[comb_line]["lines"]:
-#             comp_dict_subsamp[comb_line]+=comp_dict_subsamp[indiv_line]
-
-#     # For non-line components, we simply zoom.
-#     for comp in comp_dict:
-#         if (comp not in {*line_list,*combined_line_list}):
-#             comp_dict_subsamp[comp] = scipy.ndimage.zoom(input=comp_dict[comp],zoom=subsamp_factor,order=3)
-
-#     return comp_dict_subsamp, new_line_list, new_comb_list, velscale_subsamp
-
-####################################################################################
-
 def calc_max_like_flux(comp_dict):
     """
     Calculates component fluxes for maximum likelihood fitting.
@@ -7219,7 +7191,7 @@ def fit_model(params,
     if (fit_type=='final') and (output_model==False):
 
 
-        fluxes, eqwidths, cont_fluxes, int_vel_disp = calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, fit_mask, fit_stat, velscale)
+        fluxes, eqwidths, cont_fluxes, int_vel_disp = calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, blob_pars, fit_mask, fit_stat, velscale)
 
         
     ########################################################################################################
@@ -7242,10 +7214,7 @@ def fit_model(params,
 # including continuum luminosities, fluxes, equivalent widths, 
 # widths, and fit quality parameters (R-squared, reduced chi-squared)
 
-def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, fit_mask, fit_stat, velscale):
-
-    # Interpolation function 
-    interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,kind='linear',bounds_error=False)
+def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, blob_pars, fit_mask, fit_stat, velscale):
 
     # If noise_scale is calculated (fit_stat="RCHI2"), rescale the noise appropriately
     if fit_stat=="RCHI2":
@@ -7274,11 +7243,12 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [line for line in line_list] # list of all lines (individual lines and combined lines)
     # Storage dicts
-    fluxes       = {}
-    eqwidths     = {}
-    int_vel_disp = {}
-    npix_dict    = {}
-    snr_dict     = {}
+    fluxes        = {}
+    eqwidths      = {}
+    int_vel_disp  = {}
+    npix_dict     = {}
+    snr_dict      = {}
+    fit_quality   = {}
     #
     for key in spec_comps:
         flux = np.trapz(comp_dict[key],lam_gal)
@@ -7286,11 +7256,7 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
         fluxes[key+"_FLUX"] = flux
         #
         eqwidth = np.trapz(comp_dict[key]/total_cont,lam_gal)
-        # if (key in lines):
-            # comp = comp_dict[key]
-            # eqwidth = np.trapz(comp/total_cont,lam_gal)
-        # else: 
-        #     eqwidth = np.trapz(comp_dict[key]/total_cont,lam_gal)
+        #
         if ~np.isfinite(eqwidth):
             eqwidth=0.0
         # Add to eqwidth_dict
@@ -7313,7 +7279,8 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
         # For combined lines ONLY, calculate integrated dispersions and velocity 
         if (key in combined_line_list):
             # Calculate velocity scale centered on line
-            vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
+            # vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
+            vel = np.arange(len(lam_gal))*velscale - blob_pars[key+"_LINE_VEL"]
             full_profile = comp_dict[key]
             # Normalized line profile
             norm_profile = full_profile/np.sum(full_profile)
@@ -7331,47 +7298,35 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     # Continuum fluxes (to obtain continuum luminosities)
     cont_fluxes = {}
     #
-    interp_tot  = interp1d(lam_gal,total_cont,kind='linear',bounds_error=False,fill_value=0.0)
-    interp_agn  = interp1d(lam_gal,agn_cont  ,kind='linear',bounds_error=False,fill_value=0.0)
-    interp_host = interp1d(lam_gal,host_cont ,kind='linear',bounds_error=False,fill_value=0.0)
     if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
-        cont_fluxes["F_CONT_TOT_1350"]  = interp_tot(1350.0) #total_cont[find_nearest(lam_gal,1350.0)[1]]#
-        cont_fluxes["F_CONT_AGN_1350"]  = interp_agn(1350.0) #agn_cont[find_nearest(lam_gal,1350.0)[1]]  #
-        cont_fluxes["F_CONT_HOST_1350"] = interp_host(1350.0) #host_cont[find_nearest(lam_gal,1350.0)[1]] #
+        cont_fluxes["F_CONT_TOT_1350"]  = total_cont[blob_pars["INDEX_1350"]]
+        cont_fluxes["F_CONT_AGN_1350"]  = agn_cont[blob_pars["INDEX_1350"]]
+        cont_fluxes["F_CONT_HOST_1350"] = host_cont[blob_pars["INDEX_1350"]]
     if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
-        cont_fluxes["F_CONT_TOT_3000"]  = interp_tot(3000.0) #total_cont[find_nearest(lam_gal,3000.0)[1]]
-        cont_fluxes["F_CONT_AGN_3000"]  = interp_agn(3000.0) #agn_cont[find_nearest(lam_gal,3000.0)[1]]  
-        cont_fluxes["F_CONT_HOST_3000"] = interp_host(3000.0) #host_cont[find_nearest(lam_gal,3000.0)[1]] 
+        cont_fluxes["F_CONT_TOT_3000"]  = total_cont[blob_pars["INDEX_3000"]]
+        cont_fluxes["F_CONT_AGN_3000"]  = agn_cont[blob_pars["INDEX_3000"]]
+        cont_fluxes["F_CONT_HOST_3000"] = host_cont[blob_pars["INDEX_3000"]]
     if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
-        cont_fluxes["F_CONT_TOT_5100"]  = interp_tot(5100.0) #total_cont[find_nearest(lam_gal,5100.0)[1]]#
-        cont_fluxes["F_CONT_AGN_5100"]  = interp_agn(5100.0) #agn_cont[find_nearest(lam_gal,5100.0)[1]]  #
-        cont_fluxes["F_CONT_HOST_5100"] = interp_host(5100.0) #host_cont[find_nearest(lam_gal,5100.0)[1]] #
+        cont_fluxes["F_CONT_TOT_5100"]  = total_cont[blob_pars["INDEX_5100"]]
+        cont_fluxes["F_CONT_AGN_5100"]  = agn_cont[blob_pars["INDEX_5100"]]
+        cont_fluxes["F_CONT_HOST_5100"] = host_cont[blob_pars["INDEX_5100"]]
     if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
-        cont_fluxes["HOST_FRAC_4000"] = interp_host(4000.0)/interp_tot(4000.0) #host_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]]#
-        cont_fluxes["AGN_FRAC_4000"]  = interp_agn(4000.0)/interp_tot(4000.0) #agn_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]] #
+        cont_fluxes["HOST_FRAC_4000"] = host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+        cont_fluxes["AGN_FRAC_4000"]  = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
     if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
-        cont_fluxes["HOST_FRAC_7000"] = interp_host(7000.0)/interp_tot(7000.0) #host_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]]#
-        cont_fluxes["AGN_FRAC_7000"]  = interp_agn(7000.0)/interp_tot(7000.0) #agn_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]] #
+        cont_fluxes["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+        cont_fluxes["AGN_FRAC_7000"]  = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
     #       
 
-    # for c in cont_fluxes:
-    #     print(c,cont_fluxes[c])
-
-    # for f in fluxes:
-    #     print(f,fluxes[f])
-
-    # for e in eqwidths:
-    #     print(e,eqwidths[e])
-
-    # for v in int_vel_disp:
-    #     print(v,int_vel_disp[v])
+    # compute a total chi-squared and r-squared
+    fit_quality["R_SQUARED"] = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    # print(r_squared)
+    #
+    nu = len(comp_dict["DATA"])-len(p)
+    fit_quality["RCHI_SQUARED"] = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
 
 
-    # a = {**int_vel_disp, **npix_dict, **snr_dict}
-    # print(a)
-    # sys.exit(0)
-
-    return fluxes, eqwidths, cont_fluxes, {**int_vel_disp, **npix_dict, **snr_dict}
+    return fluxes, eqwidths, cont_fluxes, {**int_vel_disp, **npix_dict, **snr_dict, **fit_quality}
 
 
 
@@ -10504,82 +10459,6 @@ def plot_best_model(param_dict,
     
     return comp_dict
 
-
-
-# def fit_quality_pars(param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
-
-#     norm_factor = np.nanmedian(comp_dict["DATA"][fit_mask])
-
-#     fit_quality_dict = {}
-#     if fit_stat=="RCHI2":
-#         if fit_type=="max_like":
-#             # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
-#             noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["med"])**2
-#             noise = noise2**0.5
-#         elif fit_type=="mcmc":
-#             # noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["par_best"]
-#             noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]["par_best"])**2
-#             noise = noise2**0.5
-#     elif fit_stat!="RCHI2":
-#         noise = comp_dict["NOISE"]
-#     # compute NPIX for each line in the line list
-#     for l in line_list:
-#         npix = len(np.where(comp_dict[l]>noise)[0])
-#         if fit_type=="max_like":
-#             fit_quality_dict[l+"_NPIX"] = {"med":npix,"std":0,"flag":0}
-#         elif fit_type=="mcmc":
-#             fit_quality_dict[l+"_NPIX"] = {"par_best":npix,
-#                                            "ci_68_low":0,"ci_68_upp":0,
-#                                            "ci_95_low":0,"ci_95_upp":0,
-#                                            "mean":0,"std_dev":0,
-#                                            "median":0,"med_abs_dev":0,
-#                                            "flag":0
-#                                           }
-#     # compute NPIX for any combined lines
-#     if len(combined_line_list)>0:
-#         for c in combined_line_list:
-#             comb_line = np.zeros(len(noise))
-#             for l in combined_line_list[c]["lines"]:
-#                 comb_line+=comp_dict[l]
-#             npix = len(np.where(comb_line>noise)[0])
-#             if fit_type=="max_like":
-#                 fit_quality_dict[c+"_NPIX"] = {"med":npix,"std":0,"flag":0}
-#             elif fit_type=="mcmc":
-#                 fit_quality_dict[c+"_NPIX"] = {"par_best":npix,
-#                                                "ci_68_low":0,"ci_68_upp":0,
-#                                                "ci_95_low":0,"ci_95_upp":0,
-#                                                "mean":0,"std_dev":0,
-#                                                "median":0,"med_abs_dev":0,
-#                                                "flag":0
-#                                                }
-
-#     # compute a total chi-squared and r-squared
-#     r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
-#     #
-#     nu = len(comp_dict["DATA"])-n_free_pars
-#     rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
-#     #
-#     if fit_type=="max_like":
-#         fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
-#         fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
-#     #
-#     elif fit_type=="mcmc": 
-#         fit_quality_dict["R_SQUARED"] =  {"par_best":r_sqaured,
-#                                                "ci_68_low":0,"ci_68_upp":0,
-#                                                "ci_95_low":0,"ci_95_upp":0,
-#                                                "mean":0,"std_dev":0,
-#                                                "median":0,"med_abs_dev":0,
-#                                                "flag":0
-#                                                }
-#         fit_quality_dict["RCHI_SQUARED"] =  {"par_best":rchi_squared,
-#                                                "ci_68_low":0,"ci_68_upp":0,
-#                                                "ci_95_low":0,"ci_95_upp":0,
-#                                                "mean":0,"std_dev":0,
-#                                                "median":0,"med_abs_dev":0,
-#                                                "flag":0
-#                                                }
-
-#     return fit_quality_dict
     
 def do_pca_fill(wave_input, flux_input, err_input, n_components = 20, pca_masks = [(4400,4500), ], plot_pca = False, run_dir='' ):
     '''
