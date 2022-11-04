@@ -69,7 +69,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.2.2"
+__version__	= "9.3.0"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -565,6 +565,7 @@ def run_single_thread(fits_file,
         lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm_res, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
         binnum = spaxelx = spaxely = None
 
+    ####################################################################################################################################################################################
     # Do PCA reconstruction if desired
 
     # Regardless of PCA, check for nans in flux and flux error arrays. If found, raise an error because they will prevent fit optimization
@@ -598,6 +599,37 @@ def run_single_thread(fits_file,
                plot_options,output_options),'fit_information',run_dir)
                
     write_log((do_pca,n_components,pca_masks,pca_nan_fix,pca_exp_var),'pca_information',run_dir)
+
+    ####################################################################################################################################################################################    
+
+    # Construct blob-pars
+    # The blob-parameter dictionary is a dictionary for any non-free "blob" parameters for values that need 
+    # to be calculated during the fit.  For MCMC, these equate to non-fitted parameters like fluxes, equivalent widths, 
+    # or continuum fluxes that aren't explicitly fit as free paramters, but need to be calculated as output /during the fitting process/
+    # such that full chains can be constructed out of their values (as opposed to calculated after the fitting is over).
+    # We mainly use blob-pars for the indices of the wavelength vector at which to calculate continuum luminosities, so we don't have to 
+    # interpolate during the fit, which is computationally expensive.
+    # This needs to be passed throughout the fit_model() algorithm so it can be used.
+
+    def get_blob_pars(lam_gal):
+
+        blob_pars = {}
+        
+        if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
+            blob_pars["INDEX_1350"] = find_nearest(lam_gal,1350.)[1]
+        if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
+            blob_pars["INDEX_3000"] = find_nearest(lam_gal,3000.)[1]
+        if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
+            blob_pars["INDEX_4000"] = find_nearest(lam_gal,4000.)[1]
+        if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
+            blob_pars["INDEX_5100"] = find_nearest(lam_gal,5100.)[1]
+        if (lam_gal[0]<7000) & (lam_gal[-1]>7000): 
+            blob_pars["INDEX_7000"] = find_nearest(lam_gal,7000.)[1]
+
+        return blob_pars
+
+
+    blob_pars = get_blob_pars(lam_gal)
 
     ####################################################################################################################################################################################
     # Generate host-galaxy template
@@ -746,6 +778,7 @@ def run_single_thread(fits_file,
                   uv_iron_template,
                   balmer_template,
                   stel_templates,
+                  blob_pars,
                   disp_res,
                   fit_mask,
                   velscale,
@@ -850,6 +883,7 @@ def run_single_thread(fits_file,
                                                 uv_iron_template,
                                                 balmer_template,
                                                 stel_templates,
+                                                blob_pars,
                                                 disp_res,
                                                 fit_mask,
                                                 velscale,
@@ -961,6 +995,7 @@ def run_single_thread(fits_file,
                  uv_iron_template,
                  balmer_template,
                  stel_templates,
+                 blob_pars,
                  disp_res,
                  fit_mask,
                  velscale,
@@ -1037,6 +1072,7 @@ def run_single_thread(fits_file,
                     uv_iron_template,
                     balmer_template,
                     stel_templates,
+                    blob_pars,
                     disp_res,
                     fit_mask,
                     fit_stat,
@@ -4110,6 +4146,7 @@ def line_test(param_dict,
               uv_iron_template,
               balmer_template,
               stel_templates,
+              blob_pars,
               disp_res,
               fit_mask,
               velscale,
@@ -4177,6 +4214,7 @@ def line_test(param_dict,
                                                                                uv_iron_template,
                                                                                balmer_template,
                                                                                stel_templates,
+                                                                               blob_pars,
                                                                                disp_res,
                                                                                fit_mask,
                                                                                velscale,
@@ -4222,6 +4260,7 @@ def line_test(param_dict,
                                                           uv_iron_template,
                                                           balmer_template,
                                                           stel_templates,
+                                                          blob_pars,
                                                           disp_res,
                                                           fit_mask,
                                                           velscale,
@@ -4418,6 +4457,7 @@ def line_test(param_dict,
                               uv_iron_template,
                               balmer_template,
                               stel_templates,
+                              blob_pars,
                               disp_res,
                               fit_mask,
                               velscale,
@@ -4450,6 +4490,7 @@ def line_test(param_dict,
                               uv_iron_template,
                               balmer_template,
                               stel_templates,
+                              blob_pars,
                               disp_res,
                               fit_mask,
                               velscale,
@@ -5065,7 +5106,7 @@ def calc_max_like_eqwidth(comp_dict, line_list, velscale):
 
 ##################################################################################
 
-def calc_max_like_cont_lum(clum, comp_dict, z, H0=70.0, Om0=0.30):
+def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=70.0, Om0=0.30):
     """
     Calculate monochromatic continuum luminosities
     """
@@ -5085,68 +5126,65 @@ def calc_max_like_cont_lum(clum, comp_dict, z, H0=70.0, Om0=0.30):
     cosmo = FlatLambdaCDM(H0, Om0)
     d_mpc = cosmo.luminosity_distance(z).value
     d_cm  = d_mpc * 3.086E+24 # 1 Mpc = 3.086e+24 cm
-    # Interpolation function for the continuum 
-    interp_tot  = interp1d(comp_dict["WAVE"],total_cont,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    interp_agn  = interp1d(comp_dict["WAVE"],agn_cont  ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    interp_host = interp1d(comp_dict["WAVE"],host_cont ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
+    #
     for c in clum:
         # Total luminosities
         if (c=="L_CONT_TOT_1350"):
-            flux = interp_tot(1350.0) * 1.e-17# * 1350.0
+            flux = total_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_TOT_1350"] = lum
         if (c=="L_CONT_TOT_3000"):
-            flux = interp_tot(3000.0) * 1.e-17 #* 3000.0
+            flux = total_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_TOT_3000"] = lum
         if (c=="L_CONT_TOT_5100"):
-            flux = interp_tot(5100.0) * 1.e-17 #* 5100.0
+            flux = total_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_TOT_5100"] = lum
         # AGN luminosities
         if (c=="L_CONT_AGN_1350"):
-            flux = interp_agn(1350.0) * 1.e-17# * 1350.0
+            flux = agn_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_AGN_1350"] = lum
         if (c=="L_CONT_AGN_3000"):
-            flux = interp_agn(3000.0) * 1.e-17 #* 3000.0
+            flux = agn_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_AGN_3000"] = lum
         if (c=="L_CONT_AGN_5100"):
-            flux = interp_agn(5100.0) * 1.e-17 #* 5100.0
+            flux = agn_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_AGN_5100"] = lum
         # Host luminosities
         if (c=="L_CONT_HOST_1350"):
-            flux = interp_host(1350.0) * 1.e-17# * 1350.0
+            flux = host_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_HOST_1350"] = lum
         if (c=="L_CONT_HOST_3000"):
-            flux = interp_host(3000.0) * 1.e-17 #* 3000.0
+            flux = host_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_HOST_3000"] = lum
         if (c=="L_CONT_HOST_5100"):
-            flux = interp_host(5100.0) * 1.e-17 #* 5100.0
+            flux = host_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_HOST_5100"] = lum
         # Host and AGN fractions
         if (c=="HOST_FRAC_4000"):
-            clum_dict["HOST_FRAC_4000"] = interp_host(4000.0)/interp_tot(4000.0)
+            clum_dict["HOST_FRAC_4000"] =  host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
         if (c=="AGN_FRAC_4000"):
-            clum_dict["AGN_FRAC_4000"] = interp_agn(4000.0)/interp_tot(4000.0)
+            clum_dict["AGN_FRAC_4000"] = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
         if (c=="HOST_FRAC_7000"):
-            clum_dict["HOST_FRAC_7000"] = interp_host(7000.0)/interp_tot(7000.0)
+            clum_dict["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
         if (c=="AGN_FRAC_7000"):
-            clum_dict["AGN_FRAC_7000"] = interp_agn(7000.0)/interp_tot(7000.0)
+            clum_dict["AGN_FRAC_7000"] = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
 
     return clum_dict
 
@@ -5285,6 +5323,7 @@ def max_likelihood(param_dict,
                    uv_iron_template,
                    balmer_template,
                    stel_templates,
+                   blob_pars,
                    disp_res,
                    fit_mask,
                    velscale,
@@ -5360,6 +5399,7 @@ def max_likelihood(param_dict,
                                                          uv_iron_template,
                                                          balmer_template,
                                                          stel_templates,
+                                                         blob_pars,
                                                          disp_res,
                                                          fit_mask,
                                                          velscale,
@@ -5402,6 +5442,7 @@ def max_likelihood(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
+                          blob_pars,
                           disp_res,
                           fit_mask,
                           velscale,
@@ -5479,7 +5520,7 @@ def max_likelihood(param_dict,
     eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
 
     # Calculate continuum luminosities
-    clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+    clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
 
     # Calculate integrated line dispersions
     disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, velscale)
@@ -5567,6 +5608,7 @@ def max_likelihood(param_dict,
                                              uv_iron_template,
                                              balmer_template,
                                              stel_templates,
+                                             blob_pars,
                                              disp_res,
                                              fit_mask,
                                              velscale,
@@ -5612,6 +5654,7 @@ def max_likelihood(param_dict,
                                   uv_iron_template,
                                   balmer_template,
                                   stel_templates,
+                                  blob_pars,
                                   disp_res,
                                   fit_mask,
                                   velscale,
@@ -5629,7 +5672,7 @@ def max_likelihood(param_dict,
             # Calculate equivalent widths
             eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
             # Calculate continuum luminosities
-            clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+            clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate integrated line dispersions
             disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, velscale)
             # Calculate fit quality parameters
@@ -5848,6 +5891,7 @@ def max_likelihood(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
+                          blob_pars,
                           disp_res,
                           fit_mask,
                           velscale,
@@ -6202,6 +6246,7 @@ def lnlike(params,
            uv_iron_template,
            balmer_template,
            stel_templates,
+           blob_pars,
            disp_res,
            fit_mask,
            velscale,
@@ -6239,6 +6284,7 @@ def lnlike(params,
                                                                                   uv_iron_template,
                                                                                   balmer_template,
                                                                                   stel_templates,
+                                                                                  blob_pars,
                                                                                   disp_res,
                                                                                   fit_mask,
                                                                                   velscale,
@@ -6294,6 +6340,7 @@ def lnlike(params,
                                      uv_iron_template,
                                      balmer_template,
                                      stel_templates,
+                                     blob_pars,
                                      disp_res,
                                      fit_mask,
                                      velscale,
@@ -6460,6 +6507,7 @@ def lnprob(params,
            uv_iron_template,
            balmer_template,
            stel_templates,
+           blob_pars,
            disp_res,
            fit_mask,
            velscale,
@@ -6497,6 +6545,7 @@ def lnprob(params,
                                                                              uv_iron_template,
                                                                              balmer_template,
                                                                              stel_templates,
+                                                                             blob_pars,
                                                                              disp_res,
                                                                              fit_mask,
                                                                              velscale,
@@ -6537,6 +6586,7 @@ def lnprob(params,
                 uv_iron_template,
                 balmer_template,
                 stel_templates,
+                blob_pars,
                 disp_res,
                 fit_mask,
                 velscale,
@@ -6850,6 +6900,7 @@ def fit_model(params,
               uv_iron_template,
               balmer_template,
               stel_templates,
+              blob_pars,
               disp_res,
               fit_mask,
               velscale,
@@ -7269,7 +7320,7 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
             # Calculate integrated velocity in pixels units
             v_int = np.trapz(vel*norm_profile,vel)/np.trapz(norm_profile,vel)
             # Calculate integrated dispersion and correct for instrumental dispersion
-            d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
+            d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/np.trapz(norm_profile,vel) - (v_int**2))
             d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
             if ~np.isfinite(d_int): d_int = 0.0
             if ~np.isfinite(v_int): v_int = 0.0
@@ -8710,7 +8761,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
         write_log((min_samp,autocorr_tol,ncor_times,conv_type),'autocorr_options',run_dir)
     # Run emcee
     for k, result in enumerate(sampler.sample(pos, iterations=max_iter)):
-        
+            
         if ((k+1) % write_iter == 0) and verbose:
             print("MCMC iteration: %d" % (k+1))
         best = [] # For storing current chain positions (median of parameter values at write_iter iterations)
@@ -10239,6 +10290,7 @@ def plot_best_model(param_dict,
                     uv_iron_template,
                     balmer_template,
                     stel_templates,
+                    blob_pars,
                     disp_res,
                     fit_mask,
                     fit_stat,
@@ -10294,6 +10346,7 @@ def plot_best_model(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
+                          blob_pars,
                           disp_res,
                           fit_mask,
                           velscale,
