@@ -2585,14 +2585,14 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_stat=="RCHI2"):
         if verbose: 
             print('	 - Adding parameter for unexplained noise to fit reduced Chi-squared.')
-        # par_input["NOISE_SCALE"] = ({'init':1.0,
-        #                              'plim':(0.0001,100.0),
-        #                              'prior':{"type":"jeffreys"},
-        #                             })
-        par_input["NOISE_SCALE"] = ({'init': 1.0,
+        par_input["NOISE_SCALE"] = ({'init':1.0,
                                      'plim':(0.0001,100.0),
-                                     'prior':{"type":"gaussian"},
+                                     'prior':{"type":"jeffreys"},
                                     })
+        # par_input["NOISE_SCALE"] = ({'init': 1.0,
+                                     # 'plim':(0.0001,100.0),
+                                     # 'prior':{"type":"gaussian"},
+                                    # })
 
     # Galaxy template amplitude
     if (fit_host==True):
@@ -2945,7 +2945,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
         ]
 
 
-    # Append any user constraints
+    # Append any user 
     # for u in user_constraints:
     # 	soft_cons.append(tuple(u))
 
@@ -5219,10 +5219,10 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
         # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]*comp_dict["MODEL"])**2
         # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"])**2 # Additive constant noise factor
         noise2 = (comp_dict["NOISE"]*param_dict["NOISE_SCALE"])**2 # multiplicative noise factor
-        noise = noise2**0.5
+        _noise = noise2**0.5
     elif fit_stat!="RCHI2":
-        noise = comp_dict["NOISE"]
-        noise2 = noise**2
+        _noise = comp_dict["NOISE"]
+        noise2 = _noise**2
 
     # compute number of pixels (NPIX) for each line in the line list;
     # this is done by determining the number of pixels of the line model
@@ -5232,22 +5232,22 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     # this is done by calculating the maximum value of the line model 
     # above the MEAN value of the noise within the channels.
     for l in line_list:
-        eval_ind = np.where(comp_dict[l]>noise)[0]
+        eval_ind = np.where(comp_dict[l]>_noise)[0]
         npix = len(eval_ind)
         npix_dict[l+"_NPIX"] = int(npix)
         if len(eval_ind)>0:
-            snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(noise[eval_ind])
+            snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
         else: 
             snr = 0
         snr_dict[l+"_SNR"] = snr
     # compute for combined lines
     if len(combined_line_list)>0:
         for c in combined_line_list:
-            eval_ind = np.where(comp_dict[c]>noise)[0]
+            eval_ind = np.where(comp_dict[c]>_noise)[0]
             npix = len(eval_ind)
             npix_dict[c+"_NPIX"] = int(npix)
             if len(eval_ind)>0:
-                snr = np.nanmax(comp_dict[c][eval_ind])/np.nanmean(noise[eval_ind])
+                snr = np.nanmax(comp_dict[c][eval_ind])/np.nanmean(_noise[eval_ind])
             else:
                 snr = 0
             snr_dict[c+"_SNR"] = snr
@@ -7219,10 +7219,10 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     # If noise_scale is calculated (fit_stat="RCHI2"), rescale the noise appropriately
     if fit_stat=="RCHI2":
         noise2 = (comp_dict["NOISE"]*p["NOISE_SCALE"])**2 # multiplicative noise factor
-        noise = noise2**0.5
+        _noise = noise2**0.5
     elif fit_stat!="RCHI2":
-        noise = comp_dict["NOISE"]
-        noise2 = noise**2
+        _noise = comp_dict["NOISE"]
+        noise2 = _noise**2
 
     # Continuum luminosities
     # Create a single continuum component based on what was fit
@@ -7267,11 +7267,11 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
             comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
             int_vel_disp[key+"_FWHM"] = comb_fwhm
             # Calculate NPIX and SNR for all lines
-            eval_ind = np.where(comp_dict[key]>noise)[0]
+            eval_ind = np.where(comp_dict[key]>_noise)[0]
             npix = len(eval_ind)
             npix_dict[key+"_NPIX"] = int(npix)
             if len(eval_ind)>0:
-                snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(noise[eval_ind])
+                snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(_noise[eval_ind])
             else: 
                 snr = 0
             snr_dict[key+"_SNR"] = snr
