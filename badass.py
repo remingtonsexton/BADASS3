@@ -856,6 +856,7 @@ def run_single_thread(fits_file,
                   uv_iron_template,
                   balmer_template,
                   stel_templates,
+                  blob_pars,
                   disp_res,
                   fit_mask,
                   velscale,
@@ -2935,7 +2936,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
             #
             # ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
-            # ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
+            ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
             #
             # ("BR_PA_DELTA_AMP","BR_PA_EPSIL_AMP"),
             # ("BR_PA_GAMMA_AMP","BR_PA_DELTA_AMP"),
@@ -3507,7 +3508,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
     def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
         # default initial widths for lines (if not specified)
         na_disp_init = 50.0
-        out_disp_init = 100.0
+        out_disp_init = 250.0
         br_disp_init = 500.0
         abs_disp_init = 50.0
         # default width bounds for lines (if not specified)
@@ -5163,7 +5164,7 @@ def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=70.0, Om0=0.30):
 
 ##################################################################################
 
-def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, velscale):
+def calc_max_like_dispersions(lam_gal, comp_dict, line_list, combined_line_list, blob_pars, velscale):
 
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [i for i in line_list]
@@ -5172,7 +5173,7 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, velscale
     fwhm_dict = {}
     vint_dict = {}
     #
-    interp_ftn = interp1d(comp_dict["WAVE"],np.arange(len(comp_dict["WAVE"]))*velscale,bounds_error=False)
+    # interp_ftn = interp1d(comp_dict["WAVE"],np.arange(len(comp_dict["WAVE"]))*velscale,bounds_error=False)
     # Loop through lines
     for line in lines:
         fwhm = combined_fwhm(comp_dict["WAVE"],comp_dict[line],line_list[line]["disp_res_kms"],velscale)
@@ -5180,7 +5181,8 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, velscale
 
         if line in combined_line_list:   
             # Calculate velocity scale centered on line
-            vel = np.arange(len(comp_dict["WAVE"]))*velscale - interp_ftn(line_list[line]["center"])
+            # vel = np.arange(len(comp_dict["WAVE"]))*velscale - interp_ftn(line_list[line]["center"])
+            vel = np.arange(len(lam_gal))*velscale - blob_pars[line+"_LINE_VEL"]
             full_profile = comp_dict[line]
             # Remove stray lines
             # full_profile = remove_stray_lines(full_profile)
@@ -5495,7 +5497,7 @@ def max_likelihood(param_dict,
     clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
 
     # Calculate integrated line dispersions
-    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, velscale)
+    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
 
     # Calculate fit quality parameters
     r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
@@ -5646,7 +5648,7 @@ def max_likelihood(param_dict,
             # Calculate continuum luminosities
             clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate integrated line dispersions
-            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, velscale)
+            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
             # Calculate fit quality parameters
             r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
 
