@@ -5173,7 +5173,6 @@ def calc_max_like_dispersions(lam_gal, comp_dict, line_list, combined_line_list,
     fwhm_dict = {}
     vint_dict = {}
     #
-    # interp_ftn = interp1d(comp_dict["WAVE"],np.arange(len(comp_dict["WAVE"]))*velscale,bounds_error=False)
     # Loop through lines
     for line in lines:
         fwhm = combined_fwhm(comp_dict["WAVE"],comp_dict[line],line_list[line]["disp_res_kms"],velscale)
@@ -5181,11 +5180,8 @@ def calc_max_like_dispersions(lam_gal, comp_dict, line_list, combined_line_list,
 
         if line in combined_line_list:   
             # Calculate velocity scale centered on line
-            # vel = np.arange(len(comp_dict["WAVE"]))*velscale - interp_ftn(line_list[line]["center"])
             vel = np.arange(len(lam_gal))*velscale - blob_pars[line+"_LINE_VEL"]
             full_profile = comp_dict[line]
-            # Remove stray lines
-            # full_profile = remove_stray_lines(full_profile)
             #
             # Normalized line profile
             norm_profile = full_profile/np.sum(full_profile)
