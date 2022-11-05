@@ -4243,11 +4243,11 @@ def line_test(param_dict,
                                                                                max_like_niter=max_like_niter,
                                                                                verbose=verbose)
 
-    # Initialize the no_line fit to be at the same fit parameters as the fit with the line
-    for key in param_dict:
-        if key in [p for p in mcpars_no_line]:
-            # print(key)
-            param_dict[key]["init"] = mcpars_no_line[key]["med"]
+    # (Don't do this) Initialize the no_line fit to be at the same fit parameters as the fit with the line
+    # for key in param_dict:
+    #     if key in [p for p in mcpars_no_line]:
+    #         # print(key)
+    #         param_dict[key]["init"] = mcpars_no_line[key]["med"]
 
 
     # Perform fitting with line
@@ -6435,6 +6435,7 @@ def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type
 
     # Loop through soft constraints
     for i in range(len(soft_cons)):
+        # print(soft_cons[i],(ne.evaluate(soft_cons[i][0],local_dict = pdict).item()-ne.evaluate(soft_cons[i][1],local_dict = pdict).item()),(ne.evaluate(soft_cons[i][0],local_dict = pdict).item()-ne.evaluate(soft_cons[i][1],local_dict = pdict).item())>=0)
         if (ne.evaluate(soft_cons[i][0],local_dict = pdict).item()-ne.evaluate(soft_cons[i][1],local_dict = pdict).item() >= 0):
             lp_arr.append(0.0)
         else:
@@ -6444,11 +6445,14 @@ def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type
     # Loop through parameters with priors on them 
     prior_map = {'gaussian': lnprior_gaussian, 'halfnorm': lnprior_halfnorm, 'jeffreys': lnprior_jeffreys}
     p = [prior_map[prior_dict[key]["prior"]["type"]](pdict[key],**prior_dict[key]) for key in prior_dict]
-
+    # lp_arr += p
+    # print(np.sum(lp_arr))
     # If initial fit using maximum likelihood, do not return uniform priors (-inf), otherwise
     # scipy.optimize.minimize() fails.
     if fit_type=="init":
-        return np.nansum(p)
+        lp_arr += p
+        # return np.nansum(p)
+        return np.sum(lp_arr)
     elif fit_type=="final":
         lp_arr += p
         return np.sum(lp_arr)
