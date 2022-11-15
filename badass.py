@@ -2080,8 +2080,8 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,fit_reg,mask_emline
 
 
     lamRange = (np.min(wave),np.max(wave))
-    galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=True)
-    noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=True)
+    galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=False)
+    noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=False)
     lam_gal = np.exp(logLam)
 
     mask = generate_mask(fit_min, fit_max, lam_gal/(1+z) )
