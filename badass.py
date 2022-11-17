@@ -2561,7 +2561,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     ################################################################################
     # Initial conditions for some parameters
-    max_flux	= np.nanmax(galaxy)
+    max_flux	= np.nanmax(galaxy)*1.5
     median_flux = np.nanmedian(galaxy)
 
     # Padding on the edges; any line(s) within this many angstroms is omitted
