@@ -19,7 +19,7 @@ import numexpr as ne
 import matplotlib.pyplot as plt 
 from matplotlib import cm
 import matplotlib.gridspec as gridspec
-from scipy import optimize, linalg, special
+from scipy import optimize, linalg, special, fftpack
 from scipy.interpolate import griddata, interp1d
 from scipy.stats import f, chisquare
 from scipy import stats
@@ -61,14 +61,14 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 warnings.filterwarnings("ignore", category=UserWarning) 
 
-__author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Reefe (GMU), William Matzko (GMU), Nicholas Darden (UCR)"
+__author__   = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Reefe (GMU), William Matzko (GMU), Nicholas Darden (UCR)"
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
-__credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
-__license__	= "MIT"
-__version__	= "9.2.2"
+__credits__ = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
+__license__ = "MIT"
+__version__ = "9.3.0"
 __maintainer__ = "Remington O. Sexton"
-__email__	  = "rsexton2@gmu.edu"
-__status__	 = "Release"
+__email__     = "rsexton2@gmu.edu"
+__status__   = "Release"
 
 ##########################################################################################################
 
@@ -82,8 +82,8 @@ __status__	 = "Release"
 #   ~line 5196: same change as above
 #   ~line 5200: flux_dict[key]['chain'][j,i] = flux_blob[i][j[key] --> flux_dict[key]['chain'][j,i] = flux_blob[i][j][0][key]
 
-# 	Comment out "import StringIO" (not needed)
-#	TypeError, " " -> TypeError(" ")
+#   Comment out "import StringIO" (not needed)
+#   TypeError, " " -> TypeError(" ")
 ##########################################################################################################
 
 # Revision History
@@ -91,13 +91,13 @@ __status__	 = "Release"
 # Versions 1-5
 # - Very unstable, lots of bugs, kinda messy, not many options or features.  We've made a lot of front- and back-end changes and improvements.
 # - Versions 1-4 were not very flexible, and were originally optimized for Keck LRIS spectra (See 
-#	[Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract)) and then optimized for large samples of SDSS spectra.
+#   [Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract)) and then optimized for large samples of SDSS spectra.
 # - In Version 5 we performed a complete overhaul with more options, features.  The most improved-upon feature was the addition of autocorrelation
 #   analysis for parameter chain convergence, which now produces the most robust estimates.
 
 # Version 6
 # - Improved autocorrelation analysis and options.  One can now choose the number of autocorrelation times and tolerance for convergence.  
-#	Posterior sampling now restarts if solution jumps prematurely out of convergence.
+#   Posterior sampling now restarts if solution jumps prematurely out of convergence.
 # - Simplified the Jupyter Notebook control panel and layout.  Most of the BADASS machinery is now contained in the badass_v6_0.py file.
 # - Output of black hole mass based on availability of broad line (based on Woo et al. (2015) (https://ui.adsabs.harvard.edu/abs/2015ApJ...801...38W/abstract)
 #   H-alpha BH mass estimate, and Sexton et al. (2019) (https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract) H-beta BH mass estimate.
@@ -109,7 +109,7 @@ __status__	 = "Release"
 # - MCMC fitting with emcee is now optional with `mcmc_fit`; one can fit using only Monte Carlo bootstrapping with any number of `max_like_niter` iterations
 #   to estimate uncertainties if one does not require a fit of the LOSVD.  If you need LOSVD measurements, you still must (and *should*) use emcee.
 # - One can now perform more than a single maximum likelihood fit for intial parameter values for emcee by changing `max_like_niter`, be advised this will 
-#	take longer for large regions of spectra, but generally produces better initial parameter values.
+#   take longer for large regions of spectra, but generally produces better initial parameter values.
 # - BPT diagnostic classification includes the classic Kewley+01 & Kauffmann+03 diagram to separate starforming from AGN dominated objects, but also the [SII]
 #   diagnostic to distinguish Seyferts from LINERs.  The BPT classification is now written to the log file. 
 # - Store autocorrelation times and tolerances for each parameter in a dictionary and save to a `.npy` file
@@ -122,7 +122,7 @@ __status__	 = "Release"
 # - Added warning flags to best fit parameter files and logfile if parameters are consistent with lower or upper limits to within 1-sigma.
 # - While is is *not recommended*, one can now test for outflows in the H-alpha/[NII] region independently of the H-beta/[OIII] region, as well as
 #   fit for outflows in this region.  However, if the region includes H-beta/[OIII], then the default constraint is to still use [OIII]5007 to constrain 
-#	outflow amplitude, dispersion, and velocity offset.
+#   outflow amplitude, dispersion, and velocity offset.
 # - Plotting options, as well as corner plot added (defualt is *not* to output this file because there is lots of overhead)
 # - More stable outflow testing and maximum likelihood estimation
 
@@ -186,8 +186,8 @@ __status__	 = "Release"
 #   and double-Gaussian models for the outflow test. Removed the ratio-of-variance
 #   test and replaced it with a sum-of-squares of residuals ratio. 
 # - Added "n_basinhop" to fit_options, which allows user to choose how many initial
-#	basinhopping success iterations before a solution is achieved.  This can 
-#	drastically reduce the basinhopping fit time, at the expense of fit quality.
+#   basinhopping success iterations before a solution is achieved.  This can 
+#   drastically reduce the basinhopping fit time, at the expense of fit quality.
 # - Bug fixes.
 
 # Version 7.7.2  - 7.7.6
@@ -246,6 +246,12 @@ __status__	 = "Release"
 # - normalization for log-likelihoods
 # - outflow test region fix
 
+# Version 9.3.0
+# - NPIX and SNR (signal-to-noise ratio) is computed for all lines and now includes an 
+#   uncertainty.
+# - Removed interpolation inside of fit_model() to reduce computational expense.
+# - General bug fixes and cleaning up.
+
 ##########################################################################################################
 
 from utils.input.input import BadassInput
@@ -268,500 +274,543 @@ USE_MULTIPROCESS = True
 # BadassRunner handles parsing input data and options and
 # running a BadassContext for each target file
 class BadassRunner:
-	def __init__(self, input_data, options_data):
-		self.options = BadassOptions.get_options(options_data)
-		self.targets = BadassInput.get_inputs(input_data, self.options)
+    def __init__(self, input_data, options_data):
+        self.options = BadassOptions.get_options(options_data)
+        self.targets = BadassInput.get_inputs(input_data, self.options)
 
-	def run(self):
-		if len(self.targets) == 0:
-			return 'No targets to run' # TODO: make an Error
+    def run(self):
+        if len(self.targets) == 0:
+            return 'No targets to run' # TODO: make an Error
 
-		if (len(self.options) != 1) and (len(self.targets) != len(self.options)):
-			return 'Target and options count mismatch'
+        if (len(self.options) != 1) and (len(self.targets) != len(self.options)):
+            return 'Target and options count mismatch'
 
-		jobs = []
-		print('Starting badass for {n} targets!'.format(n=len(self.targets)))
-		for i, target in enumerate(self.targets):
-			topts = self.options[0]
-			if len(self.options) > 1:
-				topts = self.options[i]
-			ctx = BadassContext(target, topts)
-			if USE_MULTIPROCESS:
-				ctx.start()
-				jobs.append(ctx)
-			else:
-				ctx.run()
+        jobs = []
+        print('Starting badass for {n} targets!'.format(n=len(self.targets)))
+        for i, target in enumerate(self.targets):
+            topts = self.options[0]
+            if len(self.options) > 1:
+                topts = self.options[i]
+            ctx = BadassContext(target, topts)
+            if USE_MULTIPROCESS:
+                ctx.start()
+                jobs.append(ctx)
+            else:
+                ctx.run()
 
-		if USE_MULTIPROCESS:
-			for job in jobs:
-				job.join()
+        if USE_MULTIPROCESS:
+            for job in jobs:
+                job.join()
 
-		return None
+        return None
 
 
 class BadassContext(mp.Process):
-	def __init__(self, target, options):
-		mp.Process.__init__(self)
-		self.target = target
-		self.target.context = self
-		self.options = options
-		# TODO: set outdir to default to None in options validation
-		self.outdir = self.options.io_options.output_dir or get_default_outdir(self.target.infile)
+    def __init__(self, target, options):
+        mp.Process.__init__(self)
+        self.target = target
+        self.target.context = self
+        self.options = options
+        # TODO: set outdir to default to None in options validation
+        self.outdir = self.options.io_options.output_dir or get_default_outdir(self.target.infile)
 
 
-	def run(self):
+    def run(self):
 
-		# Initialize logging here since it is by process
-		self.log = BadassLogger(self)
+        # Initialize logging here since it is by process
+        self.log = BadassLogger(self)
 
-		# TODO: populated dust cache before multiprocessing started?
-		# TODO: check the IrsaDust multiprocessing cache'ing bug still exists
-		if self.options.io_options.dust_cache != None:
-			IrsaDust.cache_location = str(self.options.io_options.dust_cache)
+        # TODO: populated dust cache before multiprocessing started?
+        # TODO: check the IrsaDust multiprocessing cache'ing bug still exists
+        if self.options.io_options.dust_cache != None:
+            IrsaDust.cache_location = str(self.options.io_options.dust_cache)
 
-		# Start fitting process
-		self.log.info('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
-		sys.stdout.flush() # TODO: need?
-		# Start a timer to record the total runtime
-		self.start_time = time.time()
+        # Start fitting process
+        self.log.info('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
+        sys.stdout.flush() # TODO: need?
+        # Start a timer to record the total runtime
+        self.start_time = time.time()
 
-		self.set_fit_region()
-		# TODO: validate in function
-		if (self.fit_reg is None) or ((self.fit_reg.max-self.fit_reg.min) < constants.MIN_FIT_REGION):
-			self.log.warning('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
-			return None
+        self.set_fit_region()
+        # TODO: validate in function
+        if (self.fit_reg is None) or ((self.fit_reg.max-self.fit_reg.min) < constants.MIN_FIT_REGION):
+            self.log.warning('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
+            return None
 
-		self.prepare_context()
-		# TODO: prepare_user_spec
+        self.prepare_context()
+        # TODO: prepare_user_spec
 
-		self.log.log_target_info()
-		self.log.log_fit_information()
+        self.log.log_target_info()
+        self.log.log_fit_information()
 
-		# Generate any needed templates
-		self.templates = initialize_templates(self)
-
-
-		# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-		# TODO: remove, for classify transition
-		fit_options = self.options.fit_options
-		mcmc_options = self.options.mcmc_options
-		comp_options = self.options.comp_options
-		user_lines = self.options.user_lines
-		user_constraints = self.options.user_constraints
-		losvd_options = self.options.losvd_options
-		host_options = self.options.host_options
-		power_options = self.options.power_options
-		opt_feii_options = self.options.opt_feii_options
-		uv_iron_options = self.options.uv_iron_options
-		balmer_options = self.options.balmer_options
-		outflow_test_options = None
-		plot_options = self.options.plot_options
-		output_options = self.options.output_options
-		verbose = self.options.output_options.verbose # TODO: move output_options to io_options
-		fit_reg				= self.options.fit_options.fit_reg
-		good_thresh			= self.options.fit_options.good_thresh
-		mask_bad_pix	  	= self.options.fit_options.mask_bad_pix
-		mask_emline			= self.options.fit_options.mask_emline
-		mask_metal			= self.options.fit_options.mask_metal
-		fit_stat		  	= self.options.fit_options.fit_stat
-		n_basinhop	   		= self.options.fit_options.n_basinhop
-		test_outflows		= self.options.fit_options.test_outflows
-		test_line			= self.options.fit_options.test_line
-		max_like_niter		= self.options.fit_options.max_like_niter
-		output_pars			= self.options.fit_options.output_pars
-		cosmology		    = self.options.fit_options.cosmology
-		mcmc_fit 			= self.options.mcmc_options.mcmc_fit
-		nwalkers 			= self.options.mcmc_options.nwalkers
-		auto_stop 			= self.options.mcmc_options.auto_stop
-		conv_type 			= self.options.mcmc_options.conv_type
-		min_samp			= self.options.mcmc_options.min_samp
-		ncor_times 			= self.options.mcmc_options.ncor_times
-		autocorr_tol 		= self.options.mcmc_options.autocorr_tol
-		write_iter			= self.options.mcmc_options.write_iter
-		write_thresh		= self.options.mcmc_options.write_thresh
-		burn_in 			= self.options.mcmc_options.burn_in
-		min_iter			= self.options.mcmc_options.min_iter
-		max_iter			= self.options.mcmc_options.max_iter
-		do_pca              = self.pca_options.do_pca
-	    n_components        = self.pca_options.n_components
-	    pca_masks           = self.pca_options.pca_masks
-		fit_opt_feii		= self.options.comp_options.fit_opt_feii
-		fit_uv_iron			= self.options.comp_options.fit_uv_iron
-		fit_balmer			= self.options.comp_options.fit_balmer
-		fit_losvd			= self.options.comp_options.fit_losvd
-		fit_host			= self.options.comp_options.fit_host
-		fit_power			= self.options.comp_options.fit_power
-		fit_poly            = self.comp_options.fit_poly
-		fit_narrow			= self.options.comp_options.fit_narrow
-		fit_broad			= self.options.comp_options.fit_broad
-		fit_outflow			= self.options.comp_options.fit_outflow
-		fit_absorp			= self.options.comp_options.fit_absorp
-		tie_line_disp		= self.options.comp_options.tie_line_disp
-		tie_line_voff		= self.options.comp_options.tie_line_voff
-		n_moments 			= self.options.comp_options.n_moments
-		plot_param_hist		= self.options.plot_options.plot_param_hist
-		plot_flux_hist		= self.options.plot_options.plot_flux_hist
-		plot_lum_hist		= self.options.plot_options.plot_lum_hist
-		plot_eqwidth_hist   = self.options.plot_options.plot_eqwidth_hist
-		poly_options = self.poly_options
-		write_chain = self.options.output_options.write_chain
-		plot_HTML = self.options.plot_options.plot_HTML
-		sdss_spec = True
-		fits_file = self.target.infile
-		run_dir = self.outdir
-		user_mask = []
-		combined_lines = {}
-		fit_reg = (self.fit_reg.min, self.fit_reg.max)
-		good_frac = self.good_frac
-		lam_gal = self.wave
-		galaxy = self.spec
-		noise = self.noise
-		z = self.z
-		velscale = self.velscale
-		fwhm_gal = self.fwhm_res # TODO: change input classes to use disp_res nomenclature instead
-		disp_res = fwhm_gal # TODO: which naming convention to use?
-		fit_mask = self.fit_mask_good
-		binnum = spaxelx = spaxely = None
-		if hasattr(self.target, 'binnum_i'):
-			binnum = self.target.binnum_i
-			spaxelx = self.target.xi
-			spaxely = self.target.yi
-
-		# TODO: do this in option validation
-		# Check to make sure plotly is installed for HTML interactive plots:
-		if self.options.plot_options.plot_HTML and not importlib.util.find_spec('plotly'):
-			self.options.plot_options.plot_HTML = False
-
-		# TODO: remove, for classify transition
-		host_template = self.templates['HostTemplate'] if 'HostTemplate' in self.templates else None
-		stel_templates = self.templates['StellarTemplate'] if 'StellarTemplate' in self.templates else None
-		opt_feii_templates = self.templates['OpticalFeIITemplate'] if 'OpticalFeIITemplate' in self.templates else None
+        # Generate any needed templates
+        self.templates = initialize_templates(self)
 
 
-		#######################################################
-		# TODO: classify
+        # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        # TODO: remove, for classify transition
+        fit_options = self.options.fit_options
+        mcmc_options = self.options.mcmc_options
+        comp_options = self.options.comp_options
+        user_lines = self.options.user_lines
+        user_constraints = self.options.user_constraints
+        losvd_options = self.options.losvd_options
+        host_options = self.options.host_options
+        power_options = self.options.power_options
+        opt_feii_options = self.options.opt_feii_options
+        uv_iron_options = self.options.uv_iron_options
+        balmer_options = self.options.balmer_options
+        outflow_test_options = None
+        plot_options = self.options.plot_options
+        output_options = self.options.output_options
+        verbose = self.options.output_options.verbose # TODO: move output_options to io_options
+        fit_reg             = self.options.fit_options.fit_reg
+        good_thresh         = self.options.fit_options.good_thresh
+        mask_bad_pix        = self.options.fit_options.mask_bad_pix
+        mask_emline         = self.options.fit_options.mask_emline
+        mask_metal          = self.options.fit_options.mask_metal
+        fit_stat            = self.options.fit_options.fit_stat
+        n_basinhop          = self.options.fit_options.n_basinhop
+        test_outflows       = self.options.fit_options.test_outflows
+        test_line           = self.options.fit_options.test_line
+        max_like_niter      = self.options.fit_options.max_like_niter
+        output_pars         = self.options.fit_options.output_pars
+        cosmology           = self.options.fit_options.cosmology
+        mcmc_fit            = self.options.mcmc_options.mcmc_fit
+        nwalkers            = self.options.mcmc_options.nwalkers
+        auto_stop           = self.options.mcmc_options.auto_stop
+        conv_type           = self.options.mcmc_options.conv_type
+        min_samp            = self.options.mcmc_options.min_samp
+        ncor_times          = self.options.mcmc_options.ncor_times
+        autocorr_tol        = self.options.mcmc_options.autocorr_tol
+        write_iter          = self.options.mcmc_options.write_iter
+        write_thresh        = self.options.mcmc_options.write_thresh
+        burn_in             = self.options.mcmc_options.burn_in
+        min_iter            = self.options.mcmc_options.min_iter
+        max_iter            = self.options.mcmc_options.max_iter
+        do_pca              = self.pca_options.do_pca
+        n_components        = self.pca_options.n_components
+        pca_masks           = self.pca_options.pca_masks
+        fit_opt_feii        = self.options.comp_options.fit_opt_feii
+        fit_uv_iron         = self.options.comp_options.fit_uv_iron
+        fit_balmer          = self.options.comp_options.fit_balmer
+        fit_losvd           = self.options.comp_options.fit_losvd
+        fit_host            = self.options.comp_options.fit_host
+        fit_power           = self.options.comp_options.fit_power
+        fit_poly            = self.comp_options.fit_poly
+        fit_narrow          = self.options.comp_options.fit_narrow
+        fit_broad           = self.options.comp_options.fit_broad
+        fit_outflow         = self.options.comp_options.fit_outflow
+        fit_absorp          = self.options.comp_options.fit_absorp
+        tie_line_disp       = self.options.comp_options.tie_line_disp
+        tie_line_voff       = self.options.comp_options.tie_line_voff
+        n_moments           = self.options.comp_options.n_moments
+        plot_param_hist     = self.options.plot_options.plot_param_hist
+        plot_flux_hist      = self.options.plot_options.plot_flux_hist
+        plot_lum_hist       = self.options.plot_options.plot_lum_hist
+        plot_eqwidth_hist   = self.options.plot_options.plot_eqwidth_hist
+        poly_options = self.poly_options
+        write_chain = self.options.output_options.write_chain
+        plot_HTML = self.options.plot_options.plot_HTML
+        sdss_spec = True
+        fits_file = self.target.infile
+        run_dir = self.outdir
+        user_mask = []
+        combined_lines = {}
+        fit_reg = (self.fit_reg.min, self.fit_reg.max)
+        good_frac = self.good_frac
+        lam_gal = self.wave
+        galaxy = self.spec
+        noise = self.noise
+        z = self.z
+        velscale = self.velscale
+        fwhm_gal = self.fwhm_res # TODO: change input classes to use disp_res nomenclature instead
+        disp_res = fwhm_gal # TODO: which naming convention to use?
+        fit_mask = self.fit_mask_good
+        binnum = spaxelx = spaxely = None
+        if hasattr(self.target, 'binnum_i'):
+            binnum = self.target.binnum_i
+            spaxelx = self.target.xi
+            spaxely = self.target.yi
 
-		# Do PCA reconstruction if desired
+        # TODO: do this in option validation
+        # Check to make sure plotly is installed for HTML interactive plots:
+        if self.options.plot_options.plot_HTML and not importlib.util.find_spec('plotly'):
+            self.options.plot_options.plot_HTML = False
 
-	    # Regardless of PCA, check for nans in flux and flux error arrays. If found, raise an error because they will prevent fit optimization
-	    pca_nan_fix = False # boolean, just for diagnostic purposes in output log. If you have nans in your spectrum that were "fixed" by PCA, it's good to know. 
-	    if ( (np.isnan(galaxy).any() ) or (np.isnan(noise).any() ) ) and  (not do_pca):
-	        raise ValueError(f"\n The flux or flux error in fitting region {fit_reg} is nan, stopping fit. Change fitting region or enable PCA to cover nan region.\n")
-	    elif ( (np.isnan(galaxy).any() ) or (np.isnan(noise).any() ) ) and (do_pca):
-	        pca_nan_fix = True
-	        print(f"Performing PCA on a spectrum with nans over region(s) {pca_masks}. Be careful to ensure PCA covers all nan regions, else PCA will fail.\n")
-	        
-	    if do_pca:
-	        print("\n---------------------------------------\n")
-	        print(" Performing PCA analysis...\n")
-	        if len(pca_masks):
-	            pca_reg_test = [(i[0]>=fit_reg[0],i[1]<=fit_reg[1]) for i in pca_masks] # check that pca mask regions are within fitting region
-	            if not np.all(pca_reg_test):
-	                raise ValueError(f"PCA region masks {pca_masks} must be within fitting region {fit_reg}")
-	        else:
-	            pca_masks = ([fit_reg])
-	        galaxy,galaxy_pca_resid,noise,evecs,evals_cs,spec_mean_pca,pca_coeff = do_pca_fill(lam_gal,galaxy,noise,n_components=n_components, pca_masks=pca_masks, plot_pca=plot_pca, run_dir=run_dir)
-	        pca_exp_var = evals_cs[-1]
-	        print(" PCA analysis complete!")
-	        print("\n---------------------------------------\n\n")
-
-	    else:
-	        pca_exp_var = None
-			
-		# Generate UV Iron template - Vestergaard & Wilkes (2001)
-		if (fit_uv_iron==True) & (lam_gal[-1]>=1074.0) & (lam_gal[0]<=3100.0):
-			uv_iron_template = initialize_uv_iron(lam_gal,uv_iron_options,disp_res,fit_mask,velscale)
-		elif (fit_uv_iron==True) & ((lam_gal[-1]<1074.0) | (lam_gal[0]>3100.0)):
-			if verbose:
-				print('\n - UV Iron template disabled because template is outside of fitting region.')
-			uv_iron_template = None
-			fit_uv_iron = False
-			comp_options["fit_uv_iron"]=False
-			uv_iron_template = None
-			write_log((),'update_uv_iron',run_dir)
-		elif (fit_uv_iron==False):
-			uv_iron_template = None
-
-		# Generate Balmer continuum
-		if (fit_balmer==True) & (lam_gal[0]<3500.0):
-			balmer_template = initialize_balmer(lam_gal,balmer_options,disp_res,fit_mask,velscale)
-		elif (fit_balmer==True) & (lam_gal[0]>=3500.0):
-			if verbose:
-				print('\n - Balmer continuum disabled because template is outside of fitting region.')
-			balmer_template = None
-			fit_balmer = False
-			comp_options["fit_balmer"]=False
-			balmer_template = None
-			write_log((),'update_balmer',run_dir)
-		elif (fit_balmer==False):
-			balmer_template = None
-
-		####################################################################################################################################################################################
-
-		# Initialize maximum likelihood parameters
-		if verbose:
-			print('\n Initializing parameters for Maximum Likelihood Fitting.')
-			print('----------------------------------------------------------------------------------------------------')
-
-		param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
-									 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
-									 opt_feii_options,uv_iron_options,balmer_options,
-									 run_dir,fit_type='init',fit_stat=fit_stat,
-									 fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
-									 fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
-									 fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
-									 tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,verbose=verbose)
-
-		# Output all free parameters of fit prior to fitting (useful for diagnostics)
-		if output_pars and verbose:
-			output_free_pars(line_list,param_dict,soft_cons)
-			write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
-			return 
-		elif not output_pars and verbose:
-			output_free_pars(line_list,param_dict,soft_cons)
-			write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
-		elif not output_pars and not verbose:
-			write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
-
-		#### Line Testing ################################################################################################################################################################################
-		
-		if (test_line["bool"]==True):
-			# If line test, check to make sure line is in line list
-			if (isinstance(test_line["line"],str)) and (test_line["line"] not in line_list):
-				shutil.rmtree(run_dir)
-				print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
-				return
-			elif (isinstance(test_line["line"],list)) and not (np.all([False if line not in line_list else True for line in test_line["line"]])):
-				shutil.rmtree(run_dir)
-				print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
-				return
-				
-
-			if verbose:
-				print("\n Testing for %s" % (test_line["line"]))
+        # TODO: remove, for classify transition
+        host_template = self.templates['HostTemplate'] if 'HostTemplate' in self.templates else None
+        stel_templates = self.templates['StellarTemplate'] if 'StellarTemplate' in self.templates else None
+        opt_feii_templates = self.templates['OpticalFeIITemplate'] if 'OpticalFeIITemplate' in self.templates else None
 
 
-			line_test(param_dict,
-					  line_list,
-					  combined_line_list,
-					  soft_cons,
-					  lam_gal,
-					  galaxy,
-					  noise,
-					  z,
-					  cosmology,
-					  fit_reg,
-					  user_lines,
-					  user_constraints,
-					  combined_lines,
-					  test_line,
-					  comp_options,
-					  losvd_options,
-					  host_options,
-					  power_options,
-					  poly_options,
-					  opt_feii_options,
-					  uv_iron_options,
-					  balmer_options,
-					  outflow_test_options,
-					  host_template,
-					  opt_feii_templates,
-					  uv_iron_template,
-					  balmer_template,
-					  stel_templates,
-					  disp_res,
-					  fit_mask,
-					  velscale,
-					  run_dir,
-					  fit_type='init',
-					  fit_stat=fit_stat,
-					  output_model=False,
-					  test_outflows=False,
-					  n_basinhop=n_basinhop,
-					  max_like_niter=max_like_niter,
-					  verbose=verbose,
-					  binnum=binnum,
-					  spaxelx=spaxelx,
-					  spaxely=spaxely)
-			# Exit BADASS
-			print(' - Line testing complete for %s! \n' % fits_file.parent.name)
-			return
+        #######################################################
+        # TODO: classify
 
-		####################################################################################################################################################################################
+        # Do PCA reconstruction if desired
 
-		#### Outflow Testing ################################################################################################################################################################################
-		
-		if (test_outflows==True):
-			# If test_outflow, check to make sure the line list has outflow lines in it
-			if (len([line for line in line_list if line_list[line]["line_type"]=="out"])==0):
-				shutil.rmtree(run_dir)
-				print("\n There are no outflow lines in the line list to test! Make sure fit_outflow = True and are within fitting range.\n")
-				return
+        # Regardless of PCA, check for nans in flux and flux error arrays. If found, raise an error because they will prevent fit optimization
+        pca_nan_fix = False # boolean, just for diagnostic purposes in output log. If you have nans in your spectrum that were "fixed" by PCA, it's good to know. 
+        if ( (np.isnan(galaxy).any() ) or (np.isnan(noise).any() ) ) and  (not do_pca):
+            raise ValueError(f"\n The flux or flux error in fitting region {fit_reg} is nan, stopping fit. Change fitting region or enable PCA to cover nan region.\n")
+        elif ( (np.isnan(galaxy).any() ) or (np.isnan(noise).any() ) ) and (do_pca):
+            pca_nan_fix = True
+            print(f"Performing PCA on a spectrum with nans over region(s) {pca_masks}. Be careful to ensure PCA covers all nan regions, else PCA will fail.\n")
+            
+        if do_pca:
+            print("\n---------------------------------------\n")
+            print(" Performing PCA analysis...\n")
+            if len(pca_masks):
+                pca_reg_test = [(i[0]>=fit_reg[0],i[1]<=fit_reg[1]) for i in pca_masks] # check that pca mask regions are within fitting region
+                if not np.all(pca_reg_test):
+                    raise ValueError(f"PCA region masks {pca_masks} must be within fitting region {fit_reg}")
+            else:
+                pca_masks = ([fit_reg])
+            galaxy,galaxy_pca_resid,noise,evecs,evals_cs,spec_mean_pca,pca_coeff = do_pca_fill(lam_gal,galaxy,noise,n_components=n_components, pca_masks=pca_masks, plot_pca=plot_pca, run_dir=run_dir)
+            pca_exp_var = evals_cs[-1]
+            print(" PCA analysis complete!")
+            print("\n---------------------------------------\n\n")
 
-			if verbose:
-				print("\n Testing for outflows...")
+        else:
+            pca_exp_var = None
+            
+        # Generate UV Iron template - Vestergaard & Wilkes (2001)
+        if (fit_uv_iron==True) & (lam_gal[-1]>=1074.0) & (lam_gal[0]<=3100.0):
+            uv_iron_template = initialize_uv_iron(lam_gal,uv_iron_options,disp_res,fit_mask,velscale)
+        elif (fit_uv_iron==True) & ((lam_gal[-1]<1074.0) | (lam_gal[0]>3100.0)):
+            if verbose:
+                print('\n - UV Iron template disabled because template is outside of fitting region.')
+            uv_iron_template = None
+            fit_uv_iron = False
+            comp_options["fit_uv_iron"]=False
+            uv_iron_template = None
+            write_log((),'update_uv_iron',run_dir)
+        elif (fit_uv_iron==False):
+            uv_iron_template = None
 
+        # Generate Balmer continuum
+        if (fit_balmer==True) & (lam_gal[0]<3500.0):
+            balmer_template = initialize_balmer(lam_gal,balmer_options,disp_res,fit_mask,velscale)
+        elif (fit_balmer==True) & (lam_gal[0]>=3500.0):
+            if verbose:
+                print('\n - Balmer continuum disabled because template is outside of fitting region.')
+            balmer_template = None
+            fit_balmer = False
+            comp_options["fit_balmer"]=False
+            balmer_template = None
+            write_log((),'update_balmer',run_dir)
+        elif (fit_balmer==False):
+            balmer_template = None
 
-			line_test(param_dict,
-					  line_list,
-					  combined_line_list,
-					  soft_cons,
-					  lam_gal,
-					  galaxy,
-					  noise,
-					  z,
-					  cosmology,
-					  fit_reg,
-					  user_lines,
-					  user_constraints,
-					  combined_lines,
-					  test_line,
-					  comp_options,
-					  losvd_options,
-					  host_options,
-					  power_options,
-					  poly_options,
-					  opt_feii_options,
-					  uv_iron_options,
-					  balmer_options,
-					  outflow_test_options,
-					  host_template,
-					  opt_feii_templates,
-					  uv_iron_template,
-					  balmer_template,
-					  stel_templates,
-					  disp_res,
-					  fit_mask,
-					  velscale,
-					  run_dir,
-					  fit_type='init',
-					  fit_stat=fit_stat,
-					  output_model=False,
-					  test_outflows=True,
-					  n_basinhop=n_basinhop,
-					  max_like_niter=max_like_niter,
-					  verbose=verbose,
-					  binnum=binnum,
-					  spaxelx=spaxelx,
-					  spaxely=spaxely)
-			# Exit BADASS
-			print(' - Outflow testing complete for %s! \n' % fits_file.parent.name)
-			return
+        ####################################################################################################################################################################################
 
-		####################################################################################################################################################################################
-		# Peform maximum likelihood
-		result_dict, comp_dict     = max_likelihood(param_dict,
-													line_list,
-													combined_line_list,
-													soft_cons,
-													lam_gal,
-													galaxy,
-													noise,
-													z,
-													cosmology,
-													comp_options,
-													losvd_options,
-													host_options,
-													power_options,
-													poly_options,
-													opt_feii_options,
-													uv_iron_options,
-													balmer_options,
-													outflow_test_options,
-													host_template,
-													opt_feii_templates,
-													uv_iron_template,
-													balmer_template,
-													stel_templates,
-													disp_res,
-													fit_mask,
-													velscale,
-													run_dir,
-													fit_type='init',
-													fit_stat=fit_stat,
-													output_model=False,
-													test_outflows=False,
-													n_basinhop=n_basinhop,
-													max_like_niter=max_like_niter,
-													verbose=verbose)
-		
-		if (mcmc_fit==False):
-			# If not performing MCMC fitting, terminate BADASS here and write 
-			# parameters, uncertainties, and components to a fits file
-			# Write final parameters to file
-			# Header information
-			header_dict = {}
-			header_dict["z_sdss"] = z
-			header_dict["med_noise"] = np.median(noise)
-			header_dict["velscale"]  = velscale
-			#
-			write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,binnum,spaxelx,spaxely)
-			
-			# Make interactive HTML plot 
-			if plot_HTML:
-				plotly_best_fit(fits_file.parent.name,line_list,fit_mask,run_dir)
+        # Initialize maximum likelihood parameters
+        if verbose:
+            print('\n Initializing parameters for Maximum Likelihood Fitting.')
+            print('----------------------------------------------------------------------------------------------------')
 
-			print(' - Done fitting %s! \n' % fits_file.parent.name)
-			sys.stdout.flush()
-			return
+        param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
+                                     comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                     opt_feii_options,uv_iron_options,balmer_options,
+                                     run_dir,fit_type='init',fit_stat=fit_stat,
+                                     fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
+                                     fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
+                                     fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
+                                     tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,verbose=verbose)
 
-		#######################################################################################################
-	 
-		# Initialize parameters for emcee
-		if verbose:
-			print('\n Initializing parameters for MCMC.')
-			print('----------------------------------------------------------------------------------------------------')
-		param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
-															   comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
-															   opt_feii_options,uv_iron_options,balmer_options,
-															   run_dir,fit_type='final',fit_stat=fit_stat,
-															   fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
-															   fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
-															   fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
-															   tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,
-															   remove_lines=False,verbose=verbose)
-		#
-		if verbose:
-			output_free_pars(line_list,param_dict,soft_cons)
-		#
-		# Replace initial conditions with best fit max. likelihood parameters (the old switcharoo)
-		for key in result_dict:
-			if key in param_dict:
-				param_dict[key]['init']=result_dict[key]['med']
-		# We make an exception for FeII temperature if Kovadevic et al. (2010) templates are used because 
-		# temperature is not every sensitive > 8,000 K.  This causes temperature parameter to blow up
-		# during the initial max. likelihood fitting, causing it to be initialized for MCMC at an 
-		# unreasonable value.  We therefroe re-initializethe FeiI temp start value to 10,000 K.
-		if 'feii_temp' in param_dict:
-			param_dict['feii_temp']['init']=10000.0
-		
-		#######################################################################################################
+        # Output all free parameters of fit prior to fitting (useful for diagnostics)
+        if output_pars and verbose:
+            output_free_pars(line_list,param_dict,soft_cons)
+            write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
+            return 
+        elif not output_pars and verbose:
+            output_free_pars(line_list,param_dict,soft_cons)
+            write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
+        elif not output_pars and not verbose:
+            write_log((line_list,param_dict,soft_cons),'output_line_list',run_dir)
 
 
-		# Run emcee
-		if verbose:
-			print('\n Performing MCMC iterations...')
-			print('----------------------------------------------------------------------------------------------------')
+    ####################################################################################################################################################################################    
 
-		# Extract relevant stuff from dicts
-		param_names  = [key for key in param_dict ]
-		init_params  = [param_dict[key]['init'] for key in param_dict ]
-		bounds		 = [param_dict[key]['plim'] for key in param_dict ]
-		prior_dict   = {key:param_dict[key] for key in param_dict if ("prior" in param_dict[key])}
-		# Check number of walkers
-		# If number of walkers < 2*(# of params) (the minimum required), then set it to that
-		if nwalkers<2*len(param_names):
-			if verbose:
-				print('\n Number of walkers < 2 x (# of parameters)!  Setting nwalkers = %d' % (2.0*len(param_names)))
-			nwalkers = int(2.0*len(param_names))
-		
-		ndim, nwalkers = len(init_params), nwalkers # minimum walkers = 2*len(params)
+        # Construct blob-pars
+        # The blob-parameter dictionary is a dictionary for any non-free "blob" parameters for values that need 
+        # to be calculated during the fit.  For MCMC, these equate to non-fitted parameters like fluxes, equivalent widths, 
+        # or continuum fluxes that aren't explicitly fit as free paramters, but need to be calculated as output /during the fitting process/
+        # such that full chains can be constructed out of their values (as opposed to calculated after the fitting is over).
+        # We mainly use blob-pars for the indices of the wavelength vector at which to calculate continuum luminosities, so we don't have to 
+        # interpolate during the fit, which is computationally expensive.
+        # This needs to be passed throughout the fit_model() algorithm so it can be used.
 
-		# initialize walker starting positions based on parameter estimation from Maximum Likelihood fitting
-		pos = initialize_walkers(init_params,param_names,bounds,soft_cons,nwalkers,ndim)
-		# Run emcee
-		# args = arguments of lnprob (log-probability function)
-		lnprob_args=(param_names,
+        def get_blob_pars(lam_gal, line_list, combined_line_list, velscale):
+
+            blob_pars = {}
+
+            # Values of velocity scale corresponding to wavelengths; this is used to calculate
+            # integrated dispersions and velocity offsets for combined lines.
+            interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,kind='linear',bounds_error=False)
+            
+            for line in combined_line_list:
+                blob_pars[line+"_LINE_VEL"] = interp_ftn(combined_line_list[line]["center"])
+
+            # Indices for continuum wavelengths
+            if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
+                blob_pars["INDEX_1350"] = find_nearest(lam_gal,1350.)[1]
+            if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
+                blob_pars["INDEX_3000"] = find_nearest(lam_gal,3000.)[1]
+            if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
+                blob_pars["INDEX_4000"] = find_nearest(lam_gal,4000.)[1]
+            if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
+                blob_pars["INDEX_5100"] = find_nearest(lam_gal,5100.)[1]
+            if (lam_gal[0]<7000) & (lam_gal[-1]>7000): 
+                blob_pars["INDEX_7000"] = find_nearest(lam_gal,7000.)[1]
+
+            return blob_pars
+
+
+        blob_pars = get_blob_pars(lam_gal, line_list, combined_line_list, velscale)
+
+        #### Line Testing ################################################################################################################################################################################
+        
+        if (test_line["bool"]==True):
+            # If line test, check to make sure line is in line list
+            if (isinstance(test_line["line"],str)) and (test_line["line"] not in line_list):
+                shutil.rmtree(run_dir)
+                print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
+                return
+            elif (isinstance(test_line["line"],list)) and not (np.all([False if line not in line_list else True for line in test_line["line"]])):
+                shutil.rmtree(run_dir)
+                print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
+                return
+                
+
+            if verbose:
+                print("\n Testing for %s" % (test_line["line"]))
+
+
+            line_test(param_dict,
+                      line_list,
+                      combined_line_list,
+                      soft_cons,
+                      lam_gal,
+                      galaxy,
+                      noise,
+                      z,
+                      cosmology,
+                      fit_reg,
+                      user_lines,
+                      user_constraints,
+                      combined_lines,
+                      test_line,
+                      comp_options,
+                      losvd_options,
+                      host_options,
+                      power_options,
+                      poly_options,
+                      opt_feii_options,
+                      uv_iron_options,
+                      balmer_options,
+                      outflow_test_options,
+                      host_template,
+                      opt_feii_templates,
+                      uv_iron_template,
+                      balmer_template,
+                      stel_templates,
+                      blob_pars,
+                      disp_res,
+                      fit_mask,
+                      velscale,
+                      run_dir,
+                      fit_type='init',
+                      fit_stat=fit_stat,
+                      output_model=False,
+                      test_outflows=False,
+                      n_basinhop=n_basinhop,
+                      max_like_niter=max_like_niter,
+                      verbose=verbose,
+                      binnum=binnum,
+                      spaxelx=spaxelx,
+                      spaxely=spaxely)
+            # Exit BADASS
+            print(' - Line testing complete for %s! \n' % fits_file.parent.name)
+            return
+
+        ####################################################################################################################################################################################
+
+        #### Outflow Testing ################################################################################################################################################################################
+        
+        if (test_outflows==True):
+            # If test_outflow, check to make sure the line list has outflow lines in it
+            if (len([line for line in line_list if line_list[line]["line_type"]=="out"])==0):
+                shutil.rmtree(run_dir)
+                print("\n There are no outflow lines in the line list to test! Make sure fit_outflow = True and are within fitting range.\n")
+                return
+
+            if verbose:
+                print("\n Testing for outflows...")
+
+
+            line_test(param_dict,
+                      line_list,
+                      combined_line_list,
+                      soft_cons,
+                      lam_gal,
+                      galaxy,
+                      noise,
+                      z,
+                      cosmology,
+                      fit_reg,
+                      user_lines,
+                      user_constraints,
+                      combined_lines,
+                      test_line,
+                      comp_options,
+                      losvd_options,
+                      host_options,
+                      power_options,
+                      poly_options,
+                      opt_feii_options,
+                      uv_iron_options,
+                      balmer_options,
+                      outflow_test_options,
+                      host_template,
+                      opt_feii_templates,
+                      uv_iron_template,
+                      balmer_template,
+                      stel_templates,
+                      blob_pars,
+                      disp_res,
+                      fit_mask,
+                      velscale,
+                      run_dir,
+                      fit_type='init',
+                      fit_stat=fit_stat,
+                      output_model=False,
+                      test_outflows=True,
+                      n_basinhop=n_basinhop,
+                      max_like_niter=max_like_niter,
+                      verbose=verbose,
+                      binnum=binnum,
+                      spaxelx=spaxelx,
+                      spaxely=spaxely)
+            # Exit BADASS
+            print(' - Outflow testing complete for %s! \n' % fits_file.parent.name)
+            return
+
+        ####################################################################################################################################################################################
+        # Peform maximum likelihood
+        result_dict, comp_dict     = max_likelihood(param_dict,
+                                                    line_list,
+                                                    combined_line_list,
+                                                    soft_cons,
+                                                    lam_gal,
+                                                    galaxy,
+                                                    noise,
+                                                    z,
+                                                    cosmology,
+                                                    comp_options,
+                                                    losvd_options,
+                                                    host_options,
+                                                    power_options,
+                                                    poly_options,
+                                                    opt_feii_options,
+                                                    uv_iron_options,
+                                                    balmer_options,
+                                                    outflow_test_options,
+                                                    host_template,
+                                                    opt_feii_templates,
+                                                    uv_iron_template,
+                                                    balmer_template,
+                                                    stel_templates,
+                                                    blob_pars,
+                                                    disp_res,
+                                                    fit_mask,
+                                                    velscale,
+                                                    run_dir,
+                                                    fit_type='init',
+                                                    fit_stat=fit_stat,
+                                                    output_model=False,
+                                                    test_outflows=False,
+                                                    n_basinhop=n_basinhop,
+                                                    max_like_niter=max_like_niter,
+                                                    verbose=verbose)
+        
+        if (mcmc_fit==False):
+            # If not performing MCMC fitting, terminate BADASS here and write 
+            # parameters, uncertainties, and components to a fits file
+            # Write final parameters to file
+            # Header information
+            header_dict = {}
+            header_dict["z_sdss"] = z
+            header_dict["med_noise"] = np.median(noise)
+            header_dict["velscale"]  = velscale
+            #
+            write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,binnum,spaxelx,spaxely)
+            
+            # Make interactive HTML plot 
+            if plot_HTML:
+                plotly_best_fit(fits_file.parent.name,line_list,fit_mask,run_dir)
+
+            print(' - Done fitting %s! \n' % fits_file.parent.name)
+            sys.stdout.flush()
+            return
+
+        #######################################################################################################
+     
+        # Initialize parameters for emcee
+        if verbose:
+            print('\n Initializing parameters for MCMC.')
+            print('----------------------------------------------------------------------------------------------------')
+        param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
+                                                               comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                                               opt_feii_options,uv_iron_options,balmer_options,
+                                                               run_dir,fit_type='final',fit_stat=fit_stat,
+                                                               fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
+                                                               fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
+                                                               fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
+                                                               tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,
+                                                               remove_lines=False,verbose=verbose)
+        #
+        if verbose:
+            output_free_pars(line_list,param_dict,soft_cons)
+        #
+        # Replace initial conditions with best fit max. likelihood parameters (the old switcharoo)
+        for key in result_dict:
+            if key in param_dict:
+                param_dict[key]['init']=result_dict[key]['med']
+        # We make an exception for FeII temperature if Kovadevic et al. (2010) templates are used because 
+        # temperature is not every sensitive > 8,000 K.  This causes temperature parameter to blow up
+        # during the initial max. likelihood fitting, causing it to be initialized for MCMC at an 
+        # unreasonable value.  We therefroe re-initializethe FeiI temp start value to 10,000 K.
+        if 'feii_temp' in param_dict:
+            param_dict['feii_temp']['init']=10000.0
+        
+        #######################################################################################################
+
+
+        # Run emcee
+        if verbose:
+            print('\n Performing MCMC iterations...')
+            print('----------------------------------------------------------------------------------------------------')
+
+        # Extract relevant stuff from dicts
+        param_names  = [key for key in param_dict ]
+        init_params  = [param_dict[key]['init'] for key in param_dict ]
+        bounds       = [param_dict[key]['plim'] for key in param_dict ]
+        prior_dict   = {key:param_dict[key] for key in param_dict if ("prior" in param_dict[key])}
+        # Check number of walkers
+        # If number of walkers < 2*(# of params) (the minimum required), then set it to that
+        if nwalkers<2*len(param_names):
+            if verbose:
+                print('\n Number of walkers < 2 x (# of parameters)!  Setting nwalkers = %d' % (2.0*len(param_names)))
+            nwalkers = int(2.0*len(param_names))
+        
+        ndim, nwalkers = len(init_params), nwalkers # minimum walkers = 2*len(params)
+
+        # initialize walker starting positions based on parameter estimation from Maximum Likelihood fitting
+        pos = initialize_walkers(init_params,param_names,bounds,soft_cons,nwalkers,ndim)
+        # Run emcee
+        # args = arguments of lnprob (log-probability function)
+        lnprob_args=(param_names,
                  prior_dict,
                  line_list,
                  combined_line_list,
@@ -784,6 +833,7 @@ class BadassContext(mp.Process):
                  uv_iron_template,
                  balmer_template,
                  stel_templates,
+                 blob_pars,
                  disp_res,
                  fit_mask,
                  velscale,
@@ -791,274 +841,275 @@ class BadassContext(mp.Process):
                  fit_stat,
                  False,
                  run_dir)
-		
-		emcee_data = run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
-								auto_stop,conv_type,min_samp,ncor_times,autocorr_tol,write_iter,write_thresh,
-								burn_in,min_iter,max_iter,verbose=verbose)
+        
+        emcee_data = run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
+                                auto_stop,conv_type,min_samp,ncor_times,autocorr_tol,write_iter,write_thresh,
+                                burn_in,min_iter,max_iter,verbose=verbose)
 
-		sampler_chain, burn_in, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, log_like_blob = emcee_data
-		# Add chains to each parameter in param dictionary
-		for k,key in enumerate(param_names):
-			if key in param_dict:
-				param_dict[key]['chain']=sampler_chain[:,:,k]
+        sampler_chain, burn_in, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob, log_like_blob = emcee_data
+        # Add chains to each parameter in param dictionary
+        for k,key in enumerate(param_names):
+            if key in param_dict:
+                param_dict[key]['chain']=sampler_chain[:,:,k]
 
-		if verbose:
-			print('\n > Fitting MCMC chains...')
-		# These three functions produce parameter, flux, and luminosity histograms and chains from the MCMC sampling.
-		# Free parameter values, uncertainties, and plots
-		param_dict = param_plots(param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist,verbose=verbose)
-		# Add tied parameters
-		param_dict = add_tied_parameters(param_dict, line_list)
-		# Log Like Function values plots
-		log_like_dict = log_like_plot(log_like_blob, burn_in, nwalkers, run_dir, plot_param_hist=plot_param_hist,verbose=verbose)
-		# Flux values, uncertainties, and plots
-		flux_dict = flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=plot_flux_hist,verbose=verbose)
-		# Luminosity values, uncertainties, and plots
-		lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
-		# Continuum luminosity 
-		cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
-		# Equivalent widths, uncertainties, and plots
-		eqwidth_dict = eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=plot_eqwidth_hist, verbose=verbose)
-		# Auxiliary Line Dict (Combined FWHMs and Fluxes of MgII and CIV)
-		int_vel_disp_dict = int_vel_disp_plots(int_vel_disp_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_param_hist=plot_param_hist,verbose=verbose)
+        if verbose:
+            print('\n > Fitting MCMC chains...')
+        # These three functions produce parameter, flux, and luminosity histograms and chains from the MCMC sampling.
+        # Free parameter values, uncertainties, and plots
+        param_dict = param_plots(param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist,verbose=verbose)
+        # Add tied parameters
+        param_dict = add_tied_parameters(param_dict, line_list)
+        # Log Like Function values plots
+        log_like_dict = log_like_plot(log_like_blob, burn_in, nwalkers, run_dir, plot_param_hist=plot_param_hist,verbose=verbose)
+        # Flux values, uncertainties, and plots
+        flux_dict = flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=plot_flux_hist,verbose=verbose)
+        # Luminosity values, uncertainties, and plots
+        lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
+        # Continuum luminosity 
+        cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
+        # Equivalent widths, uncertainties, and plots
+        eqwidth_dict = eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=plot_eqwidth_hist, verbose=verbose)
+        # Auxiliary Line Dict (Combined FWHMs and Fluxes of MgII and CIV)
+        int_vel_disp_dict = int_vel_disp_plots(int_vel_disp_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_param_hist=plot_param_hist,verbose=verbose)
 
-		# If stellar velocity is fit, estimate the systemic velocity of the galaxy;
-		# SDSS redshifts are based on average emission line redshifts.
-		extra_dict = {}
-		extra_dict["LOG_LIKE"] = log_like_dict
+        # If stellar velocity is fit, estimate the systemic velocity of the galaxy;
+        # SDSS redshifts are based on average emission line redshifts.
+        extra_dict = {}
+        extra_dict["LOG_LIKE"] = log_like_dict
 
-		if ('stel_vel' in param_dict):
-			if verbose:
-				print('\n > Estimating systemic velocity of galaxy...')
-			z_dict = systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist)
-			extra_dict = {**extra_dict, **z_dict}
+        if ('stel_vel' in param_dict):
+            if verbose:
+                print('\n > Estimating systemic velocity of galaxy...')
+            z_dict = systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist)
+            extra_dict = {**extra_dict, **z_dict}
 
-		if verbose:
-			print('\n > Saving Data...')
+        if verbose:
+            print('\n > Saving Data...')
 
-		# Write all chains to a fits table
-		if (write_chain==True):
-			write_chains({**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},run_dir)
-		# Plot and save the best fit model and all sub-components
-		comp_dict = plot_best_model(param_dict,
-						line_list,
-						combined_line_list,
-						lam_gal,
-						galaxy,
-						noise,
-						comp_options,
-						losvd_options,
-						host_options,
-						power_options,
-						poly_options,
-						opt_feii_options,
-						uv_iron_options,
-						balmer_options,
-						outflow_test_options,
-						host_template,
-						opt_feii_templates,
-						uv_iron_template,
-						balmer_template,
-						stel_templates,
-						disp_res,
-						fit_mask,
-						fit_stat,
-						velscale,
-						run_dir)
+        # Write all chains to a fits table
+        if (write_chain==True):
+            write_chains({**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},run_dir)
+        # Plot and save the best fit model and all sub-components
+        comp_dict = plot_best_model(param_dict,
+                        line_list,
+                        combined_line_list,
+                        lam_gal,
+                        galaxy,
+                        noise,
+                        comp_options,
+                        losvd_options,
+                        host_options,
+                        power_options,
+                        poly_options,
+                        opt_feii_options,
+                        uv_iron_options,
+                        balmer_options,
+                        outflow_test_options,
+                        host_template,
+                        opt_feii_templates,
+                        uv_iron_template,
+                        balmer_template,
+                        stel_templates,
+                        blob_pars,
+                        disp_res,
+                        fit_mask,
+                        fit_stat,
+                        velscale,
+                        run_dir)
 
-		# Calculate some fit quality parameters which will be added to the dictionary
-		# These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-		fit_quality_dict = fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type="mcmc",fit_stat=fit_stat)
-		param_dict = {**param_dict,**fit_quality_dict}
+        # Calculate some fit quality parameters which will be added to the dictionary
+        # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
+        # fit_quality_dict = fit_quality_pars(param_dict,len(param_dict),line_list,combined_line_list,comp_dict,fit_mask,fit_type="mcmc",fit_stat=fit_stat)
+        # param_dict = {**param_dict,**fit_quality_dict}
 
-		# Write best fit parameters to fits table
-		# Header information
-		header_dict = {}
-		header_dict["Z_SDSS"]	= z
-		header_dict["MED_NOISE"] = np.median(noise)
-		header_dict["VELSCALE"]  = velscale
-		#
-		param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
-		write_params(param_dict,header_dict,bounds,run_dir,binnum,spaxelx,spaxely)
+        # Write best fit parameters to fits table
+        # Header information
+        header_dict = {}
+        header_dict["Z_SDSS"]   = z
+        header_dict["MED_NOISE"] = np.median(noise)
+        header_dict["VELSCALE"]  = velscale
+        #
+        param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
+        write_params(param_dict,header_dict,bounds,run_dir,binnum,spaxelx,spaxely)
 
-		# Make interactive HTML plot 
-		if plot_HTML:
-			plotly_best_fit(fits_file.parent.name,line_list,fit_mask,run_dir)
+        # Make interactive HTML plot 
+        if plot_HTML:
+            plotly_best_fit(fits_file.parent.name,line_list,fit_mask,run_dir)
 
-		if verbose:
-			print('\n Cleaning up...')
-			print('----------------------------------------------------------------------------------------------------')
-		# Delete redundant files to cut down on space
-		cleanup(run_dir)
-		
-		# Total time
-		elap_time = (time.time() - self.start_time)
-		if verbose:
-			print("\n Total Runtime = %s" % (time_convert(elap_time)))
-		# Write to log
-		write_log(elap_time,'total_time',run_dir)
-		print(' - Done fitting %s! \n' % fits_file.stem)
-		sys.stdout.flush()
-		return
-
-
-	def set_fit_region(self):
-		"""
-		Determines the fitting region for an input spectrum and fit options.
-		"""
-
-		min_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].min_losvd
-		max_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].max_losvd
-
-		fit_reg = self.options.fit_options.fit_reg
-		self.fit_reg = fit_reg
-		verbose = self.options.output_options.verbose # TODO: remove in favor of logging
-
-		# Edges of wavelength vector
-		first_good = self.target.wave[0]
-		last_good  = self.target.wave[-1]
-
-		# TODO: account for auto and full in options schema
-		if fit_reg in ['auto', 'full']:
-			# TODO: floor and ceil needed? can we use floats for fit_reg?
-			self.fit_reg = (np.floor(first_good),np.ceil(last_good))
-			# The lower limit of the spectrum must be the lower limit of our stellar templates
-			if self.options.comp_options.fit_losvd and ((first_good < min_losvd) or (last_good > max_losvd)):
-				if verbose:
-					print("\n Warning: Fitting LOSVD requires wavelenth range between %d Å and %d Å for stellar templates. BADASS will adjust your fitting range to fit the LOSVD..." % (min_losvd,max_losvd))
-					print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
-				auto_low = np.max([min_losvd,first_good]) # Indo-US Library of Stellar Templates has a lower limit of 3460
-				auto_upp = np.min([max_losvd,last_good])
-				self.fit_reg = (np.floor(auto_low),np.ceil(auto_upp))   
-
-		elif isinstance(fit_reg,(tuple,list)):
-			# Check to see if tuple/list makes sense
-			if fit_reg[0] > fit_reg[1]: # if boundaries overlap
-				raise Exception('Fitting boundaries overlap!')
-			if (fit_reg[0] > last_good) | (fit_reg[1] < first_good):
-				raise Exception('\n Fitting region not available! \n')
-
-			self.fit_reg = (np.floor(fit_reg[0]),np.ceil(fit_reg[1]))
-			if self.options.comp_options.fit_losvd and ((fit_reg[0] < min_losvd) or (fit_reg[1] > max_losvd)):
-				if verbose:
-					print("\n Warning: Fitting LOSVD requires wavelenth range between 3460 A and 9464 A for stellar templates. BADASS will adjust your fitting range to fit the LOSVD...")
-					print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-					print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
-				wave_low = np.max([min_losvd,fit_reg[0],first_good])
-				wave_upp = np.min([max_losvd,fit_reg[1],last_good])
-				self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
-
-			elif (fit_reg[0] < first_good) or (fit_reg[1] > last_good):
-				if verbose:
-					print("\n Input fitting region exceeds available wavelength range.  BADASS will adjust your fitting range automatically...")
-					print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-					print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
-				wave_low = np.max([fit_reg[0],first_good])
-				wave_upp = np.min([fit_reg[1],last_good])
-				self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
-
-		self.fit_reg = type('FitReg', (object,), dict(min=self.fit_reg[0], max=self.fit_reg[1]))
-
-		if verbose:
-			print("     - New fitting region is (%d, %d). \n" % (self.fit_reg.min, self.fit_reg.max) )
-
-		mask = ((self.target.wave >= self.fit_reg.min) & (self.target.wave <= self.fit_reg.max))
-		igood = np.where((self.target.spec[mask]>0) & (self.target.noise[mask]>0) & (self.target.mask[mask]==0))[0]
-		self.good_frac = (len(igood)*1.0)/len(self.target.spec[mask])
+        if verbose:
+            print('\n Cleaning up...')
+            print('----------------------------------------------------------------------------------------------------')
+        # Delete redundant files to cut down on space
+        cleanup(run_dir)
+        
+        # Total time
+        elap_time = (time.time() - self.start_time)
+        if verbose:
+            print("\n Total Runtime = %s" % (time_convert(elap_time)))
+        # Write to log
+        write_log(elap_time,'total_time',run_dir)
+        print(' - Done fitting %s! \n' % fits_file.stem)
+        sys.stdout.flush()
+        return
 
 
-	def prepare_context(self):
+    def set_fit_region(self):
+        """
+        Determines the fitting region for an input spectrum and fit options.
+        """
 
-		low, low_idx = find_nearest(self.target.wave, self.fit_reg.min)
-		low = self.target.wave[low_idx-1] if ((low > self.fit_reg.min) and (low_idx > 0)) else low
+        min_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].min_losvd
+        max_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].max_losvd
 
-		upp, upp_idx = find_nearest(self.target.wave, self.fit_reg.max)
-		upp = self.target.wave[upp_idx+1] if ((upp < self.fit_reg.max) and (upp_idx < len(self.target.wave)-1)) else upp
+        fit_reg = self.options.fit_options.fit_reg
+        self.fit_reg = fit_reg
+        verbose = self.options.output_options.verbose # TODO: remove in favor of logging
 
-		fit_reg_mask = (self.target.wave >= low) & (self.target.wave <= upp)
+        # Edges of wavelength vector
+        first_good = self.target.wave[0]
+        last_good  = self.target.wave[-1]
 
-		# Mask the value arrays for the BadassContext to the fitting region
-		self.wave = self.target.wave[fit_reg_mask]
-		self.spec = self.target.spec[fit_reg_mask]
-		self.noise = self.target.noise[fit_reg_mask]
-		self.mask = self.target.mask[fit_reg_mask]
-		self.fwhm_res = self.target.fwhm_res[fit_reg_mask]
-		self.velscale = self.target.velscale
-		self.ra, self.dec, self.z = self.target.ra, self.target.dec, self.target.z
+        # TODO: account for auto and full in options schema
+        if fit_reg in ['auto', 'full']:
+            # TODO: floor and ceil needed? can we use floats for fit_reg?
+            self.fit_reg = (np.floor(first_good),np.ceil(last_good))
+            # The lower limit of the spectrum must be the lower limit of our stellar templates
+            if self.options.comp_options.fit_losvd and ((first_good < min_losvd) or (last_good > max_losvd)):
+                if verbose:
+                    print("\n Warning: Fitting LOSVD requires wavelenth range between %d Å and %d Å for stellar templates. BADASS will adjust your fitting range to fit the LOSVD..." % (min_losvd,max_losvd))
+                    print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
+                auto_low = np.max([min_losvd,first_good]) # Indo-US Library of Stellar Templates has a lower limit of 3460
+                auto_upp = np.min([max_losvd,last_good])
+                self.fit_reg = (np.floor(auto_low),np.ceil(auto_upp))   
 
-		# Interpolate over nans and infs if in spec or noise
-		inan = np.where((~np.isfinite(self.spec)) | (~np.isfinite(self.noise)))[0]
-		self.noise[inan] = np.nan
-		self.noise[inan] = 1.0 if all(np.isnan(self.noise)) else np.nanmedian(self.noise)
+        elif isinstance(fit_reg,(tuple,list)):
+            # Check to see if tuple/list makes sense
+            if fit_reg[0] > fit_reg[1]: # if boundaries overlap
+                raise Exception('Fitting boundaries overlap!')
+            if (fit_reg[0] > last_good) | (fit_reg[1] < first_good):
+                raise Exception('\n Fitting region not available! \n')
 
-		# Masks set by user options
-		fit_mask_bad = []
-		if self.options.fit_options.mask_bad_pix:
-			bad_pix = np.where(self.mask != 0)[0]
-			fit_mask_bad.extend(bad_pix)
-		if self.options.fit_options.mask_emline:
-			fit_mask_bad.extend(self.emline_masker())
+            self.fit_reg = (np.floor(fit_reg[0]),np.ceil(fit_reg[1]))
+            if self.options.comp_options.fit_losvd and ((fit_reg[0] < min_losvd) or (fit_reg[1] > max_losvd)):
+                if verbose:
+                    print("\n Warning: Fitting LOSVD requires wavelenth range between 3460 A and 9464 A for stellar templates. BADASS will adjust your fitting range to fit the LOSVD...")
+                    print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
+                    print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
+                wave_low = np.max([min_losvd,fit_reg[0],first_good])
+                wave_upp = np.min([max_losvd,fit_reg[1],last_good])
+                self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
 
-		for lo,hi in self.options.user_mask:
-			ibad = np.where((self.wave >= lo) & (self.wave <= hi))[0]
-			fit_mask_bad.extend(ibad)
+            elif (fit_reg[0] < first_good) or (fit_reg[1] > last_good):
+                if verbose:
+                    print("\n Input fitting region exceeds available wavelength range.  BADASS will adjust your fitting range automatically...")
+                    print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
+                    print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
+                wave_low = np.max([fit_reg[0],first_good])
+                wave_upp = np.min([fit_reg[1],last_good])
+                self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
 
-		if self.options.fit_options.mask_metal:
-			fit_mask_bad.extend(self.metal_masker())
+        self.fit_reg = type('FitReg', (object,), dict(min=self.fit_reg[0], max=self.fit_reg[1]))
 
-		self.fit_mask_bad = np.sort(np.unique(fit_mask_bad))
-		self.fit_mask_good = np.setdiff1d(np.arange(0,len(self.wave),1,dtype=int), fit_mask_bad)
+        if verbose:
+            print("     - New fitting region is (%d, %d). \n" % (self.fit_reg.min, self.fit_reg.max) )
 
-		self.ebv = get_ebv(self.target.ra, self.target.dec)
-		self.spec = ccm_unred(self.wave, self.spec, self.ebv)
-
-		# TODO: write to log
-		# TODO: plot
-
-
-	def emline_masker(self):
-		"""
-		Runs a multiple moving window median to determine location of emission lines
-		to generate an emission line mask for continuum fitting.
-		"""
-		# Do a series of median filters with window sizes up to 20 
-		window_sizes = [2,5,10,50,100,250,500]
-		med_spec = np.empty((len(self.wave), len(window_sizes)))
-
-		for i in range(len(window_sizes)):
-			med_spec[:,i] = window_filter(self.spec, window_sizes[i])
-
-		mask_bad = np.unique(np.where((np.std(med_spec,axis=1) > self.noise) | (np.std(med_spec,axis=1) > np.nanmedian(self.noise)))[0])
-		return mask_bad
+        mask = ((self.target.wave >= self.fit_reg.min) & (self.target.wave <= self.fit_reg.max))
+        igood = np.where((self.target.spec[mask]>0) & (self.target.noise[mask]>0) & (self.target.mask[mask]==0))[0]
+        self.good_frac = (len(igood)*1.0)/len(self.target.spec[mask])
 
 
-	def metal_masker(self):
-		# Do a series of median filters with window sizes up to 25 
-		bandwidths = [5, 10, 15, 20, 25,100,500]
-		sig_clip = 3.0 # sigma threshold
-		nclip = 10 # number of clipping iterations
-		buffer = 2 # buffers # pixels each side 
-		all_nans = []
-		for i in range(len(bandwidths)):
-			count=0
-			new_spec = np.copy(self.spec)
-			while (count<=nclip):
-				med_spec = window_filter(new_spec,bandwidths[i])
-				count+=1
+    def prepare_context(self):
 
-				nan_spec = np.where((med_spec>new_spec) & (np.abs(med_spec-new_spec)>np.median(self.noise)*sig_clip))[0]
-				inan_buffer_upp = np.array([range(i,i+buffer+1) for i in nan_spec if (i+buffer) < len(self.spec)],dtype=int)
-				inan_buffer_upp = inan_buffer_upp.flatten()
-				inan_buffer_low = np.array([range(i-buffer-1,i) for i in nan_spec if (i-buffer) > 0],dtype=int)
-				inan_buffer_low = inan_buffer_low.flatten()
-				inan = np.concatenate([nan_spec,inan_buffer_low, inan_buffer_upp])
-				all_nans.append(inan)
-				new_spec = med_spec
+        low, low_idx = find_nearest(self.target.wave, self.fit_reg.min)
+        low = self.target.wave[low_idx-1] if ((low > self.fit_reg.min) and (low_idx > 0)) else low
 
-				if len(nan_spec) <= 0:
-					break
+        upp, upp_idx = find_nearest(self.target.wave, self.fit_reg.max)
+        upp = self.target.wave[upp_idx+1] if ((upp < self.fit_reg.max) and (upp_idx < len(self.target.wave)-1)) else upp
 
-		return np.unique(np.concatenate(all_nans))
+        fit_reg_mask = (self.target.wave >= low) & (self.target.wave <= upp)
+
+        # Mask the value arrays for the BadassContext to the fitting region
+        self.wave = self.target.wave[fit_reg_mask]
+        self.spec = self.target.spec[fit_reg_mask]
+        self.noise = self.target.noise[fit_reg_mask]
+        self.mask = self.target.mask[fit_reg_mask]
+        self.fwhm_res = self.target.fwhm_res[fit_reg_mask]
+        self.velscale = self.target.velscale
+        self.ra, self.dec, self.z = self.target.ra, self.target.dec, self.target.z
+
+        # Interpolate over nans and infs if in spec or noise
+        inan = np.where((~np.isfinite(self.spec)) | (~np.isfinite(self.noise)))[0]
+        self.noise[inan] = np.nan
+        self.noise[inan] = 1.0 if all(np.isnan(self.noise)) else np.nanmedian(self.noise)
+
+        # Masks set by user options
+        fit_mask_bad = []
+        if self.options.fit_options.mask_bad_pix:
+            bad_pix = np.where(self.mask != 0)[0]
+            fit_mask_bad.extend(bad_pix)
+        if self.options.fit_options.mask_emline:
+            fit_mask_bad.extend(self.emline_masker())
+
+        for lo,hi in self.options.user_mask:
+            ibad = np.where((self.wave >= lo) & (self.wave <= hi))[0]
+            fit_mask_bad.extend(ibad)
+
+        if self.options.fit_options.mask_metal:
+            fit_mask_bad.extend(self.metal_masker())
+
+        self.fit_mask_bad = np.sort(np.unique(fit_mask_bad))
+        self.fit_mask_good = np.setdiff1d(np.arange(0,len(self.wave),1,dtype=int), fit_mask_bad)
+
+        self.ebv = get_ebv(self.target.ra, self.target.dec)
+        self.spec = ccm_unred(self.wave, self.spec, self.ebv)
+
+        # TODO: write to log
+        # TODO: plot
+
+
+    def emline_masker(self):
+        """
+        Runs a multiple moving window median to determine location of emission lines
+        to generate an emission line mask for continuum fitting.
+        """
+        # Do a series of median filters with window sizes up to 20 
+        window_sizes = [2,5,10,50,100,250,500]
+        med_spec = np.empty((len(self.wave), len(window_sizes)))
+
+        for i in range(len(window_sizes)):
+            med_spec[:,i] = window_filter(self.spec, window_sizes[i])
+
+        mask_bad = np.unique(np.where((np.std(med_spec,axis=1) > self.noise) | (np.std(med_spec,axis=1) > np.nanmedian(self.noise)))[0])
+        return mask_bad
+
+
+    def metal_masker(self):
+        # Do a series of median filters with window sizes up to 25 
+        bandwidths = [5, 10, 15, 20, 25,100,500]
+        sig_clip = 3.0 # sigma threshold
+        nclip = 10 # number of clipping iterations
+        buffer = 2 # buffers # pixels each side 
+        all_nans = []
+        for i in range(len(bandwidths)):
+            count=0
+            new_spec = np.copy(self.spec)
+            while (count<=nclip):
+                med_spec = window_filter(new_spec,bandwidths[i])
+                count+=1
+
+                nan_spec = np.where((med_spec>new_spec) & (np.abs(med_spec-new_spec)>np.median(self.noise)*sig_clip))[0]
+                inan_buffer_upp = np.array([range(i,i+buffer+1) for i in nan_spec if (i+buffer) < len(self.spec)],dtype=int)
+                inan_buffer_upp = inan_buffer_upp.flatten()
+                inan_buffer_low = np.array([range(i-buffer-1,i) for i in nan_spec if (i-buffer) > 0],dtype=int)
+                inan_buffer_low = inan_buffer_low.flatten()
+                inan = np.concatenate([nan_spec,inan_buffer_low, inan_buffer_upp])
+                all_nans.append(inan)
+                new_spec = med_spec
+
+                if len(nan_spec) <= 0:
+                    break
+
+        return np.unique(np.concatenate(all_nans))
 
 
 
@@ -1157,12 +1208,12 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
         z_dict["z_sys"]["ci_68_upp"]   = upp_68
         z_dict["z_sys"]["ci_95_low"]   = low_95
         z_dict["z_sys"]["ci_95_upp"]   = upp_95
-        z_dict["z_sys"]["mean"] 	   = post_mean
-        z_dict["z_sys"]["std_dev"] 	   = post_std
-        z_dict["z_sys"]["median"]	   = post_med
+        z_dict["z_sys"]["mean"]        = post_mean
+        z_dict["z_sys"]["std_dev"]     = post_std
+        z_dict["z_sys"]["median"]      = post_med
         z_dict["z_sys"]["med_abs_dev"] = post_mad
         z_dict["z_sys"]["flat_chain"]  = flat
-        z_dict["z_sys"]["flag"] 	   = flag
+        z_dict["z_sys"]["flag"]        = flag
     else:
         z_dict = {}
         z_dict["z_sys"] = {}
@@ -1171,80 +1222,80 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
         z_dict["z_sys"]["ci_68_upp"]   = np.nan
         z_dict["z_sys"]["ci_95_low"]   = np.nan
         z_dict["z_sys"]["ci_95_upp"]   = np.nan
-        z_dict["z_sys"]["mean"] 	   = np.nan
-        z_dict["z_sys"]["std_dev"] 	   = np.nan
-        z_dict["z_sys"]["median"]	   = np.nan
+        z_dict["z_sys"]["mean"]        = np.nan
+        z_dict["z_sys"]["std_dev"]     = np.nan
+        z_dict["z_sys"]["median"]      = np.nan
         z_dict["z_sys"]["med_abs_dev"] = np.nan
         z_dict["z_sys"]["flat_chain"]  = flat
-        z_dict["z_sys"]["flag"] 	   = 1	
+        z_dict["z_sys"]["flag"]        = 1  
     
     return z_dict
 
 ##################################################################################
 
 def nan_helper(y):
-	"""
-	Helper to handle indices and logical indices of NaNs.
-	Input:
-		- y, 1d numpy array with possible NaNs
-	Output:
-		- nans, logical indices of NaNs
-		- index, a function, with signature indices= index(logical_indices),
-		  to convert logical indices of NaNs to 'equivalent' indices
-	Example:
-		>>> # linear interpolation of NaNs
-		>>> nans, x= nan_helper(y)
-		>>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
-	"""
+    """
+    Helper to handle indices and logical indices of NaNs.
+    Input:
+        - y, 1d numpy array with possible NaNs
+    Output:
+        - nans, logical indices of NaNs
+        - index, a function, with signature indices= index(logical_indices),
+          to convert logical indices of NaNs to 'equivalent' indices
+    Example:
+        >>> # linear interpolation of NaNs
+        >>> nans, x= nan_helper(y)
+        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
+    """
 
-	return np.isnan(y), lambda z: z.nonzero()[0]
+    return np.isnan(y), lambda z: z.nonzero()[0]
 
 
 def insert_nan(spec,ibad):
-	"""
-	Inserts additional NaN values to neighboriing ibad pixels.
-	"""
-	all_bad = np.unique(np.concatenate([ibad-1,ibad,ibad+1]))
-	ibad_new = []
-	for i in all_bad:
-		if (i>0) & (i<len(spec)):
-			ibad_new.append(i)
-	ibad_new = np.array(ibad_new)
-	try:
-		spec[ibad_new] = np.nan
-		return spec
-	except:
-		return spec
+    """
+    Inserts additional NaN values to neighboriing ibad pixels.
+    """
+    all_bad = np.unique(np.concatenate([ibad-1,ibad,ibad+1]))
+    ibad_new = []
+    for i in all_bad:
+        if (i>0) & (i<len(spec)):
+            ibad_new.append(i)
+    ibad_new = np.array(ibad_new)
+    try:
+        spec[ibad_new] = np.nan
+        return spec
+    except:
+        return spec
 
 
 # TODO: classify and use
 def prepare_sdss_plot(lam_gal,galaxy,noise,ibad,run_dir):
-	# Plot the galaxy fitting region
-	fig = plt.figure(figsize=(14,4))
-	ax1 = fig.add_subplot(1,1,1)
-	ax1.step(lam_gal,galaxy,label='Object Fit Region',linewidth=0.5, color='xkcd:bright aqua')
-	ax1.step(lam_gal,noise,label='$1\sigma$ Uncertainty',linewidth=0.5,color='xkcd:bright orange')
-	ax1.axhline(0.0,color='white',linewidth=0.5,linestyle='--')
-	# Plot bad pixels
-	if (len(ibad)>0):# and (len(ibad[0])>1):
-		bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
-		ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:lime green',label="bad pixels")
-		for i in bad_wave[1:]:
-			ax1.axvspan(i[0],i[0],alpha=0.25,color='xkcd:lime green')
+    # Plot the galaxy fitting region
+    fig = plt.figure(figsize=(14,4))
+    ax1 = fig.add_subplot(1,1,1)
+    ax1.step(lam_gal,galaxy,label='Object Fit Region',linewidth=0.5, color='xkcd:bright aqua')
+    ax1.step(lam_gal,noise,label='$1\sigma$ Uncertainty',linewidth=0.5,color='xkcd:bright orange')
+    ax1.axhline(0.0,color='white',linewidth=0.5,linestyle='--')
+    # Plot bad pixels
+    if (len(ibad)>0):# and (len(ibad[0])>1):
+        bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
+        ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:lime green',label="bad pixels")
+        for i in bad_wave[1:]:
+            ax1.axvspan(i[0],i[0],alpha=0.25,color='xkcd:lime green')
 
-	fontsize = 14
-	ax1.set_title(r'Fitting Region',fontsize=fontsize)
-	ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)',fontsize=fontsize)
-	ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=fontsize)
-	ax1.set_xlim(np.min(lam_gal),np.max(lam_gal))
-	ax1.legend(loc='best')
-	plt.tight_layout()
-	plt.savefig(run_dir.joinpath('fitting_region.pdf'))
-	ax1.clear()
-	fig.clear()
-	plt.close(fig)
-	#
-	return
+    fontsize = 14
+    ax1.set_title(r'Fitting Region',fontsize=fontsize)
+    ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)',fontsize=fontsize)
+    ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=fontsize)
+    ax1.set_xlim(np.min(lam_gal),np.max(lam_gal))
+    ax1.legend(loc='best')
+    plt.tight_layout()
+    plt.savefig(run_dir.joinpath('fitting_region.pdf'))
+    ax1.clear()
+    fig.clear()
+    plt.close(fig)
+    #
+    return
 
 ##################################################################################
 
@@ -1355,8 +1406,8 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,fit_reg,mask_emline
 
 
     lamRange = (np.min(wave),np.max(wave))
-    galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=True)
-    noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=True)
+    galaxy, logLam, velscale = log_rebin(lamRange, spec, velscale=None, flux=False)
+    noise, _, _ = log_rebin(lamRange, err, velscale=velscale, flux=False)
     lam_gal = np.exp(logLam)
 
     mask = generate_mask(fit_min, fit_max, lam_gal/(1+z) )
@@ -1412,16 +1463,16 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,fit_reg,mask_emline
 
     ###############################################################
 
-    c = 299792.458				  # speed of light in km/s
-    frac = lam_gal[1]/lam_gal[0]	# Constant lambda fraction per pixel
+    c = 299792.458                # speed of light in km/s
+    frac = lam_gal[1]/lam_gal[0]    # Constant lambda fraction per pixel
     # print(frac)
     dlam_gal = (frac - 1)*lam_gal   # Size of every pixel in Angstrom
     # print(dlam_gal)
     # # print('\n Size of every pixel: %s (A)' % dlam_gal)
     # print(disp/dlam_gal) # dispersion of every pixel in pixels
-    # wdisp = t['wdisp'][mask]		# Intrinsic dispersion of every pixel, in pixels units
+    # wdisp = t['wdisp'][mask]      # Intrinsic dispersion of every pixel, in pixels units
     # disp_res = wdisp*dlam_gal # Resolution dispersion of every pixel, in angstroms
-    # velscale = np.log(frac)*c	   # Constant velocity scale in km/s per pixel
+    # velscale = np.log(frac)*c    # Constant velocity scale in km/s per pixel
     if type(fwhm_res) in (list, np.ndarray):
         disp_res = fwhm_res[mask]/2.3548
     else:
@@ -1459,11 +1510,11 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,fit_reg,mask_emline
 
         print('\n')
         print('-----------------------------------------------------------')
-        print('{0:<30}{1:<30}'.format(' file:'			 , fits_file.name			  ))
-        print('{0:<30}{1:<30}'.format(' redshift:'	   , '%0.5f' % z						  ))
+        print('{0:<30}{1:<30}'.format(' file:'           , fits_file.name             ))
+        print('{0:<30}{1:<30}'.format(' redshift:'     , '%0.5f' % z                          ))
         print('{0:<30}{1:<30}'.format(' fitting region:' , '(%d,%d) [A]' % (fit_reg[0],fit_reg[1])  ))
-        print('{0:<30}{1:<30}'.format(' velocity scale:' , '%0.2f [km/s/pixel]' % velscale	  ))
-        print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
+        print('{0:<30}{1:<30}'.format(' velocity scale:' , '%0.2f [km/s/pixel]' % velscale    ))
+        print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv                        ))
         print('-----------------------------------------------------------')
     ################################################################################
     #
@@ -1474,33 +1525,33 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,fit_reg,mask_emline
 ##################################################################################
 
 def prepare_user_plot(lam_gal,galaxy,noise,ibad,run_dir):
-	# Plot the galaxy fitting region
-	fig = plt.figure(figsize=(14,4))
-	ax1 = fig.add_subplot(1,1,1)
-	ax1.step(lam_gal,galaxy,label='Object Fit Region',linewidth=0.5, color='xkcd:bright aqua')
-	ax1.step(lam_gal,noise,label='$1\sigma$ Uncertainty',linewidth=0.5,color='xkcd:bright orange')
-	ax1.axhline(0.0,color='white',linewidth=0.5,linestyle='--')
-	# Plot bad pixels
-	if (len(ibad)>0):# and (len(ibad[0])>1):
-		bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
-		ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:lime green',label="bad pixels")
-		for i in bad_wave[1:]:
-			ax1.axvspan(i[0],i[0],alpha=0.25,color='xkcd:lime green')
+    # Plot the galaxy fitting region
+    fig = plt.figure(figsize=(14,4))
+    ax1 = fig.add_subplot(1,1,1)
+    ax1.step(lam_gal,galaxy,label='Object Fit Region',linewidth=0.5, color='xkcd:bright aqua')
+    ax1.step(lam_gal,noise,label='$1\sigma$ Uncertainty',linewidth=0.5,color='xkcd:bright orange')
+    ax1.axhline(0.0,color='white',linewidth=0.5,linestyle='--')
+    # Plot bad pixels
+    if (len(ibad)>0):# and (len(ibad[0])>1):
+        bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
+        ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:lime green',label="bad pixels")
+        for i in bad_wave[1:]:
+            ax1.axvspan(i[0],i[0],alpha=0.25,color='xkcd:lime green')
 
 
-	fontsize = 14
-	ax1.set_title(r'Fitting Region',fontsize=fontsize)
-	ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)',fontsize=fontsize)
-	ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=fontsize)
-	ax1.set_xlim(np.min(lam_gal),np.max(lam_gal))
-	ax1.legend(loc='best')
-	plt.tight_layout()
-	plt.savefig(run_dir.joinpath('fitting_region.pdf'))
-	ax1.clear()
-	fig.clear()
-	plt.close(fig)
-	#
-	return
+    fontsize = 14
+    ax1.set_title(r'Fitting Region',fontsize=fontsize)
+    ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)',fontsize=fontsize)
+    ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=fontsize)
+    ax1.set_xlim(np.min(lam_gal),np.max(lam_gal))
+    ax1.legend(loc='best')
+    plt.tight_layout()
+    plt.savefig(run_dir.joinpath('fitting_region.pdf'))
+    ax1.clear()
+    fig.clear()
+    plt.close(fig)
+    #
+    return
 
 #### Initialize Parameters #######################################################
 
@@ -1522,7 +1573,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     ################################################################################
     # Initial conditions for some parameters
-    max_flux	= np.nanmax(galaxy)
+    max_flux    = np.nanmax(galaxy)*1.5
     median_flux = np.nanmedian(galaxy)
 
     # Padding on the edges; any line(s) within this many angstroms is omitted
@@ -1546,7 +1597,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # # Fit statistic: add noise_unexp if fit_stat = "RCHI2"
     if (fit_stat=="RCHI2"):
         if verbose: 
-            print('	 - Adding parameter for unexplained noise to fit reduced Chi-squared.')
+            print('  - Adding parameter for unexplained noise to fit reduced Chi-squared.')
         par_input["NOISE_SCALE"] = ({'init':1.0,
                                      'plim':(0.0001,100.0),
                                      'prior':{"type":"jeffreys"},
@@ -1555,7 +1606,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # Galaxy template amplitude
     if (fit_host==True):
         if verbose:
-            print('	 - Fitting a SSP host-galaxy template.')
+            print('  - Fitting a SSP host-galaxy template.')
         #
         if len(host_options["age"])==1:
             par_input['HOST_TEMP_AMP'] = ({'init':0.5*median_flux,
@@ -1578,7 +1629,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # Stellar LOSVD parameters (if fit_LOSVD = True)
     if (fit_losvd==True):
         if verbose:
-            print('	 - Fitting the stellar LOSVD.')
+            print('  - Fitting the stellar LOSVD.')
         # Stellar velocity
         if losvd_options["vel_const"]["bool"]==False:
             #
@@ -1625,7 +1676,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     #### Simple Power-Law (AGN continuum) ########################################
     if (fit_power==True) & (power_options['type']=='simple'):
         if verbose:
-            print('	 - Fitting Simple AGN power-law continuum.')
+            print('  - Fitting Simple AGN power-law continuum.')
         # AGN simple power-law amplitude
         par_input['POWER_AMP'] = ({'init':(0.5*median_flux),
                                       'plim':(0,max_flux),
@@ -1638,7 +1689,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     #### Smoothly-Broken Power-Law (AGN continuum) ###############################
     if (fit_power==True) & (power_options['type']=='broken'):
         if verbose:
-            print('	 - Fitting Smoothly-Broken AGN power-law continuum.')
+            print('  - Fitting Smoothly-Broken AGN power-law continuum.')
         # AGN simple power-law amplitude
         par_input['POWER_AMP'] = ({'init':(0.5*median_flux),
                                       'plim':(0,max_flux),
@@ -1666,10 +1717,10 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_opt_feii==True) & (opt_feii_options['opt_template']['type']=='VC04'):
         # Veron-Cerry et al. 2004 2-8 Parameter FeII template
         if verbose:
-            print('	 - Fitting broad and narrow optical FeII using Veron-Cetty et al. (2004) optical FeII templates')
+            print('  - Fitting broad and narrow optical FeII using Veron-Cetty et al. (2004) optical FeII templates')
         if (opt_feii_options['opt_amp_const']['bool']==False):
             if verbose:
-                print('	 		* varying optical FeII amplitudes')
+                print('         * varying optical FeII amplitudes')
             # Narrow FeII amplitude
             par_input['NA_OPT_FEII_AMP'] = ({'init'  :0.1*median_flux,
                                                 'plim'  :(0,max_flux),
@@ -1680,7 +1731,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                              })
         if (opt_feii_options['opt_disp_const']['bool']==False):
             if verbose:
-                print('	 		* varying optical FeII dispersion.')
+                print('         * varying optical FeII dispersion.')
             # Narrow FeII DISP
             par_input['NA_OPT_FEII_DISP'] = ({'init'  :10.0,
                                               'plim'  :(0.1,250.0),
@@ -1691,7 +1742,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                              })
         if (opt_feii_options['opt_voff_const']['bool']==False):
             if verbose:
-                print('	 		* varying optical FeII voff')
+                print('         * varying optical FeII voff')
             # Narrow FeII VOFF
             par_input['NA_OPT_FEII_VOFF'] = ({'init'  :0.0,
                                                    'plim'  :(-1000.0,1000.0),
@@ -1702,15 +1753,15 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                              })
     elif (fit_opt_feii==True) & (opt_feii_options['opt_template']['type']=='K10'):
         if verbose:
-            print('	 - Fitting optical FeII template from Kovacevic et al. (2010)')
+            print('  - Fitting optical FeII template from Kovacevic et al. (2010)')
 
         # Kovacevic et al. 2010 7-parameter FeII template (for NLS1s and BAL QSOs)
         # Consits of 7 free parameters
-        #	- 4 amplitude parameters for S,F,G,IZw1 line families
-        #	- 1 Temperature parameter determines relative intensities (5k-15k Kelvin)
-        #	- 1 DISP parameter
-        #	- 1 VOFF parameter
-        # 	- all lines modeled as Gaussians
+        #   - 4 amplitude parameters for S,F,G,IZw1 line families
+        #   - 1 Temperature parameter determines relative intensities (5k-15k Kelvin)
+        #   - 1 DISP parameter
+        #   - 1 VOFF parameter
+        #   - all lines modeled as Gaussians
         # Narrow FeII amplitude
         if (opt_feii_options['opt_amp_const']['bool']==False):
             par_input['OPT_FEII_F_AMP'] = ({'init'  :0.1*median_flux,
@@ -1746,10 +1797,10 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_uv_iron==True):
         # Veron-Cerry et al. 2004 2-8 Parameter FeII template
         if verbose:
-            print('	 - Fitting UV iron emission using Vestergaard & Wilkes (2001) UV iron template')
+            print('  - Fitting UV iron emission using Vestergaard & Wilkes (2001) UV iron template')
         if (uv_iron_options['uv_amp_const']['bool']==False):
             if verbose:
-                print('	 		* varying UV iron amplitudes')
+                print('         * varying UV iron amplitudes')
             # Narrow FeII amplitude
             par_input['UV_IRON_AMP'] = ({'init'  :0.1*median_flux,
                                          'plim'  :(0,max_flux),
@@ -1757,7 +1808,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
         if (uv_iron_options['uv_disp_const']['bool']==False):
             if verbose:
-                print('	 		* varying UV iron dispersion.')
+                print('         * varying UV iron dispersion.')
             # Narrow FeII DISP
             par_input['UV_IRON_DISP'] = ({'init'  :1000.0,
                                           'plim'  :(100.0,20000.0),
@@ -1765,7 +1816,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
         if (uv_iron_options['uv_voff_const']['bool']==False):
             if verbose:
-                print('	 		* varying UV iron voff')
+                print('         * varying UV iron voff')
             # Narrow FeII VOFF
             par_input['UV_IRON_VOFF'] = ({'init'  :0.0,
                                           'plim'  :(-2000.0,2000.0),
@@ -1780,11 +1831,11 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_balmer==True):
         # Balmer continuum following Kovacevic et al. (2014) and Calderone et al. (2017; QSFit)
         if verbose:
-            print('	 - Fitting Balmer Continuum')
+            print('  - Fitting Balmer Continuum')
 
         if (balmer_options['R_const']['bool']==False):
             if verbose:
-                print('	 		* varying Balmer ratio')
+                print('         * varying Balmer ratio')
             # Balmer continuum ratio
             par_input['BALMER_RATIO'] = ({'init'  :10.0,
                                              'plim'  :(0.0,100.0),
@@ -1792,7 +1843,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
         if (balmer_options['balmer_amp_const']['bool']==False):
             if verbose:
-                print('	 		* varying Balmer amplitude')
+                print('         * varying Balmer amplitude')
             # Balmer continuum amplitude
             par_input['BALMER_AMP'] = ({'init'  :0.1*median_flux,
                                            'plim'  :(0,max_flux),
@@ -1800,7 +1851,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
         if (balmer_options['balmer_disp_const']['bool']==False):
             if verbose:
-                print('	 		* varying Balmer dispersion')
+                print('         * varying Balmer dispersion')
             # Balmer continuum DISP
             par_input['BALMER_DISP'] = ({'init'  :2500.0,
                                             'plim'  :(500.0,15000.0),
@@ -1808,7 +1859,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
         if (balmer_options['balmer_voff_const']['bool']==False):
             if verbose:
-                print('	 		* varying Balmer voff')
+                print('         * varying Balmer voff')
             # Balmer continuum VOFF
             par_input['BALMER_VOFF'] = ({'init'  :0.0,
                                             'plim'  :(-2000.0,2000.0),
@@ -1816,7 +1867,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
         if (balmer_options['Teff_const']['bool']==False):
             if verbose:
-                print('	 		* varying Balmer effective temperature')
+                print('         * varying Balmer effective temperature')
             # Balmer continuum effective temperature
             par_input['BALMER_TEFF'] = ({'init'  :15000.0,
                                             'plim'  :(1000.0,50000.0),
@@ -1824,7 +1875,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
         if (balmer_options['tau_const']['bool']==False):
             if verbose:
-                print('	 		* varying Balmer optical depth')
+                print('         * varying Balmer optical depth')
             # Balmer continuum optical depth
             par_input['BALMER_TAU'] = ({'init'  :1.0,
                                            'plim'  :(0,1.0),
@@ -1842,7 +1893,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # Remove lines
     if remove_lines:
         # if len(remove_lines)==1:
-        # 	line_list.pop(remove_lines,None)
+        #   line_list.pop(remove_lines,None)
         # elif len(remove_lines)>1:
         for l in remove_lines:
             line_list.pop(l,None)
@@ -1878,8 +1929,8 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # These are passed through a separate list of tuples which are used by the maximum likelihood constraints 
     # and prior constraints by emcee.  Soft constraints have a very specific format following
     # the scipy optimize SLSQP syntax: 
-    #			
-    #				(parameter1 - parameter2) >= 0.0 OR (parameter1 >= parameter2)
+    #           
+    #               (parameter1 - parameter2) >= 0.0 OR (parameter1 >= parameter2)
     #
 
     if user_constraints is not None:
@@ -1893,7 +1944,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
             #
             # ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
-            # ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
+            ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
             #
             # ("BR_PA_DELTA_AMP","BR_PA_EPSIL_AMP"),
             # ("BR_PA_GAMMA_AMP","BR_PA_DELTA_AMP"),
@@ -1905,7 +1956,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     # Append any user constraints
     # for u in user_constraints:
-    # 	soft_cons.append(tuple(u))
+    #   soft_cons.append(tuple(u))
 
     soft_cons = check_soft_cons(soft_cons,par_input,verbose=verbose)
 
@@ -1966,22 +2017,22 @@ def line_list_default():
         ##############################################################################################################################################################################################################################################
 
         ### Region 7 (2000 Å - 3500 Å)
-        "NA_MGII_2799" :{"center":2799.117, "amp":"free", "disp":"free"				, "voff":"free"			   , "line_type":"na","label":r"Mg II"},
-        "NA_HEII_3203" :{"center":3203.100, "amp":"free", "disp":"free"				, "voff":"free"			   , "line_type":"na","label":r"He II"},
-        "NA_NEV_3346"  :{"center":3346.783, "amp":"free", "disp":"free"				, "voff":"free"			   , "line_type":"na","label":r"[Ne V]"},
-        "NA_NEV_3426"  :{"center":3426.863, "amp":"free", "disp":"NA_NEV_3346_DISP"	, "voff":"NA_NEV_3346_VOFF", "line_type":"na","label":r"[Ne V]"},
+        "NA_MGII_2799" :{"center":2799.117, "amp":"free", "disp":"free"             , "voff":"free"            , "line_type":"na","label":r"Mg II"},
+        "NA_HEII_3203" :{"center":3203.100, "amp":"free", "disp":"free"             , "voff":"free"            , "line_type":"na","label":r"He II"},
+        "NA_NEV_3346"  :{"center":3346.783, "amp":"free", "disp":"free"             , "voff":"free"            , "line_type":"na","label":r"[Ne V]"},
+        "NA_NEV_3426"  :{"center":3426.863, "amp":"free", "disp":"NA_NEV_3346_DISP" , "voff":"NA_NEV_3346_VOFF", "line_type":"na","label":r"[Ne V]"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 6 (3500 Å - 4400 Å):
         "NA_OII_3727"  :{"center":3727.092, "amp":"free", "disp":"NA_OII_3729_DISP"   , "voff":"NA_OII_3729_VOFF"  , "line_type":"na","label":r"[O II]"},
-        "NA_OII_3729"  :{"center":3729.875, "amp":"free", "disp":"free"				  , "voff":"free"			   , "line_type":"na"},
-        "NA_NEIII_3869":{"center":3869.857, "amp":"free", "disp":"free"				  , "voff":"free"			   , "line_type":"na","label":r"[Ne III]"}, # Coronal Line
-        "NA_HEI_3889"  :{"center":3888.647, "amp":"free", "disp":"free"				  , "voff":"free"			   , "line_type":"na","label":r"He I"},
+        "NA_OII_3729"  :{"center":3729.875, "amp":"free", "disp":"free"               , "voff":"free"              , "line_type":"na"},
+        "NA_NEIII_3869":{"center":3869.857, "amp":"free", "disp":"free"               , "voff":"free"              , "line_type":"na","label":r"[Ne III]"}, # Coronal Line
+        "NA_HEI_3889"  :{"center":3888.647, "amp":"free", "disp":"free"               , "voff":"free"              , "line_type":"na","label":r"He I"},
         "NA_NEIII_3968":{"center":3968.593, "amp":"free", "disp":"NA_NEIII_3869_DISP" , "voff":"NA_NEIII_3869_VOFF", "line_type":"na","label":r"[Ne III]"}, # Coronal Line
-        "NA_H_DELTA"   :{"center":4102.900, "amp":"free", "disp":"NA_H_GAMMA_DISP"	  , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"H$\delta$"},
-        "NA_H_GAMMA"   :{"center":4341.691, "amp":"free", "disp":"free" 			  , "voff":"free"			   , "line_type":"na","label":r"H$\gamma$"},
-        "NA_OIII_4364" :{"center":4364.436, "amp":"free", "disp":"NA_H_GAMMA_DISP"	  , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"[O III]"},
+        "NA_H_DELTA"   :{"center":4102.900, "amp":"free", "disp":"NA_H_GAMMA_DISP"    , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"H$\delta$"},
+        "NA_H_GAMMA"   :{"center":4341.691, "amp":"free", "disp":"free"               , "voff":"free"              , "line_type":"na","label":r"H$\gamma$"},
+        "NA_OIII_4364" :{"center":4364.436, "amp":"free", "disp":"NA_H_GAMMA_DISP"    , "voff":"NA_H_GAMMA_VOFF"   , "line_type":"na","label":r"[O III]"},
 
 
         ##############################################################################################################################################################################################################################################
@@ -1990,57 +2041,57 @@ def line_list_default():
         # "NA_HEI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
         # "NA_HEII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
 
-        "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
+        "NA_H_BETA"    :{"center":4862.691, "amp":"free"                   , "disp":"NA_OIII_5007_DISP", "voff":"free"             ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
         "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
-        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"			   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
+        "NA_OIII_5007" :{"center":5008.240, "amp":"free"                   , "disp":"free"             , "voff":"free"             ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
 
-        # "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"STEL_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"H$\beta$"},
+        # "NA_H_BETA"      :{"center":4862.691, "amp":"free"                   , "disp":"STEL_DISP", "voff":"free"             , "line_type":"na" ,"label":r"H$\beta$"},
         # "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"STEL_DISP", "voff":"NA_OIII_5007_VOFF"  , "line_type":"na" ,"label":r"[O III]"},
-        # "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"STEL_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"[O III]"},
+        # "NA_OIII_5007" :{"center":5008.240, "amp":"free"                 , "disp":"STEL_DISP", "voff":"free"             , "line_type":"na" ,"label":r"[O III]"},
 
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 4 (5500 Å - 6200 Å)
         "NA_FEVI_5638" :{"center":5637.600, "amp":"free", "disp":"NA_FEVI_5677_DISP" , "voff":"NA_FEVI_5677_VOFF" , "line_type":"na","label":r"[Fe VI]"}, # Coronal Line
-        "NA_FEVI_5677" :{"center":5677.000, "amp":"free", "disp":"free"				 , "voff":"free"			  , "line_type":"na","label":r"[Fe VI]"}, # Coronal Line
+        "NA_FEVI_5677" :{"center":5677.000, "amp":"free", "disp":"free"              , "voff":"free"              , "line_type":"na","label":r"[Fe VI]"}, # Coronal Line
         "NA_FEVII_5720":{"center":5720.700, "amp":"free", "disp":"NA_FEVII_6087_DISP", "voff":"NA_FEVII_6087_VOFF", "line_type":"na","label":r"[Fe VII]"}, # Coronal Line
-        "NA_HEI_5876"  :{"center":5875.624, "amp":"free", "disp":"free"				 , "voff":"free"			  , "line_type":"na","label":r"He I"},
-        "NA_FEVII_6087":{"center":6087.000, "amp":"free", "disp":"free"				 , "voff":"free"			  , "line_type":"na","label":r"[Fe VII]"}, # Coronal Line
+        "NA_HEI_5876"  :{"center":5875.624, "amp":"free", "disp":"free"              , "voff":"free"              , "line_type":"na","label":r"He I"},
+        "NA_FEVII_6087":{"center":6087.000, "amp":"free", "disp":"free"              , "voff":"free"              , "line_type":"na","label":r"[Fe VII]"}, # Coronal Line
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 3 (6200 Å - 6800 Å)
 
-        "NA_OI_6302"   :{"center":6302.046, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
-        "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"free" , "line_type":"na","label":r"[S III]"},
-        "NA_OI_6365"   :{"center":6365.535, "amp":"NA_OI_6302_AMP/3.0"	, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
-        "NA_FEX_6374"  :{"center":6374.510, "amp":"free"				, "disp":"free"			    , "voff":"free"				, "line_type":"na","label":r"[Fe X]"}, # Coronal Line
+        "NA_OI_6302"   :{"center":6302.046, "amp":"free"                , "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF" , "line_type":"na","label":r"[O I]"},
+        "NA_SIII_6312" :{"center":6312.060, "amp":"free"                , "disp":"NA_NII_6585_DISP" , "voff":"free" , "line_type":"na","label":r"[S III]"},
+        "NA_OI_6365"   :{"center":6365.535, "amp":"NA_OI_6302_AMP/3.0"  , "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF" , "line_type":"na","label":r"[O I]"},
+        "NA_FEX_6374"  :{"center":6374.510, "amp":"free"                , "disp":"free"             , "voff":"free"             , "line_type":"na","label":r"[Fe X]"}, # Coronal Line
 
         #
-        "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93"	, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[N II]"},
-        # "NA_H_ALPHA"   :{"center":6564.632, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"H$\alpha$"},
-        "NA_NII_6585"  :{"center":6585.278, "amp":"free"					, "disp":"free"			   , "voff":"free"			  , "line_type":"na","label":r"[N II]"},
-        "NA_SII_6718"  :{"center":6718.294, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
-        "NA_SII_6732"  :{"center":6732.668, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
+        "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93"    , "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[N II]"},
+        # "NA_H_ALPHA"   :{"center":6564.632, "amp":"free"                  , "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"H$\alpha$"},
+        "NA_NII_6585"  :{"center":6585.278, "amp":"free"                    , "disp":"free"            , "voff":"free"            , "line_type":"na","label":r"[N II]"},
+        "NA_SII_6718"  :{"center":6718.294, "amp":"free"                    , "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
+        "NA_SII_6732"  :{"center":6732.668, "amp":"free"                    , "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 2 (6800 Å - 8000 Å)
-        "NA_HEI_7062"   :{"center":7065.196, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"He I"},
-        "NA_ARIII_7135" :{"center":7135.790, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Ar III]"},
+        "NA_HEI_7062"   :{"center":7065.196, "amp":"free", "disp":"free"            , "voff":"free"            , "line_type":"na","label":r"He I"},
+        "NA_ARIII_7135" :{"center":7135.790, "amp":"free", "disp":"free"            , "voff":"free"            , "line_type":"na","label":r"[Ar III]"},
         "NA_OII_7319"   :{"center":7319.990, "amp":"free", "disp":"NA_OII_7331_DISP", "voff":"NA_OII_7331_VOFF", "line_type":"na","label":r"[O II]"},
-        "NA_OII_7331"   :{"center":7330.730, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[O II]"},
-        "NA_NIIII_7890" :{"center":7889.900, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Ni III]"},
-        "NA_FEXI_7892"  :{"center":7891.800, "amp":"free", "disp":"free"			, "voff":"free"			   , "line_type":"na","label":r"[Fe XI]"},
+        "NA_OII_7331"   :{"center":7330.730, "amp":"free", "disp":"free"            , "voff":"free"            , "line_type":"na","label":r"[O II]"},
+        "NA_NIIII_7890" :{"center":7889.900, "amp":"free", "disp":"free"            , "voff":"free"            , "line_type":"na","label":r"[Ni III]"},
+        "NA_FEXI_7892"  :{"center":7891.800, "amp":"free", "disp":"free"            , "voff":"free"            , "line_type":"na","label":r"[Fe XI]"},
 
         ##############################################################################################################################################################################################################################################
 
         ### Region 1 (8000 Å - 9000 Å)
-        "NA_HEII_8236"  :{"center":8236.790, "amp":"free", "disp":"free"			 , "voff":"free"			 , "line_type":"na","label":r"He II"},
-        "NA_OI_8446"	:{"center":8446.359, "amp":"free", "disp":"free"			 , "voff":"free"			 , "line_type":"na","label":r"O I"},
+        "NA_HEII_8236"  :{"center":8236.790, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na","label":r"He II"},
+        "NA_OI_8446"    :{"center":8446.359, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na","label":r"O I"},
         "NA_FEII_8616"  :{"center":8616.950, "amp":"free", "disp":"NA_FEII_8891_DISP", "voff":"NA_FEII_8891_VOFF", "line_type":"na","label":r"[Fe II]"},
-        "NA_FEII_8891"  :{"center":8891.910, "amp":"free", "disp":"free"			 , "voff":"free"			 , "line_type":"na","label":r"[Fe II]"},
+        "NA_FEII_8891"  :{"center":8891.910, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na","label":r"[Fe II]"},
 
         ##############################################################################################################################################################################################################################################
 
@@ -2137,25 +2188,25 @@ def line_list_default():
         "OUT_NEIII_3968":{"center":3968.593, "amp":"OUT_NEIII_3869_AMP/NA_NEIII_3869_AMP*NA_NEIII_3968_AMP", "disp":"OUT_NEIII_3869_DISP", "voff":"OUT_NEIII_3869_VOFF", "line_type":"out"}, # Coronal Line
         # H-beta/[OIII]
         "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							  , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
+        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"                           , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
+        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"                                             , "disp":"free", "voff":"free", "line_type":"out"},
         # H-beta/[OIII] - Secondary Components
         # "OUT_H_BETA_2"    :{"center":4862.691, "amp":"OUT_OIII_5007_2_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_2_DISP", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
-        # "OUT_OIII_4960_2" :{"center":4960.295, "amp":"OUT_OIII_5007_2_AMP/2.98"							  , "disp":"OUT_OIII_5007_2_DISP", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
-        # "OUT_OIII_5007_2" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
+        # "OUT_OIII_4960_2" :{"center":4960.295, "amp":"OUT_OIII_5007_2_AMP/2.98"                             , "disp":"OUT_OIII_5007_2_DISP", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
+        # "OUT_OIII_5007_2" :{"center":5008.240, "amp":"free"                                             , "disp":"free", "voff":"free", "line_type":"out"},
         # H-beta/[OIII] - Tertiary Components
         # "OUT_H_BETA_3"    :{"center":4862.691, "amp":"OUT_OIII_5007_3_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_3_DISP", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
-        # "OUT_OIII_4960_3" :{"center":4960.295, "amp":"OUT_OIII_5007_3_AMP/2.98"							  , "disp":"OUT_OIII_5007_3_DISP", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
-        # "OUT_OIII_5007_3" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
+        # "OUT_OIII_4960_3" :{"center":4960.295, "amp":"OUT_OIII_5007_3_AMP/2.98"                             , "disp":"OUT_OIII_5007_3_DISP", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
+        # "OUT_OIII_5007_3" :{"center":5008.240, "amp":"free"                                             , "disp":"free", "voff":"free", "line_type":"out"},
         # [O I]
         "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         # H-alpha/[NII]/[SiII]
         "OUT_NII_6549"  :{"center":6549.859, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_NII_6585_AMP/2.93", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_H_ALPHA"   :{"center":6564.632, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_H_ALPHA_AMP" 	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_NII_6585"  :{"center":6585.278, "amp":"free"											 	  , "disp":"free"			  , "voff":"free"			  , "line_type":"out"},
-        "OUT_SII_6718"  :{"center":6718.294, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6718_AMP"	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_SII_6732"  :{"center":6732.668, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6732_AMP"	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_H_ALPHA"   :{"center":6564.632, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_H_ALPHA_AMP"      , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_NII_6585"  :{"center":6585.278, "amp":"free"                                                 , "disp":"free"             , "voff":"free"             , "line_type":"out"},
+        "OUT_SII_6718"  :{"center":6718.294, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6718_AMP"     , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_SII_6732"  :{"center":6732.668, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6732_AMP"     , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
     }
     # Default Absorption Lines
     absorp_lines = {
@@ -2386,7 +2437,7 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
     plim_hmoments = ["h"+str(m)+"_plim" for m in range(3,3+(comp_options["n_moments"]-2),1)]
     prior_hmoments = ["h"+str(m)+"_prior" for m in range(3,3+(comp_options["n_moments"]-2),1)]
 
-    hmoments	  = ["h"+str(m) for m in range(3,3+(comp_options["n_moments"]-2),1)]
+    hmoments      = ["h"+str(m) for m in range(3,3+(comp_options["n_moments"]-2),1)]
     #
     for line in list(line_list):
 
@@ -2465,7 +2516,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
     def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
         # default initial widths for lines (if not specified)
         na_disp_init = 50.0
-        out_disp_init = 100.0
+        out_disp_init = 250.0
         br_disp_init = 500.0
         abs_disp_init = 50.0
         # default width bounds for lines (if not specified)
@@ -2513,7 +2564,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
     def shape_hyperpars(): # shape of the Voigt profile; if line_profile="voigt"
         shape_init = 0.0
         shape_lim = (0.0,1.0)
-        return shape_init, shape_lim	
+        return shape_init, shape_lim    
     # We start with standard lines and options. These are added one-by-one.  Then we check specific line options and then override any lines that have
     # been already added.  Params are added regardless of component options as long as the parameter is set to "free"
     for line in list(line_list):
@@ -2672,7 +2723,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                     line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
             #
-    # If tie_line_voff = True, we tie all velocity offsets (including any higher order moments) by respective line groups (Na, Br, Out, Abs)	
+    # If tie_line_voff = True, we tie all velocity offsets (including any higher order moments) by respective line groups (Na, Br, Out, Abs)    
     if comp_options["tie_line_voff"]==True:
         # Add the common line voffs for na,br,out, and abs lines
         if (comp_options["fit_narrow"]==True) or ("na" in [line_list[line]["line_type"] for line in line_list]):
@@ -2738,11 +2789,11 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
     # print(soft_cons)
     # Old method
     # for con in soft_cons:
-    # 	if (np.all([c in par_list for c in con])):
-    # 		out_cons.append(con)
-    # 	else:
-    # 		if verbose:
-    # 			print("\n - %s soft constraint removed because one or more free parameters is not available." % str(con))
+    #   if (np.all([c in par_list for c in con])):
+    #       out_cons.append(con)
+    #   else:
+    #       if verbose:
+    #           print("\n - %s soft constraint removed because one or more free parameters is not available." % str(con))
     
     # New method
     # Map line parameters to init
@@ -2876,13 +2927,13 @@ def ssr_test(resid_outflow,
 
     # For multiple runs
     ssr_ratio = np.empty(np.shape(resid_outflow)[0])
-    ssr_outflow	= np.empty(np.shape(resid_outflow)[0])
+    ssr_outflow = np.empty(np.shape(resid_outflow)[0])
     ssr_no_outflow = np.empty(np.shape(resid_outflow)[0])
 
     for i in range(np.shape(resid_outflow)[0]):
         # Compute median and std of residual standard deviations
-        ssr_resid_outflow		= np.sum(resid_outflow[i,:]**2)
-        ssr_resid_no_outflow	 = np.sum(resid_no_outflow[i,:]**2)
+        ssr_resid_outflow       = np.sum(resid_outflow[i,:]**2)
+        ssr_resid_no_outflow     = np.sum(resid_no_outflow[i,:]**2)
         ssr_ratio[i] = (ssr_resid_no_outflow)/(ssr_resid_outflow) # sum-of-squares ratio
         ssr_outflow[i] = ssr_resid_outflow
         ssr_no_outflow[i] = ssr_resid_no_outflow
@@ -2917,7 +2968,7 @@ def f_test(resid_outflow,
     for i in range(np.shape(resid_outflow)[0]):
 
         RSS1 = np.sum(resid_no_outflow[i,:]**2) # resid. sum of squares single_Gaussian
-        RSS2 = np.sum(resid_outflow[i,:]**2)	# resid. sum of squares double-Gaussian
+        RSS2 = np.sum(resid_outflow[i,:]**2)    # resid. sum of squares double-Gaussian
 
         n = float(len(resid_outflow[i,:]))
         dfn = k2 - k1 # deg. of freedom numerator
@@ -3005,10 +3056,10 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_in
     #
     # Sample the noise around the best-fit 
     nsamp = 10000
-    resid_line_lnlike	= np.empty(nsamp)
+    resid_line_lnlike   = np.empty(nsamp)
     resid_no_line_lnlike = np.empty(nsamp)
     for i in range(nsamp):
-        lnlike_line	= np.sum(-0.5*(np.random.normal(loc=resid_line[eval_ind],scale=noise[eval_ind],size=len(eval_ind)))**2/noise[eval_ind]**2)
+        lnlike_line = np.sum(-0.5*(np.random.normal(loc=resid_line[eval_ind],scale=noise[eval_ind],size=len(eval_ind)))**2/noise[eval_ind]**2)
         lnlike_no_line = np.sum(-0.5*(np.random.normal(loc=resid_no_line[eval_ind],scale=noise[eval_ind],size=len(eval_ind)))**2/noise[eval_ind]**2)
         resid_line_lnlike[i] = lnlike_line
         resid_no_line_lnlike[i] = lnlike_no_line
@@ -3030,8 +3081,8 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_in
     ax2.tick_params(axis='both', labelsize= fontsize)
     ax2.legend()
     # The sampled log-likelihoods should be nearly Gaussian
-    x			= np.linspace(np.min([resid_line_lnlike, resid_no_line_lnlike]),np.max([resid_line_lnlike, resid_no_line_lnlike]),1000)
-    norm_line	= stats.norm(loc=p_line[1],scale=np.mean([p_line[2]-p_line[1],p_line[1]-p_line[0]]))
+    x           = np.linspace(np.min([resid_line_lnlike, resid_no_line_lnlike]),np.max([resid_line_lnlike, resid_no_line_lnlike]),1000)
+    norm_line   = stats.norm(loc=p_line[1],scale=np.mean([p_line[2]-p_line[1],p_line[1]-p_line[0]]))
     norm_no_line = stats.norm(loc=p_no_line[1],scale=np.mean([p_no_line[2]-p_no_line[1],p_no_line[1]-p_no_line[0]]))
     #
     ax2.plot(x,norm_line.pdf(x),color="xkcd:bright aqua",linewidth=1)
@@ -3042,20 +3093,20 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_in
     # Alternative Hypothesis, H1: B is significantly different from A
     A = resid_no_line_lnlike # no line model
     A_mean = p_no_line[1]
-    B = resid_line_lnlike	# line model
+    B = resid_line_lnlike   # line model
     ntrials = 10000
     B_samples = norm_line.rvs(size=ntrials)
     pvalues = np.array([(norm_no_line.sf(b)) for b in B_samples])*2.0
     pvalues[pvalues>1] = 1
     pvalues[pvalues<1e-6] = 0
-    conf	= (1 - pvalues)
+    conf    = (1 - pvalues)
     #
     ax3.hist(pvalues,bins="doane",histtype="step",label="Line",density=True,color="xkcd:bright aqua",linewidth=0.5)
     p_pval = np.percentile(pvalues,[16,50,84])
     ax3.axvline(p_pval[1],color="xkcd:bright aqua", linestyle='--', linewidth=1,)
     ax3.axvspan(p_pval[0], p_pval[2], alpha=0.25, color='xkcd:bright aqua')
     ax3.set_title(r"$p$-values",fontsize=fontsize)
-    #	
+    #   
     ax4.hist(conf,bins="doane",histtype="step",label="No Line",density=True,color="xkcd:bright aqua",linewidth=0.5)
     p_conf = np.percentile(conf,[16,50,84])
     # np.save(run_dir.joinpath("conf_arr.npy"),conf)
@@ -3120,6 +3171,7 @@ def line_test(param_dict,
               uv_iron_template,
               balmer_template,
               stel_templates,
+              blob_pars,
               disp_res,
               fit_mask,
               velscale,
@@ -3187,6 +3239,7 @@ def line_test(param_dict,
                                                                                uv_iron_template,
                                                                                balmer_template,
                                                                                stel_templates,
+                                                                               blob_pars,
                                                                                disp_res,
                                                                                fit_mask,
                                                                                velscale,
@@ -3199,11 +3252,11 @@ def line_test(param_dict,
                                                                                max_like_niter=max_like_niter,
                                                                                verbose=verbose)
 
-    # Initialize the no_line fit to be at the same fit parameters as the fit with the line
-    for key in param_dict:
-        if key in [p for p in mcpars_no_line]:
-            # print(key)
-            param_dict[key]["init"] = mcpars_no_line[key]["med"]
+    # (Don't do this) Initialize the no_line fit to be at the same fit parameters as the fit with the line
+    # for key in param_dict:
+    #     if key in [p for p in mcpars_no_line]:
+    #         # print(key)
+    #         param_dict[key]["init"] = mcpars_no_line[key]["med"]
 
 
     # Perform fitting with line
@@ -3232,6 +3285,7 @@ def line_test(param_dict,
                                                           uv_iron_template,
                                                           balmer_template,
                                                           stel_templates,
+                                                          blob_pars,
                                                           disp_res,
                                                           fit_mask,
                                                           velscale,
@@ -3280,11 +3334,11 @@ def line_test(param_dict,
     eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask], original_line_list, remove_lines, velscale)
 
     # storage arrays for residuals in [OIII] test region
-    resid_line	  = np.empty((max_like_niter+1,nchannel))
+    resid_line    = np.empty((max_like_niter+1,nchannel))
     resid_no_line = np.empty((max_like_niter+1,nchannel))
-    resid_total	  = np.empty((max_like_niter+1,len(lam_gal[fit_mask])))
+    resid_total   = np.empty((max_like_niter+1,len(lam_gal[fit_mask])))
     for i in range(max_like_niter+1):
-        resid_line[i,:]	   = mccomps_line['RESID'][i,:][fit_mask][eval_ind]
+        resid_line[i,:]    = mccomps_line['RESID'][i,:][fit_mask][eval_ind]
         resid_no_line[i,:] = mccomps_no_line['RESID'][i,:][fit_mask][eval_ind]
         resid_total[i,:]   = mccomps_line['RESID'][i,:][fit_mask]
 
@@ -3297,12 +3351,12 @@ def line_test(param_dict,
     f_stat, f_stat_err, f_pval, f_pval_err, f_conf, f_conf_err = f_test(resid_line,resid_no_line,1.0,4.0,run_dir)
 
     # Calculate total residual noise
-    resid_noise_no_line	       = np.median([np.std(resid_no_line[i,:]) for i in range(np.shape(resid_no_line)[0])])
+    resid_noise_no_line        = np.median([np.std(resid_no_line[i,:]) for i in range(np.shape(resid_no_line)[0])])
     resid_noise_no_line_err    = np.std([np.std(resid_no_line[i,:]) for i in range(np.shape(resid_no_line)[0])])
-    resid_noise_line		   = np.median([np.std(resid_line[i,:]) for i in range(np.shape(resid_line)[0])])
-    resid_noise_line_err	   = np.std([np.std(resid_line[i,:]) for i in range(np.shape(resid_line)[0])])
-    total_resid_noise		   = np.median([np.std(resid_total[i,:]) for i in range(np.shape(resid_total)[0])])
-    total_resid_noise_err	   = np.std([np.std(resid_total[i,:]) for i in range(np.shape(resid_total)[0])])
+    resid_noise_line           = np.median([np.std(resid_line[i,:]) for i in range(np.shape(resid_line)[0])])
+    resid_noise_line_err       = np.std([np.std(resid_line[i,:]) for i in range(np.shape(resid_line)[0])])
+    total_resid_noise          = np.median([np.std(resid_total[i,:]) for i in range(np.shape(resid_total)[0])])
+    total_resid_noise_err      = np.std([np.std(resid_total[i,:]) for i in range(np.shape(resid_total)[0])])
 
     # Chi2 Metrics
     # Chi-squared is evaluated in the region of the line for the two models
@@ -3376,25 +3430,25 @@ def line_test(param_dict,
 
     # Write test statistics to FITS table
     stats_dict = {
-    "PVAL":				   {"best": pval, "sigma_low": pval_low, "sigma_upp": pval_upp },
-    "CONF":				   {"best": conf, "sigma_low": conf_low, "sigma_upp": conf_upp},
-    "DIST":				   {"best": dist, "sigma_low": 0.0, "sigma_upp": 0.0},
-    "DISP":				   {"best": disp, "sigma_low": 0.0, "sigma_upp": 0.0},
-    "SIGNIF":			   {"best": signif, "sigma_low": 0.0, "sigma_upp": 0.0},
-    "OVERLAP":			   {"best": overlap, "sigma_low": 0.0, "sigma_upp": 0.0},
-    "F_CONF":			   {"best": f_conf, "sigma_low": f_conf_err, "sigma_upp": f_conf_err},
-    "F_STAT":			   {"best": f_stat, "sigma_low": f_stat_err, "sigma_upp": f_stat_err},
-    "F_PVAL":			   {"best": f_pval, "sigma_low": f_pval_err, "sigma_upp": f_pval_err},
-    "CHI2_LINE":		   {"best": chi2_line, "sigma_low": chi2_line_err, "sigma_upp": chi2_line_err},
-    "CHI2_NO_LINE":		   {"best": chi2_no_line, "sigma_low": chi2_no_line_err, "sigma_upp": chi2_no_line_err},
-    "CHI2_RATIO":		   {"best": chi2_ratio, "sigma_low": chi2_ratio_err, "sigma_upp": chi2_ratio_err},
-    "SSR_RATIO":		   {"best": ssr_ratio, "sigma_low": ssr_ratio_err, "sigma_upp": ssr_ratio_err},
-    "SSR_NO_LINE":		   {"best": ssr_no_line, "sigma_low": ssr_no_line_err, "sigma_upp": ssr_no_line_err},
-    "SSR_LINE":			   {"best": ssr_line, "sigma_low": ssr_line_err, "sigma_upp": ssr_line_err},
-    "MEDIAN_NOISE":		   {"best": np.median(noise), "sigma_low": np.std(noise), "sigma_upp": np.std(noise)},
-    "RESID_NOISE":		   {"best": total_resid_noise, "sigma_low": total_resid_noise_err, "sigma_upp": total_resid_noise_err},
+    "PVAL":                {"best": pval, "sigma_low": pval_low, "sigma_upp": pval_upp },
+    "CONF":                {"best": conf, "sigma_low": conf_low, "sigma_upp": conf_upp},
+    "DIST":                {"best": dist, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "DISP":                {"best": disp, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "SIGNIF":              {"best": signif, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "OVERLAP":             {"best": overlap, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "F_CONF":              {"best": f_conf, "sigma_low": f_conf_err, "sigma_upp": f_conf_err},
+    "F_STAT":              {"best": f_stat, "sigma_low": f_stat_err, "sigma_upp": f_stat_err},
+    "F_PVAL":              {"best": f_pval, "sigma_low": f_pval_err, "sigma_upp": f_pval_err},
+    "CHI2_LINE":           {"best": chi2_line, "sigma_low": chi2_line_err, "sigma_upp": chi2_line_err},
+    "CHI2_NO_LINE":        {"best": chi2_no_line, "sigma_low": chi2_no_line_err, "sigma_upp": chi2_no_line_err},
+    "CHI2_RATIO":          {"best": chi2_ratio, "sigma_low": chi2_ratio_err, "sigma_upp": chi2_ratio_err},
+    "SSR_RATIO":           {"best": ssr_ratio, "sigma_low": ssr_ratio_err, "sigma_upp": ssr_ratio_err},
+    "SSR_NO_LINE":         {"best": ssr_no_line, "sigma_low": ssr_no_line_err, "sigma_upp": ssr_no_line_err},
+    "SSR_LINE":            {"best": ssr_line, "sigma_low": ssr_line_err, "sigma_upp": ssr_line_err},
+    "MEDIAN_NOISE":        {"best": np.median(noise), "sigma_low": np.std(noise), "sigma_upp": np.std(noise)},
+    "RESID_NOISE":         {"best": total_resid_noise, "sigma_low": total_resid_noise_err, "sigma_upp": total_resid_noise_err},
     "RESID_NOISE_NO_LINE": {"best": resid_noise_no_line, "sigma_low": resid_noise_no_line_err, "sigma_upp": resid_noise_no_line_err},
-    "RESID_NOISE_LINE":	   {"best": resid_noise_line, "sigma_low": resid_noise_line_err, "sigma_upp": resid_noise_line_err},
+    "RESID_NOISE_LINE":    {"best": resid_noise_line, "sigma_low": resid_noise_line_err, "sigma_upp": resid_noise_line_err},
     }
     write_test_stats(stats_dict,run_dir)
 
@@ -3404,8 +3458,8 @@ def line_test(param_dict,
     # Make plot 
     # Get best fit model components for each model 
     param_names_line = [key for key in param_dict ]
-    params_line		= [mcpars_line[key]['med']  for key in param_dict ]
-    fit_type	 = 'line_test'
+    params_line     = [mcpars_line[key]['med']  for key in param_dict ]
+    fit_type     = 'line_test'
     output_model = False
     comp_dict_line = fit_model(params_line,
                               param_names_line,
@@ -3428,6 +3482,7 @@ def line_test(param_dict,
                               uv_iron_template,
                               balmer_template,
                               stel_templates,
+                              blob_pars,
                               disp_res,
                               fit_mask,
                               velscale,
@@ -3436,8 +3491,8 @@ def line_test(param_dict,
                               fit_stat,
                               output_model)
     param_names_no_line = [key for key in param_dict_no_line ]
-    params_no_line		= [mcpars_no_line[key]['med']  for key in param_dict_no_line ]
-    fit_type	 = 'line_test'
+    params_no_line      = [mcpars_no_line[key]['med']  for key in param_dict_no_line ]
+    fit_type     = 'line_test'
     output_model = False
     comp_dict_no_line = fit_model(params_no_line,
                               param_names_no_line,
@@ -3460,6 +3515,7 @@ def line_test(param_dict,
                               uv_iron_template,
                               balmer_template,
                               stel_templates,
+                              blob_pars,
                               disp_res,
                               fit_mask,
                               velscale,
@@ -3538,8 +3594,8 @@ def write_test_stats(stats_dict,run_dir):
     # Write best-fit parameters to FITS table
     col1 = fits.Column(name='parameter', format='30A', array=par_names)
     col2 = fits.Column(name='best_fit' , format='E'  , array=par_best)
-    col3 = fits.Column(name='sigma_low'	, format='E'  , array=sig_low)
-    col4 = fits.Column(name='sigma_upp'	, format='E'  , array=sig_upp)
+    col3 = fits.Column(name='sigma_low' , format='E'  , array=sig_low)
+    col4 = fits.Column(name='sigma_upp' , format='E'  , array=sig_upp)
     
     cols = fits.ColDefs([col1,col2,col3,col4])
     hdu = fits.BinTableHDU.from_columns(cols)
@@ -3621,9 +3677,9 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
             elif key=='Z_OPT_FEII_TEMPLATE':
                 ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['Z_OPT_FEII_TEMPLATE'], color='xkcd:rust', linewidth=0.5, linestyle='-' , label='Z-transition FeII')
         elif (key=='UV_IRON_TEMPLATE'):
-            ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'	 )
+            ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'    )
         elif (key=='BALMER_CONT'):
-            ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'	 )
+            ax1.plot(comp_dict_outflow['WAVE'], comp_dict_outflow['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'    )
         # Plot emission lines by cross-referencing comp_dict with line_list
         if (key in line_list_outflows):
             if (line_list_outflows[key]["line_type"]=="na"):
@@ -3738,9 +3794,9 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
             elif key=='Z_OPT_FEII_TEMPLATE':
                 ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['Z_OPT_FEII_TEMPLATE'], color='xkcd:rust', linewidth=0.5, linestyle='-' , label='Z-transition FeII')
         elif (key=='UV_IRON_TEMPLATE'):
-            ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'	 )
+            ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'  )
         elif (key=='BALMER_CONT'):
-            ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'	 )
+            ax3.plot(comp_dict_no_outflow['WAVE'], comp_dict_no_outflow['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'  )
         # Plot emission lines by cross-referencing comp_dict with line_list
         if (key in line_list_no_outflows):
             if (line_list_no_outflows[key]["line_type"]=="na"):
@@ -3850,7 +3906,7 @@ def write_line_test_results(result_dict_outflows,
     # Extract elements from dictionaries
     par_names = []
     par_best  = []
-    sig	   = []
+    sig    = []
     for key in result_dict_outflows:
         par_names.append(key)
         par_best.append(result_dict_outflows[key]['med'])
@@ -3861,7 +3917,7 @@ def write_line_test_results(result_dict_outflows,
     # Write best-fit parameters to FITS table
     col1 = fits.Column(name='parameter', format='30A', array=par_names)
     col2 = fits.Column(name='best_fit' , format='E'  , array=par_best)
-    col3 = fits.Column(name='sigma'	, format='E'  , array=sig)
+    col3 = fits.Column(name='sigma' , format='E'  , array=sig)
     
     cols = fits.ColDefs([col1,col2,col3])
     hdu = fits.BinTableHDU.from_columns(cols)
@@ -3907,7 +3963,7 @@ def write_line_test_results(result_dict_outflows,
     # Write No-outflow model FITS tables
     par_names = []
     par_best  = []
-    sig	   = []
+    sig    = []
     for key in result_dict_no_outflows:
         par_names.append(key)
         par_best.append(result_dict_no_outflows[key]['med'])
@@ -3918,7 +3974,7 @@ def write_line_test_results(result_dict_outflows,
     # Write best-fit parameters to FITS table
     col1 = fits.Column(name='parameter', format='30A', array=par_names)
     col2 = fits.Column(name='best_fit' , format='E'  , array=par_best)
-    col3 = fits.Column(name='sigma'	, format='E'  , array=sig)
+    col3 = fits.Column(name='sigma' , format='E'  , array=sig)
     
     cols = fits.ColDefs([col1,col2,col3])
     hdu = fits.BinTableHDU.from_columns(cols)
@@ -3952,16 +4008,17 @@ def write_line_test_results(result_dict_outflows,
 
 ####################################################################################
 
-def calc_max_like_flux(comp_dict, lam_gal):
+def calc_max_like_flux(comp_dict):
     """
     Calculates component fluxes for maximum likelihood fitting.
     Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood().
 
     """
+
     flux_dict = {}
     for key in comp_dict: 
         if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-            flux = np.log10(1.e-17*(simps(comp_dict[key],lam_gal)))
+            flux = np.log10(1.e-17*(np.trapz(comp_dict[key],comp_dict["WAVE"])))
             # Add to flux_dict
             flux_dict[key+"_FLUX"]  = flux
 
@@ -3985,7 +4042,7 @@ def calc_max_like_lum(flux_dict, z, H0=70.0,Om0=0.30):
         flux = 10**flux_dict[key] #* 1.0E-17
         
         # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-        lum   = np.log10((flux * 4*np.pi * d_cm**2	)) #/ 1.0E+42
+        lum   = np.log10((flux * 4*np.pi * d_cm**2  )) #/ 1.0E+42
         # Add to lum_dict
         lum_dict[key[:-4]+'LUM']= lum
 
@@ -3994,14 +4051,14 @@ def calc_max_like_lum(flux_dict, z, H0=70.0,Om0=0.30):
 
 ####################################################################################
 
-def calc_max_like_eqwidth(comp_dict, line_list, lam_gal, noise, velscale):
+def calc_max_like_eqwidth(comp_dict, line_list, velscale):
     """
     Calculates component fluxes for maximum likelihood fitting.
     Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood().
 
     """
     # Create a single continuum component based on what was fit
-    cont = np.zeros(len(lam_gal))
+    cont = np.zeros(len(comp_dict["WAVE"]))
     for key in comp_dict:
         if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             cont+=comp_dict[key]
@@ -4016,7 +4073,7 @@ def calc_max_like_eqwidth(comp_dict, line_list, lam_gal, noise, velscale):
         for c in spec_comps:
             if 1:#c in lines: # component is a line
                 # print(c,comp_dict[c],cont)
-                eqwidth = simps(comp_dict[c]/cont,lam_gal)
+                eqwidth = np.trapz(comp_dict[c]/cont,comp_dict["WAVE"])
             #
                 if ~np.isfinite(eqwidth):
                     eqwidth=0.0
@@ -4030,14 +4087,14 @@ def calc_max_like_eqwidth(comp_dict, line_list, lam_gal, noise, velscale):
 
 ##################################################################################
 
-def calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=70.0, Om0=0.30):
+def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=70.0, Om0=0.30):
     """
     Calculate monochromatic continuum luminosities
     """
     clum_dict  = {}
-    total_cont = np.zeros(len(lam_gal))
-    agn_cont   = np.zeros(len(lam_gal))
-    host_cont  = np.zeros(len(lam_gal))
+    total_cont = np.zeros(len(comp_dict["WAVE"]))
+    agn_cont   = np.zeros(len(comp_dict["WAVE"]))
+    host_cont  = np.zeros(len(comp_dict["WAVE"]))
     for key in comp_dict:
         if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
             total_cont+=comp_dict[key]
@@ -4050,97 +4107,71 @@ def calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=70.0, Om0=0.30):
     cosmo = FlatLambdaCDM(H0, Om0)
     d_mpc = cosmo.luminosity_distance(z).value
     d_cm  = d_mpc * 3.086E+24 # 1 Mpc = 3.086e+24 cm
-    # Interpolation function for the continuum 
-    interp_tot  = interp1d(lam_gal,total_cont,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    interp_agn  = interp1d(lam_gal,agn_cont  ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    interp_host = interp1d(lam_gal,host_cont ,kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
+    #
     for c in clum:
         # Total luminosities
         if (c=="L_CONT_TOT_1350"):
-            flux = interp_tot(1350.0) * 1.e-17# * 1350.0
+            flux = total_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_TOT_1350"] = lum
         if (c=="L_CONT_TOT_3000"):
-            flux = interp_tot(3000.0) * 1.e-17 #* 3000.0
+            flux = total_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_TOT_3000"] = lum
         if (c=="L_CONT_TOT_5100"):
-            flux = interp_tot(5100.0) * 1.e-17 #* 5100.0
+            flux = total_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_TOT_5100"] = lum
         # AGN luminosities
         if (c=="L_CONT_AGN_1350"):
-            flux = interp_agn(1350.0) * 1.e-17# * 1350.0
+            flux = agn_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_AGN_1350"] = lum
         if (c=="L_CONT_AGN_3000"):
-            flux = interp_agn(3000.0) * 1.e-17 #* 3000.0
+            flux = agn_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_AGN_3000"] = lum
         if (c=="L_CONT_AGN_5100"):
-            flux = interp_agn(5100.0) * 1.e-17 #* 5100.0
+            flux = agn_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_AGN_5100"] = lum
         # Host luminosities
         if (c=="L_CONT_HOST_1350"):
-            flux = interp_host(1350.0) * 1.e-17# * 1350.0
+            flux = host_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_HOST_1350"] = lum
         if (c=="L_CONT_HOST_3000"):
-            flux = interp_host(3000.0) * 1.e-17 #* 3000.0
+            flux = host_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_HOST_3000"] = lum
         if (c=="L_CONT_HOST_5100"):
-            flux = interp_host(5100.0) * 1.e-17 #* 5100.0
+            flux = host_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_HOST_5100"] = lum
         # Host and AGN fractions
         if (c=="HOST_FRAC_4000"):
-            clum_dict["HOST_FRAC_4000"] = interp_host(4000.0)/interp_tot(4000.0)
+            clum_dict["HOST_FRAC_4000"] =  host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
         if (c=="AGN_FRAC_4000"):
-            clum_dict["AGN_FRAC_4000"] = interp_agn(4000.0)/interp_tot(4000.0)
+            clum_dict["AGN_FRAC_4000"] = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
         if (c=="HOST_FRAC_7000"):
-            clum_dict["HOST_FRAC_7000"] = interp_host(7000.0)/interp_tot(7000.0)
+            clum_dict["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
         if (c=="AGN_FRAC_7000"):
-            clum_dict["AGN_FRAC_7000"] = interp_agn(7000.0)/interp_tot(7000.0)
+            clum_dict["AGN_FRAC_7000"] = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
 
     return clum_dict
 
 ##################################################################################
 
-def remove_stray_lines(line_profile):
-    
-    line_profile[line_profile<0] = 0
-    max_idx = np.where(line_profile==np.max(line_profile))[0][0]
-    # print(max_idx)
-    #
-    left_bad = [i for i in np.arange(max_idx,-1,-1) if line_profile[i]>0]
-#     print(left_bad)
-    left_bad_idx = [max_idx-np.where(np.abs(np.diff(left_bad))>1)[0]-1][0]
-    # print(left_bad_idx)
-    if len(left_bad_idx)>0:
-        l0 = left_bad_idx[0]
-        line_profile[range(0,l0+1,1)]= 0 
-    #
-    right_bad = [i for i in np.arange(max_idx,len(line_profile),1) if line_profile[i]>0]
-    right_bad_idx = [max_idx+np.where(np.abs(np.diff(right_bad))>1)[0]+1][0]
-    if len(right_bad_idx)>0:
-        r0 = right_bad_idx[0]
-        line_profile[range(r0,len(line_profile),1)]= 0 
-    # print(right_bad_idx)
-    #
-    return line_profile
-
-def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal, noise, velscale):
+def calc_max_like_dispersions(lam_gal, comp_dict, line_list, combined_line_list, blob_pars, velscale):
 
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [i for i in line_list]
@@ -4149,25 +4180,22 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal,
     fwhm_dict = {}
     vint_dict = {}
     #
-    interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,bounds_error=False)
     # Loop through lines
     for line in lines:
-        fwhm = combined_fwhm(lam_gal,comp_dict[line],line_list[line]["disp_res_kms"],velscale)
+        fwhm = combined_fwhm(comp_dict["WAVE"],comp_dict[line],line_list[line]["disp_res_kms"],velscale)
         fwhm_dict[line+"_FWHM"] = fwhm
 
         if line in combined_line_list:   
             # Calculate velocity scale centered on line
-            vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[line]["center"])
+            vel = np.arange(len(lam_gal))*velscale - blob_pars[line+"_LINE_VEL"]
             full_profile = comp_dict[line]
-            # Remove stray lines
-            full_profile = remove_stray_lines(full_profile)
             #
             # Normalized line profile
             norm_profile = full_profile/np.sum(full_profile)
             # Calculate integrated velocity in pixels units
-            v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
+            v_int = np.trapz(vel*norm_profile,vel)/simps(norm_profile,vel)
             # Calculate integrated dispersion and correct for instrumental dispersion
-            d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
+            d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/np.trapz(norm_profile,vel) - (v_int**2))
             d_int = np.sqrt(d_int**2 - (line_list[line]["disp_res_kms"])**2)
             # 
             if ~np.isfinite(d_int): d_int = 0.0
@@ -4176,6 +4204,76 @@ def calc_max_like_dispersions(comp_dict, line_list, combined_line_list, lam_gal,
             vint_dict[line+"_VOFF"] = v_int
     #
     return disp_dict, fwhm_dict, vint_dict
+
+##################################################################################
+
+def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
+
+    # for p in param_dict:
+        # print(p,param_dict[p])
+
+    # for p in comp_dict:
+        # print(p,len(comp_dict[p]))
+
+    # subsamp_factor = 1000 # factor by which we subsample the data
+
+    npix_dict = {}
+    snr_dict  = {}
+
+    if fit_stat=="RCHI2":
+        # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]*comp_dict["MODEL"])**2
+        # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"])**2 # Additive constant noise factor
+        noise2 = (comp_dict["NOISE"]*param_dict["NOISE_SCALE"])**2 # multiplicative noise factor
+        _noise = noise2**0.5
+    elif fit_stat!="RCHI2":
+        _noise = comp_dict["NOISE"]
+        noise2 = _noise**2
+
+    # compute number of pixels (NPIX) for each line in the line list;
+    # this is done by determining the number of pixels of the line model
+    # that are above the raw noise.
+
+    # compute the signal-to-noise ratio (SNR) for each line;
+    # this is done by calculating the maximum value of the line model 
+    # above the MEAN value of the noise within the channels.
+    for l in line_list:
+        eval_ind = np.where(comp_dict[l]>_noise)[0]
+        npix = len(eval_ind)
+        npix_dict[l+"_NPIX"] = int(npix)
+        if len(eval_ind)>0:
+            snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
+        else: 
+            snr = 0
+        snr_dict[l+"_SNR"] = snr
+    # compute for combined lines
+    if len(combined_line_list)>0:
+        for c in combined_line_list:
+            eval_ind = np.where(comp_dict[c]>_noise)[0]
+            npix = len(eval_ind)
+            npix_dict[c+"_NPIX"] = int(npix)
+            if len(eval_ind)>0:
+                snr = np.nanmax(comp_dict[c][eval_ind])/np.nanmean(_noise[eval_ind])
+            else:
+                snr = 0
+            snr_dict[c+"_SNR"] = snr
+
+    # for n in npix_dict:
+        # print(n,npix_dict[n])
+
+    # for s in snr_dict:
+        # print(s,snr_dict[s])
+
+    # compute a total chi-squared and r-squared
+    r_squared = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    # print(r_squared)
+    #
+    nu = len(comp_dict["DATA"])-n_free_pars
+    rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+    #
+    return r_squared, rchi_squared, npix_dict, snr_dict
+
+##################################################################################
+
 
 #### Maximum Likelihood Fitting ##################################################
 
@@ -4202,6 +4300,7 @@ def max_likelihood(param_dict,
                    uv_iron_template,
                    balmer_template,
                    stel_templates,
+                   blob_pars,
                    disp_res,
                    fit_mask,
                    velscale,
@@ -4220,11 +4319,11 @@ def max_likelihood(param_dict,
     testing outflows and fit for final initial parameters for emcee.
     """
     param_names = [key for key in param_dict ]
-    params	  = [param_dict[key]['init'] for key in param_dict ]
-    bounds	  = [param_dict[key]['plim'] for key in param_dict ]
+    params    = [param_dict[key]['init'] for key in param_dict ]
+    bounds    = [param_dict[key]['plim'] for key in param_dict ]
     lb, ub = zip(*bounds) 
     param_bounds = op.Bounds(lb,ub,keep_feasible=True)
-
+    n_free_pars = len(params) # number of free parameters
     # Extract parameters with priors; only non-uniform priors 
     # need to be added to the fit
     # for key in param_dict:
@@ -4277,6 +4376,7 @@ def max_likelihood(param_dict,
                                                          uv_iron_template,
                                                          balmer_template,
                                                          stel_templates,
+                                                         blob_pars,
                                                          disp_res,
                                                          fit_mask,
                                                          velscale,
@@ -4294,8 +4394,8 @@ def max_likelihood(param_dict,
     # Get elapsed time
     elap_time = (time.time() - start_time)
 
-    par_best	 = result['x']
-    fit_type	 = 'init'
+    par_best     = result['x']
+    fit_type     = 'init'
     output_model = True
 
     comp_dict = fit_model(par_best,
@@ -4319,6 +4419,7 @@ def max_likelihood(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
+                          blob_pars,
                           disp_res,
                           fit_mask,
                           velscale,
@@ -4328,43 +4429,40 @@ def max_likelihood(param_dict,
                           output_model)
 
     #### Maximum Likelihood Bootstrapping #################################################################
-    # Construct random normally-distributed noise
-    # How we do the monte carlo bootstrapping (i.e., the proper way):
-    # (1) The 1-sigma uncertainty (spectral "noise") from inverse variance of the SDSS spectra is 
-    # 	  the pixel-to-pixel variation in the spectrum when rows of pixels are added to form the final 1-d spectrum. 
-    # 	  This is always an underestimate of the true noise in the spectrum. 
-    # (2) The residual noise from a fit, taken to be the median absolute deviation of the residuals from a fit.  This 
-    #	 is always greater than the "noise" from (1), but closer to the actual value of the noise across the fitting 
-    #	  region.  
-    #  We add (1) and (2) in quadrature to simulate the noise at /every/ pixel in the fitting region.
-    # Note: the SDSS noise is likely underestimated, but this is the best we can do.
 
     mcnoise = np.array(noise)
     # Storage dictionaries for all calculated paramters at each iteration
-    mcpars = {k:np.empty(max_like_niter+1) for k in param_names}
+    mcpars  = {k:np.empty(max_like_niter+1) for k in param_names}
     # flux_dict
     flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
-    mcflux = {k:np.empty(max_like_niter+1) for k in flux_names}
+    mcflux     = {k:np.empty(max_like_niter+1) for k in flux_names}
     # lum dict
     lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
-    mclum  = {k:np.empty(max_like_niter+1) for k in lum_names}
+    mclum     = {k:np.empty(max_like_niter+1) for k in lum_names}
     # eqwidth dict
     # line_names = [key+"_EW" for key in {**line_list, **combined_line_list}]
     line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
-    mceqw  = {k:np.empty(max_like_niter+1) for k in line_names}
+    mceqw      = {k:np.empty(max_like_niter+1) for k in line_names}
     # integrated dispersion & velocity dicts
     # Since dispersion is calculated for all lines, we only need to calculate the integrated
     # dispersions and velocities for combined lines, and FWHM for all lines
     line_names = [key+"_DISP" for key in combined_line_list]
-    mcdisp  = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcdisp     = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_FWHM" for key in {**line_list, **combined_line_list}]
-    mcfwhm  = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcfwhm     = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_VOFF" for key in combined_line_list]
-    mcvint  = {k:np.empty(max_like_niter+1) for k in line_names}
-    # component dictionary
-    mccomps = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
+    mcvint     = {k:np.empty(max_like_niter+1) for k in line_names}
+    # fit quality dictionaries (R_SQUARED, RCHI_SQUARED, NPIX, SNR)
+    mcR2       = np.empty(max_like_niter+1)
+    mcRCHI2    = np.empty(max_like_niter+1)
+    line_names = [key+"_NPIX" for key in {**line_list, **combined_line_list}]
+    mcnpix     = {k:np.empty(max_like_niter+1) for k in line_names}
+    line_names = [key+"_SNR" for key in {**line_list, **combined_line_list}]
+    mcsnr      = {k:np.empty(max_like_niter+1) for k in line_names}
+    # model component dictionary
+    mccomps    = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
     # log-likelihood array
-    mcLL = np.empty(max_like_niter+1)
+    mcLL       = np.empty(max_like_niter+1)
     # Monochromatic continuum luminosities array
     clum = []
     if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
@@ -4387,16 +4485,25 @@ def max_likelihood(param_dict,
         clum.append("AGN_FRAC_7000")
     mccont = {k:np.empty(max_like_niter+1) for k in clum}
 
+
+    # Subsample comp dict
+    # comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
     # Calculate fluxes 
-    flux_dict = calc_max_like_flux(comp_dict, lam_gal)
+    flux_dict = calc_max_like_flux(comp_dict)
     # Calculate luminosities
     lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+
     # Calculate equivalent widths
-    eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, lam_gal, noise, velscale)
+    eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
+
     # Calculate continuum luminosities
-    clum_dict = calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+    clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
+
     # Calculate integrated line dispersions
-    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, lam_gal, noise, velscale)
+    disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
+
+    # Calculate fit quality parameters
+    r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
 
     # Add first iteration to arrays
     # Add to mcpars dict
@@ -4413,14 +4520,21 @@ def max_likelihood(param_dict,
         # Add to mceqw dict
         for key in eqwidth_dict:
             mceqw[key][0] = eqwidth_dict[key]
-    # Add to mcdisp dict
+    # Add to mcdisp dict, fwhm_dict, vint_dict
     for key in disp_dict:
         mcdisp[key][0] = disp_dict[key]
     for key in fwhm_dict:
         mcfwhm[key][0] = fwhm_dict[key]
     for key in vint_dict:
         mcvint[key][0] = vint_dict[key]
-    # Add components to mccomps
+    # Add to fit quality dicts
+    for key in npix_dict:
+        mcnpix[key][0] = npix_dict[key]
+    for key in snr_dict:
+        mcsnr[key][0] = snr_dict[key]
+    mcR2[0] = r2 
+    mcRCHI2[0] = rchi2 
+    # Add original components to mccomps
     for key in comp_dict:
         mccomps[key][0,:] = comp_dict[key]
     # Add log-likelihood to mcLL
@@ -4438,7 +4552,7 @@ def max_likelihood(param_dict,
             mcgal  = np.random.normal(galaxy,mcnoise)
             # Get rid of any infs or nan if there are none; this will cause scipy.optimize to fail
             mcgal[~np.isfinite(mcgal)] = np.median(mcgal)
-            fit_type	 = 'init'
+            fit_type     = 'init'
             output_model = False
 
             # if (cons is not None):
@@ -4471,6 +4585,7 @@ def max_likelihood(param_dict,
                                              uv_iron_template,
                                              balmer_template,
                                              stel_templates,
+                                             blob_pars,
                                              disp_res,
                                              fit_mask,
                                              velscale,
@@ -4481,10 +4596,18 @@ def max_likelihood(param_dict,
                                              ),
                                        # method='SLSQP', 
                                        method='Nelder-Mead',
+                                       # method="Powell",
                                        bounds = param_bounds, 
                                        # constraints=cons,
                                        options={'maxiter':1000,'disp': False})
             mcLL[n] = resultmc["fun"] # add best fit function values to mcLL
+
+            # Used for checking MC outputs
+            # print("\n MC iteration: %d:" % n)
+            # for p,pn in enumerate(param_names):
+            #     print(pn,resultmc["x"][p])
+
+
             # Get best-fit model components to calculate fluxes and equivalent widths
             output_model = True
             comp_dict = fit_model(resultmc["x"],
@@ -4508,6 +4631,7 @@ def max_likelihood(param_dict,
                                   uv_iron_template,
                                   balmer_template,
                                   stel_templates,
+                                  blob_pars,
                                   disp_res,
                                   fit_mask,
                                   velscale,
@@ -4515,16 +4639,21 @@ def max_likelihood(param_dict,
                                   fit_type,
                                   fit_stat,
                                   output_model)
+
+            # Subsample comp dict
+            # comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,resultmc["x"],param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
             # Calculate fluxes 
-            flux_dict = calc_max_like_flux(comp_dict, lam_gal)
+            flux_dict = calc_max_like_flux(comp_dict)
             # Calculate luminosities
             lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate equivalent widths
-            eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, lam_gal, noise, velscale)
+            eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
             # Calculate continuum luminosities
-            clum_dict = calc_max_like_cont_lum(clum, comp_dict, lam_gal, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
+            clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate integrated line dispersions
-            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(comp_dict, {**line_list, **combined_line_list}, combined_line_list, lam_gal, noise, velscale)
+            disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
+            # Calculate fit quality parameters
+            r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
 
             # Add to mc storage dictionaries
             # Add to mcpars dict
@@ -4547,20 +4676,27 @@ def max_likelihood(param_dict,
             # Add continuum luminosities
             for key in clum_dict:
                 mccont[key][n] = clum_dict[key]
-            # Add to mcdisp dict
+            # Add to mcdisp
             for key in disp_dict:
                 mcdisp[key][n] = disp_dict[key]
             for key in fwhm_dict:
                 mcfwhm[key][n] = fwhm_dict[key]
             for key in vint_dict:
                 mcvint[key][n] = vint_dict[key]
+            # Add to fit quality dicts
+            for key in npix_dict:
+                mcnpix[key][n] = npix_dict[key]
+            for key in snr_dict:
+                mcsnr[key][n] = snr_dict[key]
+            mcR2[n] = r2 
+            mcRCHI2[n] = rchi2 
 
             if verbose:
-                print('	   Completed %d of %d iterations.' % (n,max_like_niter) )
+                print('    Completed %d of %d iterations.' % (n,max_like_niter) )
 
     # Iterate through every parameter to determine if the fit is "good" (more than 1-sigma away from bounds)
-    # if not, then add 1 to that parameter flag value			
-    pdict		   = {} # parameter dictionary for all fitted parameters (free parameters, fluxes, luminosities, and equivalent widths)
+    # if not, then add 1 to that parameter flag value           
+    pdict          = {} # parameter dictionary for all fitted parameters (free parameters, fluxes, luminosities, and equivalent widths)
     best_param_dict = {} # For getting the best fit model components
     # Add parameter names to pdict
     for i,key in enumerate(param_names):
@@ -4575,7 +4711,7 @@ def max_likelihood(param_dict,
             param_flags += 1
         if (mc_std==0):
             param_flags += 1
-        pdict[param_names[i]]		   = {'med':mc_med,'std':mc_std,'flag':param_flags}
+        pdict[param_names[i]]          = {'med':mc_med,'std':mc_std,'flag':param_flags}
         best_param_dict[param_names[i]] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add fluxes to pdict
     for key in mcflux:
@@ -4585,11 +4721,11 @@ def max_likelihood(param_dict,
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         if (key[:-5] in line_list):
-            if (line_list[key[:-5]]["line_type"]=="abs") & (mc_med+mc_std >= 0.0):
+            if (line_list[key[:-5]]["line_type"]=="abs") & (mc_med+mc_std >= -18.0):
                 param_flags += 1
-            elif (line_list[key[:-5]]["line_type"]!="abs") & (mc_med-mc_std <= 0.0):
+            elif (line_list[key[:-5]]["line_type"]!="abs") & (mc_med-mc_std <= -18.0):
                 param_flags += 1
-        elif ((key[:-5] not in line_list) & (mc_med-mc_std <= 0.0)) or (mc_std==0):
+        elif ((key[:-5] not in line_list) & (mc_med-mc_std <= -18.0)) or (mc_std==0):
             param_flags += 1
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add luminosities to pdict
@@ -4647,6 +4783,33 @@ def max_likelihood(param_dict,
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
+
+    # Add NPIX to pdict
+    for key in mcnpix:
+        param_flags = 0
+        mc_med = np.median(mcnpix[key])
+        mc_std = np.std(mcnpix[key])
+        if ~np.isfinite(mc_med): mc_med = 0
+        if ~np.isfinite(mc_std): mc_std = 0
+        pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
+    # Add SNR to pdict
+    for key in mcsnr:
+        param_flags = 0
+        mc_med = np.median(mcsnr[key])
+        mc_std = np.std(mcsnr[key])
+        if ~np.isfinite(mc_med): mc_med = 0
+        if ~np.isfinite(mc_std): mc_std = 0
+        pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
+
+    # Add R-squared values to pdict
+    mc_med = np.median(mcR2)
+    mc_std = np.std(mcR2)
+    pdict["R_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
+#    Add RCHI2 values to pdict
+    mc_med = np.median(mcRCHI2)
+    mc_std = np.std(mcRCHI2)
+    pdict["RCHI_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
+
     # Add continuum luminosities to pdict
     for key in mccont:
         param_flags = 0
@@ -4668,11 +4831,17 @@ def max_likelihood(param_dict,
     # Add tied parameters explicitly to final parameter dictionary
     pdict = max_like_add_tied_parameters(pdict,line_list)
 
+    # for p in pdict:
+        # print(p,pdict[p])
+
+    # sys.exit(0)
+
     #
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
-    fit_quality_dict = fit_quality_pars(best_param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type="max_like",fit_stat=fit_stat)
-    pdict = {**pdict,**fit_quality_dict}
+
+    # fit_quality_dict = fit_quality_pars(best_param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type="max_like",fit_stat=fit_stat)
+    # pdict = {**pdict,**fit_quality_dict}
 
     if (test_outflows==True):
         return pdict, mccomps, mcLL
@@ -4699,6 +4868,7 @@ def max_likelihood(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
+                          blob_pars,
                           disp_res,
                           fit_mask,
                           velscale,
@@ -4755,7 +4925,7 @@ def max_likelihood(param_dict,
 def max_like_add_tied_parameters(pdict,line_list):
 
     # for key in pdict:
-    # 	print(key,pdict[key])
+    #   print(key,pdict[key])
     # Make dictionaries for pdict
     param_names = [key for key in pdict]
     med_dict  = {key:pdict[key]["med"]  for key in pdict}
@@ -4774,20 +4944,26 @@ def max_like_add_tied_parameters(pdict,line_list):
                 pdict[line+"_"+par.upper()] = {"med":med, "std":std, "flag":flag}
 
     # for key in pdict:
-    # 	print(key,pdict[key])
+    #   print(key,pdict[key])
 
     return pdict
 
+def isFloat(num):
+    try:
+        float(num)
+        return True
+    except (ValueError,TypeError) as e:
+        return False
 
 def add_tied_parameters(pdict,line_list):
 
     # for key in pdict:
-    # 	print(key,pdict[key])
+    #   print(key,pdict[key])
     # Make dictionaries for pdict
     param_names = [key for key in pdict]
     # init_dict  = {key:pdict[key]["init"]  for key in pdict}
     # plim_dict  = {key:pdict[key]["plim"]  for key in pdict}
-    chain_dict	     = {key:pdict[key]["chain"] for key in pdict}
+    chain_dict       = {key:pdict[key]["chain"] for key in pdict}
     par_best_dict    = {key:pdict[key]["par_best"] for key in pdict}
 
     ci_68_low_dict   = {key:pdict[key]["ci_68_low"] for key in pdict}
@@ -4801,17 +4977,17 @@ def add_tied_parameters(pdict,line_list):
     med_abs_dev_dict = {key:pdict[key]["med_abs_dev"] for key in pdict}
 
     flat_samp_dict   = {key:pdict[key]["flat_chain"] for key in pdict}
-    flag_dict	     = {key:pdict[key]["flag"] for key in pdict}
+    flag_dict        = {key:pdict[key]["flag"] for key in pdict}
     # print()
 
     for line in line_list:
         for par in line_list[line]:
-            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
+            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]) & (isFloat(line_list[line][par]) is False):
                 expr = line_list[line][par] # expression to evaluate
                 expr_vars = [i for i in param_names if i in expr]
-                init	 = pdict[expr_vars[0]]["init"]
-                plim	 = pdict[expr_vars[0]]["plim"]
-                chain	 = ne.evaluate(line_list[line][par],local_dict = chain_dict)
+                init     = pdict[expr_vars[0]]["init"]
+                plim     = pdict[expr_vars[0]]["plim"]
+                chain    = ne.evaluate(line_list[line][par],local_dict = chain_dict)
                 par_best = ne.evaluate(line_list[line][par],local_dict = par_best_dict).item()
 
                 
@@ -4825,7 +5001,7 @@ def add_tied_parameters(pdict,line_list):
                 median      = np.sqrt(np.sum(np.array([median_dict[i] for i in expr_vars],dtype=float)**2))
                 med_abs_dev = np.sqrt(np.sum(np.array([med_abs_dev_dict[i] for i in expr_vars],dtype=float)**2))
 
-                flag 	 = np.sum([flag_dict[i] for i in expr_vars])
+                flag     = np.sum([flag_dict[i] for i in expr_vars])
                 pdict[line+"_"+par.upper()] = {"init":init, "plim":plim, "chain":chain, 
                                                "par_best":par_best, "ci_68_low":ci_68_low, "ci_68_upp":ci_68_upp, 
                                                "ci_95_low":ci_95_low, "ci_95_upp":ci_95_upp, 
@@ -4833,8 +5009,12 @@ def add_tied_parameters(pdict,line_list):
                                                "median":median, "med_abs_dev":med_abs_dev,
                                                "flag":flag}
 
+            # the case where the parameter was set to a constant value
+            if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]) & (isFloat(line_list[line][par]) is True):
+
+                continue
     # for key in pdict:
-    # 	print(key,pdict[key])
+    #   print(key,pdict[key])
 
     return pdict
 
@@ -4906,9 +5086,9 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
                 elif key=='Z_OPT_FEII_TEMPLATE':
                     ax1.plot(comp_dict['WAVE'], comp_dict['Z_OPT_FEII_TEMPLATE'], color='xkcd:rust', linewidth=0.5, linestyle='-' , label='Z-transition FeII')
             elif (key=='UV_IRON_TEMPLATE'):
-                ax1.plot(comp_dict['WAVE'], comp_dict['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'	 )
+                ax1.plot(comp_dict['WAVE'], comp_dict['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'    )
             elif (key=='BALMER_CONT'):
-                ax1.plot(comp_dict['WAVE'], comp_dict['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'	 )
+                ax1.plot(comp_dict['WAVE'], comp_dict['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'    )
             # Plot emission lines by cross-referencing comp_dict with line_list
             if (key in line_list):
                 if (line_list[key]["line_type"]=="na"):
@@ -5043,6 +5223,7 @@ def lnlike(params,
            uv_iron_template,
            balmer_template,
            stel_templates,
+           blob_pars,
            disp_res,
            fit_mask,
            velscale,
@@ -5080,6 +5261,7 @@ def lnlike(params,
                                                                                   uv_iron_template,
                                                                                   balmer_template,
                                                                                   stel_templates,
+                                                                                  blob_pars,
                                                                                   disp_res,
                                                                                   fit_mask,
                                                                                   velscale,
@@ -5103,8 +5285,10 @@ def lnlike(params,
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
-            # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
+            # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
+            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
+            sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
@@ -5133,6 +5317,7 @@ def lnlike(params,
                                      uv_iron_template,
                                      balmer_template,
                                      stel_templates,
+                                     blob_pars,
                                      disp_res,
                                      fit_mask,
                                      velscale,
@@ -5155,8 +5340,10 @@ def lnlike(params,
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
-            # l = -0.5*np.sum( (galaxy[fit_mask]-model[fit_mask])**2/(noise_scale*noise[fit_mask])**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask])**2),axis=0)
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise_scale*noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise_scale*noise[fit_mask]/norm_factor)**2),axis=0)
+            # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
+            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
+            sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
+            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
         return l 
 
@@ -5240,8 +5427,8 @@ def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type
 
     for i in range(len(params)):
         # if prior_types[i]=="gaussian":
-        # 	mu, sigma = bounds[i]
-        # 	lp_arr.append(-0.5 * ((params[i] - mu) / sigma)**2 - 0.5 * np.log(sigma**2 * 2 * np.pi))
+        #   mu, sigma = bounds[i]
+        #   lp_arr.append(-0.5 * ((params[i] - mu) / sigma)**2 - 0.5 * np.log(sigma**2 * 2 * np.pi))
         # elif prior_types[i]=="uniform":
         lower, upper = bounds[i]
         assert upper > lower
@@ -5253,6 +5440,7 @@ def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type
 
     # Loop through soft constraints
     for i in range(len(soft_cons)):
+        # print(soft_cons[i],(ne.evaluate(soft_cons[i][0],local_dict = pdict).item()-ne.evaluate(soft_cons[i][1],local_dict = pdict).item()),(ne.evaluate(soft_cons[i][0],local_dict = pdict).item()-ne.evaluate(soft_cons[i][1],local_dict = pdict).item())>=0)
         if (ne.evaluate(soft_cons[i][0],local_dict = pdict).item()-ne.evaluate(soft_cons[i][1],local_dict = pdict).item() >= 0):
             lp_arr.append(0.0)
         else:
@@ -5262,11 +5450,14 @@ def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type
     # Loop through parameters with priors on them 
     prior_map = {'gaussian': lnprior_gaussian, 'halfnorm': lnprior_halfnorm, 'jeffreys': lnprior_jeffreys}
     p = [prior_map[prior_dict[key]["prior"]["type"]](pdict[key],**prior_dict[key]) for key in prior_dict]
-
+    # lp_arr += p
+    # print(np.sum(lp_arr))
     # If initial fit using maximum likelihood, do not return uniform priors (-inf), otherwise
     # scipy.optimize.minimize() fails.
     if fit_type=="init":
-        return np.nansum(p)
+        lp_arr += p
+        # return np.nansum(p)
+        return np.sum(lp_arr)
     elif fit_type=="final":
         lp_arr += p
         return np.sum(lp_arr)
@@ -5297,6 +5488,7 @@ def lnprob(params,
            uv_iron_template,
            balmer_template,
            stel_templates,
+           blob_pars,
            disp_res,
            fit_mask,
            velscale,
@@ -5312,7 +5504,7 @@ def lnprob(params,
     # MCMC fitting
     if (fit_type=='final'):
         output_model = False
-        ll, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob	= lnlike(params,
+        ll, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob  = lnlike(params,
                                                                              param_names,
                                                                              line_list,
                                                                              combined_line_list,
@@ -5334,6 +5526,7 @@ def lnprob(params,
                                                                              uv_iron_template,
                                                                              balmer_template,
                                                                              stel_templates,
+                                                                             blob_pars,
                                                                              disp_res,
                                                                              fit_mask,
                                                                              velscale,
@@ -5374,6 +5567,7 @@ def lnprob(params,
                 uv_iron_template,
                 balmer_template,
                 stel_templates,
+                blob_pars,
                 disp_res,
                 fit_mask,
                 velscale,
@@ -5397,7 +5591,7 @@ def lnprob(params,
 
 ####################################################################################
 
-def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,velscale,noise):
+def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,velscale):
     """
     Constructs an emission line given a line_list, and returns an updated component
     dictionary that includes the generated line.
@@ -5463,7 +5657,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                            line_list[line]["center_pix"],
                                            line_list[line]["disp_res_kms"],
                                            velscale,
-                                           noise
                                            )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -5508,7 +5701,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                                line_list[line]["center_pix"],
                                                line_list[line]["disp_res_kms"],
                                                velscale,
-                                               noise
                                                )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -5550,7 +5742,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                                line_list[line]["center_pix"],
                                                line_list[line]["disp_res_kms"],
                                                velscale,
-                                               noise
                                                )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -5592,7 +5783,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                                line_list[line]["center_pix"],
                                                line_list[line]["disp_res_kms"],
                                                velscale,
-                                               noise
                                                )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -5630,7 +5820,6 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
                                         line_list[line]["center_pix"],
                                         line_list[line]["disp_res_kms"],
                                         velscale,
-                                        noise
                                         )
         line_model[~np.isfinite(line_model)] = 0.0
         comp_dict[line] = line_model
@@ -5665,74 +5854,80 @@ def combined_fwhm(lam_gal, full_profile, disp_res, velscale ):
     #
     return fwhm
 
+##################################################################################
+
+# The fit_model() function controls the model for both the initial and MCMC fits.
+
+##################################################################################
 
 def fit_model(params,
-			  param_names,
-			  line_list,
-			  combined_line_list,
-			  lam_gal,
-			  galaxy,
-			  noise,
-			  comp_options,
-			  losvd_options,
-			  host_options,
-			  power_options,
-			  poly_options,
-			  opt_feii_options,
-			  uv_iron_options,
-			  balmer_options,
-			  outflow_test_options,
-			  host_template,
-			  opt_feii_templates,
-			  uv_iron_template,
-			  balmer_template,
-			  stel_templates,
-			  disp_res,
-			  fit_mask,
-			  velscale,
-			  run_dir,
-			  fit_type,
-			  fit_stat,
-			  output_model):
-	"""
-	Constructs galaxy model.
-	"""
+              param_names,
+              line_list,
+              combined_line_list,
+              lam_gal,
+              galaxy,
+              noise,
+              comp_options,
+              losvd_options,
+              host_options,
+              power_options,
+              poly_options,
+              opt_feii_options,
+              uv_iron_options,
+              balmer_options,
+              outflow_test_options,
+              host_template,
+              opt_feii_templates,
+              uv_iron_template,
+              balmer_template,
+              stel_templates,
+              blob_pars,
+              disp_res,
+              fit_mask,
+              velscale,
+              run_dir,
+              fit_type,
+              fit_stat,
+              output_model):
+    """
+    Constructs galaxy model.
+    """
 
-	# Construct dictionary of parameter names and their respective parameter values
-	# param_names  = [param_dict[key]['name'] for key in param_dict ]
-	# params	   = [param_dict[key]['init'] for key in param_dict ]
-	keys = param_names
-	values = params
-	p = dict(zip(keys, values))
-	c = 299792.458 # speed of light
-	host_model = np.copy(galaxy)
-	# Initialize empty dict to store model components
-	comp_dict  = {}
+    # Construct dictionary of parameter names and their respective parameter values
+    # param_names  = [param_dict[key]['name'] for key in param_dict ]
+    # params       = [param_dict[key]['init'] for key in param_dict ]
+    keys = param_names
+    values = params
+    p = dict(zip(keys, values))
+    c = 299792.458 # speed of light
+    host_model = np.copy(galaxy)
+    # Initialize empty dict to store model components
+    comp_dict  = {} # used for fitting/likelihood calculation; sampled identically to the data
 
-	############################# Power-law Component ######################################################
+    ############################# Power-law Component ######################################################
 
-	if (comp_options['fit_power']==True) & (power_options['type']=='simple'):
+    if (comp_options['fit_power']==True) & (power_options['type']=='simple'):
 
-		# Create a template model for the power-law continuum
-		# power = simple_power_law(lam_gal,p['POWER_AMP'],p['POWER_SLOPE'],p['POWER_BREAK']) # 
-		power = simple_power_law(lam_gal,p['POWER_AMP'],p['POWER_SLOPE']) # 
+        # Create a template model for the power-law continuum
+        # power = simple_power_law(lam_gal,p['POWER_AMP'],p['POWER_SLOPE'],p['POWER_BREAK']) # 
+        power = simple_power_law(lam_gal,p['POWER_AMP'],p['POWER_SLOPE']) # 
 
-		host_model = (host_model) - (power) # Subtract off continuum from galaxy, since we only want template weights to be fit
-		comp_dict['POWER'] = power
+        host_model = (host_model) - (power) # Subtract off continuum from galaxy, since we only want template weights to be fit
+        comp_dict['POWER'] = power
 
-	elif (comp_options['fit_power']==True) & (power_options['type']=='broken'):
-		# Create a template model for the power-law continuum
-		# power = simple_power_law(lam_gal,p['POWER_AMP'],p['POWER_SLOPE'],p['POWER_BREAK']) # 
-		power = broken_power_law(lam_gal,p['POWER_AMP'],p['POWER_BREAK'],
-										 p['POWER_SLOPE_1'],p['POWER_SLOPE_2'],
-										 p['POWER_CURVATURE'])
+    elif (comp_options['fit_power']==True) & (power_options['type']=='broken'):
+        # Create a template model for the power-law continuum
+        # power = simple_power_law(lam_gal,p['POWER_AMP'],p['POWER_SLOPE'],p['POWER_BREAK']) # 
+        power = broken_power_law(lam_gal,p['POWER_AMP'],p['POWER_BREAK'],
+                                         p['POWER_SLOPE_1'],p['POWER_SLOPE_2'],
+                                         p['POWER_CURVATURE'])
 
-		host_model = (host_model) - (power) # Subtract off continuum from galaxy, since we only want template weights to be fit
-		comp_dict['POWER'] = power
+        host_model = (host_model) - (power) # Subtract off continuum from galaxy, since we only want template weights to be fit
+        comp_dict['POWER'] = power
 
-	########################################################################################################
+    ########################################################################################################
 
-	############################# Polynomial Components ####################################################
+    ############################# Polynomial Components ####################################################
 
 
     if (comp_options["fit_poly"]==True) & (poly_options["ppoly"]["bool"]==True) & (poly_options["ppoly"]["order"]>=0):
@@ -5775,210 +5970,250 @@ def fit_model(params,
 
     ########################################################################################################
 
-	############################# Optical FeII Component ###################################################
+    ############################# Optical FeII Component ###################################################
 
-	if (opt_feii_templates is not None):
-			comp_dict, host_model = opt_feii_templates.add_components(p, comp_dict, host_model)
+    if (opt_feii_templates is not None):
+            comp_dict, host_model = opt_feii_templates.add_components(p, comp_dict, host_model)
 
-	########################################################################################################
+    ########################################################################################################
 
 
-	############################# UV Iron Component ##########################################################
+    ############################# UV Iron Component ##########################################################
 
-	if (uv_iron_template is not None):
+    if (uv_iron_template is not None):
 
-		uv_iron_template = VW01_uv_iron_template(lam_gal, p, uv_iron_template, uv_iron_options, velscale, run_dir)
-		host_model = (host_model) - (uv_iron_template)
-		comp_dict['UV_IRON_TEMPLATE'] = uv_iron_template
+        uv_iron_template = VW01_uv_iron_template(lam_gal, p, uv_iron_template, uv_iron_options, velscale, run_dir)
+        host_model = (host_model) - (uv_iron_template)
+        comp_dict['UV_IRON_TEMPLATE'] = uv_iron_template
 
-	########################################################################################################
+    ########################################################################################################
 
-	############################# Balmer Continuum Component ###############################################
+    ############################# Balmer Continuum Component ###############################################
 
-	if (balmer_template is not None):
-		# Unpack Balmer template
-		lam_balmer, spec_high_balmer, velscale_balmer = balmer_template
-		# Parse Balmer options
-		if (balmer_options['R_const']['bool']==False): 
-			balmer_ratio = p['BALMER_RATIO']
-		elif (balmer_options['R_const']['bool']==True): 
-			balmer_ratio = balmer_options['R_const']['R_val']
-		if (balmer_options['balmer_amp_const']['bool']==False): 
-			balmer_amp = p['BALMER_AMP']
-		elif (balmer_options['balmer_amp_const']['bool']==True): 
-			balmer_amp = balmer_options['balmer_amp_const']['balmer_amp_val']
-		if (balmer_options['balmer_disp_const']['bool']==False): 
-			balmer_disp = p['BALMER_DISP']
-		elif (balmer_options['balmer_disp_const']['bool']==True): 
-			balmer_disp = balmer_options['balmer_disp_const']['balmer_disp_val']
-		if (balmer_options['balmer_voff_const']['bool']==False): 
-			balmer_voff = p['BALMER_VOFF']
-		elif (balmer_options['balmer_voff_const']['bool']==True): 
-			balmer_voff = balmer_options['balmer_voff_const']['balmer_voff_val']
-		if (balmer_options['Teff_const']['bool']==False): 
-			balmer_Teff = p['BALMER_TEFF']
-		elif (balmer_options['Teff_const']['bool']==True): 
-			balmer_Teff = balmer_options['Teff_const']['Teff_val']
-		if (balmer_options['tau_const']['bool']==False): 
-			balmer_tau = p['BALMER_TAU']
-		elif (balmer_options['tau_const']['bool']==True): 
-			balmer_tau = balmer_options['tau_const']['tau_val']
+    if (balmer_template is not None):
+        # Unpack Balmer template
+        lam_balmer, spec_high_balmer, velscale_balmer = balmer_template
+        # Parse Balmer options
+        if (balmer_options['R_const']['bool']==False): 
+            balmer_ratio = p['BALMER_RATIO']
+        elif (balmer_options['R_const']['bool']==True): 
+            balmer_ratio = balmer_options['R_const']['R_val']
+        if (balmer_options['balmer_amp_const']['bool']==False): 
+            balmer_amp = p['BALMER_AMP']
+        elif (balmer_options['balmer_amp_const']['bool']==True): 
+            balmer_amp = balmer_options['balmer_amp_const']['balmer_amp_val']
+        if (balmer_options['balmer_disp_const']['bool']==False): 
+            balmer_disp = p['BALMER_DISP']
+        elif (balmer_options['balmer_disp_const']['bool']==True): 
+            balmer_disp = balmer_options['balmer_disp_const']['balmer_disp_val']
+        if (balmer_options['balmer_voff_const']['bool']==False): 
+            balmer_voff = p['BALMER_VOFF']
+        elif (balmer_options['balmer_voff_const']['bool']==True): 
+            balmer_voff = balmer_options['balmer_voff_const']['balmer_voff_val']
+        if (balmer_options['Teff_const']['bool']==False): 
+            balmer_Teff = p['BALMER_TEFF']
+        elif (balmer_options['Teff_const']['bool']==True): 
+            balmer_Teff = balmer_options['Teff_const']['Teff_val']
+        if (balmer_options['tau_const']['bool']==False): 
+            balmer_tau = p['BALMER_TAU']
+        elif (balmer_options['tau_const']['bool']==True): 
+            balmer_tau = balmer_options['tau_const']['tau_val']
 
-		balmer_cont = generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer, velscale_balmer,
-					  balmer_ratio, balmer_amp, balmer_disp, balmer_voff, balmer_Teff, balmer_tau)
+        balmer_cont = generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer, velscale_balmer,
+                      balmer_ratio, balmer_amp, balmer_disp, balmer_voff, balmer_Teff, balmer_tau)
 
-		host_model = (host_model) - (balmer_cont)
-		comp_dict['BALMER_CONT'] = balmer_cont
+        host_model = (host_model) - (balmer_cont)
+        comp_dict['BALMER_CONT'] = balmer_cont
 
-	########################################################################################################
+    ########################################################################################################
 
-	############################# Emission Line Components #################################################
+    ############################# Emission Line Components #################################################
 
-	# Iteratively generate lines from the line list using the line_constructor()
-	for line in line_list:
-		comp_dict = line_constructor(lam_gal,p,comp_dict,comp_options,line,line_list,velscale,noise)
-		host_model = host_model - comp_dict[line]
+    # Iteratively generate lines from the line list using the line_constructor()
+    for line in line_list:
+        comp_dict = line_constructor(lam_gal,p,comp_dict,comp_options,line,line_list,velscale)
+        host_model = host_model - comp_dict[line]
 
-	########################################################################################################
+    ########################################################################################################
 
-	############################# Host-galaxy Component ######################################################
-	if (host_template is not None):
-			comp_dict, host_model = host_template.add_components(p, comp_dict, host_model)
-	########################################################################################################   
+    ############################# Host-galaxy Component ######################################################
+    if (host_template is not None):
+            comp_dict, host_model = host_template.add_components(p, comp_dict, host_model)
+    ########################################################################################################   
 
-	############################# LOSVD Component ####################################################
-	if (stel_templates is not None):
-			comp_dict, host_model = stel_templates.add_components(p, comp_dict, host_model)
-	 ########################################################################################################
+    ############################# LOSVD Component ####################################################
+    if (stel_templates is not None):
+            comp_dict, host_model = stel_templates.add_components(p, comp_dict, host_model)
+     ########################################################################################################
 
-	# The final model
-	gmodel = np.sum((comp_dict[d] for d in comp_dict),axis=0)
+    # The final model
+    gmodel = np.sum((comp_dict[d] for d in comp_dict),axis=0)
 
-	#########################################################################################################
+    #########################################################################################################
 
-	# Add combined lines to comp_dict
-	for comb_line in combined_line_list:
-		comp_dict[comb_line] = np.zeros(len(lam_gal))
-		for indiv_line in combined_line_list[comb_line]["lines"]:
-			comp_dict[comb_line]+=comp_dict[indiv_line]
+    # Add combined lines to comp_dict
+    for comb_line in combined_line_list:
+        comp_dict[comb_line] = np.zeros(len(lam_gal))
+        for indiv_line in combined_line_list[comb_line]["lines"]:
+            comp_dict[comb_line]+=comp_dict[indiv_line]
 
-	line_list = {**line_list, **combined_line_list}
+    line_list = {**line_list, **combined_line_list}
 
-	#########################################################################################################
+    #########################################################################################################
 
-	# Add last components to comp_dict for plotting purposes 
-	# Add galaxy, sigma, model, and residuals to comp_dict
-	comp_dict["DATA"]  = galaxy		  
-	comp_dict["WAVE"]  = lam_gal 	  
-	comp_dict["NOISE"] = noise		  
-	comp_dict["MODEL"] = gmodel		  
-	comp_dict["RESID"] = galaxy-gmodel
+    # Add last components to comp_dict for plotting purposes 
+    # Add galaxy, sigma, model, and residuals to comp_dict
+    comp_dict["DATA"]  = galaxy       
+    comp_dict["WAVE"]  = lam_gal      
+    comp_dict["NOISE"] = noise        
+    comp_dict["MODEL"] = gmodel       
+    comp_dict["RESID"] = galaxy-gmodel
 
-	########################## Fluxes & Equivalent Widths ###################################################
-	# Equivalent widths of emission lines are stored in a dictionary and returned to emcee as metadata blob.
-	# Velocity interpolation function
-	interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal))*velscale,bounds_error=False)
-	if (fit_type=='final') and (output_model==False):
-		# Create a single continuum component based on what was fit
-		total_cont = np.zeros(len(lam_gal))
-		agn_cont   = np.zeros(len(lam_gal))
-		host_cont  = np.zeros(len(lam_gal))
-		for key in comp_dict:
-            if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-                total_cont+=comp_dict[key]
-            if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-                agn_cont+=comp_dict[key]
-            if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
-                host_cont+=comp_dict[key]
-        # Get all spectral components, not including data, model, resid, and noise
-        spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
-		# Get keys of any lines that were fit for which we will compute eq. widths for
-		lines = [line for line in line_list]
-		fluxes	= {}
-		eqwidths  = {}
-		int_vel_disp = {}
-		for key in spec_comps:
-			flux = simps(comp_dict[key],lam_gal)
-			# add key/value pair to dictionary
-			fluxes[key+"_FLUX"] = flux
-			# for line in lines:
-			if (key in lines):
-				comp = comp_dict[key]
-				# if line_list[key]["line_profile"] in ["voigt","lorentzian"]:
-				# 	# Truncate the component to zero for any values below the median noise level. 
-				# 	# This is necessary because the wings of the Voigt and Lorentzian profiles extend to infinity,
-				# 	# resulting in unrealistic line dispersions.
-				# 	comp[comp < np.nanmedian(noise)] = 0
-				eqwidth = simps(comp/total_cont,lam_gal)
-			else: 
-				eqwidth = simps(comp_dict[key]/total_cont,lam_gal)
-			if ~np.isfinite(eqwidth):
-				eqwidth=0.0
-			# Add to eqwidth_dict
-			eqwidths[key+"_EW"]  = eqwidth
-			#
-			if (key in lines):
-                comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
-                int_vel_disp[key+"_FWHM"] = comb_fwhm
-            # Calculate integrated FWHM for combined lines
-            if (key in combined_line_list):
-                # Calculate velocity scale centered on line
-                vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
-                full_profile = comp_dict[key]
-                # Remove stray lines
-                full_profile = remove_stray_lines(full_profile)
-                # Normalized line profile
-                norm_profile = full_profile/np.sum(full_profile)
-                # Calculate integrated velocity in pixels units
-                v_int = simps(vel*norm_profile,vel)/simps(norm_profile,vel)
-                # Calculate integrated dispersion and correct for instrumental dispersion
-                d_int = np.sqrt(simps(vel**2*norm_profile,vel)/simps(norm_profile,vel) - (v_int**2))
-                d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
-                if ~np.isfinite(d_int): d_int = 0.0
-                if ~np.isfinite(v_int): v_int = 0.0
-                int_vel_disp[key+"_DISP"] = d_int
-                int_vel_disp[key+"_VOFF"] = v_int
+    ########################## Fluxes & Equivalent Widths ###################################################
+    # Equivalent widths of emission lines are stored in a dictionary and returned to emcee as metadata blob.
+    # Velocity interpolation function
 
-		# Continuum fluxes (to obtain continuum luminosities)
-		cont_fluxes = {}
-		#
-		interp_tot  = interp1d(lam_gal,total_cont,kind='linear',bounds_error=False,fill_value=0.0)
-		interp_agn  = interp1d(lam_gal,agn_cont  ,kind='linear',bounds_error=False,fill_value=0.0)
-		interp_host = interp1d(lam_gal,host_cont ,kind='linear',bounds_error=False,fill_value=0.0)
-		if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
-			cont_fluxes["F_CONT_TOT_1350"]  = interp_tot(1350.0) #total_cont[find_nearest(lam_gal,1350.0)[1]]#
-			cont_fluxes["F_CONT_AGN_1350"]  = interp_agn(1350.0) #agn_cont[find_nearest(lam_gal,1350.0)[1]]  #
-			cont_fluxes["F_CONT_HOST_1350"] = interp_host(1350.0) #host_cont[find_nearest(lam_gal,1350.0)[1]] #
-		if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
-			cont_fluxes["F_CONT_TOT_3000"]  = interp_tot(3000.0) #total_cont[find_nearest(lam_gal,3000.0)[1]]
-			cont_fluxes["F_CONT_AGN_3000"]  = interp_agn(3000.0) #agn_cont[find_nearest(lam_gal,3000.0)[1]]  
-			cont_fluxes["F_CONT_HOST_3000"] = interp_host(3000.0) #host_cont[find_nearest(lam_gal,3000.0)[1]] 
-		if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
-			cont_fluxes["F_CONT_TOT_5100"]  = interp_tot(5100.0) #total_cont[find_nearest(lam_gal,5100.0)[1]]#
-			cont_fluxes["F_CONT_AGN_5100"]  = interp_agn(5100.0) #agn_cont[find_nearest(lam_gal,5100.0)[1]]  #
-			cont_fluxes["F_CONT_HOST_5100"] = interp_host(5100.0) #host_cont[find_nearest(lam_gal,5100.0)[1]] #
-		if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
-			cont_fluxes["HOST_FRAC_4000"] = interp_host(4000.0)/interp_tot(4000.0) #host_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]]#
-			cont_fluxes["AGN_FRAC_4000"]  = interp_agn(4000.0)/interp_tot(4000.0) #agn_cont[find_nearest(lam_gal,4000.0)[1]]/total_cont[find_nearest(lam_gal,4000.0)[1]] #
-		if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
-			cont_fluxes["HOST_FRAC_7000"] = interp_host(7000.0)/interp_tot(7000.0) #host_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]]#
-			cont_fluxes["AGN_FRAC_7000"]  = interp_agn(7000.0)/interp_tot(7000.0) #agn_cont[find_nearest(lam_gal,7000.0)[1]]/total_cont[find_nearest(lam_gal,7000.0)[1]] #
-		#		
+    
+    if (fit_type=='final') and (output_model==False):
 
-	########################################################################################################
 
-	if (fit_type=='init') and (output_model==False): # For max. likelihood fitting
-		return gmodel, comp_dict
-	if (fit_type=='init') and (output_model==True): # For max. likelihood fitting
-		return comp_dict
-	elif (fit_type=='line_test'):
-		return comp_dict
-	elif (fit_type=='final') and (output_model==False): # For emcee
-		return gmodel, fluxes, eqwidths, cont_fluxes, int_vel_disp
-	elif (fit_type=='final') and (output_model==True): # output all models for best-fit model
-		return comp_dict
+        fluxes, eqwidths, cont_fluxes, int_vel_disp = calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, blob_pars, fit_mask, fit_stat, velscale)
+
+        
+    ########################################################################################################
+
+    if (fit_type=='init') and (output_model==False): # For max. likelihood fitting
+        return gmodel, comp_dict
+    if (fit_type=='init') and (output_model==True): # For max. likelihood fitting
+        return comp_dict
+    elif (fit_type=='line_test'):
+        return comp_dict
+    elif (fit_type=='final') and (output_model==False): # For emcee
+        return gmodel, fluxes, eqwidths, cont_fluxes, int_vel_disp
+    elif (fit_type=='final') and (output_model==True): # output all models for best-fit model
+        return comp_dict
 
 ########################################################################################################
+
+
+# This function generates blob parameters for the MCMC routine,
+# including continuum luminosities, fluxes, equivalent widths, 
+# widths, and fit quality parameters (R-squared, reduced chi-squared)
+
+def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, blob_pars, fit_mask, fit_stat, velscale):
+
+    # If noise_scale is calculated (fit_stat="RCHI2"), rescale the noise appropriately
+    if fit_stat=="RCHI2":
+        noise2 = (comp_dict["NOISE"]*p["NOISE_SCALE"])**2 # multiplicative noise factor
+        _noise = noise2**0.5
+    elif fit_stat!="RCHI2":
+        _noise = comp_dict["NOISE"]
+        noise2 = _noise**2
+
+    # Continuum luminosities
+    # Create a single continuum component based on what was fit
+    total_cont = np.zeros(len(lam_gal))
+    agn_cont   = np.zeros(len(lam_gal))
+    host_cont  = np.zeros(len(lam_gal))
+    for key in comp_dict:
+        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+            total_cont+=comp_dict[key]
+        if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+            agn_cont+=comp_dict[key]
+        if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
+            host_cont+=comp_dict[key]
+
+
+    # Get all spectral components, not including data, model, resid, and noise
+    spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
+    # Get keys of any lines that were fit for which we will compute eq. widths for
+    lines = [line for line in line_list] # list of all lines (individual lines and combined lines)
+    # Storage dicts
+    fluxes        = {}
+    eqwidths      = {}
+    int_vel_disp  = {}
+    npix_dict     = {}
+    snr_dict      = {}
+    fit_quality   = {}
+    #
+    for key in spec_comps:
+        flux = np.trapz(comp_dict[key],lam_gal)
+        # add key/value pair to dictionary
+        fluxes[key+"_FLUX"] = flux
+        #
+        eqwidth = np.trapz(comp_dict[key]/total_cont,lam_gal)
+        #
+        if ~np.isfinite(eqwidth):
+            eqwidth=0.0
+        # Add to eqwidth_dict
+        eqwidths[key+"_EW"]  = eqwidth
+        # For lines AND combined lines, calculate the model FWHM (NOTE: THIS IS NOT GAUSSIAN FWHM, i.e. 2.3548*DISP)
+        if (key in lines):
+            # Calculate FWHM
+            comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
+            int_vel_disp[key+"_FWHM"] = comb_fwhm
+            # Calculate NPIX and SNR for all lines
+            eval_ind = np.where(comp_dict[key]>_noise)[0]
+            npix = len(eval_ind)
+            npix_dict[key+"_NPIX"] = int(npix)
+            if len(eval_ind)>0:
+                snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(_noise[eval_ind])
+            else: 
+                snr = 0
+            snr_dict[key+"_SNR"] = snr
+
+        # For combined lines ONLY, calculate integrated dispersions and velocity 
+        if (key in combined_line_list):
+            # Calculate velocity scale centered on line
+            # vel = np.arange(len(lam_gal))*velscale - interp_ftn(line_list[key]["center"])
+            vel = np.arange(len(lam_gal))*velscale - blob_pars[key+"_LINE_VEL"]
+            full_profile = comp_dict[key]
+            # Normalized line profile
+            norm_profile = full_profile/np.sum(full_profile)
+            # Calculate integrated velocity in pixels units
+            v_int = np.trapz(vel*norm_profile,vel)/np.trapz(norm_profile,vel)
+            # Calculate integrated dispersion and correct for instrumental dispersion
+            d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/np.trapz(norm_profile,vel) - (v_int**2))
+            d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
+            if ~np.isfinite(d_int): d_int = 0.0
+            if ~np.isfinite(v_int): v_int = 0.0
+            int_vel_disp[key+"_DISP"] = d_int
+            int_vel_disp[key+"_VOFF"] = v_int
+
+    
+    # Continuum fluxes (to obtain continuum luminosities)
+    cont_fluxes = {}
+    #
+    if (lam_gal[0]<1350) & (lam_gal[-1]>1350):
+        cont_fluxes["F_CONT_TOT_1350"]  = total_cont[blob_pars["INDEX_1350"]]
+        cont_fluxes["F_CONT_AGN_1350"]  = agn_cont[blob_pars["INDEX_1350"]]
+        cont_fluxes["F_CONT_HOST_1350"] = host_cont[blob_pars["INDEX_1350"]]
+    if (lam_gal[0]<3000) & (lam_gal[-1]>3000):
+        cont_fluxes["F_CONT_TOT_3000"]  = total_cont[blob_pars["INDEX_3000"]]
+        cont_fluxes["F_CONT_AGN_3000"]  = agn_cont[blob_pars["INDEX_3000"]]
+        cont_fluxes["F_CONT_HOST_3000"] = host_cont[blob_pars["INDEX_3000"]]
+    if (lam_gal[0]<5100) & (lam_gal[-1]>5100):
+        cont_fluxes["F_CONT_TOT_5100"]  = total_cont[blob_pars["INDEX_5100"]]
+        cont_fluxes["F_CONT_AGN_5100"]  = agn_cont[blob_pars["INDEX_5100"]]
+        cont_fluxes["F_CONT_HOST_5100"] = host_cont[blob_pars["INDEX_5100"]]
+    if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
+        cont_fluxes["HOST_FRAC_4000"] = host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+        cont_fluxes["AGN_FRAC_4000"]  = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+    if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
+        cont_fluxes["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+        cont_fluxes["AGN_FRAC_7000"]  = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+    #       
+
+    # compute a total chi-squared and r-squared
+    fit_quality["R_SQUARED"] = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    # print(r_squared)
+    #
+    nu = len(comp_dict["DATA"])-len(p)
+    fit_quality["RCHI_SQUARED"] = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+
+
+    return fluxes, eqwidths, cont_fluxes, {**int_vel_disp, **npix_dict, **snr_dict, **fit_quality}
+
 
 
 #### UV Iron Template ##############################################################
@@ -5995,7 +6230,7 @@ def initialize_uv_iron(lam_gal, feii_options, disp_res, fit_mask, velscale):
     # Generate a new grid with the original resolution, but the size of the fitting region
     dlam_uviron = df_uviron["angstrom"].to_numpy()[1]-df_uviron["angstrom"].to_numpy()[0] # angstroms
     npad = 100 # anstroms
-    lam_uviron	 = np.arange(np.min(lam_gal)-npad, np.max(lam_gal)+npad,dlam_uviron) # angstroms
+    lam_uviron   = np.arange(np.min(lam_gal)-npad, np.max(lam_gal)+npad,dlam_uviron) # angstroms
     # Interpolate the original template onto the new grid
     interp_ftn_uv = interp1d(df_uviron["angstrom"].to_numpy(),df_uviron["flux"].to_numpy(),kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
     spec_uviron = interp_ftn_uv(lam_uviron)
@@ -6168,16 +6403,16 @@ def generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer,velscale,
         fig = plt.figure(figsize=(14,5))
         ax1 = fig.add_subplot(1,1,1)
         ax1.set_title('Balmer Continuum')
-    #	 ax1.plot(lam_balmer, cont/np.max(cont), color='xkcd:cerulean')
-    #	 ax1.plot(lam_balmer, spec_high_balmer/np.max(spec_high_balmer), color='xkcd:bright red')
+    #    ax1.plot(lam_balmer, cont/np.max(cont), color='xkcd:cerulean')
+    #    ax1.plot(lam_balmer, spec_high_balmer/np.max(spec_high_balmer), color='xkcd:bright red')
         ax1.plot(lam_gal, conv_temp, color='xkcd:bright red',linewidth=0.75)
         ax1.axvline(lam_edge,linestyle='--',color='xkcd:red',linewidth=1.0)
         ax1.axvline(3000,linestyle='--',color='xkcd:black',linewidth=0.5)
     
         ax1.axhline(1.0,linestyle='--',color='xkcd:black',linewidth=0.5)
-    #	 ax1.axhline(0.6,linestyle='--',color='xkcd:black',linewidth=0.5)
+    #    ax1.axhline(0.6,linestyle='--',color='xkcd:black',linewidth=0.5)
         ax1.set_ylim(0.0,)
-    #	 ax1.set_xlim(1000,4500)
+    #    ax1.set_xlim(1000,4500)
         fontsize = 16
         ax1.set_xlabel(r"Wavelength ($\lambda$)",fontsize=fontsize)
 
@@ -6194,7 +6429,7 @@ def simple_power_law(x,amp,alpha):
 
     Parameters
     ----------
-    x	 : array_like
+    x    : array_like
             wavelength vector (angstroms)
     amp   : float 
             continuum amplitude (flux density units)
@@ -6203,7 +6438,7 @@ def simple_power_law(x,amp,alpha):
 
     Returns
     ----------
-    C	 : array
+    C    : array
             AGN continuum model the same length as x
     """
     # This works
@@ -6225,9 +6460,9 @@ def broken_power_law(x, amp, x_break, alpha_1, alpha_2, delta):
 
     Parameters
     ----------
-    x		: array_like
+    x       : array_like
               wavelength vector (angstroms)
-    amp	 : float [0,max]
+    amp  : float [0,max]
               continuum amplitude (flux density units)
     x_break : float [x_min,x_max]
               wavelength of the break
@@ -6239,7 +6474,7 @@ def broken_power_law(x, amp, x_break, alpha_1, alpha_2, delta):
 
     Returns
     ----------
-    C	 : array
+    C    : array
             AGN continuum model the same length as x
     """
 
@@ -6266,7 +6501,7 @@ def gaussian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,v
     voff_pix = voff/(velscale) # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
     x_pix = x_pix.reshape((len(x_pix),1)) # reshape into row
     g = amp*np.exp(-0.5*(x_pix-(center_pix))**2/(sigma_pix)**2) # construct gaussian
     g = np.sum(g,axis=1)
@@ -6279,7 +6514,7 @@ def gaussian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,v
 
 ##################################################################################
 
-def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,velscale,noise):
+def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,velscale):
     """
     Produces a lorentzian vector the length of
     x with the specified parameters.
@@ -6294,7 +6529,7 @@ def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
     x_pix = x_pix.reshape((len(x_pix),1)) # reshape into row 
     gamma = 0.5*fwhm_pix
     l = amp*( (gamma**2) / (gamma**2+(x_pix-center_pix)**2) ) # construct lorenzian
@@ -6308,7 +6543,7 @@ def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms
 
 ##################################################################################
 
-def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale):
     """
     Produces a Gauss-Hermite vector the length of
     x with the specified parameters.
@@ -6321,7 +6556,7 @@ def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,
     voff_pix = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
+    x_pix = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
     x_pix = x_pix.reshape((len(x_pix),1)) #- center_pix
     # Taken from Riffel 2010 - profit: a new alternative for emission-line profile fitting
     w = (x_pix-center_pix)/sigma_pix
@@ -6356,7 +6591,7 @@ def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,
 
 ##################################################################################
 
-def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale):
     """
     Produces a Laplace kernel vector the length of
     x with the specified parameters.
@@ -6390,7 +6625,7 @@ def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_r
 
 ##################################################################################
 
-def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale,noise):
+def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_res_kms,velscale):
     """
     Produces a Uniform kernel vector the length of
     x with the specified parameters.
@@ -6424,13 +6659,13 @@ def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_r
 
 ##################################################################################
 
-def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_kms,velscale,noise):
+def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_kms,velscale):
     """
     Pseudo-Voigt profile implementation from:
     https://docs.mantidproject.org/nightly/fitting/fitfunctions/PseudoVoigt.html
     """
     # Take into account instrumental dispersion (FWHM resolution)
-    disp	   = np.sqrt(disp**2+disp_res_kms**2)
+    disp       = np.sqrt(disp**2+disp_res_kms**2)
     fwhm_pix   = (disp*2.3548)/velscale # fwhm in pixels (velscale = km/s/pixel)
     if fwhm_pix<=0.01: fwhm_pix = 0.01
     sigma_pix  = fwhm_pix/2.3548
@@ -6438,8 +6673,8 @@ def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_km
     voff_pix   = voff/velscale # velocity offset in pixels
     center_pix = center_pix + voff_pix # shift the line center by voff in pixels
     #
-    x_pix	  = np.array(range(len(lam_gal)),dtype=float) # pixels vector	
-    x_pix	  = x_pix.reshape((len(x_pix),1)) # reshape into row 
+    x_pix     = np.array(range(len(lam_gal)),dtype=float) # pixels vector   
+    x_pix     = x_pix.reshape((len(x_pix),1)) # reshape into row 
     # Gaussian contribution
     a_G = 1.0/(sigma_pix * np.sqrt(2.0*np.pi))
     g = a_G * np.exp(-0.5*(x_pix-(center_pix))**2/(sigma_pix)**2)
@@ -6498,10 +6733,10 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
         autocorr_times_all = [] # storage array for autocorrelation times
         autocorr_tols_all  = [] # storage array for autocorrelation tolerances
         old_tau = np.full(len(param_names),np.inf)
-        min_samp	 = min_samp # minimum iterations to use past convergence
-        ncor_times   = ncor_times # multiplicative tolerance; number of correlation times before which we stop sampling	
-        autocorr_tol = autocorr_tol	
-        stop_iter	= max_iter # stopping iteration; changes once convergence is reached
+        min_samp     = min_samp # minimum iterations to use past convergence
+        ncor_times   = ncor_times # multiplicative tolerance; number of correlation times before which we stop sampling 
+        autocorr_tol = autocorr_tol 
+        stop_iter   = max_iter # stopping iteration; changes once convergence is reached
         converged  = False
         # write_log((min_samp,autocorr_tol,ncor_times,conv_type),'autocorr_options',run_dir)
 
@@ -6516,8 +6751,8 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
         if all(elem in param_names  for elem in conv_type)==True:
             if (verbose):
                 print('\n Only considering convergence of following parameters: ')
-                for c in conv_type:	
-                    print('		  %s' % c)
+                for c in conv_type: 
+                    print('       %s' % c)
                 pass
         # check to see that all param_names are in conv_type, if not, remove them 
         # from conv_type
@@ -6531,8 +6766,8 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                 if all(elem in conv_type  for elem in param_names)==True:
                     if (verbose):
                         print('\n Only considering convergence of following parameters: ')
-                        for c in conv_type:	
-                            print('		  %s' % c)
+                        for c in conv_type: 
+                            print('       %s' % c)
                         pass
                     else:
                         if (verbose):
@@ -6600,7 +6835,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                 elif ( (par_conv.size > 0) and (k+1)>(np.mean(tau[par_conv]) * ncor_times) and (np.mean(tol[par_conv])<autocorr_tol) and (stop_iter == max_iter) ):
                     if verbose:
                         print('\n ---------------------------------------------')
-                        print(' | Converged at %d iterations.			  | ' % (k+1))
+                        print(' | Converged at %d iterations.             | ' % (k+1))
                         print(' | Performing %d iterations of sampling... | ' % min_samp )
                         print(' | Sampling will finish at %d iterations.  | ' % ((k+1)+min_samp) )
                         print(' ---------------------------------------------')
@@ -6622,8 +6857,8 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
 
                 if (par_conv.size>0):
                     pnames_sorted = param_names[i_sort]
-                    tau_sorted	= tau[i_sort]
-                    tol_sorted	= tol[i_sort]
+                    tau_sorted  = tau[i_sort]
+                    tol_sorted  = tol[i_sort]
                     best_sorted   = np.array(best)[i_sort]
                     if verbose:
                         print('{0:<30}{1:<40}{2:<30}'.format('\nIteration = %d' % (k+1),'%d x Mean Autocorr. Time = %0.2f' % (ncor_times,np.mean(tau[par_conv]) * ncor_times),'Mean Tolerance = %0.2f' % np.mean(tol[par_conv])))
@@ -6660,7 +6895,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                 elif ( (par_conv.size > 0) and (k+1)>(np.median(tau[par_conv]) * ncor_times) and (np.median(tol[par_conv])<autocorr_tol) and (stop_iter == max_iter) ):
                     if verbose:
                         print('\n ---------------------------------------------')
-                        print(' | Converged at %d iterations.			  |' % (k+1))
+                        print(' | Converged at %d iterations.             |' % (k+1))
                         print(' | Performing %d iterations of sampling... |' % min_samp )
                         print(' | Sampling will finish at %d iterations.  |' % ((k+1)+min_samp) )
                         print(' ---------------------------------------------')
@@ -6682,8 +6917,8 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
 
                 if (par_conv.size>0):
                     pnames_sorted = param_names[i_sort]
-                    tau_sorted	= tau[i_sort]
-                    tol_sorted	= tol[i_sort]
+                    tau_sorted  = tau[i_sort]
+                    tol_sorted  = tol[i_sort]
                     best_sorted   = np.array(best)[i_sort]
                     if verbose:
                         print('{0:<30}{1:<40}{2:<30}'.format('\nIteration = %d' % (k+1),'%d x Median Autocorr. Time = %0.2f' % (ncor_times,np.median(tau[par_conv]) * ncor_times),'Med. Tolerance = %0.2f' % np.median(tol[par_conv])))
@@ -6694,7 +6929,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                             if (((k+1)>tau_sorted[i]*ncor_times) and (tol_sorted[i]<autocorr_tol) and (tau_sorted[i]>1.0)):
                                 conv_bool = 'True'
                             else: conv_bool = 'False'
-                            if (round(tau_sorted[i],1)>1.0):# & (tol[i]<autocorr_tol):	
+                            if (round(tau_sorted[i],1)>1.0):# & (tol[i]<autocorr_tol):  
                                 print('{0:<30}{1:<20.4f}{2:<20.4f}{3:<20.4f}{4:<20}'.format(pnames_sorted[i],best_sorted[i],tau_sorted[i],tol_sorted[i],conv_bool))
                             else: 
                                 print('{0:<30}{1:<20.4f}{2:<20}{3:<20}{4:<20}'.format(pnames_sorted[i],best_sorted[i],' -------- ',' -------- ',' -------- '))
@@ -6710,7 +6945,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                 elif all( ((k+1)>(x * ncor_times)) for x in tau) and all( (x>1.0) for x in tau) and all(y<autocorr_tol for y in tol) and (stop_iter == max_iter):
                     if verbose:
                         print('\n ---------------------------------------------')
-                        print(' | Converged at %d iterations.			  | ' % (k+1))
+                        print(' | Converged at %d iterations.             | ' % (k+1))
                         print(' | Performing %d iterations of sampling... | ' % min_samp )
                         print(' | Sampling will finish at %d iterations.  | ' % ((k+1)+min_samp) )
                         print(' ---------------------------------------------')
@@ -6731,8 +6966,8 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                     converged = False
                 if 1:
                     pnames_sorted = param_names[i_sort]
-                    tau_sorted	= tau[i_sort]
-                    tol_sorted	= tol[i_sort]
+                    tau_sorted  = tau[i_sort]
+                    tol_sorted  = tol[i_sort]
                     best_sorted   = np.array(best)[i_sort]
                     if verbose:
                         print('{0:<30}'.format('\nIteration = %d' % (k+1)))
@@ -6768,7 +7003,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                 elif all( ((k+1)>(x * ncor_times)) for x in tau_interest) and all( (x>1.0) for x in tau_interest) and all(y<autocorr_tol for y in tol_interest) and (stop_iter == max_iter):
                     if verbose:
                         print('\n ---------------------------------------------')
-                        print(' | Converged at %d iterations.			  | ' % (k+1))
+                        print(' | Converged at %d iterations.             | ' % (k+1))
                         print(' | Performing %d iterations of sampling... | ' % min_samp )
                         print(' | Sampling will finish at %d iterations.  | ' % ((k+1)+min_samp) )
                         print(' ---------------------------------------------')
@@ -6789,8 +7024,8 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                     converged = False
                 if 1:
                     pnames_sorted = param_interest[i_sort]
-                    tau_sorted	= tau_interest[i_sort]
-                    tol_sorted	= tol_interest[i_sort]
+                    tau_sorted  = tau_interest[i_sort]
+                    tol_sorted  = tol_interest[i_sort]
                     best_sorted   = np.array(best_interest)[i_sort]
                     if verbose:
                         print('{0:<30}'.format('\nIteration = %d' % (k+1)))
@@ -6811,7 +7046,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
             if ((k+1) == stop_iter):
                 break
 
-            old_tau = tau	
+            old_tau = tau   
 
         # If auto_stop=False, simply print out the parameters and their best values at that iteration
         if ((k+1) % write_iter == 0) and ((k+1)>=min_iter) and ((k+1)>=write_thresh) and (auto_stop==False):
@@ -6826,7 +7061,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                         print('{0:<30}{1:<20.4f}'.format(pnames_sorted[i],best_sorted[i]))
                 print('------------------------------------------------')
 
-    elap_time = (time.time() - start_time)	   
+    elap_time = (time.time() - start_time)     
     run_time = time_convert(elap_time)
     if verbose:
         print("\n emcee Runtime = %s. \n" % (run_time))
@@ -6866,8 +7101,8 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
     a = np.swapaxes(a,2,1)
 
     # Extract metadata blobs
-    blobs		   = sampler.get_blobs()
-    flux_blob	   = blobs["fluxes"]
+    blobs          = sampler.get_blobs()
+    flux_blob      = blobs["fluxes"]
     eqwidth_blob   = blobs["eqwidths"]
     cont_flux_blob = blobs["cont_fluxes"]
     int_vel_disp_blob  = blobs["int_vel_disp"]
@@ -6898,7 +7133,7 @@ def autocorr_convergence(emcee_chain,param_names,plot=False):
         
     nwalker = np.shape(sampler_chain)[0] # Number of walkers
     niter   = np.shape(sampler_chain)[1] # Number of iterations
-    npar	= np.shape(sampler_chain)[2] # Number of parameters
+    npar    = np.shape(sampler_chain)[2] # Number of parameters
         
     def autocorr_func(c_x):
         """"""
@@ -7041,7 +7276,7 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
     # Histogram; 'Doane' binning produces the best results from tests.
     n, bins, patches = ax1.hist(flat, bins='doane', histtype="bar" , density=True, facecolor="#4200a6", alpha=1,zorder=10)
     # Plot 1: Histogram plots
-    ax1.axvline(post_max	,linewidth=0.5,linestyle="-",color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$p(\theta|x)_{\rm{max}}$')
+    ax1.axvline(post_max    ,linewidth=0.5,linestyle="-",color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$p(\theta|x)_{\rm{max}}$')
     #
     ax1.axvline(post_max-low_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'68% conf.')
     ax1.axvline(post_max+upp_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
@@ -7057,9 +7292,9 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
     # ax1.axvline(post_med-post_mad,linewidth=0.5,linestyle=":" ,color='xkcd:bright yellow',alpha=1.00,zorder=20,label=r'Med. Abs. Dev.')
     # ax1.axvline(post_med+post_mad,linewidth=0.5,linestyle=":" ,color='xkcd:bright yellow',alpha=1.00,zorder=20)
     #
-    ax1.plot(xs,kde	   ,linewidth=0.5,linestyle="-" ,color="xkcd:bright pink",alpha=1.00,zorder=15,label="KDE")
-    ax1.plot(xs,kde	   ,linewidth=3.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.50,zorder=15)
-    ax1.plot(xs,kde	   ,linewidth=6.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.20,zorder=15)
+    ax1.plot(xs,kde    ,linewidth=0.5,linestyle="-" ,color="xkcd:bright pink",alpha=1.00,zorder=15,label="KDE")
+    ax1.plot(xs,kde    ,linewidth=3.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.50,zorder=15)
+    ax1.plot(xs,kde    ,linewidth=6.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.20,zorder=15)
     ax1.grid(b=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
     # ax1.plot(xvec,yvec,color='white')
     ax1.set_xlabel(r'%s' % key,fontsize=12)
@@ -7124,7 +7359,7 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
     for key in param_dict:
         #
         if verbose:
-            print('		  %s' % key)
+            print('       %s' % key)
         chain = param_dict[key]['chain'] # shape = (nwalkers,niter)
         chain[~np.isfinite(chain)] = 0
         # Burned-in + Flattened (along walker axis) chain
@@ -7182,16 +7417,16 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
                 flag+=1
 
             param_dict[key]['par_best']    = post_max # maximum of posterior distribution
-            param_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
-            param_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
-            param_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
-            param_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            param_dict[key]['ci_68_low']   = low_68 # lower 68% confidence interval
+            param_dict[key]['ci_68_upp']   = upp_68 # upper 68% confidence interval
+            param_dict[key]['ci_95_low']   = low_95 # lower 95% confidence interval
+            param_dict[key]['ci_95_upp']   = upp_95 # upper 95% confidence interval
             param_dict[key]['mean']        = post_mean # mean of posterior distribution
-            param_dict[key]['std_dev']     = post_std	# standard deviation
+            param_dict[key]['std_dev']     = post_std   # standard deviation
             param_dict[key]['median']      = post_med # median of posterior distribution
-            param_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
+            param_dict[key]['med_abs_dev'] = post_mad   # median absolute deviation
             param_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            param_dict[key]['flag']	       = flag 
+            param_dict[key]['flag']        = flag 
 
             if (plot_param_hist==True):
                 posterior_plots(key,flat,chain,burn_in,xs,kde,h,
@@ -7200,16 +7435,16 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
                                 )
         else:
             param_dict[key]['par_best']    = np.nan # maximum of posterior distribution
-            param_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
-            param_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
-            param_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
-            param_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            param_dict[key]['ci_68_low']   = np.nan # lower 68% confidence interval
+            param_dict[key]['ci_68_upp']   = np.nan # upper 68% confidence interval
+            param_dict[key]['ci_95_low']   = np.nan # lower 95% confidence interval
+            param_dict[key]['ci_95_upp']   = np.nan # upper 95% confidence interval
             param_dict[key]['mean']        = np.nan # mean of posterior distribution
-            param_dict[key]['std_dev']     = np.nan	# standard deviation
+            param_dict[key]['std_dev']     = np.nan # standard deviation
             param_dict[key]['median']      = np.nan # median of posterior distribution
-            param_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
+            param_dict[key]['med_abs_dev'] = np.nan # median absolute deviation
             param_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            param_dict[key]['flag']	       = 1 
+            param_dict[key]['flag']        = 1 
 
     return param_dict
 
@@ -7281,14 +7516,14 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
 
         ll_dict = {
                     'par_best'    : post_max, # maximum of posterior distribution
-                    'ci_68_low'   : low_68,	# lower 68% confidence interval
-                    'ci_68_upp'   : upp_68,	# upper 68% confidence interval
-                    'ci_95_low'   : low_95,	# lower 95% confidence interval
-                    'ci_95_upp'   : upp_95,	# upper 95% confidence interval
+                    'ci_68_low'   : low_68, # lower 68% confidence interval
+                    'ci_68_upp'   : upp_68, # upper 68% confidence interval
+                    'ci_95_low'   : low_95, # lower 95% confidence interval
+                    'ci_95_upp'   : upp_95, # upper 95% confidence interval
                     'mean'        : post_mean, # mean of posterior distribution
-                    'std_dev'     : post_std,	# standard deviation
+                    'std_dev'     : post_std,   # standard deviation
                     'median'      : post_med, # median of posterior distribution
-                    'med_abs_dev' : post_mad,	# median absolute deviation
+                    'med_abs_dev' : post_mad,   # median absolute deviation
                     'flat_chain'  : flat,   # flattened samples used for histogram.
                     'flag'        : flag, 
         }
@@ -7300,17 +7535,17 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
     else:
         ll_dict = {
                 'par_best'    : np.nan, # maximum of posterior distribution
-                'ci_68_low'   : np.nan,	# lower 68% confidence interval
-                'ci_68_upp'   : np.nan,	# upper 68% confidence interval
-                'ci_95_low'   : np.nan,	# lower 95% confidence interval
-                'ci_95_upp'   : np.nan,	# upper 95% confidence interval
+                'ci_68_low'   : np.nan, # lower 68% confidence interval
+                'ci_68_upp'   : np.nan, # upper 68% confidence interval
+                'ci_95_low'   : np.nan, # lower 95% confidence interval
+                'ci_95_upp'   : np.nan, # upper 95% confidence interval
                 'mean'        : np.nan, # mean of posterior distribution
-                'std_dev'     : np.nan,	# standard deviation
+                'std_dev'     : np.nan, # standard deviation
                 'median'      : np.nan, # median of posterior distribution
-                'med_abs_dev' : np.nan,	# median absolute deviation
+                'med_abs_dev' : np.nan, # median absolute deviation
                 'flat_chain'  : flat,   # flattened samples used for histogram.
                 'flag'        : 1, 
-        }	
+        }   
 
     return ll_dict
 
@@ -7323,7 +7558,7 @@ def flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=True,verbos
         print("\n Generating model flux distributions...\n")
 
     # Create a flux dictionary
-    niter	= np.shape(flux_blob)[0]
+    niter   = np.shape(flux_blob)[0]
     nwalkers = np.shape(flux_blob)[1]
     flux_dict = {}
     for key in flux_blob[0][0]:
@@ -7337,7 +7572,7 @@ def flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=True,verbos
 
     for key in flux_dict:
         if verbose:
-            print('		  %s' % key)
+            print('       %s' % key)
         chain = np.log10(flux_dict[key]['chain']*1.e-17) # shape = (nwalkers,niter)
         chain[~np.isfinite(chain)] = 0
         flux_dict[key]['chain'] = chain
@@ -7395,16 +7630,16 @@ def flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=True,verbos
                 flag+=1
 
             flux_dict[key]['par_best']    = post_max # maximum of posterior distribution
-            flux_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
-            flux_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
-            flux_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
-            flux_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            flux_dict[key]['ci_68_low']   = low_68  # lower 68% confidence interval
+            flux_dict[key]['ci_68_upp']   = upp_68  # upper 68% confidence interval
+            flux_dict[key]['ci_95_low']   = low_95  # lower 95% confidence interval
+            flux_dict[key]['ci_95_upp']   = upp_95  # upper 95% confidence interval
             flux_dict[key]['mean']        = post_mean # mean of posterior distribution
-            flux_dict[key]['std_dev']     = post_std	# standard deviation
+            flux_dict[key]['std_dev']     = post_std    # standard deviation
             flux_dict[key]['median']      = post_med # median of posterior distribution
-            flux_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
+            flux_dict[key]['med_abs_dev'] = post_mad    # median absolute deviation
             flux_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            flux_dict[key]['flag']	       = flag 
+            flux_dict[key]['flag']         = flag 
 
 
             if (plot_flux_hist==True):
@@ -7413,16 +7648,16 @@ def flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=True,verbos
                                 run_dir)
         else:
             flux_dict[key]['par_best']    = np.nan # maximum of posterior distribution
-            flux_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
-            flux_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
-            flux_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
-            flux_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            flux_dict[key]['ci_68_low']   = np.nan  # lower 68% confidence interval
+            flux_dict[key]['ci_68_upp']   = np.nan  # upper 68% confidence interval
+            flux_dict[key]['ci_95_low']   = np.nan  # lower 95% confidence interval
+            flux_dict[key]['ci_95_upp']   = np.nan  # upper 95% confidence interval
             flux_dict[key]['mean']        = np.nan # mean of posterior distribution
-            flux_dict[key]['std_dev']     = np.nan	# standard deviation
+            flux_dict[key]['std_dev']     = np.nan  # standard deviation
             flux_dict[key]['median']      = np.nan # median of posterior distribution
-            flux_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
+            flux_dict[key]['med_abs_dev'] = np.nan  # median absolute deviation
             flux_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            flux_dict[key]['flag']	       = 1 
+            flux_dict[key]['flag']         = 1 
 
     return flux_dict
 
@@ -7444,13 +7679,13 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
     for key in flux_dict:
         flux = 10**(flux_dict[key]['chain']) # * 1.e-17
         # Convert fluxes to luminosities and take log10
-        lum   = np.log10((flux * 4*np.pi * d_cm**2	)) #/ 1.0E+42
+        lum   = np.log10((flux * 4*np.pi * d_cm**2  )) #/ 1.0E+42
         lum[~np.isfinite(lum)] = 0
         lum_dict[key[:-4]+'LUM']= {'chain':lum}
 
     for key in lum_dict:
         if verbose:
-            print('		  %s' % key)
+            print('       %s' % key)
         chain = lum_dict[key]['chain'] # shape = (nwalkers,niter)
         chain[~np.isfinite(chain)] = 0
 
@@ -7509,16 +7744,16 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
                 flag+=1
 
             lum_dict[key]['par_best']    = post_max # maximum of posterior distribution
-            lum_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
-            lum_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
-            lum_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
-            lum_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            lum_dict[key]['ci_68_low']   = low_68   # lower 68% confidence interval
+            lum_dict[key]['ci_68_upp']   = upp_68   # upper 68% confidence interval
+            lum_dict[key]['ci_95_low']   = low_95   # lower 95% confidence interval
+            lum_dict[key]['ci_95_upp']   = upp_95   # upper 95% confidence interval
             lum_dict[key]['mean']        = post_mean # mean of posterior distribution
-            lum_dict[key]['std_dev']     = post_std	# standard deviation
+            lum_dict[key]['std_dev']     = post_std # standard deviation
             lum_dict[key]['median']      = post_med # median of posterior distribution
-            lum_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
+            lum_dict[key]['med_abs_dev'] = post_mad # median absolute deviation
             lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            lum_dict[key]['flag']	     = flag
+            lum_dict[key]['flag']        = flag
 
             if (plot_lum_hist==True):
                 posterior_plots(key,flat,chain,burn_in,xs,kde,h,
@@ -7526,16 +7761,16 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
                                 run_dir)
         else:
             lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
-            lum_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
-            lum_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
-            lum_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
-            lum_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            lum_dict[key]['ci_68_low']   = np.nan   # lower 68% confidence interval
+            lum_dict[key]['ci_68_upp']   = np.nan   # upper 68% confidence interval
+            lum_dict[key]['ci_95_low']   = np.nan   # lower 95% confidence interval
+            lum_dict[key]['ci_95_upp']   = np.nan   # upper 95% confidence interval
             lum_dict[key]['mean']        = np.nan # mean of posterior distribution
-            lum_dict[key]['std_dev']     = np.nan	# standard deviation
+            lum_dict[key]['std_dev']     = np.nan   # standard deviation
             lum_dict[key]['median']      = np.nan # median of posterior distribution
-            lum_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
+            lum_dict[key]['med_abs_dev'] = np.nan   # median absolute deviation
             lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            lum_dict[key]['flag']	     = 1 
+            lum_dict[key]['flag']        = 1 
 
     return lum_dict
 
@@ -7547,7 +7782,7 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
     if verbose:
         print("\n Generating model equivalent width distributions...\n")
     # Create a flux dictionary
-    niter	= np.shape(eqwidth_blob)[0]
+    niter   = np.shape(eqwidth_blob)[0]
     nwalkers = np.shape(eqwidth_blob)[1]
     eqwidth_dict = {}
     for key in eqwidth_blob[0][0]:
@@ -7561,7 +7796,7 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
 
     for key in eqwidth_dict:
         if verbose:
-            print('		  %s' % key)
+            print('       %s' % key)
         chain = eqwidth_dict[key]['chain'] # shape = (nwalkers,niter)
         chain[~np.isfinite(chain)] = 0
 
@@ -7619,16 +7854,16 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
                 flag+=1
 
             eqwidth_dict[key]['par_best']    = post_max # maximum of posterior distribution
-            eqwidth_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
-            eqwidth_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
-            eqwidth_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
-            eqwidth_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            eqwidth_dict[key]['ci_68_low']   = low_68   # lower 68% confidence interval
+            eqwidth_dict[key]['ci_68_upp']   = upp_68   # upper 68% confidence interval
+            eqwidth_dict[key]['ci_95_low']   = low_95   # lower 95% confidence interval
+            eqwidth_dict[key]['ci_95_upp']   = upp_95   # upper 95% confidence interval
             eqwidth_dict[key]['mean']        = post_mean # mean of posterior distribution
-            eqwidth_dict[key]['std_dev']     = post_std	# standard deviation
+            eqwidth_dict[key]['std_dev']     = post_std # standard deviation
             eqwidth_dict[key]['median']      = post_med # median of posterior distribution
-            eqwidth_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
+            eqwidth_dict[key]['med_abs_dev'] = post_mad # median absolute deviation
             eqwidth_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            eqwidth_dict[key]['flag']	       = flag
+            eqwidth_dict[key]['flag']          = flag
 
             if (plot_eqwidth_hist==True):
                 posterior_plots(key,flat,chain,burn_in,xs,kde,h,
@@ -7636,16 +7871,16 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
                                 run_dir)
         else:
             eqwidth_dict[key]['par_best']    = np.nan # maximum of posterior distribution
-            eqwidth_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
-            eqwidth_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
-            eqwidth_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
-            eqwidth_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            eqwidth_dict[key]['ci_68_low']   = np.nan   # lower 68% confidence interval
+            eqwidth_dict[key]['ci_68_upp']   = np.nan   # upper 68% confidence interval
+            eqwidth_dict[key]['ci_95_low']   = np.nan   # lower 95% confidence interval
+            eqwidth_dict[key]['ci_95_upp']   = np.nan   # upper 95% confidence interval
             eqwidth_dict[key]['mean']        = np.nan # mean of posterior distribution
-            eqwidth_dict[key]['std_dev']     = np.nan	# standard deviation
+            eqwidth_dict[key]['std_dev']     = np.nan   # standard deviation
             eqwidth_dict[key]['median']      = np.nan # median of posterior distribution
-            eqwidth_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
+            eqwidth_dict[key]['med_abs_dev'] = np.nan   # median absolute deviation
             eqwidth_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            eqwidth_dict[key]['flag']	     = 1 
+            eqwidth_dict[key]['flag']        = 1 
 
     return eqwidth_dict
 
@@ -7656,7 +7891,7 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
     """
 
     # Create a flux dictionary
-    niter	= np.shape(cont_flux_blob)[0]
+    niter   = np.shape(cont_flux_blob)[0]
     nwalkers = np.shape(cont_flux_blob)[1]
     cont_flux_dict = {}
     for key in cont_flux_blob[0][0]:
@@ -7679,74 +7914,74 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
         if (key=="F_CONT_TOT_1350"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 1350.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_TOT_1350"]= {'chain':lum}
         if (key=="F_CONT_TOT_3000"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 3000.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_TOT_3000"]= {'chain':lum}
         if (key=="F_CONT_TOT_5100"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 5100.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_TOT_5100"]= {'chain':lum}
         # AGN cont. lum.
         if (key=="F_CONT_AGN_1350"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 1350.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_AGN_1350"]= {'chain':lum}
         if (key=="F_CONT_AGN_3000"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 3000.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_AGN_3000"]= {'chain':lum}
         if (key=="F_CONT_AGN_5100"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 5100.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_AGN_5100"]= {'chain':lum}
         # Host cont. lum
         if (key=="F_CONT_HOST_1350"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 1350.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_HOST_1350"]= {'chain':lum}
         if (key=="F_CONT_HOST_3000"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 3000.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_HOST_3000"]= {'chain':lum}
         if (key=="F_CONT_HOST_5100"):
             flux = (cont_flux_dict[key]['chain']) * 1.0E-17
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
-            lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
+            lum   = np.log10((flux * 4*np.pi * d_cm**2  ) * 5100.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_HOST_5100"]= {'chain':lum}
         # AGN fractions
         if (key=="AGN_FRAC_4000"):
             cont_lum_dict["AGN_FRAC_4000"]= {'chain':cont_flux_dict[key]['chain']}
         if (key=="AGN_FRAC_7000"):
-            cont_lum_dict["AGN_FRAC_7000"]= {'chain':cont_flux_dict[key]['chain']}	
+            cont_lum_dict["AGN_FRAC_7000"]= {'chain':cont_flux_dict[key]['chain']}  
         # Host fractions
         if (key=="HOST_FRAC_4000"):
             cont_lum_dict["HOST_FRAC_4000"]= {'chain':cont_flux_dict[key]['chain']}
         if (key=="HOST_FRAC_7000"):
-            cont_lum_dict["HOST_FRAC_7000"]= {'chain':cont_flux_dict[key]['chain']}	
+            cont_lum_dict["HOST_FRAC_7000"]= {'chain':cont_flux_dict[key]['chain']} 
 
 
     for key in cont_lum_dict:
         if verbose:
-            print('		  %s' % key)
+            print('       %s' % key)
         chain = cont_lum_dict[key]['chain'] # shape = (nwalkers,niter)
         chain[~np.isfinite(chain)] = 0
 
@@ -7805,16 +8040,16 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
                 flag+=1
 
             cont_lum_dict[key]['par_best']    = post_max # maximum of posterior distribution
-            cont_lum_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
-            cont_lum_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
-            cont_lum_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
-            cont_lum_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            cont_lum_dict[key]['ci_68_low']   = low_68  # lower 68% confidence interval
+            cont_lum_dict[key]['ci_68_upp']   = upp_68  # upper 68% confidence interval
+            cont_lum_dict[key]['ci_95_low']   = low_95  # lower 95% confidence interval
+            cont_lum_dict[key]['ci_95_upp']   = upp_95  # upper 95% confidence interval
             cont_lum_dict[key]['mean']        = post_mean # mean of posterior distribution
-            cont_lum_dict[key]['std_dev']     = post_std	# standard deviation
+            cont_lum_dict[key]['std_dev']     = post_std    # standard deviation
             cont_lum_dict[key]['median']      = post_med # median of posterior distribution
-            cont_lum_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
+            cont_lum_dict[key]['med_abs_dev'] = post_mad    # median absolute deviation
             cont_lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            cont_lum_dict[key]['flag']	      = flag 
+            cont_lum_dict[key]['flag']        = flag 
 
             if (plot_lum_hist==True):
                 posterior_plots(key,flat,chain,burn_in,xs,kde,h,
@@ -7822,16 +8057,16 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
                                 run_dir)
         else:
             cont_lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
-            cont_lum_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
-            cont_lum_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
-            cont_lum_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
-            cont_lum_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            cont_lum_dict[key]['ci_68_low']   = np.nan  # lower 68% confidence interval
+            cont_lum_dict[key]['ci_68_upp']   = np.nan  # upper 68% confidence interval
+            cont_lum_dict[key]['ci_95_low']   = np.nan  # lower 95% confidence interval
+            cont_lum_dict[key]['ci_95_upp']   = np.nan  # upper 95% confidence interval
             cont_lum_dict[key]['mean']        = np.nan # mean of posterior distribution
-            cont_lum_dict[key]['std_dev']     = np.nan	# standard deviation
+            cont_lum_dict[key]['std_dev']     = np.nan  # standard deviation
             cont_lum_dict[key]['median']      = np.nan # median of posterior distribution
-            cont_lum_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
+            cont_lum_dict[key]['med_abs_dev'] = np.nan  # median absolute deviation
             cont_lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            cont_lum_dict[key]['flag']	       = 1 
+            cont_lum_dict[key]['flag']         = 1 
 
     return cont_lum_dict
 
@@ -7844,7 +8079,7 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
         print("\n Generating model integrated velocity moment distributions...\n")
 
     # Create a flux dictionary
-    niter	= np.shape(int_vel_disp_blob)[0]
+    niter   = np.shape(int_vel_disp_blob)[0]
     nwalkers = np.shape(int_vel_disp_blob)[1]
     int_vel_disp_dict = {}
     for key in int_vel_disp_blob[0][0]:
@@ -7858,7 +8093,7 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
 
     for key in int_vel_disp_dict:
         if verbose:
-            print('		  %s' % key)
+            print('       %s' % key)
         chain = int_vel_disp_dict[key]['chain'] # shape = (nwalkers,niter)
         chain[~np.isfinite(chain)] = 0
 
@@ -7917,16 +8152,16 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
                 flag+=1
 
             int_vel_disp_dict[key]['par_best']    = post_max # maximum of posterior distribution
-            int_vel_disp_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
-            int_vel_disp_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
-            int_vel_disp_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
-            int_vel_disp_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            int_vel_disp_dict[key]['ci_68_low']   = low_68  # lower 68% confidence interval
+            int_vel_disp_dict[key]['ci_68_upp']   = upp_68  # upper 68% confidence interval
+            int_vel_disp_dict[key]['ci_95_low']   = low_95  # lower 95% confidence interval
+            int_vel_disp_dict[key]['ci_95_upp']   = upp_95  # upper 95% confidence interval
             int_vel_disp_dict[key]['mean']        = post_mean # mean of posterior distribution
-            int_vel_disp_dict[key]['std_dev']     = post_std	# standard deviation
+            int_vel_disp_dict[key]['std_dev']     = post_std    # standard deviation
             int_vel_disp_dict[key]['median']      = post_med # median of posterior distribution
-            int_vel_disp_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
+            int_vel_disp_dict[key]['med_abs_dev'] = post_mad    # median absolute deviation
             int_vel_disp_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            int_vel_disp_dict[key]['flag']	      = flag 
+            int_vel_disp_dict[key]['flag']        = flag 
 
             if (plot_param_hist==True):
                 posterior_plots(key,flat,chain,burn_in,xs,kde,h,
@@ -7934,22 +8169,22 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
                                 run_dir)
         else:
             int_vel_disp_dict[key]['par_best']    = np.nan # maximum of posterior distribution
-            int_vel_disp_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
-            int_vel_disp_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
-            int_vel_disp_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
-            int_vel_disp_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            int_vel_disp_dict[key]['ci_68_low']   = np.nan  # lower 68% confidence interval
+            int_vel_disp_dict[key]['ci_68_upp']   = np.nan  # upper 68% confidence interval
+            int_vel_disp_dict[key]['ci_95_low']   = np.nan  # lower 95% confidence interval
+            int_vel_disp_dict[key]['ci_95_upp']   = np.nan  # upper 95% confidence interval
             int_vel_disp_dict[key]['mean']        = np.nan # mean of posterior distribution
-            int_vel_disp_dict[key]['std_dev']     = np.nan	# standard deviation
+            int_vel_disp_dict[key]['std_dev']     = np.nan  # standard deviation
             int_vel_disp_dict[key]['median']      = np.nan # median of posterior distribution
-            int_vel_disp_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
+            int_vel_disp_dict[key]['med_abs_dev'] = np.nan  # median absolute deviation
             int_vel_disp_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            int_vel_disp_dict[key]['flag']	       = 1 
+            int_vel_disp_dict[key]['flag']         = 1 
 
     return int_vel_disp_dict
 
 
 # def write_params(param_dict,flux_dict,lum_dict,eqwidth_dict,cont_lum_dict,int_vel_disp_dict,extra_dict,header_dict,bounds,run_dir,
-# 				binnum=None,spaxelx=None,spaxely=None):
+#               binnum=None,spaxelx=None,spaxely=None):
 def write_params(param_dict,header_dict,bounds,run_dir,binnum=None,spaxelx=None,spaxely=None):
     """
     Writes all measured parameters, fluxes, luminosities, and extra stuff 
@@ -7966,7 +8201,7 @@ def write_params(param_dict,header_dict,bounds,run_dir,binnum=None,spaxelx=None,
     std_dev     = []
     median      = []
     med_abs_dev = []
-    flags 	    = []
+    flags       = []
 
     # Param dict
     for key in param_dict:
@@ -7983,7 +8218,7 @@ def write_params(param_dict,header_dict,bounds,run_dir,binnum=None,spaxelx=None,
         flags.append(param_dict[key]['flag'])
 
     # Sort param_names alphabetically
-    i_sort	    = np.argsort(par_names)
+    i_sort      = np.argsort(par_names)
     par_names   = np.array(par_names)[i_sort] 
     par_best    = np.array(par_best)[i_sort]  
     ci_68_low   = np.array(ci_68_low)[i_sort]   
@@ -7994,7 +8229,7 @@ def write_params(param_dict,header_dict,bounds,run_dir,binnum=None,spaxelx=None,
     std_dev     = np.array(std_dev)[i_sort]
     median      = np.array(median)[i_sort]   
     med_abs_dev = np.array(med_abs_dev)[i_sort] 
-    flags	    = np.array(flags)[i_sort]	 
+    flags       = np.array(flags)[i_sort]    
 
     # Write best-fit parameters to FITS table
     col1  = fits.Column(name='parameter', format='30A', array=par_names)
@@ -8041,7 +8276,7 @@ def write_chains(param_dict,run_dir):
     """
 
     # for key in param_dict:
-    # 	print(key,np.shape(param_dict[key]["chain"]))
+    #   print(key,np.shape(param_dict[key]["chain"]))
 
     cols = []
     # Construct a column for each parameter and chain
@@ -8076,6 +8311,7 @@ def plot_best_model(param_dict,
                     uv_iron_template,
                     balmer_template,
                     stel_templates,
+                    blob_pars,
                     disp_res,
                     fit_mask,
                     fit_stat,
@@ -8109,7 +8345,7 @@ def plot_best_model(param_dict,
         return new_center
 
     output_model = True
-    fit_type	 = 'final'
+    fit_type     = 'final'
     comp_dict = fit_model(par_best,
                           param_names,
                           line_list,
@@ -8131,6 +8367,7 @@ def plot_best_model(param_dict,
                           uv_iron_template,
                           balmer_template,
                           stel_templates,
+                          blob_pars,
                           disp_res,
                           fit_mask,
                           velscale,
@@ -8183,9 +8420,9 @@ def plot_best_model(param_dict,
             elif key=='Z_OPT_FEII_TEMPLATE':
                 ax1.plot(comp_dict['WAVE'], comp_dict['Z_OPT_FEII_TEMPLATE'], color='xkcd:rust', linewidth=0.5, linestyle='-' , label='Z-transition FeII')
         elif (key=='UV_IRON_TEMPLATE'):
-            ax1.plot(comp_dict['WAVE'], comp_dict['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'	 )
+            ax1.plot(comp_dict['WAVE'], comp_dict['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'    )
         elif (key=='BALMER_CONT'):
-            ax1.plot(comp_dict['WAVE'], comp_dict['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'	 )
+            ax1.plot(comp_dict['WAVE'], comp_dict['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'    )
         # Plot emission lines by cross-referencing comp_dict with line_list
         if (key in line_list):
             if (line_list[key]["line_type"]=="na"):
@@ -8288,72 +8525,7 @@ def plot_best_model(param_dict,
     
     return comp_dict
 
-def fit_quality_pars(param_dict,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
 
-    fit_quality_dict = {}
-    if fit_stat=="RCHI2":
-        if fit_type=="max_like":
-            noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["med"]
-        elif fit_type=="mcmc":
-            noise = comp_dict["NOISE"]*param_dict["NOISE_SCALE"]["par_best"]
-    elif fit_stat!="RHIC2":
-        noise = comp_dict["NOISE"]
-    # compute NPIX for each line in the line list
-    for l in line_list:
-        npix = len(np.where(comp_dict[l]>noise)[0])
-        if fit_type=="max_like":
-            fit_quality_dict[l+"_NPIX"] = {"med":npix,"std":0,"flag":0}
-        elif fit_type=="mcmc":
-            fit_quality_dict[l+"_NPIX"] = {"par_best":npix,
-                                           "ci_68_low":0,"ci_68_upp":0,
-                                           "ci_95_low":0,"ci_95_upp":0,
-                                           "mean":0,"std_dev":0,
-                                           "median":0,"med_abs_dev":0,
-                                           "flag":0
-                                          }
-    # compute NPIX for any combined lines
-    if len(combined_line_list)>0:
-        for c in combined_line_list:
-            comb_line = np.zeros(len(noise))
-            for l in combined_line_list[c]["lines"]:
-                comb_line+=comp_dict[l]
-            npix = len(np.where(comb_line>noise)[0])
-            if fit_type=="max_like":
-                fit_quality_dict[c+"_NPIX"] = {"med":npix,"std":0,"flag":0}
-            elif fit_type=="mcmc":
-                fit_quality_dict[c+"_NPIX"] = {"par_best":npix,
-                                               "ci_68_low":0,"ci_68_upp":0,
-                                               "ci_95_low":0,"ci_95_upp":0,
-                                               "mean":0,"std_dev":0,
-                                               "median":0,"med_abs_dev":0,
-                                               "flag":0
-                                               }
-
-    # compute a total chi-squared and r-squared
-    r_sqaured = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
-    nu = len(comp_dict["DATA"])-len(param_dict)
-    rchi_squared = (np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/(noise[fit_mask])**2,axis=0))/nu
-    if fit_type=="max_like":
-        fit_quality_dict["R_SQUARED"] = {"med":r_sqaured,"std":0,"flag":0}
-        fit_quality_dict["RCHI_SQUARED"] = {"med":rchi_squared,"std":0,"flag":0}
-    elif fit_type=="mcmc": 
-        fit_quality_dict["R_SQUARED"] =  {"par_best":r_sqaured,
-                                               "ci_68_low":0,"ci_68_upp":0,
-                                               "ci_95_low":0,"ci_95_upp":0,
-                                               "mean":0,"std_dev":0,
-                                               "median":0,"med_abs_dev":0,
-                                               "flag":0
-                                               }
-        fit_quality_dict["RCHI_SQUARED"] =  {"par_best":rchi_squared,
-                                               "ci_68_low":0,"ci_68_upp":0,
-                                               "ci_95_low":0,"ci_95_upp":0,
-                                               "mean":0,"std_dev":0,
-                                               "median":0,"med_abs_dev":0,
-                                               "flag":0
-                                               }
-
-    return fit_quality_dict
-    
 def do_pca_fill(wave_input, flux_input, err_input, n_components = 20, pca_masks = [(4400,4500), ], plot_pca = False, run_dir='' ):
     '''
     Performs principal component analysis (PCA) on input spectrum using SDSS template spectra to reconstruct specific, user-specified, spectral regions.
@@ -8518,12 +8690,12 @@ def write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,
     if MCMC is not performed. 
     """
     # for key in result_dict:
-    # 	print(key, result_dict[key])
+    #   print(key, result_dict[key])
     # Extract elements from dictionaries
 
     par_names = []
     par_best  = []
-    sig	      = []
+    sig       = []
     for key in result_dict:
         par_names.append(key)
         par_best.append(result_dict[key]['med'])
@@ -8531,7 +8703,7 @@ def write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,
             sig.append(result_dict[key]['std'])
 
     # Sort the fit results
-    i_sort	= np.argsort(par_names)
+    i_sort  = np.argsort(par_names)
     par_names = np.array(par_names)[i_sort] 
     par_best  = np.array(par_best)[i_sort]  
     sig   = np.array(sig)[i_sort]   
@@ -8540,7 +8712,7 @@ def write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,
     col1 = fits.Column(name='parameter', format='30A', array=par_names)
     col2 = fits.Column(name='best_fit' , format='E'  , array=par_best)
     if "std" in result_dict[par_names[0]]:
-        col3 = fits.Column(name='sigma'	, format='E'  , array=sig)
+        col3 = fits.Column(name='sigma' , format='E'  , array=sig)
     
     if "std" in result_dict[par_names[0]]:
         cols = fits.ColDefs([col1,col2,col3])
@@ -8590,7 +8762,7 @@ def plotly_best_fit(objname,line_list,fit_mask,run_dir):
     from plotly.subplots import make_subplots
     # Open the best_fit_components file
     hdu = fits.open(run_dir.joinpath("log", "best_model_components.fits") )
-    tbdata = hdu[1].data	 # FITS table data is stored on FITS extension 1
+    tbdata = hdu[1].data     # FITS table data is stored on FITS extension 1
     cols = [i.name for i in tbdata.columns]
     hdu.close()
 
@@ -8669,20 +8841,20 @@ def plotly_best_fit(objname,line_list,fit_mask,run_dir):
     # lam_gal = tbdata["WAVE"]
     # ibad = [i for i in range(len(lam_gal)) if i not in fit_mask]
     # if (len(ibad)>0):# and (len(ibad[0])>1):
-    # 	bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
-    # 	# ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:lime green',label="bad pixels")
-    # 	fig.add_vrect(
-    # 					x0=bad_wave[0][0], x1=bad_wave[0][0],
-    # 					fillcolor="rgb(179,222,105)", opacity=0.25,
-    # 					layer="below", line_width=0,name="bad pixels",
-    # 					),
-    # 	for i in bad_wave[1:]:
-    # 		# ax1.axvspan(i[0],i[0],alpha=0.25,color='xkcd:lime green')
-    # 		fig.add_vrect(
-    # 						x0=i[0], x1=i[1],
-    # 						fillcolor="rgb(179,222,105)", opacity=0.25,
-    # 						layer="below", line_width=0,name="bad pixels",
-    # 					),
+    #   bad_wave = [(lam_gal[m],lam_gal[m+1]) for m in ibad if ((m+1)<len(lam_gal))]
+    #   # ax1.axvspan(bad_wave[0][0],bad_wave[0][0],alpha=0.25,color='xkcd:lime green',label="bad pixels")
+    #   fig.add_vrect(
+    #                   x0=bad_wave[0][0], x1=bad_wave[0][0],
+    #                   fillcolor="rgb(179,222,105)", opacity=0.25,
+    #                   layer="below", line_width=0,name="bad pixels",
+    #                   ),
+    #   for i in bad_wave[1:]:
+    #       # ax1.axvspan(i[0],i[0],alpha=0.25,color='xkcd:lime green')
+    #       fig.add_vrect(
+    #                       x0=i[0], x1=i[1],
+    #                       fillcolor="rgb(179,222,105)", opacity=0.25,
+    #                       layer="below", line_width=0,name="bad pixels",
+    #                   ),
         
         
     # Residuals
@@ -8798,13 +8970,13 @@ def write_log(output_val,output_type,run_dir):
     if (output_type=='update_uv_iron'): 
         with log_file_path.open(mode='a') as logfile:
             logfile.write('\n')
-            logfile.write('\n	* UV iron template outside of fitting region and disabled.')
+            logfile.write('\n   * UV iron template outside of fitting region and disabled.')
         return None
 
     if (output_type=='update_balmer'):
         with log_file_path.open(mode='a') as logfile:
             logfile.write('\n')
-            logfile.write('\n	* Balmer continuum template outside of fitting region and disabled.')
+            logfile.write('\n   * Balmer continuum template outside of fitting region and disabled.')
         return None
 
     if (output_type=='output_line_list'):
@@ -8974,14 +9146,14 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n')
             logfile.write('\n### Emcee Options ###')
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-            logfile.write('\n{0:<30}{1:<30}'.format('ndim'		, ndim ))
-            logfile.write('\n{0:<30}{1:<30}'.format('nwalkers'	, nwalkers ))
+            logfile.write('\n{0:<30}{1:<30}'.format('ndim'      , ndim ))
+            logfile.write('\n{0:<30}{1:<30}'.format('nwalkers'  , nwalkers ))
             logfile.write('\n{0:<30}{1:<30}'.format('auto_stop'   , str(auto_stop) ))
             logfile.write('\n{0:<30}{1:<30}'.format('user burn_in', burn_in ))
             logfile.write('\n{0:<30}{1:<30}'.format('write_iter'  , write_iter ))
             logfile.write('\n{0:<30}{1:<30}'.format('write_thresh', write_thresh ))
-            logfile.write('\n{0:<30}{1:<30}'.format('min_iter'	, min_iter ))
-            logfile.write('\n{0:<30}{1:<30}'.format('max_iter'	, max_iter ))
+            logfile.write('\n{0:<30}{1:<30}'.format('min_iter'  , min_iter ))
+            logfile.write('\n{0:<30}{1:<30}'.format('max_iter'  , max_iter ))
             logfile.write('\n{0:<30}{1:<30}'.format('start_time'  , a ))
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
         return None
@@ -8993,10 +9165,10 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n')
             logfile.write('\n### Autocorrelation Options ###')
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-            logfile.write('\n{0:<30}{1:<30}'.format('min_samp'  , min_samp	 ))
+            logfile.write('\n{0:<30}{1:<30}'.format('min_samp'  , min_samp   ))
             logfile.write('\n{0:<30}{1:<30}'.format('tolerance%', autocorr_tol ))
             logfile.write('\n{0:<30}{1:<30}'.format('ncor_times', ncor_times   ))
-            logfile.write('\n{0:<30}{1:<30}'.format('conv_type' , str(conv_type)	))
+            logfile.write('\n{0:<30}{1:<30}'.format('conv_type' , str(conv_type)    ))
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
         return None
 
