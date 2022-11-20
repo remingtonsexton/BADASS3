@@ -176,10 +176,12 @@ def initialize_templates(ctx):
 	from utils.templates.host import HostTemplate
 	from utils.templates.stellar import StellarTemplate
 	from utils.templates.optical_feii import OpticalFeIITemplate
+	from utils.templates.uv_iron import UVIronTemplate
 
-	for temp_class in [HostTemplate, StellarTemplate, OpticalFeIITemplate]:
+	for temp_class in [HostTemplate, StellarTemplate, OpticalFeIITemplate, UVIronTemplate]:
 		temp = temp_class.initialize_template(ctx)
 		if temp:
 			templates[temp_class.__name__] = temp
 
 	return templates
+

@@ -198,6 +198,9 @@ class BadassLogger:
 	def update_opt_feii(self):
 		self.logger.info('\t* optical FeII templates outside of fitting region and disabled.')
 
+	def update_uv_iron(self):
+		self.logger.info('\t* UV iron template outside of fitting region and disabled.')
+
 
 
 

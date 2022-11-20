@@ -442,6 +442,7 @@ class BadassContext(mp.Process):
         host_template = self.templates['HostTemplate'] if 'HostTemplate' in self.templates else None
         stel_templates = self.templates['StellarTemplate'] if 'StellarTemplate' in self.templates else None
         opt_feii_templates = self.templates['OpticalFeIITemplate'] if 'OpticalFeIITemplate' in self.templates else None
+        uv_iron_template = self.templates['UVIronTemplate'] if 'UVIronTemplate' in self.templates else None
 
 
         #######################################################
@@ -473,20 +474,6 @@ class BadassContext(mp.Process):
 
         else:
             pca_exp_var = None
-            
-        # Generate UV Iron template - Vestergaard & Wilkes (2001)
-        if (fit_uv_iron==True) & (lam_gal[-1]>=1074.0) & (lam_gal[0]<=3100.0):
-            uv_iron_template = initialize_uv_iron(lam_gal,uv_iron_options,disp_res,fit_mask,velscale)
-        elif (fit_uv_iron==True) & ((lam_gal[-1]<1074.0) | (lam_gal[0]>3100.0)):
-            if verbose:
-                print('\n - UV Iron template disabled because template is outside of fitting region.')
-            uv_iron_template = None
-            fit_uv_iron = False
-            comp_options["fit_uv_iron"]=False
-            uv_iron_template = None
-            write_log((),'update_uv_iron',run_dir)
-        elif (fit_uv_iron==False):
-            uv_iron_template = None
 
         # Generate Balmer continuum
         if (fit_balmer==True) & (lam_gal[0]<3500.0):
@@ -5981,10 +5968,7 @@ def fit_model(params,
     ############################# UV Iron Component ##########################################################
 
     if (uv_iron_template is not None):
-
-        uv_iron_template = VW01_uv_iron_template(lam_gal, p, uv_iron_template, uv_iron_options, velscale, run_dir)
-        host_model = (host_model) - (uv_iron_template)
-        comp_dict['UV_IRON_TEMPLATE'] = uv_iron_template
+    	comp_dict, host_model = uv_iron_template.add_components(p, comp_dict, host_model)
 
     ########################################################################################################
 
@@ -6295,64 +6279,6 @@ def get_disp_res(disp_res_ftn,line_center,line_voff):
 
 ####################################################################################
 
-def VW01_uv_iron_template(lam_gal, pdict, uv_iron_template, uv_iron_options, velscale, run_dir):
-    """
-    Generates the UV Iron model from Vestergaard & Wilkes (2001).
-
-    If the UV iron FWHM and/or VOFF are free to vary, perform the convolution of optical FeII template with Gauss-Hermite kernel using 
-    PPXF framework.
-    """
-    
-    #  Unpack opt_feii_templates (uv_iron_fft, npad, vsyst)
-    uv_iron_fft, npad, vsyst = uv_iron_template
-
-    # Parse FeII options
-    if (uv_iron_options['uv_amp_const']['bool']==False): # if amp not constant
-        uv_iron_amp = pdict['UV_IRON_AMP']
-    elif (uv_iron_options['uv_amp_const']['bool']==True): # if amp constant
-        uv_iron_amp = uv_iron_options['uv_amp_const']['uv_iron_val']
-    #
-    if (uv_iron_options['uv_disp_const']['bool']==False): # if amp not constant
-        uv_iron_disp = pdict['UV_IRON_DISP']
-    elif (uv_iron_options['uv_disp_const']['bool']==True): # if amp constant
-        uv_iron_disp = uv_iron_options['uv_disp_const']['uv_iron_val']
-    if uv_iron_disp <= 0.01: uv_iron_disp = 0.01
-    #
-    if (uv_iron_options['uv_voff_const']['bool']==False): # if amp not constant
-        uv_iron_voff = pdict['UV_IRON_VOFF']
-    elif (uv_iron_options['uv_voff_const']['bool']==True): # if amp constant
-        uv_iron_voff = uv_iron_options['uv_voff_const']['uv_iron_val']
-
-    # Convolve the UV iron FFT template and return the inverse Fourier transform.
-    conv_temp = convolve_gauss_hermite(uv_iron_fft, npad, velscale,
-                                          [uv_iron_voff, uv_iron_disp], lam_gal.shape[0], 
-                                           velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
-
-    # Reshape
-    conv_temp = conv_temp.reshape(-1)
-    # Re-normalize to 1
-    conv_temp = conv_temp/np.max(conv_temp)
-    # Multiplyy by amplitude
-    template = uv_iron_amp * conv_temp
-    # Reshape
-    # template = template.reshape(-1)
-    #
-    # Set fitting region outside of template to zero to prevent convolution loops
-    template[(lam_gal < 1074) & (lam_gal > 3090)] = 0
-    #
-    # If the summation results in 0.0, it means that features were too close 
-    # to the edges of the fitting region (usua lly because the region is too 
-    # small), then simply return an array of zeros.
-    if (isinstance(template,int)) or (isinstance(template,float)):
-        template=np.zeros(len(lam_gal))
-    elif np.isnan(np.sum(template)):
-        template=np.zeros(len(lam_gal))
-
-    return template
-
-##################################################################################
-
-##################################################################################
 
 def generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer,velscale, 
                               balmer_ratio, balmer_amp, balmer_disp, balmer_voff, balmer_Teff, balmer_tau):
@@ -8965,12 +8891,6 @@ def write_log(output_val,output_type,run_dir):
                 
             logfile.write('\n')
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------\n') 
-        return None
-
-    if (output_type=='update_uv_iron'): 
-        with log_file_path.open(mode='a') as logfile:
-            logfile.write('\n')
-            logfile.write('\n   * UV iron template outside of fitting region and disabled.')
         return None
 
     if (output_type=='update_balmer'):
