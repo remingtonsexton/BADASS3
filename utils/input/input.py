@@ -64,7 +64,7 @@ class BadassInput(metaclass=MetaRegistry):
         self.spec = None # actual spectrum data to be fit
         self.noise = None # noise = sqrt(1 / ivar)
         self.ebv = None # TODO: set to default here? need here?
-        self.fwhm_res = None
+        self.disp_res = None
         self.velscale = None
 
         # TODO: need?
@@ -163,7 +163,7 @@ class BadassInput(metaclass=MetaRegistry):
     def validate_input(self):
         # Custom input parsers or input dict should provide these values
         # TODO: further validation for each value?
-        for attr in ['infile', 'options', 'ra', 'dec', 'z', 'wave', 'spec', 'noise', 'fwhm_res']:
+        for attr in ['infile', 'options', 'ra', 'dec', 'z', 'wave', 'spec', 'noise', 'disp_res']:
             if not hasattr(self, attr) or getattr(self, attr) is None:
                 raise Exception('BADASS input missing expected value: {attr}'.format(attr=attr))
 

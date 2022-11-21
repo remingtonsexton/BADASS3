@@ -49,7 +49,7 @@ class IFUInput(BadassInput):
         options = base.options
 
         # FWHM Resolution in angstroms:
-        base.fwhm_res = base.wave / base.specres  # dlambda = lambda / R; R = lambda / dlambda
+        base.disp_res = base.wave / base.specres  # dlambda = lambda / R; R = lambda / dlambda
         base.velscale = np.log(base.wave[1] / base.wave[0]) * consts.c
 
         if not options.ifu_options.use_and_mask:
@@ -220,7 +220,7 @@ class IFUInput(BadassInput):
             fits.Column(name='wave', array=self.wave, format='E'),
             fits.Column(name='noise', array=self.noise, format='E'),
             fits.Column(name='mask', array=self.mask, format='E'),
-            fits.Column(name='fwhm_res', array=self.fwhm_res, format='E')
+            fits.Column(name='disp_res', array=self.disp_res, format='E')
         ]))
         specobj = fits.BinTableHDU.from_columns(fits.ColDefs([
             fits.Column(name='z', array=np.array([self.z]), format='E'),

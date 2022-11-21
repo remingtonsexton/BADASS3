@@ -106,7 +106,7 @@ class BadassLogger:
 		# Fit Component options
 		comp_options = self.ctx.options.comp_options
 		self.logger.info('\t{0:<30}{1:<30}{2:<30}'.format('comp_options:','',''))
-		for key in ['fit_opt_feii', 'fit_uv_iron', 'fit_balmer', 'fit_losvd', 'fit_host', 'fit_power', 'fit_narrow', 'fit_broad', 'fit_outflow', 'fit_absorp', 'tie_line_fwhm', 'tie_line_voff', 'na_line_profile', 'br_line_profile', 'out_line_profile', 'abs_line_profile']:
+		for key in ['fit_opt_feii', 'fit_uv_iron', 'fit_balmer', 'fit_losvd', 'fit_host', 'fit_power', 'fit_narrow', 'fit_broad', 'fit_outflow', 'fit_absorp', 'tie_line_disp', 'tie_line_voff', 'na_line_profile', 'br_line_profile', 'out_line_profile', 'abs_line_profile']:
 			self.logger.info('{0:>30}{1:<2}{2:<30}'.format(key,':', str(comp_options[key])))
 		self.logger.info('\n')
 
@@ -146,11 +146,11 @@ class BadassLogger:
 			self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_template',':','type: %s' % str(opt_feii_options['opt_template']['type']) ))
 			if opt_feii_options.opt_template.type == 'VC04':
 				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_amp_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_amp_const']['bool']),str(opt_feii_options['opt_amp_const']['br_opt_feii_val']),str(opt_feii_options['opt_amp_const']['na_opt_feii_val']))))
-				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_fwhm_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_fwhm_const']['bool']),str(opt_feii_options['opt_fwhm_const']['br_opt_feii_val']),str(opt_feii_options['opt_fwhm_const']['na_opt_feii_val']))))
+				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_disp_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_disp_const']['bool']),str(opt_feii_options['opt_disp_const']['br_opt_feii_val']),str(opt_feii_options['opt_disp_const']['na_opt_feii_val']))))
 				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_voff_const',':','bool: %s, br_opt_feii_val: %s, na_opt_feii_val: %s' % (str(opt_feii_options['opt_voff_const']['bool']),str(opt_feii_options['opt_voff_const']['br_opt_feii_val']),str(opt_feii_options['opt_voff_const']['na_opt_feii_val']))))
 			elif opt_feii_options.opt_template.type =='K10':
 				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_amp_const',':','bool: %s, f_feii_val: %s, s_feii_val: %s, g_feii_val: %s, z_feii_val: %s' % (str(opt_feii_options['opt_amp_const']['bool']),str(opt_feii_options['opt_amp_const']['f_feii_val']),str(opt_feii_options['opt_amp_const']['s_feii_val']),str(opt_feii_options['opt_amp_const']['g_feii_val']),str(opt_feii_options['opt_amp_const']['z_feii_val']))))
-				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_fwhm_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_fwhm_const']['bool']),str(opt_feii_options['opt_fwhm_const']['opt_feii_val']),)))
+				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_disp_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_disp_const']['bool']),str(opt_feii_options['opt_disp_const']['opt_feii_val']),)))
 				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_voff_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_voff_const']['bool']),str(opt_feii_options['opt_voff_const']['opt_feii_val']),)))
 				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('opt_temp_const',':','bool: %s, opt_feii_val: %s' % (str(opt_feii_options['opt_temp_const']['bool']),str(opt_feii_options['opt_temp_const']['opt_feii_val']),)))
 		else:
@@ -161,7 +161,7 @@ class BadassLogger:
 		self.logger.info('\t{0:<30}{1:<30}{2:<30}'.format('uv_iron_options:','',''))
 		if comp_options.fit_uv_iron:
 			uv_iron_options = self.ctx.options.uv_iron_options
-			for key in ['uv_amp_const', 'uv_fwhm_const', 'uv_voff_const']:
+			for key in ['uv_amp_const', 'uv_disp_const', 'uv_voff_const']:
 				self.logger.info('{0:>30}{1:<2}{2:<100}'.format(key,':','bool: %s, uv_iron_val: %s' % (str(uv_iron_options[key]['bool']), str(uv_iron_options[key]['uv_iron_val']))))
 		else:
 			self.logger.info('{0:>30}{1:<2}{2:<30}'.format('','','UV Iron fitting is turned off.'))

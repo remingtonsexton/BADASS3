@@ -424,8 +424,8 @@ class BadassContext(mp.Process):
         noise = self.noise
         z = self.z
         velscale = self.velscale
-        fwhm_gal = self.fwhm_res # TODO: change input classes to use disp_res nomenclature instead
-        disp_res = fwhm_gal # TODO: which naming convention to use?
+        fwhm_gal = self.disp_res
+        disp_res = fwhm_gal # TODO: remove use of fwhm_gal
         fit_mask = self.fit_mask_good
         binnum = spaxelx = spaxely = None
         if hasattr(self.target, 'binnum_i'):
@@ -1007,7 +1007,7 @@ class BadassContext(mp.Process):
         self.spec = self.target.spec[fit_reg_mask]
         self.noise = self.target.noise[fit_reg_mask]
         self.mask = self.target.mask[fit_reg_mask]
-        self.fwhm_res = self.target.fwhm_res[fit_reg_mask]
+        self.disp_res = self.target.disp_res[fit_reg_mask]
         self.velscale = self.target.velscale
         self.ra, self.dec, self.z = self.target.ra, self.target.dec, self.target.z
 

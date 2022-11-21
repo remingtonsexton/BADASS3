@@ -45,6 +45,7 @@ class HostTemplate(BadassTemplate):
 
 		host_options = self.ctx.options.host_options
 		fwhm_temp = consts.LOSVD_LIBRARIES.eMILES.fwhm_temp # FWHM resolution of eMILES in Å
+		disp_temp = fwhm_temp/2.3548
 
 		hdu = fits.open(self.temp_file)
 		ssp = hdu[0].data 
@@ -52,34 +53,34 @@ class HostTemplate(BadassTemplate):
 		hdu.close()
 
 		lam_temp = np.array(h['CRVAL1'] + h['CDELT1']*np.arange(h['NAXIS1']))
-		mask = ((lam_temp>=(ctx.wave[0]-100.0)) & (lam_temp<=(ctx.wave[-1]+100.0)))
+		mask = ((lam_temp>=(self.ctx.wave[0]-100.0)) & (lam_temp<=(self.ctx.wave[-1]+100.0)))
 		# Apply mask and get lamRange
 		ssp = ssp[mask]
 		lam_temp = lam_temp[mask]
 		lamRange_temp = [np.min(lam_temp), np.max(lam_temp)]
 
 		# Variable sigma
-		fwhm_gal_interp = np.interp(lam_temp, ctx.wave, ctx.fwhm_res)
-		fwhm_dif = np.sqrt((fwhm_gal_interp**2 - fwhm_temp**2).clip(0))
-		sigma = fwhm_dif/2.355/h['CDELT1'] # Sigma difference in pixels
+		disp_res_interp = np.interp(lam_temp, self.ctx.wave, self.ctx.disp_res)
+		disp_dif = np.sqrt((disp_res_interp**2 - disp_temp**2).clip(0))
+		sigma = disp_dif/2.355/h['CDELT1'] # Sigma difference in pixels
 
-		sspNew = log_rebin(lamRange_temp, ssp, velscale=ctx.velscale)[0]
+		sspNew = log_rebin(lamRange_temp, ssp, velscale=self.ctx.velscale)[0]
 		templates = np.empty((sspNew.size, len(host_options.age)))
 		for j, age in enumerate(host_options.age):
 			atemp = HostTemplate.get_host_template_file(age)
 			if not atemp.exists():
-				ctx.log.error('Could not find host galaxy template file: %s' % str(atemp))
+				self.ctx.log.error('Could not find host galaxy template file: %s' % str(atemp))
 				continue
 
 			hdu = fits.open(atemp)
 			ssp = hdu[0].data
 			ssp = ssp[mask]
 			ssp = gaussian_filter1d(ssp, sigma)  # perform convolution with variable sigma
-			sspNew,loglam_temp,velscale_temp = log_rebin(lamRange_temp, ssp, velscale=ctx.velscale)
+			sspNew,loglam_temp,velscale_temp = log_rebin(lamRange_temp, ssp, velscale=self.ctx.velscale)
 			templates[:, j] = sspNew/np.median(sspNew) # Normalizes templates
 			hdu.close()
 
-		self.vsyst = np.log(lam_temp[0]/ctx.wave[0]) * consts.c
+		self.vsyst = np.log(lam_temp[0]/self.ctx.wave[0]) * consts.c
 		self.ssp_fft, self.npad = template_rfft(templates)
 
 		self.pre_convolve = (host_options.vel_const.bool) and (host_options.disp_const.bool)

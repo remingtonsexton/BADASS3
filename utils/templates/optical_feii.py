@@ -36,11 +36,11 @@ class OpticalFeIITemplate(BadassTemplate):
 		self.ctx = ctx
 
 
-	def convolve(self, fft, feii_voff, feii_fwhm, npad=None):
+	def convolve(self, fft, feii_voff, feii_disp, npad=None):
 		if npad is None:
 			npad = self.npad
 		return convolve_gauss_hermite(fft, npad, float(self.ctx.velscale),\
-									[feii_voff, feii_fwhm/2.3548], self.ctx.wave.shape[0], 
+									[feii_voff, feii_disp/2.3548], self.ctx.wave.shape[0], 
 									velscale_ratio=1, sigma_diff=0, vsyst=self.vsyst)
 
 
@@ -90,8 +90,8 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 		# Convolve templates to the native resolution of SDSS
 		fwhm_feii = 1.0 # templates were created with 1.0 FWHM resolution
 		disp_feii = fwhm_feii/2.3548
-		disp_res_interp = np.interp(lam_feii, self.ctx.wave, self.ctx.fwhm_res)
-		disp_diff = np.sqrt((fwhm_gal_interp**2 - disp_feii**2).clip(0))
+		disp_res_interp = np.interp(lam_feii, self.ctx.wave, self.ctx.disp_res)
+		disp_diff = np.sqrt((disp_res_interp**2 - disp_feii**2).clip(0))
 		sigma = disp_diff/dlam_feii # Sigma difference in pixels
 		spec_feii_br = gaussian_filter1d(spec_feii_br, sigma)
 		spec_feii_na = gaussian_filter1d(spec_feii_na, sigma)
@@ -109,18 +109,18 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 		# shift the spectrum to match that of the input galaxy.
 		self.vsyst = np.log(lam_feii[0]/self.ctx.wave[0]) * consts.c
 
-		# If opt_fwhm_const AND opt_voff_const, we preconvolve the templates so we don't have to during the fit
+		# If opt_disp_const AND opt_voff_const, we preconvolve the templates so we don't have to during the fit
 		opt_feii_options = self.ctx.options.opt_feii_options
 		self.pre_convolve = (opt_feii_options.opt_disp_const.bool) and (opt_feii_options.opt_voff_const.bool)
 		if self.pre_convolve:
 
 			br_voff = opt_feii_options.opt_voff_const.br_opt_feii_val
-			br_fwhm = opt_feii_options.opt_disp_const.br_opt_feii_val
-			self.br_conv_temp = self.convolve(self.br_opt_feii_fft, br_voff, br_fwhm)
+			br_disp = opt_feii_options.opt_disp_const.br_opt_feii_val
+			self.br_conv_temp = self.convolve(self.br_opt_feii_fft, br_voff, br_disp)
 
 			na_voff = opt_feii_options.opt_voff_const.na_opt_feii_val
-			na_fwhm = opt_feii_options.opt_disp_const.na_opt_feii_val
-			self.na_conv_temp = self.convolve(self.na_opt_feii_fft, na_voff, na_fwhm)
+			na_disp = opt_feii_options.opt_disp_const.na_opt_feii_val
+			self.na_conv_temp = self.convolve(self.na_opt_feii_fft, na_voff, na_disp)
 
 
 	def initialize_parameters(self, params):
@@ -278,10 +278,9 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 		# as a group of templates, which will be convolved together, but relative intensities will be calculated
 		# for separately. 
 
-		def gaussian_angstroms(x, center, amp, fwhm, voff):
-			sigma = fwhm/2.3548
+		def gaussian_angstroms(x, center, amp, disp, voff):
 			x = x.reshape((len(x),1))
-			g = amp*np.exp(-0.5*(x-(center))**2/(sigma)**2) # construct gaussian
+			g = amp*np.exp(-0.5*(x-(center))**2/(disp)**2) # construct gaussian
 			g = np.sum(g,axis=1)
 			# Replace the ends with the same value 
 			g[0]  = g[1]
@@ -321,13 +320,13 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 		self.npad = self.transitions[0].npad
 		self.vsyst = np.log(lam_feii[0]/self.ctx.wave[0]) * consts.c
 
-		# If opt_fwhm_const AND opt_voff_const, we preconvolve the templates so we don't have to during the fit
+		# If opt_disp_const AND opt_voff_const, we preconvolve the templates so we don't have to during the fit
 		opt_feii_options = self.ctx.options.opt_feii_options
 		self.pre_convolve = (opt_feii_options.opt_disp_const.bool) and (opt_feii_options.opt_voff_const.bool)
 		if self.pre_convolve:
 
 			feii_voff = opt_feii_options.opt_voff_const.opt_feii_val
-			feii_fwhm = opt_feii_options.opt_disp_const.opt_feii_val
+			feii_disp = opt_feii_options.opt_disp_const.opt_feii_val
 
 			for trans in self.transitions.values():
 				trans.conv_temp = convolve(trans.fft, feii_voff, feii_disp, npad=trans.npad)
@@ -360,7 +359,7 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 			if not self.pre_convolve:
 				# Perform the convolution
 				# TODO: set npad for each transition?
-				trans.conv_temp = self.convolve(trans.fft, opt_feii_voff, opt_feii_fwhm)
+				trans.conv_temp = self.convolve(trans.fft, opt_feii_voff, opt_feii_disp)
 
 			# TODO: if we do pre-convolve do we need to do this here? Or can we do this once in init?
 			# Normalize amplitudes to 1

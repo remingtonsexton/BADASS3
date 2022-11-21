@@ -520,7 +520,7 @@ DEFAULT_OPT_FEII_K10_OPTIONS = {
             'z_feii_val' : 'intfl_min0_d1',
         },
     },
-    'opt_fwhm_const': {
+    'opt_disp_const': {
         'type': 'dict',
         'default': {},
         'schema': {
@@ -616,7 +616,7 @@ DEFAULT_BALMER_OPTIONS = {
         'default': {},
         'schema': {
             'bool': 'bool_true',
-            'balmer_fwhm_val': {
+            'balmer_disp_val': {
                 'type': ['integer', 'float'],
                 'min_ex': 0.0,
                 'default': 5000.0,

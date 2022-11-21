@@ -40,6 +40,7 @@ class StellarTemplate(BadassTemplate):
 
 		losvd_options = self.ctx.options.losvd_options
 		fwhm_temp = consts.LOSVD_LIBRARIES[losvd_options.library].fwhm_temp
+		disp_temp = fwhm_temp/2.3548
 
 		# Get a list of templates stored in temp_dir.  We only include 50 stellar 
 		# templates of various spectral type from the Indo-US Coude Feed Library of 
@@ -74,10 +75,10 @@ class StellarTemplate(BadassTemplate):
 		# of the templates. Outside the range of the galaxy spectrum the resolution
 		# will be extrapolated, but this is irrelevant as those pixels cannot be
 		# used in the fit anyway.
-		if isinstance(ctx.fwhm_res, (list,np.ndarray)):
-			fwhm_gal_interp = np.interp(lam_temp, ctx.wave, ctx.fwhm_res)
-		elif isinstance(ctx.fwhm_res, (int,float)):
-			fwhm_gal_interp = np.full_like(lam_temp, ctx.fwhm_res)
+		if isinstance(ctx.disp_res, (list,np.ndarray)):
+			disp_res_interp = np.interp(lam_temp, ctx.wave, ctx.disp_res)
+		elif isinstance(ctx.disp_res, (int,float)):
+			disp_res_interp = np.full_like(lam_temp, ctx.disp_res)
 
 		# Convolve the whole Vazdekis library of spectral templates
 		# with the quadratic difference between the SDSS and the
@@ -88,10 +89,10 @@ class StellarTemplate(BadassTemplate):
 		# The formula below is rigorously valid if the shapes of the
 		# instrumental spectral profiles are well approximated by Gaussians.
 		#
-		# In the line below, the fwhm_dif is set to zero when fwhm_gal < fwhm_tem.
+		# In the line below, the disp_dif is set to zero when disp_res < disp_tem.
 		# In principle it should never happen and a higher resolution template should be used.
-		fwhm_dif = np.sqrt((fwhm_gal_interp**2 - fwhm_temp**2).clip(0))
-		sigma = fwhm_dif/2.355/h2['CDELT1'] # Sigma difference in pixels
+		disp_dif = np.sqrt((disp_res_interp**2 - disp_temp**2).clip(0))
+		sigma = disp_dif/h2['CDELT1'] # Sigma difference in pixels
 
 		sspNew = log_rebin(lamRange_temp, ssp, velscale=ctx.velscale)[0]
 		templates = np.empty((sspNew.size, len(temp_list)))
