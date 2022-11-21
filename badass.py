@@ -443,6 +443,7 @@ class BadassContext(mp.Process):
         stel_templates = self.templates['StellarTemplate'] if 'StellarTemplate' in self.templates else None
         opt_feii_templates = self.templates['OpticalFeIITemplate'] if 'OpticalFeIITemplate' in self.templates else None
         uv_iron_template = self.templates['UVIronTemplate'] if 'UVIronTemplate' in self.templates else None
+        balmer_template = self.templates['BalmerTemplate'] if 'BalmerTemplate' in self.templates else None
 
 
         #######################################################
@@ -474,20 +475,6 @@ class BadassContext(mp.Process):
 
         else:
             pca_exp_var = None
-
-        # Generate Balmer continuum
-        if (fit_balmer==True) & (lam_gal[0]<3500.0):
-            balmer_template = initialize_balmer(lam_gal,balmer_options,disp_res,fit_mask,velscale)
-        elif (fit_balmer==True) & (lam_gal[0]>=3500.0):
-            if verbose:
-                print('\n - Balmer continuum disabled because template is outside of fitting region.')
-            balmer_template = None
-            fit_balmer = False
-            comp_options["fit_balmer"]=False
-            balmer_template = None
-            write_log((),'update_balmer',run_dir)
-        elif (fit_balmer==False):
-            balmer_template = None
 
         ####################################################################################################################################################################################
 
@@ -5975,39 +5962,7 @@ def fit_model(params,
     ############################# Balmer Continuum Component ###############################################
 
     if (balmer_template is not None):
-        # Unpack Balmer template
-        lam_balmer, spec_high_balmer, velscale_balmer = balmer_template
-        # Parse Balmer options
-        if (balmer_options['R_const']['bool']==False): 
-            balmer_ratio = p['BALMER_RATIO']
-        elif (balmer_options['R_const']['bool']==True): 
-            balmer_ratio = balmer_options['R_const']['R_val']
-        if (balmer_options['balmer_amp_const']['bool']==False): 
-            balmer_amp = p['BALMER_AMP']
-        elif (balmer_options['balmer_amp_const']['bool']==True): 
-            balmer_amp = balmer_options['balmer_amp_const']['balmer_amp_val']
-        if (balmer_options['balmer_disp_const']['bool']==False): 
-            balmer_disp = p['BALMER_DISP']
-        elif (balmer_options['balmer_disp_const']['bool']==True): 
-            balmer_disp = balmer_options['balmer_disp_const']['balmer_disp_val']
-        if (balmer_options['balmer_voff_const']['bool']==False): 
-            balmer_voff = p['BALMER_VOFF']
-        elif (balmer_options['balmer_voff_const']['bool']==True): 
-            balmer_voff = balmer_options['balmer_voff_const']['balmer_voff_val']
-        if (balmer_options['Teff_const']['bool']==False): 
-            balmer_Teff = p['BALMER_TEFF']
-        elif (balmer_options['Teff_const']['bool']==True): 
-            balmer_Teff = balmer_options['Teff_const']['Teff_val']
-        if (balmer_options['tau_const']['bool']==False): 
-            balmer_tau = p['BALMER_TAU']
-        elif (balmer_options['tau_const']['bool']==True): 
-            balmer_tau = balmer_options['tau_const']['tau_val']
-
-        balmer_cont = generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer, velscale_balmer,
-                      balmer_ratio, balmer_amp, balmer_disp, balmer_voff, balmer_Teff, balmer_tau)
-
-        host_model = (host_model) - (balmer_cont)
-        comp_dict['BALMER_CONT'] = balmer_cont
+    	comp_dict, host_model = balmer_template.add_components(p, comp_dict, host_model)
 
     ########################################################################################################
 
@@ -6198,153 +6153,6 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
 
     return fluxes, eqwidths, cont_fluxes, {**int_vel_disp, **npix_dict, **snr_dict, **fit_quality}
 
-
-
-#### UV Iron Template ##############################################################
-    
-def initialize_uv_iron(lam_gal, feii_options, disp_res, fit_mask, velscale):
-    """
-    Generate UV Iron template.
-    """
-
-    # Load the data into Pandas DataFrames
-    # df_uviron = pd.read_csv("badass_data_files/feii_templates/vestergaard-wilkes_2001/VW01_UV_B_47_191.csv") # UV B+47+191
-    df_uviron = pd.read_csv("badass_data_files/feii_templates/vestergaard-wilkes_2001/VW01_UV_B.csv") # UV B only
-
-    # Generate a new grid with the original resolution, but the size of the fitting region
-    dlam_uviron = df_uviron["angstrom"].to_numpy()[1]-df_uviron["angstrom"].to_numpy()[0] # angstroms
-    npad = 100 # anstroms
-    lam_uviron   = np.arange(np.min(lam_gal)-npad, np.max(lam_gal)+npad,dlam_uviron) # angstroms
-    # Interpolate the original template onto the new grid
-    interp_ftn_uv = interp1d(df_uviron["angstrom"].to_numpy(),df_uviron["flux"].to_numpy(),kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    spec_uviron = interp_ftn_uv(lam_uviron)
-    # log-rebin the spectrum to same velocity scale as the input galaxy
-    lamRange_uviron = [np.min(lam_uviron), np.max(lam_uviron)]
-    spec_uviron_new, loglam_uviron, velscale_uviron = log_rebin(lamRange_uviron, spec_uviron, velscale=velscale)#[0]
-    # Pre-compute FFT of templates, since they do not change (only the LOSVD and convolution changes)
-    uv_iron_fft, npad = template_rfft(spec_uviron_new)
-    # The FeII templates are offset from the input galaxy spectrum by 100 A, so we 
-    # shift the spectrum to match that of the input galaxy.
-    c = 299792.458 # speed of light in km/s
-    vsyst = np.log(lam_uviron[0]/lam_gal[0])*c
-    # We return a tuple consisting of the FFT of the broad and narrow templates, npad, and vsyst, 
-    # which are needed for the convolution.
-
-    return (uv_iron_fft, npad, vsyst)
-
-####################################################################################
-
-#### Balmer Template ###############################################################
-
-def initialize_balmer(lam_gal, balmer_options, disp_res,fit_mask, velscale):
-    # Import the template for the higher-order balmer lines (7 <= n <= 500)
-    # df = pd.read_csv("badass_data_files/balmer_template/higher_order_balmer.csv")
-    df = pd.read_csv("badass_data_files/balmer_template/higher_order_balmer_n8_500.csv")
-    # Generate a new grid with the original resolution, but the size of the fitting region
-    dlam_balmer = df["angstrom"].to_numpy()[1]-df["angstrom"].to_numpy()[0] # angstroms
-    npad = 100 # angstroms
-    lam_balmer = np.arange(np.min(lam_gal)-npad, np.max(lam_gal)+npad,dlam_balmer) # angstroms
-    # Interpolate the original template onto the new grid
-    interp_ftn_balmer = interp1d(df["angstrom"].to_numpy(),df["flux"].to_numpy(),kind='linear',bounds_error=False,fill_value=(1.e-10,1.e-10))
-    spec_high_balmer = interp_ftn_balmer(lam_balmer)
-    # Calculate the difference in instrumental dispersion between SDSS and the template
-    lamRange_balmer = [np.min(lam_balmer), np.max(lam_balmer)]
-    fwhm_balmer = 1.0
-    disp_balmer = fwhm_balmer/2.3548
-    disp_res_interp = np.interp(lam_balmer, lam_gal, disp_res)
-    disp_diff = np.sqrt((disp_res_interp**2 - disp_balmer**2).clip(0))
-    sigma = disp_diff/dlam_balmer # Sigma difference in pixels
-    # Convolve the FeII templates to the SDSS resolution
-    spec_high_balmer = gaussian_filter1d(spec_high_balmer, sigma)
-    # Log-rebin to same velocity scale as galaxy
-    spec_high_balmer_new, loglam_balmer, velscale_balmer = log_rebin(lamRange_balmer, spec_high_balmer, velscale=velscale)#[0]
-    if (np.sum(spec_high_balmer_new)>0):
-        # Normalize to 1
-        spec_high_balmer_new = spec_high_balmer_new/np.max(spec_high_balmer_new)
-    # Package the wavelength vector and template
-    balmer_template = (np.exp(loglam_balmer), spec_high_balmer_new, velscale_balmer)
-
-    return balmer_template
-
-####################################################################################
-
-
-def get_disp_res(disp_res_ftn,line_center,line_voff):
-        c = 299792.458
-        disp_res = (disp_res_ftn(line_center + 
-                      (line_voff*line_center/c))/(line_center + 
-                   (line_voff*line_center/c))*c)
-        return disp_res
-
-
-####################################################################################
-
-
-def generate_balmer_continuum(lam_gal,lam_balmer, spec_high_balmer,velscale, 
-                              balmer_ratio, balmer_amp, balmer_disp, balmer_voff, balmer_Teff, balmer_tau):
-    # We need to generate a new grid for the Balmer continuum that matches
-    # that we made for the higher-order lines
-    def blackbody(lam, balmer_Teff):
-        c = 2.99792458e+18 # speed of light [A/s]
-        h = 6.626196e-11 # Planck's constant [g*A2/s2 * s]
-        k = 1.380649 # Boltzmann Constant [g*A2/s2 1/K]
-        Blam = ((2.0*h*c**2.0)/lam**5.0)*(1.0/(np.exp((h*c)/(lam*k*balmer_Teff))-1.0))
-        return Blam
-    # Construct Balmer continuum from lam_balmer
-    lam_edge = 3646.0 # Balmer edge wavelength [A]
-    Blam = blackbody(lam_balmer, balmer_Teff) # blackbody function [erg/s]
-    cont = Blam * (1.0-1.0/np.exp(balmer_tau*(lam_balmer/lam_edge)**3.0))
-    # Normalize at 3000 Å
-    cont = cont / np.max(cont)
-    # Set Balmer continuum to zero after Balmer edge
-    cont[find_nearest(lam_balmer,lam_edge)[1]:] = 0.0
-    # Normalize higher-order lines at Balmer edge
-    # Unsure of how Calderone et al. (2017) (QSFit) did this normalization, so we added
-    # fudge factor of 1.36 to match the QSFit implementation of the Balmer continuum.
-    # spec_high_balmer = spec_high_balmer/spec_high_balmer[find_nearest(lam_balmer,lam_edge+10)[1]] * balmer_ratio #* 1.36
-    if (np.sum(spec_high_balmer)>0):
-        spec_high_balmer = spec_high_balmer/np.max(spec_high_balmer) * balmer_ratio #* 1.36
-
-    # Sum the two components
-    full_balmer = spec_high_balmer + cont
-    # Pre-compute the FFT and vsyst
-    balmer_fft, balmer_npad = template_rfft(full_balmer)
-    c = 299792.458 # speed of light in km/s
-    vsyst = np.log(lam_balmer[0]/lam_gal[0])*c
-    if balmer_disp<= 0.01: balmer_disp = 0.01
-    # Broaden the higher-order Balmer lines
-    conv_temp = convolve_gauss_hermite(balmer_fft, balmer_npad, float(velscale),\
-                                       [balmer_voff, balmer_disp], lam_gal.shape[0], 
-                                       velscale_ratio=1, sigma_diff=0, vsyst=vsyst)
-    conv_temp = conv_temp/conv_temp[find_nearest(lam_gal,lam_edge)[1]] * balmer_ratio
-    conv_temp = conv_temp.reshape(-1)
-    # Normalize the full continuum to 1
-    # norm_balmer =  conv_temp[find_nearest(lam_gal,3000.0)[1]]
-    # conv_temp = conv_temp/norm_balmer * balmer_amp
-    conv_temp = conv_temp/np.max(conv_temp) * balmer_amp
-
-    # Plot for testing purposes
-    if 0:
-        # Plot
-        fig = plt.figure(figsize=(14,5))
-        ax1 = fig.add_subplot(1,1,1)
-        ax1.set_title('Balmer Continuum')
-    #    ax1.plot(lam_balmer, cont/np.max(cont), color='xkcd:cerulean')
-    #    ax1.plot(lam_balmer, spec_high_balmer/np.max(spec_high_balmer), color='xkcd:bright red')
-        ax1.plot(lam_gal, conv_temp, color='xkcd:bright red',linewidth=0.75)
-        ax1.axvline(lam_edge,linestyle='--',color='xkcd:red',linewidth=1.0)
-        ax1.axvline(3000,linestyle='--',color='xkcd:black',linewidth=0.5)
-    
-        ax1.axhline(1.0,linestyle='--',color='xkcd:black',linewidth=0.5)
-    #    ax1.axhline(0.6,linestyle='--',color='xkcd:black',linewidth=0.5)
-        ax1.set_ylim(0.0,)
-    #    ax1.set_xlim(1000,4500)
-        fontsize = 16
-        ax1.set_xlabel(r"Wavelength ($\lambda$)",fontsize=fontsize)
-
-    return conv_temp
-
-##################################################################################
 
 #### Simple Power-Law Template ###################################################
 

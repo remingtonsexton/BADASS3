@@ -170,7 +170,8 @@ class BadassLogger:
 		# Balmer options
 		self.logger.info('\t{0:<30}{1:<30}{2:<30}'.format('balmer_options:','',''))
 		if comp_options.fit_balmer:
-			for key in ['R', 'balmer_amp', 'balmer_fwhm', 'balmer_voff', 'Teff', 'tau']:
+			balmer_options = self.ctx.options.balmer_options
+			for key in ['R', 'balmer_amp', 'balmer_disp', 'balmer_voff', 'Teff', 'tau']:
 				self.logger.info('{0:>30}{1:<2}{2:<100}'.format('%s_const'%key,':','bool: %s, %s_val: %s' % (str(balmer_options['%s_const'%key]['bool']), key, str(balmer_options['%s_const'%key]['%s_val'%key]))))
 		else:
 			self.logger.info('{0:>30}{1:<2}{2:<30}'.format('','','Balmer pseudo-continuum fitting is turned off.' )) 
@@ -201,6 +202,6 @@ class BadassLogger:
 	def update_uv_iron(self):
 		self.logger.info('\t* UV iron template outside of fitting region and disabled.')
 
-
-
+	def update_balmer(self):
+		self.logger.info('\t* Balmer continuum template outside of fitting region and disabled.')
 

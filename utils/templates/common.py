@@ -177,9 +177,9 @@ def initialize_templates(ctx):
 	from utils.templates.stellar import StellarTemplate
 	from utils.templates.optical_feii import OpticalFeIITemplate
 	from utils.templates.uv_iron import UVIronTemplate
+    from utils.templates.balmer import BalmerTemplate
 
-	for temp_class in [HostTemplate, StellarTemplate, OpticalFeIITemplate, UVIronTemplate]:
-		temp = temp_class.initialize_template(ctx)
+    for temp_class in [HostTemplate, StellarTemplate, OpticalFeIITemplate, UVIronTemplate, BalmerTemplate]:
 		if temp:
 			templates[temp_class.__name__] = temp
 
