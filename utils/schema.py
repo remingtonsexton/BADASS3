@@ -16,19 +16,12 @@ rules_set_registry.add('intfl_d0', {
                                         'default': 0.0,
                                    })
 rules_set_registry.add('line_profile', {'type':'string', 'allowed':consts.LINE_PROFILES, 'default':'gaussian'})
-rules_set_registry.add('poly_dict', {
-                                        'type': 'dict',
-                                        'default': {},
-                                        'schema': {
-                                            'bool': 'bool_false',
-                                            'order': {
-                                                'type': ['integer', 'float'],
-                                                'default': 3.0,
-                                                'min': 0.0,
-                                                'max': 99.0,
-                                            },
-                                        },
-                                    })
+rules_set_registry.add('poly_order', {
+                                        'type': ['integer', 'float'],
+                                        'default': 3.0,
+                                        'min': 0.0,
+                                        'max': 99.0,
+                                     })
 
 
 class DefaultValidator(Validator):
@@ -103,9 +96,14 @@ DEFAULT_IO_OPTIONS = {
         'type': 'string',
         'nullable': True,
     },
+    'overwrite': 'bool_false',
     'log_level': {
         'type': 'string',
         'default': 'info',
+    },
+    'err_level': {
+        'type': 'string',
+        'default': 'warning',
     },
 }
 
@@ -295,6 +293,7 @@ DEFAULT_COMP_OPTIONS = {
     'fit_losvd': 'bool_false', # stellar LOSVD
     'fit_host': 'bool_true', # host template
     'fit_power': 'bool_true', # AGN power-law
+    'fit_poly': 'bool_false', # Add polynomial continuum component
     'fit_narrow': 'bool_true', # narrow lines
     'fit_broad': 'bool_true', # broad lines
     'fit_outflow': 'bool_true', # outflow lines
@@ -317,7 +316,7 @@ DEFAULT_COMP_OPTIONS = {
 
 # pca_options
 DEFAULT_PCA_OPTIONS = {
-    'do_pcs': 'bool_false',
+    'do_pca': 'bool_false',
     'n_components': {
         'type': 'integer',
         'nullable': True,
@@ -403,9 +402,30 @@ DEFAULT_LOSVD_OPTIONS = {
 
 # poly_options
 DEFAULT_POLY_OPTIONS = {
-    'ppoly': 'poly_dict',
-    'apoly': 'poly_dict',
-    'mpoly': 'poly_dict',
+    'ppoly': {
+        'type': 'dict',
+        'default': {},
+        'schema': {
+            'bool': 'bool_false',
+            'order': 'poly_order',
+        },
+    },
+    'apoly': {
+        'type': 'dict',
+        'default': {},
+        'schema': {
+            'bool': 'bool_false',
+            'order': 'poly_order',
+        },
+    },
+    'mpoly': {
+        'type': 'dict',
+        'default': {},
+        'schema': {
+            'bool': 'bool_false',
+            'order': 'poly_order',
+        },
+    },
 }
 
 

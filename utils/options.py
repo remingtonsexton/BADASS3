@@ -3,7 +3,6 @@ import json
 import pathlib
 import prodict
 
-import utils.constants as consts
 from utils.schema import DefaultValidator, DEFAULT_OPTIONS_SCHEMA
 
 
