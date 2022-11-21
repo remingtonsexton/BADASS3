@@ -137,12 +137,12 @@ class StellarTemplate(BadassTemplate):
 
 
 	def add_components(self, params, comp_dict, host_model):
-		losvd_options = self.ctx.options.losvd_options
 		if not self.pre_convolve:
-			stel_vel = losvd_options.vel_const.val if losvd_options.vel_const.bool \
-					   else params['STEL_VEL']
-			stel_disp = losvd_options.disp_const.val if losvd_options.disp_const.bool \
-						else params['STEL_DISP']
+			losvd_options = self.ctx.options.losvd_options
+			val = lambda ok, ov, pk : losvd_options[ok][ov] if losvd_options[ok].bool else params[pk]
+
+			stel_val = val('vel_const', 'val', 'STEL_VEL')
+			stel_disp = val('disp_const', 'val', 'STEL_DISP')
 
 			self.conv_temp = convolve_gauss_hermite(self.temp_fft, self.npad, float(self.ctx.velscale), \
 						   [stel_vel, stel_disp], np.shape(self.ctx.wave)[0], vsyst=self.vsyst)
@@ -154,18 +154,7 @@ class StellarTemplate(BadassTemplate):
 		weights	 = nnls(self.conv_temp, host_model)
 		host_galaxy = (np.sum(weights*self.conv_temp, axis=1))
 
-		if (losvd_options.losvd_apoly.bool) and (losvd_options.losvd_apoly.order >= 1):
-			nw = np.linspace(-1,1,len(self.ctx.wave))
-			coeff = np.empty(losvd_options.losvd_apoly.order+1)
-			for n in range(losvd_options.losvd_apoly.order+1):
-				coeff[n] = params['LOSVD_LCOEFF_%d' % n]
-			lpoly = np.polynomial.legendre.legval(nw, coeff)
-			host_galaxy += lpoly 
-
-			if np.any(host_galaxy < 0):
-				host_galaxy += -np.min(host_galaxy)
-
-		host_model = (host_model) - (host_galaxy) # Subtract off continuum from galaxy, since we only want template weights to be fit
 		comp_dict['HOST_GALAXY'] = host_galaxy
+		host_model -= host_galaxy # Subtract off continuum from galaxy, since we only want template weights to be fit
 		return comp_dict, host_model
 

@@ -54,7 +54,7 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 			 for each template (6 free parameters)
 	"""
 
-	TEMP_LAM_RANGE = [3400.0, 7200.0]
+	TEMP_LAM_RANGE = [3400.0, 7200.0] # Angstrom
 
 	vc04_data_dir = consts.BADASS_DATA_DIR.joinpath('feii_templates', 'veron-cetty_2004')
 	br_path = vc04_data_dir.joinpath('VC04_br_feii_template.csv')
@@ -131,28 +131,15 @@ class VC04_OpticalFeIITemplate(OpticalFeIITemplate):
 	def add_components(self, params, comp_dict, host_model):
 
 		opt_feii_options = self.ctx.options.opt_feii_options
+		val = lambda ok, ov, pk : opt_feii_options[ok][ov] if opt_feii_options[ok].bool else params[pk]
 
 		# TODO: would this option ever change? ie. if amp, etc. are const, just set in init
-		if opt_feii_options.opt_amp_const.bool:
-			br_opt_feii_amp = opt_feii_options.opt_amp_const.br_opt_feii_val
-			na_opt_feii_amp = opt_feii_options.opt_amp_const.na_opt_feii_val
-		else:
-			br_opt_feii_amp = params['BR_OPT_FEII_AMP']
-			na_opt_feii_amp = params['NA_OPT_FEII_AMP']
-
-		if opt_feii_options.opt_disp_const.bool:
-			br_opt_feii_disp = opt_feii_options.opt_disp_const.br_opt_feii_val
-			na_opt_feii_disp = opt_feii_options.opt_disp_const.na_opt_feii_val
-		else:
-			br_opt_feii_disp = params['BR_OPT_FEII_DISP']
-			na_opt_feii_disp = params['NA_OPT_FEII_DISP']
-
-		if opt_feii_options.opt_voff_const.bool:
-			br_opt_feii_voff = opt_feii_options.opt_voff_const.br_opt_feii_val
-			na_opt_feii_voff = opt_feii_options.opt_voff_const.na_opt_feii_val
-		else:
-			br_opt_feii_voff = params['BR_OPT_FEII_VOFF']
-			na_opt_feii_voff = params['NA_OPT_FEII_VOFF']
+		br_opt_feii_amp = val('opt_amp_const', 'br_opt_feii_val', 'BR_OPT_FEII_AMP')
+		na_opt_feii_amp = val('opt_amp_const', 'na_opt_feii_val', 'NA_OPT_FEII_AMP')
+		br_opt_feii_disp = val('opt_disp_const', 'br_opt_feii_val', 'BR_OPT_FEII_DISP')
+		na_opt_feii_disp = val('opt_disp_const', 'na_opt_feii_val', 'NA_OPT_FEII_DISP')
+		br_opt_feii_voff = val('opt_voff_const', 'br_opt_feii_val', 'BR_OPT_FEII_VOFF')
+		na_opt_feii_voff = val('opt_voff_const', 'na_opt_feii_val', 'NA_OPT_FEII_VOFF')
 
 		if not self.pre_convolve:
 			self.br_conv_temp = self.convolve(self.br_opt_feii_fft, br_opt_feii_voff, br_opt_feii_disp)
@@ -346,14 +333,11 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 		for trans in self.transitions.values():
 			trans.feii_amp = opt_feii_options.opt_amp_const[trans.name.lower()+'_feii_val'] if amp_const else params['OPT_FEII_%s_AMP'%trans.name]
 
+		val = lambda ok, ov, pk : opt_feii_options[ok][ov] if opt_feii_options[ok].bool else params[pk]
 
-		opt_feii_fwhm = opt_feii_options.opt_fwhm_const.opt_feii_val if opt_feii_options.opt_fwhm_const.bool \
-						else params['OPT_FEII_FWHM']
-		opt_feii_voff = opt_feii_options.opt_voff_const.opt_feii_val if opt_feii_options.opt_voff_const.bool \
-						else params['OPT_FEII_VOFF']
-		opt_feii_temp = opt_feii_options.opt_temp_const.opt_feii_val if opt_feii_options.opt_temp_const.bool \
-						else params['OPT_FEII_TEMP']
-
+		opt_feii_disp = val('opt_disp_const', 'opt_feii_val', 'OPT_FEII_DISP')
+		opt_feii_voff = val('opt_voff_const', 'opt_feii_val', 'OPT_FEII_VOFF')
+		opt_feii_temp = val('opt_temp_const', 'opt_feii_val', 'OPT_FEII_TEMP')
 
 		for trans in self.transitions.values():
 			if not self.pre_convolve:
@@ -380,8 +364,8 @@ class K10_OpticalFeIITemplate(OpticalFeIITemplate):
 			# TODO: should this be an '|'?
 			trans.template[(self.ctx.wave < trans.range_min) & (self.ctx.wave > trans.range_max)] = 0
 
-			host_model -= trans.template
 			comp_dict[trans.name+'_OPT_FEII_TEMPLATE'] = trans.template
+			host_model -= trans.template
 
 		return comp_dict, host_model
 

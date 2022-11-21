@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 import utils.constants as consts
-from utils.templates.common import BadassTemplate, template_rfft
+from utils.templates.common import BadassTemplate, template_rfft, convolve_gauss_hermite
 from utils.utils import log_rebin
 
 UV_IRON_TEMP_WAVE_MIN = 1074.0
@@ -22,7 +22,7 @@ class UVIronTemplate(BadassTemplate):
 
         if (ctx.wave[0] > UV_IRON_TEMP_WAVE_MAX) or (ctx.wave[-1] < UV_IRON_TEMP_WAVE_MIN):
             ctx.options.comp_options.fit_uv_iron = False
-            ctx.warn('UV Iron template disabled because template is outside of fitting region.')
+            ctx.log.warning('UV Iron template disabled because template is outside of fitting region.')
             ctx.log.update_uv_iron()
             return None
 
@@ -73,23 +73,12 @@ class UVIronTemplate(BadassTemplate):
     def add_components(self, params, comp_dict, host_model):
 
         uv_iron_options = self.ctx.options.uv_iron_options
+        val = lambda ok, ov, pk : uv_iron_options[ok][ov] if uv_iron_options[ok].bool else params[pk]
 
         # TODO: would this option ever change? ie. if amp, etc. are const, just set in init
-        if uv_iron_options.uv_amp_const.bool:
-            uv_iron_amp = uv_iron_options.uv_amp_const.uv_iron_val
-        else:
-            uv_iron_amp = params['UV_IRON_AMP']
-
-        if uv_iron_options.uv_disp_const.bool:
-            uv_iron_disp = uv_iron_options.uv_disp_const.uv_iron_val
-        else:
-            uv_iron_disp = params['UV_IRON_DISP']
-        if uv_iron_disp <= UV_IRON_DISP_MIN: uv_iron_disp = UV_IRON_DISP_MIN
-
-        if uv_iron_options.uv_voff_const.bool:
-            uv_iron_voff = uv_iron_options.uv_voff_const.uv_iron_val
-        else:
-            uv_iron_voff = params['UV_IRON_VOFF']
+        uv_iron_amp = val('uv_amp_const', 'uv_iron_val', 'UV_IRON_AMP')
+        uv_iron_disp = val('uv_disp_const', 'uv_iron_val', 'UV_IRON_DISP')
+        uv_iron_voff = val('uv_voff_const', 'uv_iron_val', 'UV_IRON_VOFF')
 
         conv_temp = self.convolve(uv_iron_voff, uv_iron_disp)
 

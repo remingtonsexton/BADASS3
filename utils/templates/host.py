@@ -100,10 +100,11 @@ class HostTemplate(BadassTemplate):
 	def add_components(self, params, comp_dict, host_model):
 		if not self.pre_convolve:
 			host_options = self.ctx.options.host_options
-			host_vel = host_options.vel_const.val if host_options.vel_const.bool \
-					   else params['HOST_TEMP_VEL']
-			host_disp = host_options.disp_const.val if host_options.disp_const.bool \
-					    else params['HOST_TEMP_DISP']
+			val = lambda ok, ov, pk : host_options[ok][ov] if host_options[ok].bool else params[pk]
+
+			host_vel = val('vel_const', 'val', 'HOST_TEMP_VEL')
+			host_disp = val('disp_const', 'val', 'HOST_TEMP_DISP')
+
 			self.conv_host = convolve_gauss_hermite(self.ssp_fft, self.npad, float(self.ctx.velscale), \
 						   [host_vel, host_disp], np.shape(self.ctx.wave)[0], vsyst=self.vsyst)
 
@@ -120,9 +121,6 @@ class HostTemplate(BadassTemplate):
 
 		comp_dict['HOST_GALAXY'] = host_galaxy
 		# Subtract off continuum from galaxy, since we only want template weights to be fit
-		host_model = (host_model) - (host_galaxy)
+		host_model -= host_galaxy
 		return comp_dict, host_model
-
-
-
 
