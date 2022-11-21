@@ -54,6 +54,10 @@ import badass_tools.gh_alternative as gh_alt # Gauss-Hermite alternative line pr
 from sklearn.decomposition import PCA
 from astroML.datasets import sdss_corrected_spectra # SDSS templates for PCA analysis
 
+import ssl
+# Needed to work around ssl certificate verification
+ssl._create_default_https_context = ssl._create_unverified_context
+
 plt.style.use('dark_background') # For cool tron-style dark plots
 import matplotlib
 matplotlib.rcParams['agg.path.chunksize'] = 100000
@@ -388,16 +392,16 @@ class BadassContext(mp.Process):
         burn_in             = self.options.mcmc_options.burn_in
         min_iter            = self.options.mcmc_options.min_iter
         max_iter            = self.options.mcmc_options.max_iter
-        do_pca              = self.pca_options.do_pca
-        n_components        = self.pca_options.n_components
-        pca_masks           = self.pca_options.pca_masks
+        do_pca              = self.options.pca_options.do_pca
+        n_components        = self.options.pca_options.n_components
+        pca_masks           = self.options.pca_options.pca_masks
         fit_opt_feii        = self.options.comp_options.fit_opt_feii
         fit_uv_iron         = self.options.comp_options.fit_uv_iron
         fit_balmer          = self.options.comp_options.fit_balmer
         fit_losvd           = self.options.comp_options.fit_losvd
         fit_host            = self.options.comp_options.fit_host
         fit_power           = self.options.comp_options.fit_power
-        fit_poly            = self.comp_options.fit_poly
+        fit_poly            = self.options.comp_options.fit_poly
         fit_narrow          = self.options.comp_options.fit_narrow
         fit_broad           = self.options.comp_options.fit_broad
         fit_outflow         = self.options.comp_options.fit_outflow
@@ -409,7 +413,8 @@ class BadassContext(mp.Process):
         plot_flux_hist      = self.options.plot_options.plot_flux_hist
         plot_lum_hist       = self.options.plot_options.plot_lum_hist
         plot_eqwidth_hist   = self.options.plot_options.plot_eqwidth_hist
-        poly_options = self.poly_options
+        plot_pca 			= self.options.plot_options.plot_pca
+        poly_options = self.options.poly_options
         write_chain = self.options.output_options.write_chain
         plot_HTML = self.options.plot_options.plot_HTML
         sdss_spec = True
@@ -4133,13 +4138,13 @@ def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=70.0, Om0=0.30):
             clum_dict["L_CONT_HOST_5100"] = lum
         # Host and AGN fractions
         if (c=="HOST_FRAC_4000"):
-            clum_dict["HOST_FRAC_4000"] =  host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+            clum_dict["HOST_FRAC_4000"] =  host_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
         if (c=="AGN_FRAC_4000"):
-            clum_dict["AGN_FRAC_4000"] = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+            clum_dict["AGN_FRAC_4000"] = agn_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
         if (c=="HOST_FRAC_7000"):
-            clum_dict["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+            clum_dict["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
         if (c=="AGN_FRAC_7000"):
-            clum_dict["AGN_FRAC_7000"] = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+            clum_dict["AGN_FRAC_7000"] = agn_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
 
     return clum_dict
 
@@ -6136,11 +6141,11 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
         cont_fluxes["F_CONT_AGN_5100"]  = agn_cont[blob_pars["INDEX_5100"]]
         cont_fluxes["F_CONT_HOST_5100"] = host_cont[blob_pars["INDEX_5100"]]
     if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
-        cont_fluxes["HOST_FRAC_4000"] = host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
-        cont_fluxes["AGN_FRAC_4000"]  = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+        cont_fluxes["HOST_FRAC_4000"] = host_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
+        cont_fluxes["AGN_FRAC_4000"]  = agn_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
     if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
-        cont_fluxes["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
-        cont_fluxes["AGN_FRAC_7000"]  = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+        cont_fluxes["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
+        cont_fluxes["AGN_FRAC_7000"]  = agn_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
     #       
 
     # compute a total chi-squared and r-squared
