@@ -3688,11 +3688,11 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
         if (comp_options["fit_outflow"]==True) or ("out" in [line_list[line]["line_type"] for line in line_list]):
             line_par_input["OUT_DISP"] = {"init": 450.0, 
                                          "plim":(0.1,2500.0)}
-            if (comp_options["abs_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
+            if (comp_options["out_line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2):
                 for m in range(3,3+(comp_options["n_moments"]-2),1):
-                    line_par_input["ABS_H"+str(m)] = {"init": 0.0, 
+                    line_par_input["OUT_H"+str(m)] = {"init": 0.0, 
                                                       "plim":(-0.5,0.5)}
-            if comp_options["abs_line_profile"]=="voigt":
+            if comp_options["out_line_profile"]=="voigt":
                 line_par_input["OUT_SHAPE"] = {"init": 0.0, 
                                               "plim":(0.0,1.0)}
             if (comp_options["out_line_profile"] in ["laplace","uniform"]):
@@ -5151,13 +5151,13 @@ def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=70.0, Om0=0.30):
             clum_dict["L_CONT_HOST_5100"] = lum
         # Host and AGN fractions
         if (c=="HOST_FRAC_4000"):
-            clum_dict["HOST_FRAC_4000"] =  host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+            clum_dict["HOST_FRAC_4000"] =  host_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
         if (c=="AGN_FRAC_4000"):
-            clum_dict["AGN_FRAC_4000"] = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+            clum_dict["AGN_FRAC_4000"] = agn_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
         if (c=="HOST_FRAC_7000"):
-            clum_dict["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+            clum_dict["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
         if (c=="AGN_FRAC_7000"):
-            clum_dict["AGN_FRAC_7000"] = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+            clum_dict["AGN_FRAC_7000"] = agn_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
 
     return clum_dict
 
@@ -7313,11 +7313,11 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
         cont_fluxes["F_CONT_AGN_5100"]  = agn_cont[blob_pars["INDEX_5100"]]
         cont_fluxes["F_CONT_HOST_5100"] = host_cont[blob_pars["INDEX_5100"]]
     if (lam_gal[0]<4000) & (lam_gal[-1]>4000):
-        cont_fluxes["HOST_FRAC_4000"] = host_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
-        cont_fluxes["AGN_FRAC_4000"]  = agn_cont[blob_pars["INDEX_4000"]]/tot_cont[blob_pars["INDEX_4000"]]
+        cont_fluxes["HOST_FRAC_4000"] = host_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
+        cont_fluxes["AGN_FRAC_4000"]  = agn_cont[blob_pars["INDEX_4000"]]/total_cont[blob_pars["INDEX_4000"]]
     if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
-        cont_fluxes["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
-        cont_fluxes["AGN_FRAC_7000"]  = agn_cont[blob_pars["INDEX_7000"]]/tot_cont[blob_pars["INDEX_7000"]]
+        cont_fluxes["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
+        cont_fluxes["AGN_FRAC_7000"]  = agn_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
     #       
 
     # compute a total chi-squared and r-squared
