@@ -44,5 +44,5 @@ class SDSSSpec(BadassInput):
             frac = self.wave[1]/self.wave[0] # Constant lambda fraction per pixel
             dlam_gal = (frac - 1)*self.wave # Size of every pixel in Angstrom
             wdisp = t['wdisp'] # Intrinsic dispersion of every pixel, in pixels units
-            self.disp_res = 2.355*wdisp*dlam_gal # Resolution FWHM of every pixel, in angstroms
+            self.disp_res = wdisp*dlam_gal # Resolution dispersion of every pixel, in angstroms
             self.velscale = np.log(frac) * consts.c
