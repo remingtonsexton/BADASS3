@@ -4242,6 +4242,12 @@ def line_test(param_dict,
     line_test_dir.mkdir(parents=True,exist_ok=True)
     
     
+    
+    #Make copy of par_dict to trim it. DON'T ACTUALLY NEED THIS
+    #trimmed_param_dict = {k:v for k,v in param_dict.items() if '_'.join(k.split('_')[:-1]) not in remove_lines}
+    #original_param_dict = copy.deepcopy(param_dict)
+    #print(f"{original_param_dict = }")
+    #sys.exit('debug')
     # Make copy of original line list, since initialize_pars() will override it.
     original_line_list = copy.deepcopy(line_list)
     #trimmed_line_list = {k:v for k,v in original_line_list.items() if k not in remove_lines}  # add tested lines back to this list one at a time for the testing  
@@ -4250,6 +4256,8 @@ def line_test(param_dict,
     
     #make copy of soft cons
     original_soft_cons = copy.deepcopy(soft_cons)
+    
+    original_param_dict = copy.deepcopy(param_dict)
     
     param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                              comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
@@ -4371,10 +4379,6 @@ def line_test(param_dict,
         #                                                                           max_like_niter=max_like_niter,
         #                                                                           verbose=verbose)
 
-
-
-
-
         # Initialize the simplest fit parameters at the best fit values found above for the model WITH the line; these fit values should still be the best fit values even in the presence of the new line
         # Saves a bit of fitting time (?) and dissuades the tested component (usually an outflow) from potentially overshadowing the main (narrow) component 
         
@@ -4382,10 +4386,6 @@ def line_test(param_dict,
             if key in [p for p in mcpars_no_line]:
                 # print(key)
                 param_dict[key]["init"] = mcpars_no_line[key]["med"]
-
-
-
-
 
         #print([x for x in remove_lines if x != line], 'with line remove list')
         #param_dict_line, line_list_line, combined_line_list_line, soft_cons_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
@@ -4405,9 +4405,34 @@ def line_test(param_dict,
                 param_dict_line[f"{key}"] = param_dict[f"{key}"]
         line_list_line[f"{line}"] = original_line_list[f"{line}"]
         
-        combined_line_list_line = generate_comb_line_list(combined_lines, line_list_line)
         
-        # Check line component options for 
+        # Check line component options 
+        
+        # if anything in line list depends on currently tested line (e.g. testing for OIII 5007 outflow, OIII 4960 usually tied to this),
+        # then we want to remove that line from the testing 
+        
+        line_test_remove = []
+        
+        # need to use the copy here because dict can change size with iterations -> can throw runtime error if no copy
+        for keys,vals in line_list_line.copy().items():
+            for key,val in vals.items():
+                if (val == 'free') and (original_line_list[keys][key] != 'free') and (line in str(original_line_list[keys][key])) :
+                    line_list_line[keys][key] = original_line_list[keys][key]
+                    pop = line_list_line.pop(keys)
+                    print(f"Line {key} depends on current test line {line}, removing {pop}")
+                    line_test_remove.append(keys)
+                    break                    
+                elif line in str(original_line_list[keys][key]):
+                    pop = line_list_line.pop(keys)
+                    print(f"Line {key} depends on current test line {line}, removing {pop}")
+                    line_test_remove.append(keys)
+                    break
+        
+        for ltr in line_test_remove:
+            for param,vals in param_dict_line.copy().items():
+                if ltr in param:
+                     pop = param_dict_line.pop(param)
+        
         line_list_line = check_line_comp_options(lam_gal,line_list_line,comp_options,edge_pad=10.0,verbose=verbose) # edge pad 10.0 taken from the initialize_pars function's value
         # Add the FWHM resolution and central pixel locations for each line so we don't have to 
         # find them during the fit.
@@ -4420,16 +4445,15 @@ def line_test(param_dict,
         #print({**param_dict_line, **line_list_line}, 'soft_cons_input_debug')
         soft_cons_line = check_soft_cons(original_soft_cons,{**param_dict_line, **line_par_input})
 
+        combined_line_list_line = generate_comb_line_list(combined_lines, line_list_line)
+        
         # Perform fitting with line
         
-        print('--------------------------------------')
-        
-        print(f"{line_list_line = }\n")
-        print(f"{line_par_input = }\n")
-        print(f"{soft_cons_line = }\n")
+        #print('--------------------------------------')
         
         if verbose:
             print('\n Fitting complex model with %s...\n' % line)
+            
         mcpars_line, mccomps_line, mcLL_line = max_likelihood(param_dict_line,
                                                               line_list_line,
                                                               combined_line_list_line,
@@ -4766,7 +4790,7 @@ def line_test(param_dict,
                 
             final_line_list[f"{test_line}"] = original_line_list[f"{test_line}"]
             for key in param_dict.keys():
-                final_param_dict[f"{key}"] = param_dict[f"{key}"]
+                final_param_dict[f"{key}"] = original_param_dict[f"{key}"]
         else:
             final_remove_line.append(test_line)
             if verbose:
@@ -4798,25 +4822,31 @@ def line_test(param_dict,
     
     # For all lines that are not  used, add them into the line list and set them (amp, disp, and vel at least) to zero. 
     # This will keep the output uniform for a given set of input parameters, and is needed when fitting IFU cubes 
+    # Avoid setting to exactly zero (or too small of a number...) to prevent ll from blowing up 
     
     for key,vals in original_line_list.items():
         if key not in final_line_list.keys() and key in final_remove_line:
-            d = {k:{kk:0 if kk in ['amp','disp','voff'] else vv for kk,vv in original_line_list[key].items()} for k in [key]}
-            final_line_list.update(d)
+            d_line = {k:{kk:0 if kk in ['amp','disp','voff'] else vv for kk,vv in original_line_list[key].items()} for k in [key]}
+            final_line_list.update(d_line)
             
         if (key not in list(('_'.join(x.split('_')[:3]) for x in final_param_dict.keys())) ) and (key in final_remove_line):
-            d_amp = {key + '_AMP':{'init':0,'plim':(0,1E-10)}}
-            d_disp = {key + '_DISP':{'init':0,'plim':(0,1E-10)}}
-            d_voff = {key + '_VOFF':{'init':0,'plim':(0,1E-10)}}
-            d_shape = {key + '_SHAPE':{'init':0,'plim':(0,1E-10)}} # need for lines that have a voigt profile
+            d_amp = {key + '_AMP':{'init':1E-4,'plim':(0,1E-3)}}
+            d_disp = {key + '_DISP':{'init':1E-4,'plim':(0,1E-3)}}
+            d_voff = {key + '_VOFF':{'init':1E-4,'plim':(0,1E-3)}}
+            d_shape = {key + '_SHAPE':{'init':0,'plim':(0,1)}} # need for lines that have a voigt profile
             
             final_param_dict.update(d_amp)
             final_param_dict.update(d_disp)
             final_param_dict.update(d_voff)
             final_param_dict.update(d_shape)
             
-            
-            
+    # also re-instate hard cons that may have been removed (converted to free param) during line testing, if applicable 
+    # assume that if it's a free parameter now and it wasn't free in the original line list, then it should be converted to whatever it was in the original line list
+    for keys,vals in final_line_list.items():
+        for key,val in vals.items():
+            if val == 'free' and original_line_list[keys][key] != 'free':
+                final_line_list[keys][key] = original_line_list[keys][key]    
+        
     
     # do one final initialization pass
     
@@ -4829,21 +4859,32 @@ def line_test(param_dict,
     final_line_list, final_par_input = check_hard_cons(lam_gal,galaxy,comp_options,final_line_list,final_par_input,final_param_dict,verbose=verbose)
     
     final_soft_cons = check_soft_cons(original_soft_cons, {**final_param_dict, **final_par_input})
-    
     final_combined_line_list = generate_comb_line_list(combined_lines, final_line_list)
 
     # do final pass through of soft cons and combined line list to purge lines in remove_lines. This is necessary else bad soft constraints get passed that can produce bad fits
     for line in final_remove_line:
         final_soft_cons = [tuple(x) for x in final_soft_cons if line not in ['_'.join(x[i].split('_')[:3]) for i in range(len(x))]]
-        final_combined_line_list =  {kk:vv for kk,vv in final_combined_line_list.items() if line not in vv['lines']}
         #final_combined_line_list = {kk:vv for kk,vv in final_combined_line_list.items() if line not in ['_'.join(list(vv['lines'][0].split('_')[:3])) for x in list(final_combined_line_list.values()) for i in range(len(x['lines']))] } # that's a chunky 1-liner
-    
-    print(f"{final_soft_cons = }")
-    sys.exit('debug exit')
+        final_combined_line_list = {kk:vv for kk,vv in final_combined_line_list.items() if line not in ['_'.join(list(vv['lines'][0].split('_')[:3])) for x in list(final_combined_line_list.values()) for i in range(len(x['lines']))] } # that's a chunky 1-liner
+
     
     stat_df = pd.DataFrame(final_line_stats, columns = ['Line','AB_conf','F_conf','Chi2_ratio', 'SSR_ratio', 'Included'])
     t = Table.from_pandas(stat_df)
     t.write(os.path.join(line_test_dir, 'line_test_results.fits'), overwrite=True, format='fits')
+    
+    
+    #print()
+    #print(f"{original_soft_cons = }\n")
+    #print(f"{original_line_list.keys() = }\n\n")
+    #print(f"{original_line_list = }\n\n")
+    #print(f"{original_param_dict.keys() = }\n\n")
+    #print(f"{original_param_dict = }\n\n")
+    #print('---------------')
+    #print(f"{final_soft_cons = }\n")
+    #print(f"{final_line_list.keys() = }\n\n")
+    #print(f"{final_line_list = }\n\n")
+    #print(f"{final_param_dict.keys() = }\n\n")
+    #print(f"{final_param_dict = }\n\n")
     
     return final_param_dict,final_line_list,final_combined_line_list,final_soft_cons
 
@@ -6253,7 +6294,7 @@ def max_like_add_tied_parameters(pdict,line_list):
         for par in line_list[line]:
             # need to add the float,int check when forcing params to zero, otherwise expr_vars complains it can't eval a float (even if I set the zero as a string...)
             # For some reason, & doesn't work when I write the statements like this, so I swapped to 'and'
-            if (line_list[line][par]!="free") and not isinstance(line_list[line][par], (float,int)) and (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
+            if (line_list[line][par]!="free") and not isFloat(line_list[line][par]) and (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
                 #print(f"{line = } {par = } {line_list[line][par] = }")
                 expr = line_list[line][par] # expression to evaluate
                 expr_vars = [i for i in param_names if i in list(expr)]
@@ -6268,6 +6309,9 @@ def max_like_add_tied_parameters(pdict,line_list):
     return pdict
 
 def isFloat(num):
+    '''
+    Needed to check if str can be parsed as a float; isinstance can't immediately check this.
+    '''
     try:
         float(num)
         return True
@@ -6301,7 +6345,7 @@ def add_tied_parameters(pdict,line_list):
 
     for line in line_list:
         for par in line_list[line]:
-            if (line_list[line][par]!="free") and not isinstance(line_list[line][par], (float,int)) and (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
+            if (line_list[line][par]!="free") and not isFloat(line_list[line][par]) and (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]):
                 expr = line_list[line][par] # expression to evaluate
                 expr_vars = [i for i in param_names if i in expr]
                 init	 = pdict[expr_vars[0]]["init"]

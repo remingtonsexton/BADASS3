@@ -58,7 +58,7 @@ print(spec_loc)
 # In[4]:
 
 
-nobj = -2# Object in the spec_loc list
+nobj = 3# Object in the spec_loc list
 file = glob.glob(spec_loc[nobj]+'/*.fits')[0] # Get name of FITS spectra file
 
 print(f"Fitting {file = } with {options_file = }\n")

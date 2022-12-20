@@ -41,7 +41,7 @@ fit_options={
 "mask_bad_pix": False,                                # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False,                                # mask emission lines for continuum fitting.
 "interp_metal": False,                                # interpolate over metal absorption lines for high-z spectra
-"n_basinhop": 15,                                     # Number of consecutive basinhopping thresholds before solution achieved
+"n_basinhop": 5,                                     # Number of consecutive basinhopping thresholds before solution achieved
 "test_line": {"bool": True,                           # boolean of whether or not to test lines
               "line":["OUT_OIII_5007","BR_H_BETA"],   # list of lines to test
               "cont_fit":True,                        # If True, continues with initial SciPy fit to obtain a fit with all detected lines in the test, with detection criteria specified below. If false, just outputs line test results
@@ -51,7 +51,7 @@ fit_options={
               "ssr_ratio":None,                       # minimum sum square ratio for line detection (e.g. 3), int, float or None. Default is None
               "linetest_mask":"or"},                  # If using multiple tests, can choose a detection to pass ALL criteria ("and") or just one criterion ("or"). Case INsensitive. Works as expected if only use one test. Default is or.  
 "mask_metal": False,
-"max_like_niter": 10,                                 # number of maximum likelihood iterations
+"max_like_niter": 5,                                 # number of maximum likelihood iterations
 "output_pars": False,                                 # only output free parameters of fit and stop code (diagnostic)
 "fit_stat": "ML"
 }
@@ -249,6 +249,7 @@ plot_options={
 "plot_lum_hist"      : False,    # Plot MCMC hist. and chains for component luminosities
 "plot_eqwidth_hist"  : False,    # Plot MCMC hist. and chains for equivalent widths 
 "plot_HTML"          : False,    # make interactive plotly HTML best-fit plot
+"plot_pca"           : False,
 }
 ################################################################################
 

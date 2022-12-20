@@ -1601,7 +1601,7 @@ def check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,verbose=False):
 	else: 
 		raise TypeError("\n Required user-input error spectrum must be a list or array the same size as the input spectrum.\n")
 
-	if (fwhm_res is not None) and (isinstance(fwhm_res,(list,np.ndarray,int,float))) and (fwhm_res>=0):
+	if (fwhm_res is not None) and (isinstance(fwhm_res,(list,np.ndarray,int,float))) and (np.all(fwhm_res>=0)):
 		pass
 	elif (fwhm_res is None):
 		fwhm_res = 0.0 # Assume the user does not want to correct for instrumental dispersion

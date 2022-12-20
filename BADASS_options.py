@@ -1,14 +1,14 @@
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={
-"fit_reg"    : (4400,5350),                           # Fitting region; Note: Indo-US Library=(3460,9464)
+"fit_reg"    : (4600,5350),                           # Fitting region; Note: Indo-US Library=(3460,9464)
 "good_thresh":  0.0,                                  # percentage of "good" pixels required in fig_reg for fit.
 "mask_bad_pix": False,                                # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False,                                # mask emission lines for continuum fitting.
 "interp_metal": False,                                # interpolate over metal absorption lines for high-z spectra
 "n_basinhop": 5,                                      # Number of consecutive basinhopping thresholds before solution achieved
 "test_line": {"bool": True,                           # boolean of whether or not to test lines
-              "line":["OUT_OIII_5007"],#,"BR_H_BETA"],   # list of lines to test
+              "line":["OUT_OIII_5007","BR_H_BETA"],   # list of lines to test
               "cont_fit":True,                        # If True, continues fitting after line test. Will do a (initial) fit with all lines that passed the line test. If false, just outputs line test results
               "conf":0.9,                             # Bayesian A/B test confidence threshold that line is present. Minimum percentage (e.g. 0.9) for detection, or None to not do this test. At least one test must not be None. Default is None.
               "f_conf":0.95,                          # F-test confidence percentage (e.g. 0.9) or None. Default is 0.9
@@ -24,7 +24,7 @@ fit_options={
 
 ########################### MCMC algorithm parameters ##########################
 mcmc_options={
-"mcmc_fit"    : False,    # Perform robust fitting using emcee
+"mcmc_fit"    : True,    # Perform robust fitting using emcee
 "nwalkers"    : 80,       # Number of emcee walkers; min = 2 x N_parameters
 "auto_stop"   : True,     # Automatic stop using autocorrelation analysis
 "conv_type"   : "all",    # "median", "mean", "all", or (tuple) of parameters
@@ -67,9 +67,9 @@ comp_options={
 ################################################################################
 user_lines = {
     # NArrow lines:
-    "NA_HeI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
-    "NA_HeII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
-    "NA_H_BETA"    :{"center":4862.691, "amp":"free", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF", "h3":"NA_OIII_5007_h3", "h4":"NA_OIII_5007_h4", "shape":"NA_OIII_5007_shape", "line_type":"na","label":r"H$\beta$"},
+    #"NA_HeI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
+    #"NA_HeII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
+    "NA_H_BETA"    :{"center":4862.691, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"H$\beta$"},
     #"NA_FeVII_4893":{"center":4893.370, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VII]"},
     "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF", "h3":"NA_OIII_5007_h3", "h4":"NA_OIII_5007_h4", "shape":"NA_OIII_5007_shape", "line_type":"na","label":r"[O III]"},
     "NA_OIII_5007" :{"center":5008.240, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[O III]"},
@@ -92,8 +92,8 @@ user_constraints = [
 ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
 #("NA_OIII_5007_AMP", "OUT_OIII_5007_AMP"),
 #("_OIII_5007_VOFF","OUT_OIII_5007_VOFF"), # careful, voff is negative!
-#("BR_H_BETA_DISP","OUT_H_BETA_DISP"),
-#("BR_H_BETA_DISP","NA_OIII_5007_DISP")
+#w("BR_H_BETA_DISP","OUT_H_BETA_DISP"),
+("BR_H_BETA_DISP","NA_OIII_5007_DISP")
 
 ]
 
@@ -102,7 +102,7 @@ user_constraints = [
 combined_lines = {
     "OIII_5007_COMP":["NA_OIII_5007", "OUT_OIII_5007"],
     "OIII_4960_COMP":["NA_OIII_4960", "OUT_OIII_4960"],
-#    "H_BETA_COMP"   :["NA_H_BETA","OUT_H_BETA"]
+    "H_BETA_COMP"   :["NA_H_BETA","BR_H_BETA"]
 
 
 }
@@ -202,15 +202,12 @@ balmer_options = {
 
 ############################### Plotting options ###############################
 plot_options={
-"plot_param_hist"    : False,         # Plot MCMC histograms and chains for each parameter
-"plot_flux_hist"     : False,         # Plot MCMC hist. and chains for component fluxes
-"plot_lum_hist"      : False,         # Plot MCMC hist. and chains for component luminosities
-"plot_eqwidth_hist"  : False,         # Plot MCMC hist. and chains for equivalent widths
-"plot_mbh_hist"      : False,         # Plot MCMC hist. for estimated AGN lum. and BH masses
-"plot_corner"        : False,         # Plot corner plot of relevant parameters; Corner plots
-                                         # of free paramters can be quite large require a PDF
-                                         # output, and have significant time and space overhead,
-                                         # so we set this to False by default.
+"plot_param_hist"    : True,  # Plot MCMC histograms and chains for each parameter
+"plot_flux_hist"     : False, # Plot MCMC hist. and chains for component fluxes
+"plot_lum_hist"      : False, # Plot MCMC hist. and chains for component luminosities
+"plot_eqwidth_hist"  : False, # Plot MCMC hist. and chains for equivalent widths 
+"plot_HTML"          : False, # make interactive plotly HTML best-fit plot
+"plot_pca"           : True,  # Plot PCA reconstructed spectrum. If doing PCA, you probably want this as True
 }
 ################################################################################
 
