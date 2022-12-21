@@ -331,14 +331,11 @@ class BadassContext(mp.Process):
 
         # Start fitting process
         self.log.info('> Starting fit for {f}'.format(f=self.target.infile.parent.name))
-        sys.stdout.flush() # TODO: need?
         # Start a timer to record the total runtime
         self.start_time = time.time()
 
         self.set_fit_region()
-        # TODO: validate in function
-        if (self.fit_reg is None) or ((self.fit_reg.max-self.fit_reg.min) < constants.MIN_FIT_REGION):
-            self.log.warning('Fitting region too small! The fitting region must be at least {min_reg} A!  Moving to next object...'.format(min_reg=constants.MIN_FIT_REGION))
+        if self.fit_reg == None:
             return None
 
         self.prepare_context()
@@ -425,7 +422,6 @@ class BadassContext(mp.Process):
         user_mask = []
         combined_lines = {}
         fit_reg = (self.fit_reg.min, self.fit_reg.max)
-        good_frac = self.good_frac
         lam_gal = self.wave
         galaxy = self.spec
         noise = self.noise
@@ -908,77 +904,70 @@ class BadassContext(mp.Process):
     def set_fit_region(self):
         """
         Determines the fitting region for an input spectrum and fit options.
+        Set self.fit_reg to None on error
         """
 
-        min_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].min_losvd
-        max_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].max_losvd
+        # Fitting region initially the edges of wavelength vector
+        self.fit_reg = (self.target.wave[0], self.target.wave[-1])
+        self.log.info('Initial fitting region: ({mi}, {ma})'.format(mi=self.fit_reg[0], ma=self.fit_reg[1]))
 
-        fit_reg = self.options.fit_options.fit_reg
-        self.fit_reg = fit_reg
-        verbose = self.options.output_options.verbose # TODO: remove in favor of logging
+        # TODO: set default to 'auto' in options schema
+        user_fit_reg = self.options.fit_options.fit_reg
+        if isinstance(user_fit_reg, (tuple,list)):
+            if user_fit_reg[0] > user_fit_reg[1]:
+                self.log.error('Fitting boundaries overlap!')
+                self.fit_reg = None
+                return
 
-        # Edges of wavelength vector
-        first_good = self.target.wave[0]
-        last_good  = self.target.wave[-1]
+            if (user_fit_reg[0] > self.fit_reg[1]) or (user_fit_reg[1] < self.fit_reg[0]):
+                self.log.error('Fitting region not available!')
+                self.fit_reg = None
+                return
 
-        # TODO: account for auto and full in options schema
-        if fit_reg in ['auto', 'full']:
-            # TODO: floor and ceil needed? can we use floats for fit_reg?
-            self.fit_reg = (np.floor(first_good),np.ceil(last_good))
-            # The lower limit of the spectrum must be the lower limit of our stellar templates
-            if self.options.comp_options.fit_losvd and ((first_good < min_losvd) or (last_good > max_losvd)):
-                if verbose:
-                    print("\n Warning: Fitting LOSVD requires wavelenth range between %d Å and %d Å for stellar templates. BADASS will adjust your fitting range to fit the LOSVD..." % (min_losvd,max_losvd))
-                    print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
-                auto_low = np.max([min_losvd,first_good]) # Indo-US Library of Stellar Templates has a lower limit of 3460
-                auto_upp = np.min([max_losvd,last_good])
-                self.fit_reg = (np.floor(auto_low),np.ceil(auto_upp))   
+            if (user_fit_reg[0] < self.fit_reg[0]) or (user_fit_reg[1] > self.fit_reg[1]):
+                self.log.warning("Input fitting region exceeds available wavelength range.  BADASS will adjust your fitting range automatically...")
+                self.log.warning("\t- Input fitting range: (%d, %d)" % (user_fit_reg[0], user_fit_reg[1]))
+                self.log.warning("\t- Available wavelength range: (%d, %d)" % (self.fit_reg[0], self.fit_reg[1]))
 
-        elif isinstance(fit_reg,(tuple,list)):
-            # Check to see if tuple/list makes sense
-            if fit_reg[0] > fit_reg[1]: # if boundaries overlap
-                raise Exception('Fitting boundaries overlap!')
-            if (fit_reg[0] > last_good) | (fit_reg[1] < first_good):
-                raise Exception('\n Fitting region not available! \n')
+            self.fit_reg = (np.max([user_fit_reg[0], self.fit_reg[0]]), np.min([user_fit_reg[1], self.fit_reg[1]]))
 
-            self.fit_reg = (np.floor(fit_reg[0]),np.ceil(fit_reg[1]))
-            if self.options.comp_options.fit_losvd and ((fit_reg[0] < min_losvd) or (fit_reg[1] > max_losvd)):
-                if verbose:
-                    print("\n Warning: Fitting LOSVD requires wavelenth range between 3460 A and 9464 A for stellar templates. BADASS will adjust your fitting range to fit the LOSVD...")
-                    print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-                    print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
-                wave_low = np.max([min_losvd,fit_reg[0],first_good])
-                wave_upp = np.min([max_losvd,fit_reg[1],last_good])
-                self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
+        # The lower limit of the spectrum must be the lower limit of our stellar templates
+        # TODO: template function to let each template affect the fitting region?
+        if self.options.comp_options.fit_losvd:
+            min_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].min_losvd
+            max_losvd = constants.LOSVD_LIBRARIES[self.options.losvd_options.library].max_losvd
+            if (self.fit_reg[0] < min_losvd) or (self.fit_reg[1] > max_losvd):
+                self.log.warning("Warning: Fitting LOSVD requires wavelenth range between {mi} Å and {ma} Å for stellar templates. BADASS will adjust your fitting range to fit the LOSVD...".format(mi=min_losvd, ma=max_losvd))
+                self.log.warning("\t- Available wavelength range: (%d, %d)" % (self.fit_reg[0], self.fit_reg[1]))
+            self.fit_reg = (np.max([min_losvd, self.fit_reg[0]]), np.min([max_losvd, self.fit_reg[1]]))
 
-            elif (fit_reg[0] < first_good) or (fit_reg[1] > last_good):
-                if verbose:
-                    print("\n Input fitting region exceeds available wavelength range.  BADASS will adjust your fitting range automatically...")
-                    print("     - Input fitting range: (%d, %d)" % (fit_reg[0], fit_reg[1]) )
-                    print("     - Available wavelength range: (%d, %d)" % (first_good, last_good) )
-                wave_low = np.max([fit_reg[0],first_good])
-                wave_upp = np.min([fit_reg[1],last_good])
-                self.fit_reg = (np.floor(wave_low),np.ceil(wave_upp))
-
+        # allow for more explicit variable name: fit_reg.min and fit_reg.max
         self.fit_reg = type('FitReg', (object,), dict(min=self.fit_reg[0], max=self.fit_reg[1]))
+        self.log.info("- New fitting region is ({mi}, {ma})".format(mi=self.fit_reg.min, ma=self.fit_reg.max))
 
-        if verbose:
-            print("     - New fitting region is (%d, %d). \n" % (self.fit_reg.min, self.fit_reg.max) )
+        if (self.fit_reg.max - self.fit_reg.min) < constants.MIN_FIT_REGION:
+            self.log.error('Fitting region too small! The fitting region must be at least {min_reg} A!'.format(min_reg=constants.MIN_FIT_REGION))
+            self.fit_reg = None
+            return
 
         mask = ((self.target.wave >= self.fit_reg.min) & (self.target.wave <= self.fit_reg.max))
         igood = np.where((self.target.spec[mask]>0) & (self.target.noise[mask]>0) & (self.target.mask[mask]==0))[0]
-        self.good_frac = (len(igood)*1.0)/len(self.target.spec[mask])
+        good_frac = (len(igood)*1.0)/len(self.target.spec[mask])
+        if good_frac < self.options.fit_options.good_thresh:
+            self.log.error('Not enough good channels above threshold!')
+            self.fit_reg = None
+            return
 
 
     def prepare_context(self):
 
-        low, low_idx = find_nearest(self.target.wave, self.fit_reg.min)
-        low = self.target.wave[low_idx-1] if ((low > self.fit_reg.min) and (low_idx > 0)) else low
-
-        upp, upp_idx = find_nearest(self.target.wave, self.fit_reg.max)
-        upp = self.target.wave[upp_idx+1] if ((upp < self.fit_reg.max) and (upp_idx < len(self.target.wave)-1)) else upp
-
-        fit_reg_mask = (self.target.wave >= low) & (self.target.wave <= upp)
+        # TODO: should be in set_fit_region?
+        fit_reg_mask = (self.target.wave >= self.fit_reg.min) & (self.target.wave <= self.fit_reg.max)
+        mask_idxs = np.where(fit_reg_mask)[0]
+        if mask_idxs[0] > 0:
+            fit_reg_mask[mask_idxs[0]-1] = True
+        if mask_idxs[-1] < len(fit_reg_mask) - 1:
+            fit_reg_mask[mask_idxs[-1]+1] = True
 
         # Mask the value arrays for the BadassContext to the fitting region
         self.wave = self.target.wave[fit_reg_mask]
