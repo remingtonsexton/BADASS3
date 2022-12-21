@@ -269,8 +269,8 @@ import utils.constants as constants
 from utils.templates.common import initialize_templates, template_rfft, convolve_gauss_hermite, gaussian_filter1d
 
 # TODO: make option
+# TODO: create pool with specified number of processes
 USE_MULTIPROCESS = True
-
 
 # TODO: if output_dir already exists, check for overwrite option
 
@@ -983,6 +983,7 @@ class BadassContext(mp.Process):
         self.noise[inan] = np.nan
         self.noise[inan] = 1.0 if all(np.isnan(self.noise)) else np.nanmedian(self.noise)
 
+        # TODO: used anywhere other than plotting? If not, move to there
         # Masks set by user options
         fit_mask_bad = []
         if self.options.fit_options.mask_bad_pix:
@@ -1001,8 +1002,13 @@ class BadassContext(mp.Process):
         self.fit_mask_bad = np.sort(np.unique(fit_mask_bad))
         self.fit_mask_good = np.setdiff1d(np.arange(0,len(self.wave),1,dtype=int), fit_mask_bad)
 
+        # TODO: use user provided, if available
         self.ebv = get_ebv(self.target.ra, self.target.dec)
         self.spec = ccm_unred(self.wave, self.spec, self.ebv)
+
+        # Initial conditions for some parameters
+        self.max_flux = np.nanmax(self.spec)*1.5
+        self.median_flux = np.nanmedian(self.spec)
 
         # TODO: write to log
         # TODO: plot
