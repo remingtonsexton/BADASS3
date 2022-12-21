@@ -35,6 +35,8 @@ class BadassLogger:
         sh.setFormatter(formatter)
         self.logout.addHandler(sh)
 
+        self.verbose = log_lvl < logging.WARN
+
         self.log_title()
 
 
