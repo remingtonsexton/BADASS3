@@ -316,7 +316,9 @@ class BadassContext(mp.Process):
         self.target.context = self
         self.options = options
         # TODO: set outdir to default to None in options validation
-        self.outdir = self.options.io_options.output_dir or get_default_outdir(self.target.infile)
+        self.outdir = pathlib.Path(self.options.io_options.output_dir or get_default_outdir(self.target.infile))
+        if not self.outdir.is_absolute():
+            self.outdir = self.target.infile.parent.joinpath(self.outdir)
 
 
     def run(self):
