@@ -1,6 +1,7 @@
 **/.ipynb_checkpoints/
 **/__pycache__/
 **/MCMC_output*/
+**/line_test*/
 **/spaxel_*/
 **/.DS_Store
 **.pyc
