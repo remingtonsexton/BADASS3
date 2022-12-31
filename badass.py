@@ -256,6 +256,13 @@ __status__	 = "Release"
 # - Removed interpolation inside of fit_model() to reduce computational expense.
 # - General bug fixes and cleaning up.
 
+# Version 9.3.1
+# - BADASS-IFU 
+#       -- S/R computed at 5100 angstroms (rest frame) by default for use when using Voronoi binning
+# - Bug fixes, and edits to default line list
+# - Add flat prior 
+# - Fix MCMC chains output
+
 ##########################################################################################################
 
 
@@ -2896,9 +2903,9 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # find them during the fit.
     line_list = add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=verbose)
     # Generate line free parameters based on input line_list
-    line_par_input = initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=verbose)
+    line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,verbose=verbose)
     # Check hard line constraints; returns updated line_list and line_par_input
-    line_list, line_par_input = check_hard_cons(lam_gal,galaxy,comp_options,line_list,line_par_input,par_input,verbose=verbose)
+    line_list, line_par_input = check_hard_cons(lam_gal,galaxy,noise,comp_options,line_list,line_par_input,par_input,velscale,verbose=verbose)
     # Append line_par_input to par_input
     par_input = {**par_input, **line_par_input}
 
@@ -2930,16 +2937,29 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (user_constraints is None) or (len(user_constraints)==0):
 
         soft_cons = [
+            # Format: (Parameter value 1) > (Parameter value 2) == [Parameter value 1,Parameter value 2]
+            #
+            # Region 7 constraints
+            ("BR_MGII_2799_DISP","NA_MGII_2799_DISP"),
+            #
+            # Region 5 soft constraints
             ("BR_H_BETA_DISP","NA_OIII_5007_DISP"),
             ("BR_H_BETA_DISP","OUT_OIII_5007_DISP"),
             #
             ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
             #
-            # ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
-            ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
-            #
-            # ("BR_PA_DELTA_AMP","BR_PA_EPSIL_AMP"),
-            # ("BR_PA_GAMMA_AMP","BR_PA_DELTA_AMP"),
+            # Region 3 soft constraints
+            ("OUT_NII_6585_DISP","NA_NII_6585_DISP"),
+            # ("",""),
+            # ("",""),
+            # ("",""),
+            # ("",""),
+            # ("",""),
+            # ("",""),
+            # ("",""),
+            # ("",""),
+            # ("",""),
+            # ("",""),
             # ("",""),
 
 
@@ -3031,16 +3051,11 @@ def line_list_default():
 
         ### Region 5 (4400 Å - 5500 Å)
         # "NA_HEI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
-        # "NA_HEII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
+        "NA_HEII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
 
         "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
         "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
-        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"			   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
-
-        # "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"STEL_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"H$\beta$"},
-        # "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"STEL_DISP", "voff":"NA_OIII_5007_VOFF"  , "line_type":"na" ,"label":r"[O III]"},
-        # "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"STEL_DISP", "voff":"free"			   , "line_type":"na" ,"label":r"[O III]"},
-
+        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free","voff_init":0.0,"voff_prior":{"type":"flat"}			   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
 
         ##############################################################################################################################################################################################################################################
 
@@ -3059,10 +3074,9 @@ def line_list_default():
         "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"free" , "line_type":"na","label":r"[S III]"},
         "NA_OI_6365"   :{"center":6365.535, "amp":"NA_OI_6302_AMP/3.0"	, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
         "NA_FEX_6374"  :{"center":6374.510, "amp":"free"				, "disp":"free"			    , "voff":"free"				, "line_type":"na","label":r"[Fe X]"}, # Coronal Line
-
         #
         "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93"	, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[N II]"},
-        # "NA_H_ALPHA"   :{"center":6564.632, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"H$\alpha$"},
+        "NA_H_ALPHA"   :{"center":6564.632, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"H$\alpha$"},
         "NA_NII_6585"  :{"center":6585.278, "amp":"free"					, "disp":"free"			   , "voff":"free"			  , "line_type":"na","label":r"[N II]"},
         "NA_SII_6718"  :{"center":6718.294, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
         "NA_SII_6732"  :{"center":6732.668, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[S II]"},
@@ -3086,48 +3100,6 @@ def line_list_default():
         "NA_FEII_8891"  :{"center":8891.910, "amp":"free", "disp":"free"			 , "voff":"free"			 , "line_type":"na","label":r"[Fe II]"},
 
         ##############################################################################################################################################################################################################################################
-
-        ### Region Y (9000 Å - 12000 Å)
-        "NA_SIII_9069"    :{"center":9068.600 , "amp":"free", "disp":"NA_SIII_9531_DISP", "voff":"NA_SIII_9531_VOFF","h3":"NA_SIII_9531_H3", "h4":"NA_SIII_9531_H4", "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S III]"},
-        "NA_SIII_9531"    :{"center":9531.100 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S III]"},
-
-        "NA_CI_9824"    :{"center":9824.130 , "amp":"free", "disp":"NA_CI_9850_DISP"  , "voff":"NA_CI_9850_VOFF"  ,"h3":"NA_CI_9850_H3"  , "h4":"NA_CI_9850_H4"  , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[C I]"},
-        "NA_CI_9850"    :{"center":9850.260 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[C I]"},
-
-        "NA_SVIII_9913" :{"center":9913.000 , "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "line_profile":"gauss-hermite", "label":r"[S VIII]"},
-
-        # "NA_PA_EPSIL"     :{"center":9548.587 , "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\epsilon$"},
-
-        # "NA_PA_DELTA"     :{"center":10052.123, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\delta$"},
-
-        "NA_HEI_10027"    :{"center":10027.730, "amp":"free", "disp":"NA_HEI_10031_DISP", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
-        "NA_HEI_10031"    :{"center":10031.160, "amp":"free", "disp":"free"             , "voff":"free"             ,"h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"He I"},
-
-        "NA_FEVI_10111"   :{"center":10111.671, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"[FeVI]"},
-
-        "NA_SII_10289"    :{"center":10289.549, "amp":"free", "disp":"NA_SII_10373_DISP", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
-        "NA_SII_10323"    :{"center":10323.318, "amp":"free", "disp":"NA_SII_10373_DISP", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
-        "NA_SII_10339"    :{"center":10339.243, "amp":"free", "disp":"NA_SII_10373_DISP", "voff":"NA_SII_10373_VOFF", "h3":"NA_SII_10373_H3", "h4":"NA_SII_10373_H4", "line_type":"na", "label":r"[SII]"},
-        "NA_SII_10373"    :{"center":10373.332, "amp":"free", "disp":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[SII]"},
-
-        "NA_NI_10400"     :{"center":10400.600, "amp":"free", "disp":"NA_NI_10410_DISP" , "voff":"NA_NI_10410_VOFF" , "h3":"NA_NI_10410_H3" , "h4":"NA_NI_10410_H4", "line_type":"na", "label":r"[NI]"},
-        "NA_NI_10410"     :{"center":10410.200, "amp":"free", "disp":"free"             , "voff":"free"             , "h3":"free"           , "h4":"free"           , "line_type":"na", "label":r"[NI]"},
-
-        "NA_FEXIII_10749" :{"center":10749.744, "amp":"free", "disp":"NA_FEXIII_10800_DISP", "voff":"NA_FEXIII_10800_VOFF", "h3":"NA_FEXIII_10800_H3", "h4":"NA_FEXIII_10800_H4", "line_type":"na", "label":r"[FeXIII]"},
-        "NA_FEXIII_10800" :{"center":10800.858, "amp":"free", "disp":"free"                , "voff":"free"                , "h3":"free"              , "h4":"free"              , "line_type":"na", "label":r"[FeXIII]"},
-
-        "NA_HEI_10830"    :{"center":10830.340, "amp":"free", "disp":"NA_HEI_10031_DISP", "voff":"NA_HEI_10031_VOFF","h3":"NA_HEI_10031_H3", "h4":"NA_HEI_10031_H4", "line_type":"na", "label":r"He I"},
-        # "NA_PA_GAMMA"     :{"center":10941.082, "amp":"free", "disp":"free"             , "voff":"free"             , "line_type":"na", "label":r"Pa$\gamma$"},
-
-        
-        "NA_NIIII_11910"    :{"center":11910.0, "amp":"free", "disp":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Ni II]"},
-
-
-        "NA_FEII_12570"    :{"center":12570.0, "amp":"free", "disp":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
-        "NA_FEII_13210"    :{"center":13210.0, "amp":"free", "disp":"free", "voff":"free","h3":"free", "h4":"free", "line_type":"na", "label":r"[Fe II]"},
-
-        ##############################################################################################################################################################################################################################################
-
 
     }
 
@@ -3160,12 +3132,6 @@ def line_list_default():
         ### Region 3 (6200 Å - 6800 Å)
         "BR_H_ALPHA"  :{"center":6585.278, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
 
-        ### Region Y (9000 Å - 12000 Å)
-        "BR_PA_EPSIL"   :{"center":9548.587 ,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\epsilon$"},
-        "BR_PA_DELTA"   :{"center":10052.123,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free", "line_type":"br", "label":r"Pa$\delta$"},
-        "BR_PA_GAMMA"   :{"center":10941.082,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\gamma$"},
-        "BR_PA_BETA"    :{"center":12820.0,"amp":"free", "disp":"free"            , "voff":"free"            , "shape":"free"             , "line_type":"br", "label":r"Pa$\beta$"},
-
     }
     # Default Outlfow Lines
     # Outflows share a universal width and voff across all lines, but amplitudes will be different.
@@ -3175,25 +3141,13 @@ def line_list_default():
     # lines have more influence on the fit of a parameter than weaker ones), so the [OIII]4960 and H-beta outflow amplitudes are a fraction of the
     # narrow-to-outflow line ratio. This same reasoning applies to the H-alpha/[NII]/[SII] region, with H-alpha deciding the line amplitudes.
     outflow_lines = {
-        # Ne III
-        "OUT_NEIII_3869":{"center":3869.857, "amp":"free", "disp":"free", "voff":"free", "line_type":"out"}, # Coronal Line
-        "OUT_NEIII_3968":{"center":3968.593, "amp":"OUT_NEIII_3869_AMP/NA_NEIII_3869_AMP*NA_NEIII_3968_AMP", "disp":"OUT_NEIII_3869_DISP", "voff":"OUT_NEIII_3869_VOFF", "line_type":"out"}, # Coronal Line
         # H-beta/[OIII]
         "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
         "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							  , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
         "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
-        # H-beta/[OIII] - Secondary Components
-        # "OUT_H_BETA_2"    :{"center":4862.691, "amp":"OUT_OIII_5007_2_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_2_DISP", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
-        # "OUT_OIII_4960_2" :{"center":4960.295, "amp":"OUT_OIII_5007_2_AMP/2.98"							  , "disp":"OUT_OIII_5007_2_DISP", "voff":"OUT_OIII_5007_2_VOFF", "line_type":"out"},
-        # "OUT_OIII_5007_2" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
-        # H-beta/[OIII] - Tertiary Components
-        # "OUT_H_BETA_3"    :{"center":4862.691, "amp":"OUT_OIII_5007_3_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_3_DISP", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
-        # "OUT_OIII_4960_3" :{"center":4960.295, "amp":"OUT_OIII_5007_3_AMP/2.98"							  , "disp":"OUT_OIII_5007_3_DISP", "voff":"OUT_OIII_5007_3_VOFF", "line_type":"out"},
-        # "OUT_OIII_5007_3" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
-        # [O I]
+        # [OI]/H-alpha/[NII]/[SiII]
         "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        # H-alpha/[NII]/[SiII]
         "OUT_NII_6549"  :{"center":6549.859, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_NII_6585_AMP/2.93", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_H_ALPHA"   :{"center":6564.632, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_H_ALPHA_AMP" 	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_NII_6585"  :{"center":6585.278, "amp":"free"											 	  , "disp":"free"			  , "voff":"free"			  , "line_type":"out"},
@@ -3473,17 +3427,39 @@ def add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=True):
 
 #### Initialize Line Parameters ##################################################
 
-def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
+def initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,verbose=True):
 
     # Smooth galaxy by a small amount to get rid of 
     # noise spike (for low S/N spectra)
     # galaxy = gaussian_filter1d(galaxy,2.)
 
     def get_init_amp(line_center):
+        line_window = 10 # angstroms on either side of the expected line
         line_center = float(line_center)
         try:
-            return np.nanmax([np.nanmax(galaxy[(lam_gal>(line_center-10.)) & (lam_gal<(line_center+10.))]), 0.0])
+            return np.nanmax([np.nanmax(galaxy[(lam_gal>(line_center-line_window)) & (lam_gal<(line_center+line_window))]), 0.0])
         except ValueError:
+            return 0.0
+
+
+    def get_init_voff(line_center):
+        line_window = 10
+        line_center = float(line_center)
+
+        interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal)),kind='linear',bounds_error=False)
+        try: 
+            eval_ind = np.where((lam_gal>(line_center-line_window)) & (lam_gal<(line_center+line_window)))
+            max_idx = np.where(galaxy==np.nanmax(galaxy[eval_ind]))[0]
+            max_wave = lam_gal[max_idx]
+            voff  = (interp_ftn(max_wave)-interp_ftn(line_center))*velscale
+            #
+            if (galaxy[max_idx]>(np.nanmedian(5.0*noise[eval_ind]+galaxy[eval_ind]))) or (np.abs(voff)<250.0):
+                print(voff)
+                return voff
+            else:
+                print(0.0)
+                return 0.0
+        except:
             return 0.0
 
     line_par_input = {}
@@ -3536,13 +3512,16 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
                 return abs_disp_init, abs_disp_lim
     #
     def voff_hyperpars(line_type, line_center):
-        na_voff_init, br_voff_init = 0.001, 0.001
+        voff_init = get_init_voff(line_center)
+
+
+
         na_voff_lim = (-500,500)
-        br_voff_lim = (-500,500)
+        br_voff_lim = (-1000,1000)
         if line_type in ["na","user"]:
-            return na_voff_init, na_voff_lim
+            return voff_init, na_voff_lim
         elif line_type in ["br","abs","out"]:
-            return br_voff_init, br_voff_lim
+            return voff_init, br_voff_lim
 
     def h_moment_hyperpars():
         # Higher-order moments for Gauss-Hermite line profiles
@@ -3747,7 +3726,7 @@ def initialize_line_pars(lam_gal,galaxy,comp_options,line_list,verbose=True):
 
 #### Check Line Hard Constraints #################################################
 
-def check_hard_cons(lam_gal,galaxy,comp_options,line_list,line_par_input,par_input,verbose=True):
+def check_hard_cons(lam_gal,galaxy,noise,comp_options,line_list,line_par_input,par_input,velscale,verbose=True):
 
     # Get list of all params
     # param_dict = {par:0 for par in line_par_input}
@@ -3766,7 +3745,7 @@ def check_hard_cons(lam_gal,galaxy,comp_options,line_list,line_par_input,par_inp
                             print("Hard-constraint %s not found in parameter list or could not be parsed; converting to free parameter.\n" % line_list[line][hpar])
                         _line_list = {line:line_list[line]}
                         _line_list[line][hpar]="free"
-                        _line_par_input = initialize_line_pars(lam_gal,galaxy,comp_options,_line_list)
+                        _line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,_line_list,velscale)
                         line_par_input = {**_line_par_input,**line_par_input}
 
     return line_list, line_par_input
@@ -6404,6 +6383,13 @@ def lnprior_jeffreys(x,**kwargs):
     if a <= 0: a = 1e-6
     return stats.loguniform.logpdf(x,a=a,b=b,loc=loc,scale=scale)
 
+def lnprior_flat(x,**kwargs):
+
+    if (x>=kwargs["plim"][0]) & (x<=kwargs["plim"][1]):
+        return 1.0
+    else:
+        return -np.inf
+
 def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type):
     """
     Log-prior function.
@@ -6439,9 +6425,8 @@ def lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type
         else:
             lp_arr.append(-np.inf)
 
-
     # Loop through parameters with priors on them 
-    prior_map = {'gaussian': lnprior_gaussian, 'halfnorm': lnprior_halfnorm, 'jeffreys': lnprior_jeffreys}
+    prior_map = {'gaussian': lnprior_gaussian, 'halfnorm': lnprior_halfnorm, 'jeffreys': lnprior_jeffreys, 'flat': lnprior_flat}
     p = [prior_map[prior_dict[key]["prior"]["type"]](pdict[key],**prior_dict[key]) for key in prior_dict]
     # lp_arr += p
     # print(np.sum(lp_arr))
