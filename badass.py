@@ -69,7 +69,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.3.0"
+__version__	= "9.3.1"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -260,8 +260,8 @@ __status__	 = "Release"
 # - BADASS-IFU 
 #       -- S/R computed at 5100 angstroms (rest frame) by default for use when using Voronoi binning
 # - Bug fixes, and edits to default line list
-# - Add flat prior 
-# - Fix MCMC chains output
+# - Add explicit flat prior 
+# - Add flux normalization option (default is SDSS normalization of 1.E-17)
 
 ##########################################################################################################
 
@@ -304,9 +304,18 @@ def run_BADASS(data,
     """
     The top-level BADASS function that handles the multiprocessing workers making calls to run_single_thread
     """
+
     # Determine the number of processes based on CPU count, if unspecified
     if nprocesses is None:
-        nprocesses = int(np.ceil(mp.cpu_count()/2))
+        # nprocesses = int(np.ceil(mp.cpu_count()/2))
+        nprocesses = 1
+
+    if (nprocesses>1) or (nobj is not None):
+        if output_options:
+            output_options["verbose"] = False
+        else:
+            output_options = {"verbose": False}
+            
 
     if os.path.isdir(data):
         # Get locations of sub-directories for each fit within the parent data directory
@@ -2001,6 +2010,7 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
         print('{0:<30}{1:<30}'.format(' fitting region:' , '(%d,%d) [A]' % (fit_reg[0],fit_reg[1])  ))
         print('{0:<30}{1:<30}'.format(' velocity scale:' , '%0.2f [km/s/pixel]' % velscale	  ))
         print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
+        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.1e' % (1.E-17)                ))
         print('-----------------------------------------------------------')
     ################################################################################
 
@@ -2044,9 +2054,6 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
     """
     Prepares user-input spectrum for BADASS fitting.
     """
-    # Normalize the spectrum by the same factor as SDSS
-    spec = spec/flux_norm # 1.E-17 is the SDSS default flux_norm
-    err  = err/flux_norm # 1.E-17 is the SDSS default flux_norm
 
     # Only use the wavelength range in common between galaxy and stellar library.
     # Determine limits of spectrum vs templates
@@ -2190,7 +2197,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
     ################################################################################
 
     if plot: 
-        prepare_user_plot(lam_gal,galaxy,noise,fit_mask_bad,run_dir)
+        prepare_user_plot(lam_gal,galaxy,noise,fit_mask_bad,flux_norm,run_dir)
     
     if verbose:
 
@@ -2201,6 +2208,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
         print('{0:<30}{1:<30}'.format(' fitting region:' , '(%d,%d) [A]' % (fit_reg[0],fit_reg[1])  ))
         print('{0:<30}{1:<30}'.format(' velocity scale:' , '%0.2f [km/s/pixel]' % velscale	  ))
         print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
+        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.1e' % (flux_norm)                ))
         print('-----------------------------------------------------------')
     ################################################################################
     #
@@ -2210,7 +2218,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
 
 ##################################################################################
 
-def prepare_user_plot(lam_gal,galaxy,noise,ibad,run_dir):
+def prepare_user_plot(lam_gal,galaxy,noise,ibad,flux_norm,run_dir):
     # Plot the galaxy fitting region
     fig = plt.figure(figsize=(14,4))
     ax1 = fig.add_subplot(1,1,1)
@@ -2228,7 +2236,7 @@ def prepare_user_plot(lam_gal,galaxy,noise,ibad,run_dir):
     fontsize = 14
     ax1.set_title(r'Fitting Region',fontsize=fontsize)
     ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)',fontsize=fontsize)
-    ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=fontsize)
+    ax1.set_ylabel(r'$f_\lambda$ ($%0.0e$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (flux_norm),fontsize=fontsize)
     ax1.set_xlim(np.min(lam_gal),np.max(lam_gal))
     ax1.legend(loc='best')
     plt.tight_layout()
@@ -2283,7 +2291,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
         ebv = 0.04  # average Galactic E(B-V)
 
     if format != 'MANGA':
-        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good = prepare_user_spec(fits_file,t['flux']*flux_norm,10**t['loglam'],np.sqrt(1.0/t['ivar'])*flux_norm,t['fwhm_res'],z,ebv,fit_reg,
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good = prepare_user_spec(fits_file,t['flux'],10**t['loglam'],np.sqrt(1.0/t['ivar']),t['fwhm_res'],z,ebv,flux_norm,fit_reg,
                                                                                        mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=verbose,plot=plot)
 
         return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good,binnum,spaxelx,spaxely
@@ -2416,6 +2424,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
         print('{0:<30}{1:<30}'.format(' fitting region' , '(%d,%d) [A]' % (fit_reg[0 ],fit_reg[1])  ))
         print('{0:<30}{1:<30}'.format(' velocity scale' , '%0.2f [km/s/pixel]' % velscale	  ))
         print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
+        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.1e' % (flux_norm)                ))
         print('-----------------------------------------------------------')
     ################################################################################
 
@@ -3060,7 +3069,7 @@ def line_list_default():
 
         "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
         "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
-        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free","voff_init":0.0,"voff_prior":{"type":"flat"}			   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
+        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"         	   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
 
         ##############################################################################################################################################################################################################################################
 
@@ -3147,12 +3156,12 @@ def line_list_default():
     # narrow-to-outflow line ratio. This same reasoning applies to the H-alpha/[NII]/[SII] region, with H-alpha deciding the line amplitudes.
     outflow_lines = {
         # H-beta/[OIII]
-        "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP" , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							  , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									  , "disp":"free", "voff":"free", "line_type":"out"},
+        "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP"     , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
+        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							      , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
+        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									      , "disp":"free"              , "voff":"free", "line_type":"out"},
         # [OI]/H-alpha/[NII]/[SiII]
-        "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP"      , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
+        "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP"      , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_NII_6549"  :{"center":6549.859, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_NII_6585_AMP/2.93", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_H_ALPHA"   :{"center":6564.632, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_H_ALPHA_AMP" 	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_NII_6585"  :{"center":6585.278, "amp":"free"											 	  , "disp":"free"			  , "voff":"free"			  , "line_type":"out"},
