@@ -1558,7 +1558,7 @@ def check_output_options(input,verbose=False):
 
 #### Check User Input Spectrum ###################################################
 
-def check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,verbose=False):
+def check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,flux_norm,verbose=False):
 
 	if (spec is not None) and (isinstance(spec,(list,np.ndarray))):
 		pass
@@ -1598,8 +1598,16 @@ def check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,verbose=False):
 	else: 
 		raise TypeError("\n User-input ebv must be an integer/float value.\n")
 
+	if (flux_norm is not None) and (isinstance(flux_norm,(int,float))) and (flux_norm>0):
+		pass
+	elif (flux_norm is None):
+		flux_norm = 1.E-17 # Assume the user does not want to correct for galactic extinction
+		if (verbose==True):
+			print("\n Warning: no specified flux normalization.  Assuming flux normalization = 1.E-17 (SDSS flux normalization).\n")
+	else:
+		raise TypeError("\n User-input flux normalization must be an integer/float value, and greater than zero.  The ideal flux normalization should be such that it scales the flux so that the median flux value is close to 1.\n")
 
-	return spec,wave,err,fwhm_res,z,ebv
+	return spec,wave,err,fwhm_res,z,ebv,flux_norm
 
 ##################################################################################
 

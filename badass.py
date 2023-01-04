@@ -299,6 +299,7 @@ def run_BADASS(data,
                fwhm_res=None,
                z=None,
                ebv=None,
+               flux_norm=1.E-17,
                ):
     """
     The top-level BADASS function that handles the multiprocessing workers making calls to run_single_thread
@@ -322,7 +323,7 @@ def run_BADASS(data,
         files = [glob.glob(os.path.join(wd, '*.fits'))[0] for wd in work_dirs]
         arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, pca_options, user_lines, user_constraints, user_mask,
                       combined_lines, losvd_options, host_options, power_options, poly_options, opt_feii_options, uv_iron_options, balmer_options,
-                      outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv) for file in files]
+                      outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv, flux_norm) for file in files]
 
         # map arguments to function
         if len(files) > 1 and nprocesses > 1:
@@ -342,7 +343,7 @@ def run_BADASS(data,
         run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options, pca_options,
                           user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options, poly_options,
                           opt_feii_options, uv_iron_options, balmer_options, outflow_test_options, plot_options, output_options,
-                          sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv)
+                          sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv, flux_norm)
 
     # Print memory at the end
     print(f"End process memory: {process.memory_info().rss / 1e9:<30.8f}")
@@ -379,6 +380,7 @@ def run_single_thread(fits_file,
                fwhm_res = None,
                z	= None,
                ebv  = None,
+               flux_norm = 1.E-17,
                ):
                
     """
@@ -464,7 +466,7 @@ def run_single_thread(fits_file,
         # If user does not provide a error spectrum one will be provided for them!
         if err is None:
             err = np.abs(0.1*spec)
-        spec, wave, err, fwhm_res, z, ebv = badass_utils.check_user_input_spec(spec,wave,err,fwhm_res,z,ebv)
+        spec, wave, err, fwhm_res, z, ebv, flux_norm = badass_utils.check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,flux_norm)
 
     # Unpack input
     # fit_options
@@ -572,10 +574,10 @@ def run_single_thread(fits_file,
         binnum = spaxelx = spaxely = None
     # ifu spectrum
     elif (ifu_spec):
-        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask,binnum,spaxelx,spaxely = prepare_ifu_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask,binnum,spaxelx,spaxely = prepare_ifu_spec(fits_file, fit_reg, mask_bad_pix, mask_emline, user_mask, mask_metal, cosmology, flux_norm, run_dir, verbose=verbose, plot=True)
     # non-SDSS spectrum
     elif (not sdss_spec):
-        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm_res, z, ebv, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask = prepare_user_spec(fits_file, spec, wave, err, fwhm_res, z, ebv, flux_norm, fit_reg, mask_emline, user_mask, mask_metal, cosmology, run_dir, verbose=verbose, plot=True)
         binnum = spaxelx = spaxely = None
 
     ####################################################################################################################################################################################
@@ -615,14 +617,14 @@ def run_single_thread(fits_file,
 
     ####################################################################################################################################################################################
     # Generate host-galaxy template
-    if (fit_host==True) & (lam_gal[0]>1680.2):
+    if (fit_host==True):# & (lam_gal[0]>1680.2):
         host_template = generate_host_template(lam_gal, host_options, disp_res,fit_mask, velscale, verbose=verbose)
-    elif (fit_host==True) & (lam_gal[0]<1680.2):
-        host_template = None
-        fit_host = False
-        comp_options["fit_host"]=False
-        if verbose:
-            print('\n - Host galaxy SSP template disabled because template is outside of fitting region.')
+    # elif (fit_host==True) & (lam_gal[0]<1680.2):
+    #     host_template = None
+    #     fit_host = False
+    #     comp_options["fit_host"]=False
+    #     if verbose:
+    #         print('\n - Host galaxy SSP template disabled because template is outside of fitting region.')
     elif (fit_host==False):
         host_template = None
     # Load stellar templates if fit_losvd=True 
@@ -805,6 +807,7 @@ def run_single_thread(fits_file,
                   disp_res,
                   fit_mask,
                   velscale,
+                  flux_norm,
                   run_dir,
                   fit_type='init',
                   fit_stat=fit_stat,
@@ -867,6 +870,7 @@ def run_single_thread(fits_file,
                   disp_res,
                   fit_mask,
                   velscale,
+                  flux_norm,
                   run_dir,
                   fit_type='init',
                   fit_stat=fit_stat,
@@ -911,6 +915,7 @@ def run_single_thread(fits_file,
                                                 disp_res,
                                                 fit_mask,
                                                 velscale,
+                                                flux_norm,
                                                 run_dir,
                                                 fit_type='init',
                                                 fit_stat=fit_stat,
@@ -1048,7 +1053,7 @@ def run_single_thread(fits_file,
     # Log Like Function values plots
     log_like_dict = log_like_plot(log_like_blob, burn_in, nwalkers, run_dir, plot_param_hist=plot_param_hist,verbose=verbose)
     # Flux values, uncertainties, and plots
-    flux_dict = flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=plot_flux_hist,verbose=verbose)
+    flux_dict = flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=plot_flux_hist,verbose=verbose)
     # Luminosity values, uncertainties, and plots
     lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
     # Continuum luminosity 
@@ -2035,13 +2040,13 @@ def prepare_sdss_plot(lam_gal,galaxy,noise,ibad,run_dir):
 
 #### Prepare User Spectrum #######################################################
 
-def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,fit_reg,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=True):
+def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=True):
     """
     Prepares user-input spectrum for BADASS fitting.
     """
     # Normalize the spectrum by the same factor as SDSS
-    spec = spec/1.e-17
-    err  = err/1.e-17
+    spec = spec/flux_norm # 1.E-17 is the SDSS default flux_norm
+    err  = err/flux_norm # 1.E-17 is the SDSS default flux_norm
 
     # Only use the wavelength range in common between galaxy and stellar library.
     # Determine limits of spectrum vs templates
@@ -2236,7 +2241,7 @@ def prepare_user_plot(lam_gal,galaxy,noise,ibad,run_dir):
 
 ##################################################################################
 
-def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=True,plot=False):
+def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_metal,cosmology,flux_norm,run_dir,verbose=True,plot=False):
     """
     Adapted from example from Cappellari's pPXF (Cappellari et al. 2004,2017)
     Prepare an SDSS spectrum for pPXF, returning all necessary
@@ -2278,7 +2283,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
         ebv = 0.04  # average Galactic E(B-V)
 
     if format != 'MANGA':
-        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good = prepare_user_spec(fits_file,t['flux']*1e-17,10**t['loglam'],np.sqrt(1.0/t['ivar'])*1e-17,t['fwhm_res'],z,ebv,fit_reg,
+        lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good = prepare_user_spec(fits_file,t['flux']*flux_norm,10**t['loglam'],np.sqrt(1.0/t['ivar'])*flux_norm,t['fwhm_res'],z,ebv,fit_reg,
                                                                                        mask_emline,user_mask,mask_metal,cosmology,run_dir,verbose=verbose,plot=plot)
 
         return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good,binnum,spaxelx,spaxely
@@ -3453,11 +3458,11 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,ve
             max_wave = lam_gal[max_idx]
             voff  = (interp_ftn(max_wave)-interp_ftn(line_center))*velscale
             #
-            if (galaxy[max_idx]>(np.nanmedian(5.0*noise[eval_ind]+galaxy[eval_ind]))) or (np.abs(voff)<250.0):
-                print(voff)
+            if (galaxy[max_idx]>(np.nanmedian(5.0*noise[eval_ind]+galaxy[eval_ind]))) and (np.abs(voff)<250.0):
+                # print(voff)
                 return voff
             else:
-                print(0.0)
+                # print(0.0)
                 return 0.0
         except:
             return 0.0
@@ -4146,6 +4151,7 @@ def line_test(param_dict,
               disp_res,
               fit_mask,
               velscale,
+              flux_norm,
               run_dir,
               fit_type='init',
               fit_stat="RCHI2",
@@ -4214,6 +4220,7 @@ def line_test(param_dict,
                                                                                disp_res,
                                                                                fit_mask,
                                                                                velscale,
+                                                                               flux_norm,
                                                                                run_dir,
                                                                                fit_type='init',
                                                                                fit_stat=fit_stat,
@@ -4260,6 +4267,7 @@ def line_test(param_dict,
                                                           disp_res,
                                                           fit_mask,
                                                           velscale,
+                                                          flux_norm,
                                                           run_dir,
                                                           fit_type='init',
                                                           fit_stat=fit_stat,
@@ -4979,7 +4987,7 @@ def write_line_test_results(result_dict_outflows,
 
 ####################################################################################
 
-def calc_max_like_flux(comp_dict):
+def calc_max_like_flux(comp_dict,flux_norm):
     """
     Calculates component fluxes for maximum likelihood fitting.
     Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood().
@@ -4989,7 +4997,7 @@ def calc_max_like_flux(comp_dict):
     flux_dict = {}
     for key in comp_dict: 
         if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-            flux = np.log10(1.e-17*(np.trapz(comp_dict[key],comp_dict["WAVE"])))
+            flux = np.log10(flux_norm*(np.trapz(comp_dict[key],comp_dict["WAVE"])))
             # Add to flux_dict
             flux_dict[key+"_FLUX"]  = flux
 
@@ -5058,7 +5066,7 @@ def calc_max_like_eqwidth(comp_dict, line_list, velscale):
 
 ##################################################################################
 
-def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=70.0, Om0=0.30):
+def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, flux_norm, H0=70.0, Om0=0.30):
     """
     Calculate monochromatic continuum luminosities
     """
@@ -5082,49 +5090,49 @@ def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=70.0, Om0=0.30):
     for c in clum:
         # Total luminosities
         if (c=="L_CONT_TOT_1350"):
-            flux = total_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
+            flux = total_cont[blob_pars["INDEX_1350"]] * flux_norm# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_TOT_1350"] = lum
         if (c=="L_CONT_TOT_3000"):
-            flux = total_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
+            flux = total_cont[blob_pars["INDEX_3000"]] * flux_norm #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_TOT_3000"] = lum
         if (c=="L_CONT_TOT_5100"):
-            flux = total_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
+            flux = total_cont[blob_pars["INDEX_5100"]] * flux_norm #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_TOT_5100"] = lum
         # AGN luminosities
         if (c=="L_CONT_AGN_1350"):
-            flux = agn_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
+            flux = agn_cont[blob_pars["INDEX_1350"]] * flux_norm# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_AGN_1350"] = lum
         if (c=="L_CONT_AGN_3000"):
-            flux = agn_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
+            flux = agn_cont[blob_pars["INDEX_3000"]] * flux_norm #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_AGN_3000"] = lum
         if (c=="L_CONT_AGN_5100"):
-            flux = agn_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
+            flux = agn_cont[blob_pars["INDEX_5100"]] * flux_norm #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_AGN_5100"] = lum
         # Host luminosities
         if (c=="L_CONT_HOST_1350"):
-            flux = host_cont[blob_pars["INDEX_1350"]] * 1.e-17# * 1350.0
+            flux = host_cont[blob_pars["INDEX_1350"]] * flux_norm# * 1350.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             clum_dict["L_CONT_HOST_1350"] = lum
         if (c=="L_CONT_HOST_3000"):
-            flux = host_cont[blob_pars["INDEX_3000"]] * 1.e-17 #* 3000.0
+            flux = host_cont[blob_pars["INDEX_3000"]] * flux_norm #* 3000.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42 
             clum_dict["L_CONT_HOST_3000"] = lum
         if (c=="L_CONT_HOST_5100"):
-            flux = host_cont[blob_pars["INDEX_5100"]] * 1.e-17 #* 5100.0
+            flux = host_cont[blob_pars["INDEX_5100"]] * flux_norm #* 5100.0
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             clum_dict["L_CONT_HOST_5100"] = lum
@@ -5276,6 +5284,7 @@ def max_likelihood(param_dict,
                    disp_res,
                    fit_mask,
                    velscale,
+                   flux_norm,
                    run_dir,
                    fit_type='init',
                    fit_stat="RCHI2",
@@ -5461,7 +5470,7 @@ def max_likelihood(param_dict,
     # Subsample comp dict
     # comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,par_best,param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
     # Calculate fluxes 
-    flux_dict = calc_max_like_flux(comp_dict)
+    flux_dict = calc_max_like_flux(comp_dict, flux_norm)
     # Calculate luminosities
     lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
 
@@ -5469,7 +5478,7 @@ def max_likelihood(param_dict,
     eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
 
     # Calculate continuum luminosities
-    clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
+    clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, flux_norm, H0=cosmology["H0"], Om0=cosmology["Om0"])
 
     # Calculate integrated line dispersions
     disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
@@ -5615,13 +5624,13 @@ def max_likelihood(param_dict,
             # Subsample comp dict
             # comp_dict_subsamp, _line_list, _combined_line_list, velscale_subsamp = subsample_comps(lam_gal,resultmc["x"],param_names,comp_dict,comp_options,line_list,combined_line_list,velscale)
             # Calculate fluxes 
-            flux_dict = calc_max_like_flux(comp_dict)
+            flux_dict = calc_max_like_flux(comp_dict, flux_norm)
             # Calculate luminosities
             lum_dict = calc_max_like_lum(flux_dict, z, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate equivalent widths
             eqwidth_dict = calc_max_like_eqwidth(comp_dict, {**line_list, **combined_line_list}, velscale)
             # Calculate continuum luminosities
-            clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, H0=cosmology["H0"], Om0=cosmology["Om0"])
+            clum_dict = calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, flux_norm, H0=cosmology["H0"], Om0=cosmology["Om0"])
             # Calculate integrated line dispersions
             disp_dict, fwhm_dict, vint_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
             # Calculate fit quality parameters
@@ -7363,6 +7372,16 @@ def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbo
     h = hdu[0].header
     hdu.close()
     lam_temp = np.array(h['CRVAL1'] + h['CDELT1']*np.arange(h['NAXIS1']))
+
+    # lam_temp needs to be larger than lam_gal by npad pixels; if it isn't we need to make it larger
+    npad = 100
+    if (lam_gal[0]-npad<=lam_temp[0]) or (lam_gal[-1]+npad>=lam_temp[-1]):
+        interp_temp = True
+        lam_temp_new = np.arange(int(lam_gal[0]-npad),np.ceil(lam_gal[-1]+npad),1)
+        interp_ftn = interp1d(lam_temp,ssp,kind='linear',bounds_error=False,fill_value=(0.0,0.0))
+        ssp = interp_ftn(lam_temp_new)
+        lam_temp = lam_temp_new 
+
     mask = ((lam_temp>=(lam_gal[0]-100.0)) & (lam_temp<=(lam_gal[-1]+100.0)))
     # Apply mask and get lamRange
     ssp	  = ssp[mask]
@@ -7379,6 +7398,16 @@ def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbo
     for j, age in enumerate(host_options["age"]):
         hdu = fits.open(temp[np.where(ages==age)[0][0]])
         ssp = hdu[0].data
+
+        if interp_temp:
+            h = hdu[0].header
+            hdu.close()
+            lam_temp = np.array(h['CRVAL1'] + h['CDELT1']*np.arange(h['NAXIS1']))
+            lam_temp_new = np.arange(int(lam_gal[0]-npad),np.ceil(lam_gal[-1]+npad),1)
+            interp_ftn = interp1d(lam_temp,ssp,kind='linear',bounds_error=False,fill_value=(0.0,0.0))
+            ssp = interp_ftn(lam_temp_new)
+            lam_temp = lam_temp_new 
+
         ssp = ssp[mask]
         ssp = gaussian_filter1d(ssp, sigma)  # perform convolution with variable sigma
         sspNew,loglam_temp,velscale_temp = log_rebin(lamRange_temp, ssp, velscale=velscale)#[0]
@@ -9470,7 +9499,7 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
 
     return ll_dict
 
-def flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=True,verbose=True):
+def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=True,verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     component fluxes from MCMC sample chains.
@@ -9494,7 +9523,7 @@ def flux_plots(flux_blob, burn_in, nwalkers, run_dir, plot_flux_hist=True,verbos
     for key in flux_dict:
         if verbose:
             print('		  %s' % key)
-        chain = np.log10(flux_dict[key]['chain']*1.e-17) # shape = (nwalkers,niter)
+        chain = np.log10(flux_dict[key]['chain']*flux_norm) # shape = (nwalkers,niter)
         chain[~np.isfinite(chain)] = 0
         flux_dict[key]['chain'] = chain
         # Burned-in + Flattened (along walker axis) chain
@@ -9598,7 +9627,7 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
     # Create a flux dictionary
     lum_dict = {}
     for key in flux_dict:
-        flux = 10**(flux_dict[key]['chain']) # * 1.e-17
+        flux = 10**(flux_dict[key]['chain']) 
         # Convert fluxes to luminosities and take log10
         lum   = np.log10((flux * 4*np.pi * d_cm**2	)) #/ 1.0E+42
         lum[~np.isfinite(lum)] = 0
