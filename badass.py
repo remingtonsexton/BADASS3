@@ -66,7 +66,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", category=UserWarning) 
 
 __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Reefe (GMU), William Matzko (GMU), Nicholas Darden (UCR)"
-__copyright__  = "Copyright (c) 2021 Remington Oliver Sexton"
+__copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
 __version__	= "9.3.1"
@@ -315,7 +315,7 @@ def run_BADASS(data,
             output_options["verbose"] = False
         else:
             output_options = {"verbose": False}
-            
+
 
     if os.path.isdir(data):
         # Get locations of sub-directories for each fit within the parent data directory
@@ -3085,9 +3085,9 @@ def line_list_default():
         ### Region 3 (6200 Å - 6800 Å)
 
         "NA_OI_6302"   :{"center":6302.046, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
-        "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"free" , "line_type":"na","label":r"[S III]"},
+        "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"free"             , "line_type":"na","label":r"[S III]"},
         "NA_OI_6365"   :{"center":6365.535, "amp":"NA_OI_6302_AMP/3.0"	, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
-        "NA_FEX_6374"  :{"center":6374.510, "amp":"free"				, "disp":"free"			    , "voff":"free"				, "line_type":"na","label":r"[Fe X]"}, # Coronal Line
+        "NA_FEX_6374"  :{"center":6374.510, "amp":"free"				, "disp":"NA_NII_6585_DISP"	, "voff":"free"				, "line_type":"na","label":r"[Fe X]"}, # Coronal Line
         #
         "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93"	, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"[N II]"},
         "NA_H_ALPHA"   :{"center":6564.632, "amp":"free"					, "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "line_type":"na","label":r"H$\alpha$"},
@@ -7384,6 +7384,7 @@ def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbo
 
     # lam_temp needs to be larger than lam_gal by npad pixels; if it isn't we need to make it larger
     npad = 100
+    interp_temp=False
     if (lam_gal[0]-npad<=lam_temp[0]) or (lam_gal[-1]+npad>=lam_temp[-1]):
         interp_temp = True
         lam_temp_new = np.arange(int(lam_gal[0]-npad),np.ceil(lam_gal[-1]+npad),1)
