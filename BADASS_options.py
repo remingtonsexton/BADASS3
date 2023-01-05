@@ -86,7 +86,6 @@ losvd_options = {
 "library"   : "IndoUS", # Options: IndoUS, Vazdekis2010, eMILES
 "vel_const" : {"bool":False, "val":0.0},
 "disp_const": {"bool":False, "val":250.0},
-"losvd_apoly": {"bool":True , "order":3},
 }
 
 ########################## SSP Host Galaxy Template & Options ##################
@@ -176,7 +175,7 @@ balmer_options = {
 
 ############################### Plotting options ###############################
 plot_options={
-"plot_param_hist"    : True,# Plot MCMC histograms and chains for each parameter
+"plot_param_hist"    : False,# Plot MCMC histograms and chains for each parameter
 "plot_flux_hist"     : False,# Plot MCMC hist. and chains for component fluxes
 "plot_lum_hist"      : False,# Plot MCMC hist. and chains for component luminosities
 "plot_eqwidth_hist"  : False, # Plot MCMC hist. and chains for equivalent widths 

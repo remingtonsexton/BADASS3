@@ -186,7 +186,14 @@ def read_manga_ifu(fits_file,z=0):
 
     return nx,ny,nz,ra,dec,mangaid,wave,flux,ivar,specres,mask,None
 
-
+def find_nearest(array, value):
+    """
+    This function finds the nearest value in an array and returns the 
+    closest value and the corresponding index.
+    """
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx],idx
 
 def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binning=False,targetsn=None,cvt=True,voronoi_plot=True,quiet=True,wvt=False,bin_avg=False,
                 maxbins=800,snr_threshold=0.5,fixed_bin_size=10,use_and_mask=True,nx=None,ny=None,nz=None,ra=None,dec=None,dataid=None,wave=None,flux=None,ivar=None,
@@ -334,10 +341,29 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
 
     if voronoi_binning:
 
+        # wavelength at which the S/N is calculated
+        sn_wave = 5100.0
+        # get index of wavlength at the S/N wavelength
+        _val, _idx = find_nearest(wave/(1+z),sn_wave)
+
+        # Test Plot
+        if 0:
+            fig = plt.figure(figsize=(20,6))
+            ax1 = fig.add_subplot(1,1,1)
+            ax1.plot(wave/(1+z),flux[:,39,38],linewidth=0.5)
+            ax1.set_xlim(4400,5500)
+            ax1.axvline(5007)
+            ax1.axvline(4960)
+            ax1.axvline(4862)
+            sys.exit(0)
+        #
+
         # Average along the wavelength axis so each spaxel has one s/n value
         # Note to self: Y AXIS IS ALWAYS FIRST ON NUMPY ARRAYS
-        signal = np.nanmean(flux[:, miny:maxy, minx:maxx], axis=0)
-        noise = np.sqrt(np.nanmean(1/ivar[:, miny:maxy, minx:maxx], axis=0))
+        # signal = np.nanmean(flux[:, miny:maxy, minx:maxx], axis=0)
+        # noise = np.nanmean(np.sqrt(1/ivar[:, miny:maxy, minx:maxx]), axis=0)
+        signal = flux[_idx, miny:maxy, minx:maxx]
+        noise  = np.sqrt(1/ivar[_idx, miny:maxy, minx:maxx])
 
         sr = signal.ravel()
         nr = noise.ravel()
