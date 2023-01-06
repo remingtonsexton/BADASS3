@@ -751,6 +751,7 @@ def run_single_thread(fits_file,
     #### Line Testing ################################################################################################################################################################################
     do_line_test = test_line['bool']
     cont_fit = test_line['cont_fit']
+    test_indv = test_line['test_indv']
     
     
     if (do_line_test):
@@ -761,57 +762,114 @@ def run_single_thread(fits_file,
             return
         elif (isinstance(test_line["line"],list)) and not (np.all([False if line not in line_list else True for line in test_line["line"]])):
             shutil.rmtree(run_dir)
-            print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
+            print("\n Line(s) to test not found in line list! Make sure line is within fitting region for test.\n")
             return
             
-
-        if verbose:
-            print("\n Testing for %s" % (test_line["line"]))
-
-
-        param_dict,line_list,combined_line_list,soft_cons = line_test(param_dict,
-                  line_list,
-                  combined_line_list,
-                  soft_cons,
-                  lam_gal,
-                  galaxy,
-                  noise,
-                  z,
-                  cosmology,
-                  fit_reg,
-                  user_lines,
-                  user_constraints,
-                  combined_lines,
-                  test_line,
-                  comp_options,
-                  losvd_options,
-                  host_options,
-                  power_options,
-                  poly_options,
-                  opt_feii_options,
-                  uv_iron_options,
-                  balmer_options,
-                  outflow_test_options,
-                  host_template,
-                  opt_feii_templates,
-                  uv_iron_template,
-                  balmer_template,
-                  stel_templates,
-                  blob_pars,
-                  disp_res,
-                  fit_mask,
-                  velscale,
-                  run_dir,
-                  fit_type='init',
-                  fit_stat=fit_stat,
-                  output_model=False,
-                  test_outflows=False,
-                  n_basinhop=n_basinhop,
-                  max_like_niter=max_like_niter,
-                  verbose=verbose,
-                  binnum=binnum,
-                  spaxelx=spaxelx,
-                  spaxely=spaxely)
+        
+        
+        if test_indv:
+            
+            if verbose:
+                print("\n Testing lines individually \n")
+                print("\n Testing for %s" % (test_line["line"]))
+            
+            
+            param_dict,line_list,combined_line_list,soft_cons = line_test_indv(param_dict,
+                      line_list,
+                      combined_line_list,
+                      soft_cons,
+                      lam_gal,
+                      galaxy,
+                      noise,
+                      z,
+                      cosmology,
+                      fit_reg,
+                      user_lines,
+                      user_constraints,
+                      combined_lines,
+                      test_line,
+                      comp_options,
+                      losvd_options,
+                      host_options,
+                      power_options,
+                      poly_options,
+                      opt_feii_options,
+                      uv_iron_options,
+                      balmer_options,
+                      outflow_test_options,
+                      host_template,
+                      opt_feii_templates,
+                      uv_iron_template,
+                      balmer_template,
+                      stel_templates,
+                      blob_pars,
+                      disp_res,
+                      fit_mask,
+                      velscale,
+                      run_dir,
+                      fit_type='init',
+                      fit_stat=fit_stat,
+                      output_model=False,
+                      test_outflows=False,
+                      n_basinhop=n_basinhop,
+                      max_like_niter=max_like_niter,
+                      verbose=verbose,
+                      binnum=binnum,
+                      spaxelx=spaxelx,
+                      spaxely=spaxely)
+                      
+        else:
+            if verbose:
+                print("\n Testing for all lines at once")
+                print("\n Testing for %s" % (test_line["line"]))
+                
+                
+            param_dict,line_list,combined_line_list,soft_cons = line_test_all(param_dict,
+                      line_list,
+                      combined_line_list,
+                      soft_cons,
+                      lam_gal,
+                      galaxy,
+                      noise,
+                      z,
+                      cosmology,
+                      fit_reg,
+                      user_lines,
+                      user_constraints,
+                      combined_lines,
+                      test_line,
+                      comp_options,
+                      losvd_options,
+                      host_options,
+                      power_options,
+                      poly_options,
+                      opt_feii_options,
+                      uv_iron_options,
+                      balmer_options,
+                      outflow_test_options,
+                      host_template,
+                      opt_feii_templates,
+                      uv_iron_template,
+                      balmer_template,
+                      stel_templates,
+                      blob_pars,
+                      disp_res,
+                      fit_mask,
+                      velscale,
+                      run_dir,
+                      fit_type='init',
+                      fit_stat=fit_stat,
+                      output_model=False,
+                      test_outflows=False,
+                      n_basinhop=n_basinhop,
+                      max_like_niter=max_like_niter,
+                      verbose=verbose,
+                      binnum=binnum,
+                      spaxelx=spaxelx,
+                      spaxely=spaxely)
+                      
+                      
+                      
         # Exit BADASS -- no longer default option. Will continue fitting if specified
         if not cont_fit:
             print(' - Line testing complete for %s! Exiting... \n' % fits_file.parent.name)
@@ -4020,7 +4078,7 @@ def chi2_metric(eval_ind,
 
     return chi2_outflow, chi2_outflow_err, chi2_no_outflow, chi2_no_outflow_err, chi2_ratio, chi2_ratio_err
 
-def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_ind, nchannel, ddof, run_dir, test_line):
+def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_ind, nchannel, ddof, run_dir, test_line=None):
     """
     Performs a Bayesian A/B hypothesis test for the 
     likelihood distributions for two models.
@@ -4136,14 +4194,517 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_in
     ax5.axis('off')
     
     fig.tight_layout()
-    plt.savefig(run_dir.joinpath('line_tests', f'{test_line}', 'test_results.pdf'))
+    if test_line is not None:
+        plt.savefig(run_dir.joinpath('line_tests', f'{test_line}', 'test_results.pdf'))
+    else:
+        plt.savefig(run_dir.joinpath('line_tests', 'test_results.pdf'))
     plt.close()
 
     return p_pval[1],p_pval[2]-p_pval[1],p_pval[1]-p_pval[0], p_conf[1],p_conf[2]-p_conf[1],p_conf[1]-p_conf[0], d, disp, signif, overlap
 
 ##################################################################################
 
-def line_test(param_dict,
+
+
+def line_test_all(param_dict,
+              line_list,
+              combined_line_list,
+              soft_cons,
+              lam_gal,
+              galaxy,
+              noise,
+              z,
+              cosmology,
+              fit_reg,
+              user_lines,
+              user_constraints,
+              combined_lines,
+              test_line,
+              comp_options,
+              losvd_options,
+              host_options,
+              power_options,
+              poly_options,
+              opt_feii_options,
+              uv_iron_options,
+              balmer_options,
+              outflow_test_options,
+              host_template,
+              opt_feii_templates,
+              uv_iron_template,
+              balmer_template,
+              stel_templates,
+              blob_pars,
+              disp_res,
+              fit_mask,
+              velscale,
+              run_dir,
+              fit_type='init',
+              fit_stat="RCHI2",
+              output_model=False,
+              test_outflows=False,
+              n_basinhop=5,
+              max_like_niter=10,
+              verbose=True,
+              binnum=None,
+              spaxelx=None,
+              spaxely=None):
+    """
+    Performs component (or line) testing based on user input wavelength range.
+    """
+
+    #if (test_outflows==True):
+    #    remove_lines = [line for line in line_list if line_list[line]["line_type"]=="out"]
+    #elif (test_outflows==False):
+    #    if isinstance(test_line["line"],str):
+    #        remove_lines = [test_line["line"]]
+    #    elif isinstance(test_line["line"],list):
+    #        remove_lines = test_line["line"]
+    
+    
+    remove_lines = test_line["line"]
+    
+    cont_fit = test_line['cont_fit']
+    conf_thresh = test_line['conf']
+    fconf_thresh = test_line['f_conf']
+    chi2r_thresh = test_line['chi2_ratio']
+    ssrr_thresh = test_line['ssr_ratio']
+    lt_mask = test_line['linetest_mask'].lower() # make case insensitive 
+    
+    
+    stats_thresh = [conf_thresh, fconf_thresh, chi2r_thresh, ssrr_thresh]
+    
+    if np.all([type(x)==type(None) for x in stats_thresh]):
+        shutil.rmtree(run_dir)
+        raise ValueError("At least one line test threshold must not be None")
+        
+    # make line_test dir 
+    line_test_dir = run_dir.joinpath('line_tests')
+    line_test_dir.mkdir(parents=True,exist_ok=True)
+    
+    # write initial line test information (thresholds, etc.) to log
+    write_log((stats_thresh,lt_mask,remove_lines),'line_test_info',run_dir)
+
+    # Make copy of original line list, since initialize_pars() will override it. 
+    # Also make copies of other stuff for ease 
+    original_line_list = copy.deepcopy(line_list)
+    original_param_dict = copy.deepcopy(param_dict)
+    original_soft_cons = copy.deepcopy(soft_cons)
+    original_combined_line_list = generate_comb_line_list(combined_line_list, original_line_list)
+
+    # Perform fitting without line
+    if verbose:
+        print('\n Fitting simpler model without %s...\n' % remove_lines)
+
+    # Generate parameters without lines
+    param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
+                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 opt_feii_options,uv_iron_options,balmer_options,
+                                 run_dir,fit_type='init',fit_stat=fit_stat,
+                                 fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
+                                 fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
+                                 fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
+                                 tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
+
+
+    mcpars_no_line, mccomps_no_line, mcLL_no_line = max_likelihood(param_dict_no_line,
+                                                                               line_list_no_line,
+                                                                               combined_line_list_no_line,
+                                                                               soft_cons_no_line,
+                                                                               lam_gal,
+                                                                               galaxy,
+                                                                               noise,
+                                                                               z,
+                                                                               cosmology,
+                                                                               comp_options,
+                                                                               losvd_options,
+                                                                               host_options,
+                                                                               power_options,
+                                                                               poly_options,
+                                                                               opt_feii_options,
+                                                                               uv_iron_options,
+                                                                               balmer_options,
+                                                                               outflow_test_options,
+                                                                               host_template,
+                                                                               opt_feii_templates,
+                                                                               uv_iron_template,
+                                                                               balmer_template,
+                                                                               stel_templates,
+                                                                               blob_pars,
+                                                                               disp_res,
+                                                                               fit_mask,
+                                                                               velscale,
+                                                                               run_dir,
+                                                                               fit_type='init',
+                                                                               fit_stat=fit_stat,
+                                                                               output_model=False,
+                                                                               test_outflows=True,
+                                                                               n_basinhop=n_basinhop,
+                                                                               max_like_niter=max_like_niter,
+                                                                               verbose=verbose)
+
+    # (Don't do this) Initialize the no_line fit to be at the same fit parameters as the fit with the line
+    # for key in param_dict:
+    #     if key in [p for p in mcpars_no_line]:
+    #         # print(key)
+    #         param_dict[key]["init"] = mcpars_no_line[key]["med"]
+
+
+    # Perform fitting with line
+    if verbose:
+        print('\n Fitting complex model with %s...\n' % remove_lines)
+    mcpars_line, mccomps_line, mcLL_line = max_likelihood(param_dict,
+                                                          original_line_list,
+                                                          combined_line_list,
+                                                          soft_cons,
+                                                          lam_gal,
+                                                          galaxy,
+                                                          noise,
+                                                          z,
+                                                          cosmology,
+                                                          comp_options,
+                                                          losvd_options,
+                                                          host_options,
+                                                          power_options,
+                                                          poly_options,
+                                                          opt_feii_options,
+                                                          uv_iron_options,
+                                                          balmer_options,
+                                                          outflow_test_options,
+                                                          host_template,
+                                                          opt_feii_templates,
+                                                          uv_iron_template,
+                                                          balmer_template,
+                                                          stel_templates,
+                                                          blob_pars,
+                                                          disp_res,
+                                                          fit_mask,
+                                                          velscale,
+                                                          run_dir,
+                                                          fit_type='init',
+                                                          fit_stat=fit_stat,
+                                                          output_model=False,
+                                                          test_outflows=True,
+                                                          n_basinhop=n_basinhop,
+                                                          max_like_niter=max_like_niter,
+                                                          verbose=verbose)
+
+    # Calculate delta degrees of freedom (ddof) from extra line parameters
+    ddof = 0
+    for line in remove_lines:
+        for par in original_line_list[line]:
+            if original_line_list[line][par]=="free":
+                # print(line_list[line][par])
+                ddof+=1
+
+    
+
+    # if fit_stat = "RCHI2", we need to scale the input noise so that the 
+    # line tests are using the properly scaled noise.
+    if fit_stat=="RCHI2":
+        noise *= np.nanmean([mcpars_line["NOISE_SCALE"]["med"], mcpars_no_line["NOISE_SCALE"]["med"]])
+
+
+
+    # Determine test channels
+    # Associated lines are those narrow lines associated with outflow lines, which
+    # should be included in the determination of the test channels.
+    assoc_lines = []
+    if np.all([i[:4]=="OUT_" for i in remove_lines]):
+        for i in remove_lines:
+            if ("NA_"+i[4:]) in line_list:
+                assoc_lines.append("NA_"+i[4:])
+
+    if isinstance(remove_lines,str):
+        full_profile = np.median(mccomps_line[remove_lines+assoc_lines],axis=0)
+    elif isinstance(remove_lines,list):
+        full_profile = np.zeros(len(lam_gal))
+        for i in (remove_lines+assoc_lines):
+            full_profile+=np.median(mccomps_line[i],axis=0)
+
+    eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask], original_line_list, remove_lines, velscale)
+
+    # storage arrays for residuals in [OIII] test region
+    resid_line	  = np.empty((max_like_niter+1,nchannel))
+    resid_no_line = np.empty((max_like_niter+1,nchannel))
+    resid_total	  = np.empty((max_like_niter+1,len(lam_gal[fit_mask])))
+    for i in range(max_like_niter+1):
+        resid_line[i,:]	   = mccomps_line['RESID'][i,:][fit_mask][eval_ind]
+        resid_no_line[i,:] = mccomps_no_line['RESID'][i,:][fit_mask][eval_ind]
+        resid_total[i,:]   = mccomps_line['RESID'][i,:][fit_mask]
+
+    # Perform Bayesian A/B test
+    pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap = bayesian_AB_test(mccomps_line['RESID'][0,:][fit_mask], mccomps_no_line['RESID'][0,:][fit_mask], full_profile[fit_mask], lam_gal[fit_mask], noise[fit_mask], galaxy[fit_mask], eval_ind, nchannel, ddof, run_dir)
+
+    # Calculate sum-of-square of residuals and its uncertainty
+    ssr_ratio, ssr_ratio_err, ssr_no_line, ssr_no_line_err, ssr_line, ssr_line_err = ssr_test(resid_line,resid_no_line,run_dir)
+    # Perform f-test model comparison(for normally distributed model residuals)
+    f_stat, f_stat_err, f_pval, f_pval_err, f_conf, f_conf_err = f_test(resid_line,resid_no_line,1.0,4.0,run_dir)
+
+    # Calculate total residual noise
+    resid_noise_no_line	       = np.median([np.std(resid_no_line[i,:]) for i in range(np.shape(resid_no_line)[0])])
+    resid_noise_no_line_err    = np.std([np.std(resid_no_line[i,:]) for i in range(np.shape(resid_no_line)[0])])
+    resid_noise_line		   = np.median([np.std(resid_line[i,:]) for i in range(np.shape(resid_line)[0])])
+    resid_noise_line_err	   = np.std([np.std(resid_line[i,:]) for i in range(np.shape(resid_line)[0])])
+    total_resid_noise		   = np.median([np.std(resid_total[i,:]) for i in range(np.shape(resid_total)[0])])
+    total_resid_noise_err	   = np.std([np.std(resid_total[i,:]) for i in range(np.shape(resid_total)[0])])
+
+    # Chi2 Metrics
+    # Chi-squared is evaluated in the region of the line for the two models
+    # The ratio of chi squared for the outflow to the no-outflow model indicates
+    # how much the model improved over the other.
+    chi2_line, chi2_line_err, chi2_no_line, chi2_no_line_err, chi2_ratio, chi2_ratio_err = chi2_metric(range(len(lam_gal)),mccomps_line, mccomps_no_line)
+
+    if verbose:
+        print('\n{0:<30}{1:<30}{2:<30}{3:<30}'.format('Parameter', 'Best-fit Value', '+/- 1-sigma','Flag'))
+        print('-----------------------------------------------------------------------------------------------------')
+    # Sort into arrays
+    pname = []
+    med   = []
+    std   = []
+    flag  = [] 
+    for key in mcpars_line:
+        pname.append(key)
+        med.append(mcpars_line[key]['med'])
+        std.append(mcpars_line[key]['std'])
+        flag.append(mcpars_line[key]['flag'])
+    i_sort = np.argsort(pname)
+    pname = np.array(pname)[i_sort] 
+    med   = np.array(med)[i_sort]   
+    std   = np.array(std)[i_sort]   
+    flag  = np.array(flag)[i_sort]
+    if verbose:  
+        for i in range(0,len(pname),1):
+            print('{0:<30}{1:<30.2f}{2:<30.2f}{3:<30}'.format(pname[i], med[i], std[i], flag[i]))
+        print('-----------------------------------------------------------------------------------------------------')
+        print('\n Test Statistics:')
+        print('-----------------------------------------------------------------------------------------------------')
+        print('{0:<30}{1:<30}{2:<30}{3:<30}'.format('','Statistic','Value','Uncertainty') )
+        print('-----------------------------------------------------------------------------------------------------')
+        print('{0:<30}'.format('A/B Likelihood Test::'))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30}'.format('','Confidence:',conf,"(-%0.6f,+%0.6f)" % (conf_low,conf_upp )) )
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30}'.format('','p-value:',pval,"(-%0.6f,+%0.6f)" % (pval_low,pval_upp)))
+        print('{0:<30}{1:<30}{2:<30.6f}'.format('','Statistical Distance:',dist))
+        print('{0:<30}{1:<30}{2:<30.6f}'.format('','Disperson:',disp))
+        print('{0:<30}{1:<30}{2:<30.6f}'.format('','Significance (sigma):',signif))
+        print('{0:<30}{1:<30}{2:<30.6f}'.format('','Overlap (1-sigma):',overlap))
+        print('{0:<30}'.format('ANOVA (F-test):'))
+        print('{0:<30}{1:<30}{2:<30.4f}{3:<30.4f}'.format('','Confidence:',f_conf, f_conf_err ) )
+        print('{0:<30}{1:<30}{2:<30.4f}{3:<30.4f}'.format('','F-statistic:',f_stat,f_stat_err))
+        print('{0:<30}{1:<30}{2:<30.4e}{3:<30.4e}'.format('','p-value:',f_pval,f_pval_err))
+        print('{0:<30}'.format('Chi-Squared Metrics:'))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Chi-squared Ratio:',chi2_ratio, chi2_ratio_err ) )
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Chi-squared no-outflow:',chi2_no_line,chi2_no_line_err))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Chi-squared outflow:',chi2_line,chi2_line_err))
+        print('{0:<30}'.format('Sum-of-Squares of Residuals (SSR):'))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','SSR ratio:',ssr_ratio,ssr_ratio_err))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','SSR no-outflow:',ssr_no_line,ssr_no_line_err))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','SSR outflow:',ssr_line,ssr_line_err))
+        print('{0:<30}'.format('Residual Noise:'))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Median spec noise:',np.median(noise),np.std(noise)))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Total resid noise:',total_resid_noise,total_resid_noise_err)) 
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','No-line resid:',resid_noise_no_line,resid_noise_no_line_err))
+        print('{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Line resid:',resid_noise_line,resid_noise_line_err))
+        print('-----------------------------------------------------------------------------------------------------')
+
+    # Write test statistics to FITS table
+    stats_dict = {
+    "PVAL":				   {"best": pval, "sigma_low": pval_low, "sigma_upp": pval_upp },
+    "CONF":				   {"best": conf, "sigma_low": conf_low, "sigma_upp": conf_upp},
+    "DIST":				   {"best": dist, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "DISP":				   {"best": disp, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "SIGNIF":			   {"best": signif, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "OVERLAP":			   {"best": overlap, "sigma_low": 0.0, "sigma_upp": 0.0},
+    "F_CONF":			   {"best": f_conf, "sigma_low": f_conf_err, "sigma_upp": f_conf_err},
+    "F_STAT":			   {"best": f_stat, "sigma_low": f_stat_err, "sigma_upp": f_stat_err},
+    "F_PVAL":			   {"best": f_pval, "sigma_low": f_pval_err, "sigma_upp": f_pval_err},
+    "CHI2_LINE":		   {"best": chi2_line, "sigma_low": chi2_line_err, "sigma_upp": chi2_line_err},
+    "CHI2_NO_LINE":		   {"best": chi2_no_line, "sigma_low": chi2_no_line_err, "sigma_upp": chi2_no_line_err},
+    "CHI2_RATIO":		   {"best": chi2_ratio, "sigma_low": chi2_ratio_err, "sigma_upp": chi2_ratio_err},
+    "SSR_RATIO":		   {"best": ssr_ratio, "sigma_low": ssr_ratio_err, "sigma_upp": ssr_ratio_err},
+    "SSR_NO_LINE":		   {"best": ssr_no_line, "sigma_low": ssr_no_line_err, "sigma_upp": ssr_no_line_err},
+    "SSR_LINE":			   {"best": ssr_line, "sigma_low": ssr_line_err, "sigma_upp": ssr_line_err},
+    "MEDIAN_NOISE":		   {"best": np.median(noise), "sigma_low": np.std(noise), "sigma_upp": np.std(noise)},
+    "RESID_NOISE":		   {"best": total_resid_noise, "sigma_low": total_resid_noise_err, "sigma_upp": total_resid_noise_err},
+    "RESID_NOISE_NO_LINE": {"best": resid_noise_no_line, "sigma_low": resid_noise_no_line_err, "sigma_upp": resid_noise_no_line_err},
+    "RESID_NOISE_LINE":	   {"best": resid_noise_line, "sigma_low": resid_noise_line_err, "sigma_upp": resid_noise_line_err},
+    }
+    write_test_stats(stats_dict,run_dir)
+    
+    # this is a bit redundant with what's below, but I want to plainly include whether each line was included or not in the log file, and this is an easy way to do it
+    conf = stats_dict['CONF']['best']
+    fconf = stats_dict['F_CONF']['best']
+    chi2r = stats_dict['CHI2_RATIO']['best']
+    ssrr = stats_dict['SSR_RATIO']['best']
+    stats_calc = [conf,fconf,chi2r,ssrr]
+    
+    if lt_mask == 'or':
+        include = np.any([x>y for x,y in zip(stats_calc,stats_thresh) if y is not None])
+    elif lt_mask == 'and':
+        include = np.all([x>y for x,y in zip(stats_calc,stats_thresh) if y is not None])
+
+
+
+    # Write to log
+    write_log(mcpars_no_line,'no_line_test',run_dir)
+    write_log((None,mcpars_line),'line_test',run_dir)
+    write_log((None,include,pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap,
+                  f_conf,f_conf_err,f_stat,f_stat_err,f_pval,f_pval_err,
+                  chi2_ratio,chi2_ratio_err,chi2_no_line,chi2_no_line_err,chi2_line,chi2_line_err,
+                  # amp_metric,disp_metric,voff_metric,voff_metric_err,
+                  ssr_ratio,ssr_ratio_err,ssr_no_line,ssr_no_line_err,ssr_line,ssr_line_err,
+                  np.median(noise), np.std(noise), 
+                  total_resid_noise,total_resid_noise_err,resid_noise_no_line,resid_noise_no_line_err,resid_noise_line,resid_noise_line_err),
+              'line_test_stats',run_dir)
+
+    # Reinstate the original line list
+    line_list = original_line_list
+
+    # Make plot 
+    # Get best fit model components for each model 
+    param_names_line = [key for key in param_dict ]
+    params_line		= [mcpars_line[key]['med']  for key in param_dict ]
+    fit_type	 = 'line_test'
+    output_model = False
+    comp_dict_line = fit_model(params_line,
+                              param_names_line,
+                              line_list,
+                              combined_line_list,
+                              lam_gal,
+                              galaxy,
+                              noise,
+                              comp_options,
+                              losvd_options,
+                              host_options,
+                              power_options,
+                              poly_options,
+                              opt_feii_options,
+                              uv_iron_options,
+                              balmer_options,
+                              outflow_test_options,
+                              host_template,
+                              opt_feii_templates,
+                              uv_iron_template,
+                              balmer_template,
+                              stel_templates,
+                              blob_pars,
+                              disp_res,
+                              fit_mask,
+                              velscale,
+                              run_dir,
+                              fit_type,
+                              fit_stat,
+                              output_model)
+    param_names_no_line = [key for key in param_dict_no_line ]
+    params_no_line		= [mcpars_no_line[key]['med']  for key in param_dict_no_line ]
+    fit_type	 = 'line_test'
+    output_model = False
+    comp_dict_no_line = fit_model(params_no_line,
+                              param_names_no_line,
+                              line_list_no_line,
+                              combined_line_list_no_line,
+                              lam_gal,
+                              galaxy,
+                              noise,
+                              comp_options,
+                              losvd_options,
+                              host_options,
+                              power_options,
+                              poly_options,
+                              opt_feii_options,
+                              uv_iron_options,
+                              balmer_options,
+                              outflow_test_options,
+                              host_template,
+                              opt_feii_templates,
+                              uv_iron_template,
+                              balmer_template,
+                              stel_templates,
+                              blob_pars,
+                              disp_res,
+                              fit_mask,
+                              velscale,
+                              run_dir,
+                              fit_type,
+                              fit_stat,
+                              output_model)
+                              
+                              
+                              
+                              
+    conf = stats_dict['CONF']['best']
+    fconf = stats_dict['F_CONF']['best']
+    chi2r = stats_dict['CHI2_RATIO']['best']
+    ssrr = stats_dict['SSR_RATIO']['best']
+    stats_calc = [conf,fconf,chi2r,ssrr]
+    #print(conf, fconf, chi2r, ssrr, 'stats')
+    
+    if lt_mask == 'or':
+        include = np.any([x>y for x,y in zip(stats_calc,stats_thresh) if y is not None])
+    elif lt_mask == 'and':
+        include = np.all([x>y for x,y in zip(stats_calc,stats_thresh) if y is not None])
+        
+        
+        
+    if include:
+        if verbose:
+            print("\n  Complex model included in final fit\n\n")
+        final_param_dict = param_dict
+        final_line_list = original_line_list 
+        final_combined_line_list = original_combined_line_list 
+        final_soft_cons = original_soft_cons
+    else:
+        if verbose:
+            print("\n  Complex model NOT included in final fit\n\n")
+        final_param_dict = param_dict_no_line
+        final_line_list = line_list_no_line
+        final_combined_line_list = combined_line_list_no_line
+        final_soft_cons = soft_cons_no_line
+        
+        
+        # need to add test lines to final outputs here, but set them to zero. This is to have a uniform output, which is needed when properly fitting IFU data. 
+        
+        for test_line in remove_lines: # remove_lines is now always a list
+            final_line_list[f"{test_line}"] = original_line_list[f"{test_line}"]
+            d_line = {test_line:{kk:0 if kk in ['amp','disp','voff'] else vv for kk,vv in original_line_list[test_line].items()}}
+            final_line_list.update(d_line)
+            
+        for key in original_param_dict.keys():
+            if key not in final_param_dict.keys():
+                final_param_dict[f"{key}"] = original_param_dict[f"{key}"]
+                key = '_'.join(key.split('_')[:-1])
+                d_amp = {key + '_AMP':{'init':1E-5, 'plim':(0,1E-4)}}
+                d_disp = {key + '_DISP':{'init':1E-5, 'plim':(0,1E-4)}}
+                d_voff = {key + '_VOFF':{'init':1E-5, 'plim':(0,1E-4)}}
+                d_shape = {key + '_SHAPE':{'init':0, 'plim':(0,1)}}
+                
+                
+                final_param_dict.update(d_amp)
+                final_param_dict.update(d_disp)
+                final_param_dict.update(d_voff)
+                final_param_dict.update(d_shape)
+ 
+        
+        
+    # also re-instate hard cons that may have been removed (converted to free param) during line testing, if applicable 
+    # assume that if it's a free parameter now and it wasn't free in the original line list, then it should be converted to whatever it was in the original line list
+    for keys,vals in final_line_list.items():
+        for key,val in vals.items():
+            if val == 'free' and original_line_list[keys][key] != 'free':
+                final_line_list[keys][key] = original_line_list[keys][key]    
+    
+    # Make comparison plots of outflow and no-outflow models
+    line_test_plot(lam_gal,comp_dict_line,comp_dict_no_line,line_list,line_list_no_line,
+                           params_line,params_no_line,param_names_line,param_names_no_line,eval_ind,run_dir)
+
+    # Write results to FITS
+    write_line_test_results(mcpars_line,comp_dict_line,mcpars_no_line,comp_dict_no_line,fit_mask,run_dir,binnum,spaxelx,spaxely)
+
+    return final_param_dict,final_line_list,final_combined_line_list,final_soft_cons
+
+
+
+def line_test_indv(param_dict,
               line_list,
               combined_line_list,
               soft_cons,
@@ -4217,9 +4778,7 @@ def line_test(param_dict,
         shutil.rmtree(run_dir)
         raise ValueError("At least one line test threshold must not be None")
     
-
-    
-    # Make sure the lines to be tested are in the line list    
+  
     remove_lines = test_line["line"]
 
     line_list_lines = list(line_list.keys())
@@ -4246,18 +4805,19 @@ def line_test(param_dict,
     #Make copy of par_dict to trim it. DON'T ACTUALLY NEED THIS
     #trimmed_param_dict = {k:v for k,v in param_dict.items() if '_'.join(k.split('_')[:-1]) not in remove_lines}
     #original_param_dict = copy.deepcopy(param_dict)
-    #print(f"{original_param_dict = }")
-    #sys.exit('debug')
+
     # Make copy of original line list, since initialize_pars() will override it.
     original_line_list = copy.deepcopy(line_list)
     #trimmed_line_list = {k:v for k,v in original_line_list.items() if k not in remove_lines}  # add tested lines back to this list one at a time for the testing  
 
     lines_stats_dict = {} # initialize dictionary to hold stats of all individual lines. Nested dict with {'line': stats_dict} format 
     
-    #make copy of soft cons
+    #make copies of original options
     original_soft_cons = copy.deepcopy(soft_cons)
     
     original_param_dict = copy.deepcopy(param_dict)
+    
+    original_combined_line_list = generate_comb_line_list(combined_line_list, original_line_list)
     
     param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                              comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
@@ -4267,11 +4827,7 @@ def line_test(param_dict,
                              fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
                              fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
                              tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
-                             
-
-
-    
-    original_combined_line_list = generate_comb_line_list(combined_line_list, original_line_list)
+                            
     
     
     # write initial line test information (thresholds, etc.) to log
@@ -4320,6 +4876,7 @@ def line_test(param_dict,
     # write simple model to log 
     write_log(mcpars_no_line,'no_line_test',run_dir)
     
+    
     for line in remove_lines:
         # create directory for current line
         current_line_dir = line_test_dir.joinpath(f'{line}')
@@ -4328,7 +4885,7 @@ def line_test(param_dict,
         if verbose:
             print(f"\n Testing for {line}")
             
-        # Perform fitting without line. We no longer do this; simplest model is fit above. Add lines in one at a time. 
+        # Perform fitting without line. 
         #if verbose:
         #    print('\n Fitting simpler model without %s ...\n' % line )
 
@@ -4397,7 +4954,7 @@ def line_test(param_dict,
         #                     fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
         #                     tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=[x for x in remove_lines if x != line],verbose=verbose)
         
-        line_list_line = copy.deepcopy(line_list_no_line)  # initialize from no_line returns because it will sometimes include constrained lines (e.g. 4960) that aren't included in trimmed objects -> leads to crash 
+        line_list_line = copy.deepcopy(line_list_no_line)  # initialize from no_line because it will sometimes include constrained lines (e.g. 4960) that aren't included in trimmed objects -> leads to crash 
         param_dict_line = copy.deepcopy(param_dict_no_line)
 
         for key in param_dict.keys():
@@ -4541,12 +5098,14 @@ def line_test(param_dict,
             for i in ([line]+assoc_lines): # only want to do the current line instead of all of remove_lines
                 full_profile+=np.median(mccomps_line[i],axis=0)
 
-        eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask], original_line_list, remove_lines, velscale)
+        #eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask], original_line_list, remove_lines, velscale)
+        eval_ind, nchannel = get_test_range(lam_gal[fit_mask],noise[fit_mask],full_profile[fit_mask], line_list_line, [line], velscale)
 
         # storage arrays for residuals in [OIII] test region
         resid_line	  = np.empty((max_like_niter+1,nchannel))
         resid_no_line = np.empty((max_like_niter+1,nchannel))
         resid_total	  = np.empty((max_like_niter+1,len(lam_gal[fit_mask])))
+
         for i in range(max_like_niter+1):
             resid_line[i,:]	   = mccomps_line['RESID'][i,:][fit_mask][eval_ind]
             resid_no_line[i,:] = mccomps_no_line['RESID'][i,:][fit_mask][eval_ind]
@@ -4830,9 +5389,9 @@ def line_test(param_dict,
             final_line_list.update(d_line)
             
         if (key not in list(('_'.join(x.split('_')[:3]) for x in final_param_dict.keys())) ) and (key in final_remove_line):
-            d_amp = {key + '_AMP':{'init':1E-4,'plim':(0,1E-3)}}
-            d_disp = {key + '_DISP':{'init':1E-4,'plim':(0,1E-3)}}
-            d_voff = {key + '_VOFF':{'init':1E-4,'plim':(0,1E-3)}}
+            d_amp = {key + '_AMP':{'init':1E-5,'plim':(0,1E-4)}}
+            d_disp = {key + '_DISP':{'init':1E-5,'plim':(0,1E-4)}}
+            d_voff = {key + '_VOFF':{'init':1E-5,'plim':(0,1E-4)}}
             d_shape = {key + '_SHAPE':{'init':0,'plim':(0,1)}} # need for lines that have a voigt profile
             
             final_param_dict.update(d_amp)
@@ -4900,14 +5459,16 @@ def get_test_range(lam_gal, noise, full_profile, line_list, remove_lines, velsca
         # If the line is zero, then eval_ind will also be zero.  So we take the +/- 2500 km/s around
         # the line(s) being tested as the default test range.
         cen_pix = np.empty(len(remove_lines))
-        for l,line in enumerate(remove_lines):
-            cen_pix[l] = line_list[line]["center_pix"]
+        for l,t_line in enumerate(remove_lines):
+            cen_pix[l] = line_list[t_line]["center_pix"]
 
         vpad = 2500.0 # padding around test lines in km/s
         delta_pix = int(np.min(cen_pix)-vpad/velscale), int(np.ceil(np.max(cen_pix)+vpad/velscale))
         eval_ind = np.arange(delta_pix[0],delta_pix[1],1)
+        eval_ind = eval_ind[(eval_ind>=0)&(eval_ind<len(lam_gal))] # ensures that eval_ind is at most the same size as lam_gal
     else: 
         eval_ind = np.arange(np.min(eval_ind),np.max(eval_ind),1)
+        eval_ind = eval_ind[(eval_ind>=0)&(eval_ind<len(lam_gal))] # ensures that eval_ind is at most the same size as lam_gal
 
     # number of channels in the  test region 
     nchannel = len(eval_ind)
@@ -4926,7 +5487,7 @@ def get_test_range(lam_gal, noise, full_profile, line_list, remove_lines, velsca
 ##################################################################################
 
 
-def write_test_stats(stats_dict,run_dir, line):
+def write_test_stats(stats_dict,run_dir, line=None):
     """
     Writes statistics for outflow and line testing to a FITS table.
     """
@@ -4954,14 +5515,17 @@ def write_test_stats(stats_dict,run_dir, line):
     
     cols = fits.ColDefs([col1,col2,col3,col4])
     hdu = fits.BinTableHDU.from_columns(cols)
-    hdu.writeto(run_dir.joinpath('line_tests', f'{line}', 'test_stats.fits'),overwrite=True)
+    if line is not None:
+        hdu.writeto(run_dir.joinpath('line_tests', f'{line}', 'test_stats.fits'),overwrite=True)
+    else:
+        hdu.writeto(run_dir.joinpath('line_tests', 'test_stats.fits'),overwrite=True)
     #
     return
 
 ##################################################################################
 
 def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outflows,line_list_no_outflows,
-                           params_outflows,params_no_outflows,param_names_outflows,param_names_no_outflows,eval_ind,run_dir,test_line):
+                           params_outflows,params_no_outflows,param_names_outflows,param_names_no_outflows,eval_ind,run_dir,test_line = None):
     """
     The plotting function for test_line().  It plots both the outflow
     and no_outflow results.
@@ -5233,7 +5797,10 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
     ax1.set_title(run_dir.parent.name,fontsize=12)
     #
     fig.tight_layout()
-    plt.savefig(run_dir.joinpath('line_tests', f'{test_line}', 'line_test.pdf'),fmt='pdf')
+    if test_line is not None:
+        plt.savefig(run_dir.joinpath('line_tests', f'{test_line}', 'line_test.pdf'),fmt='pdf')
+    else:
+        plt.savefig(run_dir.joinpath('line_tests', 'line_test.pdf'),fmt='pdf')
     plt.close()
     #
     return
@@ -5247,7 +5814,7 @@ def write_line_test_results(result_dict_outflows,
                                comp_dict_no_outflows,
                                fit_mask,
                                run_dir,
-                               test_line,
+                               test_line = None,
                                binnum=None,
                                spaxelx=None,
                                spaxely=None):
@@ -5289,7 +5856,10 @@ def write_line_test_results(result_dict_outflows,
         ]))
         hdul.append(hdu2)
 
-    hdul.writeto(run_dir.joinpath('line_tests',f'{test_line}', 'line_par_table.fits'),overwrite=True)
+    if test_line is not None:
+        hdul.writeto(run_dir.joinpath('line_tests',f'{test_line}', 'line_par_table.fits'),overwrite=True)
+    else:
+        hdul.writeto(run_dir.joinpath('line_tests', 'line_par_table.fits'),overwrite=True)
 
     # Write best-fit components to FITS file
     cols = []
@@ -5312,8 +5882,10 @@ def write_line_test_results(result_dict_outflows,
             fits.Column(name='spaxely', array=spaxely, format='E')
         ]))
         hdul.append(hdu2)
-
-    hdul.writeto(run_dir.joinpath('line_tests',f'{test_line}', 'line_best_model_components.fits'),overwrite=True)
+    if test_line is not None:
+        hdul.writeto(run_dir.joinpath('line_tests',f'{test_line}', 'line_best_model_components.fits'),overwrite=True)
+    else:
+        hdul.writeto(run_dir.joinpath('line_tests', 'line_best_model_components.fits'),overwrite=True)
     #
     #
     # Write No-outflow model FITS tables
@@ -5346,7 +5918,10 @@ def write_line_test_results(result_dict_outflows,
         ]))
         hdul.append(hdu2)
 
-    hdul.writeto(run_dir.joinpath('line_tests',f'{test_line}', 'no_line_par_table.fits'),overwrite=True)
+    if test_line is not None:
+        hdul.writeto(run_dir.joinpath('line_tests',f'{test_line}', 'no_line_par_table.fits'),overwrite=True)
+    else:
+        hdul.writeto(run_dir.joinpath('line_tests', 'no_line_par_table.fits'),overwrite=True)
 
     # Write best-fit components to FITS file
     cols = []
@@ -5358,7 +5933,11 @@ def write_line_test_results(result_dict_outflows,
     # Write to fits
     cols = fits.ColDefs(cols)
     hdu = fits.BinTableHDU.from_columns(cols)
-    hdu.writeto(run_dir.joinpath('line_tests', f'{test_line}', 'no_line_best_model_components.fits'),overwrite=True)
+    
+    if test_line is not None:
+        hdu.writeto(run_dir.joinpath('line_tests', f'{test_line}', 'no_line_best_model_components.fits'),overwrite=True)
+    else:
+        hdu.writeto(run_dir.joinpath('line_tests', 'no_line_best_model_components.fits'),overwrite=True)
     #
     return 
 
@@ -5708,7 +6287,7 @@ def max_likelihood(param_dict,
                              x0 = params,
                              # T = 0.0,
                              stepsize=1.0,
-                             niter = 100, # Max # of iterations before stopping
+                             niter = 1000, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
                                                          prior_dict,
@@ -6532,6 +7111,8 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
             )
         # Title
         ax1.set_title(str(run_dir.name),fontsize=12)
+
+        #ax1.set_ylim([0,30])
 
         # Save figure
         plt.savefig(run_dir.joinpath('max_likelihood_fit.pdf'))
@@ -11576,7 +12157,12 @@ def write_log(output_val,output_type,run_dir):
         with log_file_path.open(mode='a') as logfile:
             logfile.write('\n')
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------\n')
-            logfile.write(f'\n### Line {line} Model Fitting Results ###')
+            
+            if line is not None:
+                logfile.write(f'\n### Line {line} Model Fitting Results ###')
+            else:
+                logfile.write('\n### Complex Model Fitting Results ###')
+            
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------\n')
             logfile.write('\n{0:<30}{1:<30}{2:<30}{3:<30}'.format('Parameter','Best-fit Value','+/- 1-sigma','Flag'))
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
@@ -11612,7 +12198,10 @@ def write_log(output_val,output_type,run_dir):
         with log_file_path.open(mode='a') as logfile:
             logfile.write('\n')
             # logfile.write('-----------------------------------------------------------------------------------------------------')
-            logfile.write(f'\n Line {line} Test Statistics:')
+            if line is not None:
+                logfile.write(f'\n Line {line} Test Statistics:')
+            else:
+                logfile.write('\n Complex Model Test Statistics:')
             logfile.write('\n-----------------------------------------------------------------------------------------------------')
             logfile.write('\n{0:<30}{1:<30}{2:<30}{3:<30}'.format('','Statistic','Value','Uncertainty') )
             logfile.write('\n-----------------------------------------------------------------------------------------------------')

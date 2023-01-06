@@ -36,14 +36,15 @@ import badass_tools.badass_ifu as ifu  # <<---  Import the IFU submodule here
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={
-"fit_reg"    : (4400,5350),                           # Fitting region; Note: Indo-US Library=(3460,9464)
+"fit_reg"    : (6200,8100),                           # Fitting region; Note: Indo-US Library=(3460,9464)
 "good_thresh":  0.0,                                  # percentage of "good" pixels required in fig_reg for fit.
 "mask_bad_pix": False,                                # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False,                                # mask emission lines for continuum fitting.
 "interp_metal": False,                                # interpolate over metal absorption lines for high-z spectra
-"n_basinhop": 5,                                     # Number of consecutive basinhopping thresholds before solution achieved
-"test_line": {"bool": True,                           # boolean of whether or not to test lines
-              "line":["OUT_OIII_5007","BR_H_BETA"],   # list of lines to test
+"n_basinhop": 10,                                     # Number of consecutive basinhopping thresholds before solution achieved
+"test_line": {"bool": False,                           # boolean of whether or not to test lines
+              "test_indv": True,                      # boolean of whether or not to test lines individually. If True, tests lines one at a time (more control over components). If False, tests all lines at once (all or nothing). Default is True.
+              "line":["OUT_CaV_5309"],   # list of lines to test
               "cont_fit":True,                        # If True, continues with initial SciPy fit to obtain a fit with all detected lines in the test, with detection criteria specified below. If false, just outputs line test results
               "conf":0.9,                             # Bayesian A/B test confidence that line is there. Percentage (e.g. 0.9) to be detected, or None to not do this test. At least one test must not be None. Default is None.
               "f_conf":0.95,                          # F-test confidence percentage (e.g. 0.9) or None. Default is 0.9
@@ -51,7 +52,7 @@ fit_options={
               "ssr_ratio":None,                       # minimum sum square ratio for line detection (e.g. 3), int, float or None. Default is None
               "linetest_mask":"or"},                  # If using multiple tests, can choose a detection to pass ALL criteria ("and") or just one criterion ("or"). Case INsensitive. Works as expected if only use one test. Default is or.  
 "mask_metal": False,
-"max_like_niter": 5,                                 # number of maximum likelihood iterations
+"max_like_niter": 10,                                 # number of maximum likelihood iterations
 "output_pars": False,                                 # only output free parameters of fit and stop code (diagnostic)
 "fit_stat": "ML"
 }
@@ -76,7 +77,7 @@ mcmc_options={
 
 ############################ Fit component op dtions #############################
 comp_options={
-"fit_opt_feii"     : True,        # optical FeII
+"fit_opt_feii"     : False,        # optical FeII
 "fit_uv_iron"      : False,       # UV Iron
 "fit_balmer"       : False,       # Balmer continuum (<4000 A)
 "fit_losvd"        : True,        # stellar LOSVD
@@ -100,28 +101,54 @@ comp_options={
 ########################### Emission Lines & Options ###########################
 # If not specified, defaults to SDSS-QSO Emission Lines (http://classic.sdss.org/dr6/algorithms/linestable.html)
 ################################################################################
+
+
 user_lines = {
-    # NArrow lines:
-    "NA_HeI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
-    "NA_HeII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
-    "NA_H_BETA"    :{"center":4862.691, "amp":"free", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF", "h3":"NA_OIII_5007_h3", "h4":"NA_OIII_5007_h4", "shape":"NA_OIII_5007_shape", "line_type":"na","label":r"H$\beta$"},
-    #"NA_FeVII_4893":{"center":4893.370, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VII]"},
-    "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF", "h3":"NA_OIII_5007_h3", "h4":"NA_OIII_5007_h4", "shape":"NA_OIII_5007_shape", "line_type":"na","label":r"[O III]"},
-    "NA_OIII_5007" :{"center":5008.240, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[O III]"},
+    # narrow lines:
+    "NA_OI_6302"   :{"center":6302.046, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[O I]"},
+    "NA_OI_6365"   :{"center":6365.535, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[O I]"},
+    "NA_FeX_6374"  :{"center":6374.510, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe X]"}, # Coronal Line
+    "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_H_alpha_shape", "line_type":"na","label":r"[N II]"},
+    "NA_H_ALPHA"   :{"center":6564.632, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"H$\alpha$"},
+    "NA_NII_6585"  :{"center":6585.278, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[N II]"},
+    "NA_SII_6718"  :{"center":6718.294, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[S II]"},
+    "NA_SII_6732"  :{"center":6732.668, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[S II]"},
+    "NA_FeXI_7892" :{"center":7891.800, "amp":"free", "disp":"free", "voff":"free", "line_type":"na", "h3":"free", "h4":"free", "shape":"free", "label":r"[Fe XI]"},
     # broad lines:
-    "BR_H_BETA"   :{"center":4862.691, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
+    "BR_H_ALPHA"   :{"center":6564.859, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
+    # outflow lines:
+    #"out_NII_6549" :{"center":6549.859, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_NII_6585_amp/2.93", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+    #"out_H_alpha"  :{"center":6564.632, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_H_alpha_amp", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+    #"out_NII_6585" :{"center":6585.278, "amp":"free", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+    #"out_SII_6718" :{"center":6718.294, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_SII_6718_amp", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+    #"out_SII_6732" :{"center":6732.668, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_SII_6732_amp", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+}
+
+#user_lines = {
+    # NArrow lines:
+    #"NA_HeI_4471"  :{"center":4471.479, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He I"},
+    #"NA_HeII_4687" :{"center":4687.021, "amp":"free", "disp":"free", "voff":"free", "line_type":"na","label":r"He II"},
+    #"NA_H_BETA"    :{"center":4862.691, "amp":"free", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF", "h3":"NA_OIII_5007_h3", "h4":"NA_OIII_5007_h4", "shape":"NA_OIII_5007_shape", "line_type":"na","label":r"H$\beta$"},
+    #"NA_FeVII_4893":{"center":4893.370, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VII]"},
+    #"NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF", "h3":"NA_OIII_5007_h3", "h4":"NA_OIII_5007_h4", "shape":"NA_OIII_5007_shape", "line_type":"na","label":r"[O III]"},
+    #"NA_OIII_5007" :{"center":5008.240, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[O III]"},
+    # broad lines:
+    #"BR_H_BETA"   :{"center":4862.691, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
     # outflow lines:
 #    "OUT_H_BETA"   :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP", "disp":"free", "voff":"free", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
-    "OUT_OIII_4960":{"center":4960.295, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_OIII_5007_AMP/2.98", "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "h3":"OUT_h3", "h4":"OUT_h4", "shape":"out_shape", "line_type":"out"},
-    "OUT_OIII_5007":{"center":5008.240, "amp":"free", "disp":"free", "voff":"free", "h3":"OUT_h3", "h4":"OUT_h4", "shape":"out_shape", "line_type":"out"},
+    #"OUT_OIII_4960":{"center":4960.295, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_OIII_5007_AMP/2.98", "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "h3":"OUT_h3", "h4":"OUT_h4", "shape":"out_shape", "line_type":"out"},
+    #"OUT_OIII_5007":{"center":5008.240, "amp":"free", "disp":"free", "voff":"free", "h3":"OUT_h3", "h4":"OUT_h4", "shape":"out_shape", "line_type":"out"},
     #"NA_FeVI_5146" :{"center":5145.750, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VI]"},
     #"NA_FeVII_5159":{"center":5158.890, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VII]"},
     #"NA_FeVI_5176" :{"center":5176.040, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VI]"},
     #"NA_FeVII_5276":{"center":5276.380, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VII]"},
+    #"OUT_FeVII_5276":{"center":5276.380, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"out_shape", "line_type":"out"},
     #"NA_FeXIV_5303":{"center":5302.860, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe XIV]"},
     #"NA_CaV_5309"  :{"center":5309.110, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Ca V]"},
+    #"OUT_CaV_5309"  :{"center":5309.110, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"out_shape", "line_type":"out"},
     #"NA_FeVI_5335" :{"center":5335.180, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VI]"},
-}
+    #"NA_FeXI_7892" :{"center":7891.800, "amp":"free", "disp":"free", "voff":"free", "line_type":"na", "h3":"free", "h4":"free", "shape":"free", "label":r"[Fe XI]"},
+#}
 
 user_constraints = [
 ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
@@ -248,7 +275,7 @@ plot_options={
 "plot_flux_hist"     : False,    # Plot MCMC hist. and chains for component fluxes
 "plot_lum_hist"      : False,    # Plot MCMC hist. and chains for component luminosities
 "plot_eqwidth_hist"  : False,    # Plot MCMC hist. and chains for equivalent widths 
-"plot_HTML"          : False,    # make interactive plotly HTML best-fit plot
+"plot_HTML"          : True,    # make interactive plotly HTML best-fit plot
 "plot_pca"           : False,
 }
 ################################################################################
@@ -278,7 +305,7 @@ output_options={
 ########################## Directory Structure #################################
 
 ########################## MaNGA Example Fit ###################################
-spec_dir = r'examples/MUSE/'      # folder with spectra in it
+spec_dir = r'examples/MUSE_debug/'      # folder with spectra in it
 redshifts = [0.00379]             # redshifts for each object must be entered manually (for now) since they are not included
                                   # in MUSE data
 apertures = [[8, 9, 3, 4]]        # Square apertures for each cube -- only fit the spectra within the aperture.
@@ -288,6 +315,7 @@ apertures = [[8, 9, 3, 4]]        # Square apertures for each cube -- only fit t
 # # that the cube FITS files are within spec_dir directly.
 spec_loc = natsort.natsorted( glob.glob(spec_dir+'*.fits') )
 spec_loc = spec_loc[:]
+
 
 ################################################################################
 print(len(spec_loc))
@@ -302,6 +330,7 @@ print(spec_loc)
 # Iterate linearly over each MANGA cube to be fit, and fit each 1D spectrum within the cube in parallel
 for cube, z, ap in zip(spec_loc, redshifts, apertures):
 # for cube, z in zip(spec_loc, redshifts):
+
 
     # Unpack the spectra into 1D FITS files
     print(f'Unpacking {cube} into subfolders...')
@@ -319,11 +348,12 @@ for cube, z, ap in zip(spec_loc, redshifts, apertures):
 #     ifu.plot_ifu(cube, wave, flux, ivar, mask, binnum, npixels, xpixbin, ypixbin, z, dataid, object_name=objname)
     
     cube_subdir = os.path.join(os.path.dirname(cube), cube.split(os.sep)[-1].replace('.fits','')) + os.sep
-
+    
+    
 #     sys.exit()
     if __name__ == "__main__":
         badass.run_BADASS(cube_subdir,
-                         nprocesses       = 4,
+                         nprocesses       = 1,
 #                          nobj             = (0,1),
                          fit_options      = fit_options,
                          mcmc_options     = mcmc_options,
@@ -348,7 +378,6 @@ for cube, z, ap in zip(spec_loc, redshifts, apertures):
 # ## Now we reconstruct the cube data and make some plots!
 
 # In[6]:
-
 
 for cube in spec_loc:
     

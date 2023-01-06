@@ -1,0 +1,325 @@
+
+############################### BADASS 9.3.0 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spaxel_bin_845.fits           
+SDSS redshift:                0.08513                       
+fitting region:               (6200,8100) [A]               
+velocity scale:               55.95 [km/s/pixel]            
+Galactic E(B-V):              0.019                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (6200, 8100)                  
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 10                            
+                 test_outflows: False                         
+                     test_line: {'bool': False, 'test_indv': True, 'line': ['OUT_CaV_5309'], 'cont_fit': True, 'conf': 0.9, 'f_conf': 0.95, 'chi2_ratio': None, 'ssr_ratio': None, 'linetest_mask': 'or'}
+                max_like_niter: 10                            
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: False                         
+                   fit_uv_iron: False                         
+                    fit_balmer: False                         
+                     fit_losvd: True                          
+                      fit_host: False                         
+                     fit_power: True                          
+                      fit_poly: False                         
+                    fit_narrow: True                          
+                     fit_broad: True                          
+                   fit_outflow: True                          
+                    fit_absorp: False                         
+                 tie_line_disp: False                         
+                 tie_line_voff: False                         
+               na_line_profile: gaussian                      
+               br_line_profile: voigt                         
+              out_line_profile: gaussian                      
+              abs_line_profile: gaussian                      
+
+   losvd_options:                                                                         
+                       library: IndoUS                        
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 250.0} 
+
+   host_options:                                                                          
+                                Host-galaxy template component is turned off.
+
+   power_options:                                                                         
+                          type: simple                        
+
+   poly_options:                                                                          
+                                Polynomial continuum component is turned off.
+
+   opt_feii_options:                                                                      
+                                Optical FeII fitting is turned off.
+
+   uv_iron_options:                                                                       
+                                UV Iron fitting is turned off.
+
+   balmer_options:                                                                        
+                                Balmer pseudo-continuum fitting is turned off.
+
+   plot_options:                                                                          
+               plot_param_hist: False                         
+                plot_flux_hist: False                         
+                 plot_lum_hist: False                         
+             plot_eqwidth_hist: False                         
+                      plot_pca: False                         
+   output_options:                                                                        
+                   write_chain: False                         
+                       verbose: True                          
+
+-----------------------------------------------------------------------------------------------------------------
+
+### PCA Options ###
+-----------------------------------------------------------------------------------------------------------------
+pca_options:                                                  
+
+                        do_pca: False                         
+
+-----------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------
+ Line List:
+----------------------------------------------------------------------------------------------------------------------------------------
+BR_H_ALPHA                                                                                
+                              amp                           free                          
+                              center                        6564.859                      
+                              center_pix                    307.246244271951              
+                              disp                          free                          
+                              disp_res_ang                  0.9042137155667238            
+                              disp_res_kms                  41.29204486296826             
+                              line_profile                  voigt                         
+                              line_type                     br                            
+                              shape                         free                          
+                              voff                          free                          
+NA_FeXI_7892                                                                              
+                              amp                           free                          
+                              center                        7891.8                        
+                              center_pix                    1293.572967774662             
+                              disp                          free                          
+                              disp_res_ang                  0.9235704468183339            
+                              disp_res_kms                  35.0844489708085              
+                              label                         [Fe XI]                       
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          free                          
+NA_FeX_6374                                                                               
+                              amp                           free                          
+                              center                        6374.51                       
+                              center_pix                    149.6006416935506             
+                              disp                          free                          
+                              disp_res_ang                  0.9071775843290166            
+                              disp_res_kms                  42.66445544026101             
+                              label                         [Fe X]                        
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          free                          
+NA_H_ALPHA                                                                                
+                              amp                           free                          
+                              center                        6564.632                      
+                              center_pix                    307.06099227232795            
+                              disp                          NA_NII_6585_DISP              
+                              disp_res_ang                  0.9042162143343238            
+                              disp_res_kms                  41.293586823867926            
+                              label                         H$\alpha$                     
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          NA_NII_6585_VOFF              
+NA_NII_6549                                                                               
+                              amp                           NA_NII_6585_AMP/2.93          
+                              center                        6549.859                      
+                              center_pix                    294.9903523148188             
+                              disp                          NA_NII_6585_DISP              
+                              disp_res_ang                  0.9043842773475401            
+                              disp_res_kms                  41.39441558704893             
+                              label                         [N II]                        
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          NA_NII_6585_VOFF              
+NA_NII_6585                                                                               
+                              amp                           free                          
+                              center                        6585.278                      
+                              center_pix                    323.88488172903374            
+                              disp                          free                          
+                              disp_res_ang                  0.9039982983732123            
+                              disp_res_kms                  41.1542036489762              
+                              label                         [N II]                        
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          free                          
+NA_OI_6302                                                                                
+                              amp                           free                          
+                              center                        6302.046                      
+                              center_pix                    88.3460344295367              
+                              disp                          NA_NII_6585_DISP              
+                              disp_res_ang                  0.9087796156420234            
+                              disp_res_kms                  43.23124184647612             
+                              label                         [O I]                         
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          NA_NII_6585_VOFF              
+NA_OI_6365                                                                                
+                              amp                           free                          
+                              center                        6365.535                      
+                              center_pix                    142.0518827445518             
+                              disp                          NA_NII_6585_DISP              
+                              disp_res_ang                  0.9073613877930667            
+                              disp_res_kms                  42.73326605552788             
+                              label                         [O I]                         
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          NA_NII_6585_VOFF              
+NA_SII_6718                                                                               
+                              amp                           free                          
+                              center                        6718.294                      
+                              center_pix                    431.02771698274944            
+                              disp                          NA_NII_6585_DISP              
+                              disp_res_ang                  0.9030566355465409            
+                              disp_res_kms                  40.297368421761185            
+                              label                         [S II]                        
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          NA_NII_6585_VOFF              
+NA_SII_6732                                                                               
+                              amp                           free                          
+                              center                        6732.668                      
+                              center_pix                    442.47853957869955            
+                              disp                          NA_NII_6585_DISP              
+                              disp_res_ang                  0.9030016185583621            
+                              disp_res_kms                  40.20888521542868             
+                              label                         [S II]                        
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              voff                          NA_NII_6585_VOFF              
+----------------------------------------------------------------------------------------------------------------------------------------
+ Soft Constraints:
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### Maximum Likelihood Fitting Results ###
+-----------------------------------------------------------------------------------------------------------------
+Parameter                     Max. Like. Value              +/- 1-sigma                   Flag                          
+-----------------------------------------------------------------------------------------------------------------
+AGN_FRAC_7000                 0.5337                        0.2000                        0.0                           
+BR_H_ALPHA_AMP                24778.1302                    45361.6184                    1.0                           
+BR_H_ALPHA_DISP               781.8785                      223.2345                      0.0                           
+BR_H_ALPHA_EW                 125.1878                      70.7564                       0.0                           
+BR_H_ALPHA_FLUX               -10.8150                      0.1703                        0.0                           
+BR_H_ALPHA_FWHM               1842.6630                     525.3842                      0.0                           
+BR_H_ALPHA_LUM                44.4405                       0.1703                        0.0                           
+BR_H_ALPHA_NPIX               649.0000                      112.0407                      0.0                           
+BR_H_ALPHA_SHAPE              0.0030                        0.0019                        0.0                           
+BR_H_ALPHA_SNR                327.5519                      608.6973                      0.0                           
+BR_H_ALPHA_VOFF               34.1912                       69.5234                       0.0                           
+HOST_FRAC_7000                0.4663                        0.2000                        0.0                           
+LOG_LIKE                      649926.3342                   162038.4287                   0.0                           
+NA_FeXI_7892_AMP              389.2362                      3365.9295                     1.0                           
+NA_FeXI_7892_DISP             0.2073                        0.1987                        0.0                           
+NA_FeXI_7892_EW               0.0757                        0.6800                        1.0                           
+NA_FeXI_7892_FLUX             -14.0456                      0.6676                        0.0                           
+NA_FeXI_7892_FWHM             79.5639                       9.9976                        0.0                           
+NA_FeXI_7892_LUM              41.2099                       0.6676                        0.0                           
+NA_FeXI_7892_NPIX             2.0000                        1.2264                        0.0                           
+NA_FeXI_7892_SNR              6.3560                        55.0327                       0.0                           
+NA_FeXI_7892_VOFF             -5.3855                       4.2462                        0.0                           
+NA_FeX_6374_AMP               1993.4062                     6525.1096                     1.0                           
+NA_FeX_6374_DISP              1.9405                        1.2833                        0.0                           
+NA_FeX_6374_EW                0.3362                        1.0996                        1.0                           
+NA_FeX_6374_FLUX              -13.3414                      0.5464                        0.0                           
+NA_FeX_6374_FWHM              32.7055                       19.1883                       0.0                           
+NA_FeX_6374_LUM               41.9141                       0.5464                        0.0                           
+NA_FeX_6374_NPIX              4.0000                        0.8332                        0.0                           
+NA_FeX_6374_SNR               30.1943                       96.0830                       0.0                           
+NA_FeX_6374_VOFF              116.5061                      51.4525                       0.0                           
+NA_H_ALPHA_AMP                362612.7769                   261.3877                      1.0                           
+NA_H_ALPHA_DISP               215.7784                      0.0000                        0.0                           
+NA_H_ALPHA_EW                 387.2194                      41.2759                       0.0                           
+NA_H_ALPHA_FLUX               -10.3594                      0.0476                        0.0                           
+NA_H_ALPHA_FWHM               509.2034                      48.6230                       0.0                           
+NA_H_ALPHA_LUM                44.8961                       0.0476                        0.0                           
+NA_H_ALPHA_NPIX               30.0000                       2.7753                        0.0                           
+NA_H_ALPHA_SNR                1163.0158                     49.9857                       0.0                           
+NA_H_ALPHA_VOFF               -67.8652                      0.0000                        0.0                           
+NA_NII_6549_AMP               49402.0882                    0.0000                        0.0                           
+NA_NII_6549_DISP              215.7784                      0.0000                        0.0                           
+NA_NII_6549_EW                47.6406                       3.8090                        0.0                           
+NA_NII_6549_FLUX              -11.2296                      0.0368                        0.0                           
+NA_NII_6549_FWHM              509.3840                      48.4609                       0.0                           
+NA_NII_6549_LUM               44.0259                       0.0368                        0.0                           
+NA_NII_6549_NPIX              26.0000                       2.0570                        0.0                           
+NA_NII_6549_SNR               238.4253                      21.7145                       0.0                           
+NA_NII_6549_VOFF              -67.8652                      0.0000                        0.0                           
+NA_NII_6585_AMP               144748.1185                   6783.2792                     0.0                           
+NA_NII_6585_DISP              215.7784                      20.8553                       0.0                           
+NA_NII_6585_EW                137.8555                      10.8028                       0.0                           
+NA_NII_6585_FLUX              -10.7605                      0.0368                        0.0                           
+NA_NII_6585_FWHM              509.8282                      48.2890                       0.0                           
+NA_NII_6585_LUM               44.4950                       0.0368                        0.0                           
+NA_NII_6585_NPIX              29.0000                       2.3284                        0.0                           
+NA_NII_6585_SNR               776.8633                      18.7526                       0.0                           
+NA_NII_6585_VOFF              -67.8652                      4.4267                        0.0                           
+NA_OI_6302_AMP                31755.8488                    3438.6317                     0.0                           
+NA_OI_6302_DISP               215.7784                      0.0000                        0.0                           
+NA_OI_6302_EW                 26.6649                       0.8749                        0.0                           
+NA_OI_6302_FLUX               -11.4360                      0.0133                        0.0                           
+NA_OI_6302_FWHM               509.3870                      48.9295                       0.0                           
+NA_OI_6302_LUM                43.8195                       0.0133                        0.0                           
+NA_OI_6302_NPIX               28.0000                       2.7753                        0.0                           
+NA_OI_6302_SNR                451.3489                      30.6075                       0.0                           
+NA_OI_6302_VOFF               -67.8652                      0.0000                        0.0                           
+NA_OI_6365_AMP                9109.0646                     4243.9650                     0.0                           
+NA_OI_6365_DISP               215.7784                      0.0000                        0.0                           
+NA_OI_6365_EW                 7.8648                        1.9654                        0.0                           
+NA_OI_6365_FLUX               -11.9722                      0.0867                        0.0                           
+NA_OI_6365_FWHM               509.2106                      48.6090                       0.0                           
+NA_OI_6365_LUM                43.2833                       0.0867                        0.0                           
+NA_OI_6365_NPIX               24.0000                       1.8227                        0.0                           
+NA_OI_6365_SNR                81.0932                       32.9892                       0.0                           
+NA_OI_6365_VOFF               -67.8652                      0.0000                        0.0                           
+NA_SII_6718_AMP               40042.4289                    3928.1550                     0.0                           
+NA_SII_6718_DISP              215.7784                      0.0000                        0.0                           
+NA_SII_6718_EW                37.5672                       1.2306                        0.0                           
+NA_SII_6718_FLUX              -11.3115                      0.0150                        0.0                           
+NA_SII_6718_FWHM              509.2843                      48.5443                       0.0                           
+NA_SII_6718_LUM               43.9440                       0.0150                        0.0                           
+NA_SII_6718_NPIX              28.0000                       2.8690                        0.0                           
+NA_SII_6718_SNR               266.8031                      23.6260                       0.0                           
+NA_SII_6718_VOFF              -67.8652                      0.0000                        0.0                           
+NA_SII_6732_AMP               41537.6472                    3737.7193                     0.0                           
+NA_SII_6732_DISP              215.7784                      0.0000                        0.0                           
+NA_SII_6732_EW                39.7047                       1.4129                        0.0                           
+NA_SII_6732_FLUX              -11.2882                      0.0174                        0.0                           
+NA_SII_6732_FWHM              510.0055                      49.0697                       0.0                           
+NA_SII_6732_LUM               43.9673                       0.0174                        0.0                           
+NA_SII_6732_NPIX              28.0000                       2.9542                        0.0                           
+NA_SII_6732_SNR               291.5402                      25.4327                       0.0                           
+NA_SII_6732_VOFF              -67.8652                      0.0000                        0.0                           
+POWER_AMP                     6924.3175                     2449.5176                     0.0                           
+POWER_SLOPE                   0.4871                        0.6275                        0.0                           
+RCHI_SQUARED                  900.2079                      230.0923                      0.0                           
+R_SQUARED                     0.9806                        0.0235                        0.0                           
+STEL_DISP                     131.7274                      81.7024                       0.0                           
+STEL_VEL                      71.9969                       79.3929                       0.0                           
+NOISE_STD.                    47.2758                       
+RESID_STD                     4566.0946                     
+-----------------------------------------------------------------------------------------------------------------

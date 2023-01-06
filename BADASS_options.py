@@ -1,22 +1,23 @@
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={
-"fit_reg"    : (4600,5350),                           # Fitting region; Note: Indo-US Library=(3460,9464)
+"fit_reg"    : (4400,5200),                           # Fitting region; Note: Indo-US Library=(3460,9464)
 "good_thresh":  0.0,                                  # percentage of "good" pixels required in fig_reg for fit.
 "mask_bad_pix": False,                                # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False,                                # mask emission lines for continuum fitting.
 "interp_metal": False,                                # interpolate over metal absorption lines for high-z spectra
-"n_basinhop": 5,                                      # Number of consecutive basinhopping thresholds before solution achieved
+"n_basinhop": 1,                                      # Number of consecutive basinhopping thresholds before solution achieved
 "test_line": {"bool": True,                           # boolean of whether or not to test lines
+              "test_indv": False,                      # boolean of whether or not to test lines individually. If True, tests lines one at a time (more control over components). If False, tests all lines at once (all or nothing). Default is True.
               "line":["OUT_OIII_5007","BR_H_BETA"],   # list of lines to test
               "cont_fit":True,                        # If True, continues fitting after line test. Will do a (initial) fit with all lines that passed the line test. If false, just outputs line test results
-              "conf":0.9,                             # Bayesian A/B test confidence threshold that line is present. Minimum percentage (e.g. 0.9) for detection, or None to not do this test. At least one test must not be None. Default is None.
-              "f_conf":0.95,                          # F-test confidence percentage (e.g. 0.9) or None. Default is 0.9
+              "conf":0.90,                             # Bayesian A/B test confidence threshold that line is present. Minimum percentage (e.g. 0.9) for detection, or None to not do this test. At least one test must not be None. Default is None.
+              "f_conf":0.90,                          # F-test confidence percentage (e.g. 0.9) or None. Default is 0.9
               "chi2_ratio":None,                      # minimum chi square ratio for line detection (e.g. 3), int, float, or None. Default is None.
               "ssr_ratio":None,                       # minimum sum square ratio for line detection (e.g. 3), int, float or None. Default is None
-              "linetest_mask":"or"},                  # If using multiple tests, can choose a detection to pass ALL criteria ("and") or just one criterion ("or"). Case INsensitive. Works as expected if only use one test. Default is or.  
+              "linetest_mask":"and"},                  # If using multiple tests, can choose a detection to pass ALL criteria ("and") or just one criterion ("or"). Case INsensitive. Works as expected if only use one test. Default is or.  
 "mask_metal": False,
-"max_like_niter": 5,                                  # number of maximum likelihood iterations
+"max_like_niter": 1,                                  # number of maximum likelihood iterations
 "output_pars": False,                                 # only output free parameters of fit and stop code (diagnostic)
 "fit_stat": "ML"
 }
@@ -24,7 +25,7 @@ fit_options={
 
 ########################### MCMC algorithm parameters ##########################
 mcmc_options={
-"mcmc_fit"    : True,    # Perform robust fitting using emcee
+"mcmc_fit"    : False,    # Perform robust fitting using emcee
 "nwalkers"    : 80,       # Number of emcee walkers; min = 2 x N_parameters
 "auto_stop"   : True,     # Automatic stop using autocorrelation analysis
 "conv_type"   : "all",    # "median", "mean", "all", or (tuple) of parameters
@@ -88,12 +89,35 @@ user_lines = {
     #"NA_FeVI_5335" :{"center":5335.180, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe VI]"},
 }
 
+# user_lines = {
+#     # narrow lines:
+#     "NA_OI_6302"   :{"center":6302.046, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[O I]"},
+#     "NA_OI_6365"   :{"center":6365.535, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[O I]"},
+#     "NA_FeX_6374"  :{"center":6374.510, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[Fe X]"}, # Coronal Line
+#     "NA_NII_6549"  :{"center":6549.859, "amp":"NA_NII_6585_AMP/2.93", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_H_alpha_shape", "line_type":"na","label":r"[N II]"},
+#     "NA_H_ALPHA"   :{"center":6564.632, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"H$\alpha$"},
+#     "NA_NII_6585"  :{"center":6585.278, "amp":"free", "disp":"free", "voff":"free", "h3":"free", "h4":"free", "shape":"free", "line_type":"na","label":r"[N II]"},
+#     "NA_SII_6718"  :{"center":6718.294, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[S II]"},
+#     "NA_SII_6732"  :{"center":6732.668, "amp":"free", "disp":"NA_NII_6585_DISP", "voff":"NA_NII_6585_VOFF", "h3":"NA_NII_6585_h3", "h4":"NA_NII_6585_h4", "shape":"NA_NII_6585_shape", "line_type":"na","label":r"[S II]"},
+#     #"NA_FeXI_7892" :{"center":7891.800, "amp":"free", "disp":"free", "voff":"free", "line_type":"na", "h3":"free", "h4":"free", "shape":"free", "label":r"[Fe XI]"},
+#     # broad lines:
+#     "BR_H_ALPHA"   :{"center":6564.859, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
+#     # outflow lines:
+#     #"out_NII_6549" :{"center":6549.859, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_NII_6585_amp/2.93", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+#     #"out_H_alpha"  :{"center":6564.632, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_H_alpha_amp", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+#     #"out_NII_6585" :{"center":6585.278, "amp":"free", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+#     #"out_SII_6718" :{"center":6718.294, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_SII_6718_amp", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+#     #"out_SII_6732" :{"center":6732.668, "amp":"out_NII_6585_amp/na_NII_6585_amp*na_SII_6732_amp", "disp":"out_disp", "voff":"out_voff", "h3":"out_h3", "h4":"out_h4", "shape":"out_shape", "line_type":"out"},
+# }
+
 user_constraints = [
-("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
+#("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
 #("NA_OIII_5007_AMP", "OUT_OIII_5007_AMP"),
 #("_OIII_5007_VOFF","OUT_OIII_5007_VOFF"), # careful, voff is negative!
 #w("BR_H_BETA_DISP","OUT_H_BETA_DISP"),
-("BR_H_BETA_DISP","NA_OIII_5007_DISP")
+#("BR_H_BETA_DISP","NA_OIII_5007_DISP")
+
+("BR_H_ALPHA","NA_H_ALPHA")
 
 ]
 
@@ -102,7 +126,7 @@ user_constraints = [
 combined_lines = {
     "OIII_5007_COMP":["NA_OIII_5007", "OUT_OIII_5007"],
     "OIII_4960_COMP":["NA_OIII_4960", "OUT_OIII_4960"],
-    "H_BETA_COMP"   :["NA_H_BETA","BR_H_BETA"]
+    #"H_BETA_COMP"   :["NA_H_BETA","BR_H_BETA"]
 
 
 }
