@@ -179,9 +179,38 @@ def check_fit_options(input,comp_options,verbose=False):
 	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
 				"default": False,
 				"error_message": "\n test_line bool must be True or False.\n",},
-	"line" : 	{"conds":[	lambda x: isinstance(x,(str,tuple,list))],
+    "test_indv":{"conds":[  lambda x: isinstance(x,(bool))],
+                 "default": True,
+                 "error_message": "\n test_indv must be True or False.\n",},
+	"line" : 	{"conds":[	lambda x: isinstance(x,(tuple,list))],
 				"default": "br_H_beta",
-				"error_message": "\n test_line line must be string and a valid line, or list of lines, from the line list.\n",},
+				"error_message": "\n test_line line must be string and a valid list or tuple of lines from the line list.\n",},
+    "cont_fit": {"conds": [lambda x: isinstance(x, (bool))],
+                "default": True,
+                "error_message": "\n test_line cont_fit option must be True or False.\n",
+                 },
+    "conf":     {"conds": [lambda x: isinstance(x, (int,float,type(None)))],
+                "default": None,
+                "error_message": "\n test_line conf option must be int, float, or None.\n",
+                 },
+    "f_conf":     {"conds": [lambda x: isinstance(x, (int,float,type(None)))],
+                "default": 0.9,
+                "error_message": "\n test_line f_conf option must be int, float, or None.\n",
+                 },
+    "chi2_ratio":     {"conds": [lambda x: isinstance(x, (int,float,type(None)))],
+                "default": None,
+                "error_message": "\n test_line chi2_ratio option must be int, float, or None.\n",
+                 },
+    "ssr_ratio":     {"conds": [lambda x: isinstance(x, (int,float,type(None)))],
+                "default": None,
+                "error_message": "\n test_line ssr_ratio option must be int, float, or None.\n",
+                 },
+    "linetest_mask": {"conds": [lambda x: isinstance(x, (str)),
+                                lambda x: x.lower() in ['or','and'],
+                                ],
+                "default": "or",
+                "error_message": "\n test_line linetest_mask option must be 'and' or 'or'.\n",
+                 } ,                
 		}
 	output["test_line"] = check_dict(output["test_line"],test_line_dict)
 
@@ -1600,7 +1629,7 @@ def check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,flux_norm,verbose=False):
 	else: 
 		raise TypeError("\n Required user-input error spectrum must be a list or array the same size as the input spectrum.\n")
 
-	if (fwhm_res is not None) and (isinstance(fwhm_res,(list,np.ndarray,int,float))) and (fwhm_res>=0):
+	if (fwhm_res is not None) and (isinstance(fwhm_res,(list,np.ndarray,int,float))) and (np.all(fwhm_res>=0)):
 		pass
 	elif (fwhm_res is None):
 		fwhm_res = 0.0 # Assume the user does not want to correct for instrumental dispersion
