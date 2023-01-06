@@ -50,6 +50,7 @@ import importlib
 import multiprocessing as mp
 import bifrost
 import spectres
+import corner
 # Import BADASS tools modules
 cwd = os.getcwd() # get current working directory
 sys.path.insert(1,cwd+'/badass_tools/')
@@ -470,6 +471,7 @@ def run_single_thread(fits_file,
     plot_options		 = badass_utils.check_plot_options(plot_options)
     output_options		 = badass_utils.check_output_options(output_options)
     verbose				 = output_options["verbose"]
+
     # Check user input spectrum if sdss_spec=False
     if (not sdss_spec) and (not ifu_spec):
         # If user does not provide a error spectrum one will be provided for them!
@@ -530,6 +532,8 @@ def run_single_thread(fits_file,
     plot_eqwidth_hist   = plot_options["plot_eqwidth_hist"]
     plot_HTML			= plot_options["plot_HTML"]
     plot_pca            = plot_options["plot_pca"]
+    plot_corner         = plot_options["plot_corner"]
+    corner_options      = plot_options["corner_options"]
 
     # Set up run ('MCMC_output_#') directory
     work_dir = os.path.dirname(fits_file)+"/"
@@ -1089,6 +1093,13 @@ def run_single_thread(fits_file,
     # Write all chains to a fits table
     if (write_chain==True):
         write_chains({**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},run_dir)
+
+    # corner plot
+    if (plot_corner==True):
+        corner_plot(param_dict,{**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},corner_options,run_dir)
+
+
+
     # Plot and save the best fit model and all sub-components
     comp_dict = plot_best_model(param_dict,
                     line_list,
@@ -1197,7 +1208,8 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
         # print('\n Burn-in is larger than chain length! Using 50% of chain length for burn-in...\n')
 
     flat = z_best[:,burn_in:]
-    flat = flat.flat
+    # flat = flat.flat
+    flat = flat.flatten()
 
     # Subsample the data into a manageable size for the kde and HDI
     if len(flat[np.isfinite(flat)]) > 0:
@@ -2961,6 +2973,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             ("BR_H_BETA_DISP","OUT_OIII_5007_DISP"),
             #
             ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
+            ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
             #
             # Region 3 soft constraints
             ("OUT_NII_6585_DISP","NA_NII_6585_DISP"),
@@ -3069,7 +3082,7 @@ def line_list_default():
 
         "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
         "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
-        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"         	   ,"h3":"free","h4":"free", "line_type":"na" ,"label":r"[O III]"},
+        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"         	   ,"h3":"free"           ,"h4":"free"           , "line_type":"na" ,"label":r"[O III]"},
 
         ##############################################################################################################################################################################################################################################
 
@@ -3121,7 +3134,7 @@ def line_list_default():
     broad_lines = {
         ### Region 8 (< 2000 Å)
         "BR_OVI_1034"  :{"center":1033.820, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"O VI"},
-        "BR_LY_ALPHA"  :{"center":1215.240, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"Ly$\alpha$"},
+        "BR_LY_ALPHA"  :{"center":1215.240, "amp":"free",  "disp":"free", "voff":"free", "line_type":"br","label":r"Ly$\alpha$"},
         "BR_NV_1241"   :{"center":1240.810, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"N V"},
         "BR_OI_1305"   :{"center":1305.530, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"O I"},
         "BR_CII_1335"  :{"center":1335.310, "amp":"free", "disp":"free", "voff":"free", "line_type":"br","label":r"C II"},
@@ -3156,9 +3169,9 @@ def line_list_default():
     # narrow-to-outflow line ratio. This same reasoning applies to the H-alpha/[NII]/[SII] region, with H-alpha deciding the line amplitudes.
     outflow_lines = {
         # H-beta/[OIII]
-        "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP"     , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							      , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "line_type":"out"},
-        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									      , "disp":"free"              , "voff":"free", "line_type":"out"},
+        "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP"     , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "h3":"OUT_OIII_5007_H3", "h4":"OUT_OIII_5007_H4", "line_type":"out"},
+        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							      , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "h3":"OUT_OIII_5007_H3", "h4":"OUT_OIII_5007_H4", "line_type":"out"},
+        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									      , "disp":"free"              , "voff":"free",               "h3":"free"            , "h4":"free"            , "line_type":"out"},
         # [OI]/H-alpha/[NII]/[SiII]
         "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP"      , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
         "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP"      , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
@@ -5824,8 +5837,6 @@ def max_likelihood(param_dict,
     # for p in pdict:
         # print(p,pdict[p])
 
-    # sys.exit(0)
-
     #
     # Calculate some fit quality parameters which will be added to the dictionary
     # These will be appended to result_dict and need to be in the same format {"med": , "std", "flag":}
@@ -5974,11 +5985,12 @@ def add_tied_parameters(pdict,line_list):
         for par in line_list[line]:
             if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]) & (isFloat(line_list[line][par]) is False):
                 expr = line_list[line][par] # expression to evaluate
-                expr_vars = [i for i in param_names if i in expr]
-                init	 = pdict[expr_vars[0]]["init"]
-                plim	 = pdict[expr_vars[0]]["plim"]
-                chain	 = ne.evaluate(line_list[line][par],local_dict = chain_dict)
-                par_best = ne.evaluate(line_list[line][par],local_dict = par_best_dict).item()
+                expr_vars  = [i for i in param_names if i in expr]
+                init	   = pdict[expr_vars[0]]["init"]
+                plim	   = pdict[expr_vars[0]]["plim"]
+                chain	   = ne.evaluate(line_list[line][par],local_dict = chain_dict)
+                par_best   = ne.evaluate(line_list[line][par],local_dict = par_best_dict).item()
+                flat_chain = ne.evaluate(line_list[line][par],local_dict = flat_samp_dict)
 
                 
                 ci_68_low  = np.sqrt(np.sum(np.array([ci_68_low_dict[i] for i in expr_vars],dtype=float)**2))
@@ -5997,7 +6009,7 @@ def add_tied_parameters(pdict,line_list):
                                                "ci_95_low":ci_95_low, "ci_95_upp":ci_95_upp, 
                                                "mean": mean, "std_dev":std_dev,
                                                "median":median, "med_abs_dev":med_abs_dev,
-                                               "flag":flag}
+                                               "flag":flag,"flat_chain":flat_chain}
 
             # the case where the parameter was set to a constant value
             if (line_list[line][par]!="free") & (par in ["amp","disp","voff","shape","h3","h4","h5","h6","h7","h8","h9","h10"]) & (isFloat(line_list[line][par]) is True):
@@ -9329,7 +9341,8 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             burn_in = int(0.5*np.shape(chain)[1])
         # Flatten the chains
         flat = chain[:,burn_in:]
-        flat = flat.flat
+        # flat = flat.flat
+        flat = flat.flatten()
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
@@ -9425,7 +9438,8 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
         # print('\n Burn-in is larger than chain length! Using 50% of chain length for burn-in...\n')
 
     flat = ll[:,burn_in:]
-    flat = flat.flat
+    # flat = flat.flat
+    flat = flat.flatten()
 
     # Old confidence interval stuff; replaced by np.quantile
     # p = np.percentile(flat, [16, 50, 84])
@@ -9544,7 +9558,8 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=
 
         # Remove burn_in iterations and flatten for histogram
         flat = chain[:,burn_in:]
-        flat = flat.flat
+        # flat = flat.flat
+        flat = flat.flatten()
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
@@ -9658,7 +9673,8 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
 
         # Remove burn_in iterations and flatten for histogram
         flat = chain[:,burn_in:]
-        flat = flat.flat
+        # flat = flat.flat
+        flat = flat.flatten()
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
@@ -9768,7 +9784,8 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
 
         # Remove burn_in iterations and flatten for histogram
         flat = chain[:,burn_in:]
-        flat = flat.flat
+        # flat = flat.flat
+        flat = flat.flatten()
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
@@ -9954,7 +9971,8 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
 
         # Remove burn_in iterations and flatten for histogram
         flat = chain[:,burn_in:]
-        flat = flat.flat
+        # flat = flat.flat
+        flat = flat.flatten()
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
@@ -10066,7 +10084,8 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
 
         # Remove burn_in iterations and flatten for histogram
         flat = chain[:,burn_in:]
-        flat = flat.flat
+        # flat = flat.flat
+        flat = flat.flatten()
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
@@ -10250,6 +10269,47 @@ def write_chains(param_dict,run_dir):
     hdu.writeto(run_dir.joinpath('log', 'MCMC_chains.fits'), overwrite=True)
 
     return 
+
+def corner_plot(free_dict,param_dict,corner_options,run_dir):
+    """
+    Calls the corner.py package to create a corner plot of all or selected parameters.
+    """
+
+    # Extract the flattened chained from the dicts
+    free_dict  = {i:free_dict[i]["flat_chain"] for i in free_dict}
+    param_dict = {i:param_dict[i]["flat_chain"] for i in param_dict}
+
+    # Extract parameters that are actually in the param_dict
+    valid_dict = {i:param_dict[i] for i in corner_options["pars"] if i in param_dict}
+    
+    if len(valid_dict)>=2:
+        # Stack the flat samples in order 
+        flat_samples = np.vstack([valid_dict[i] for i in valid_dict]).T
+        # labels if not provided
+        if len(corner_options["labels"])==len(valid_dict):
+            labels = corner_options["labels"]
+        else:
+            labels = [key for key in valid_dict]
+        with plt.style.context('default'):
+            fig = corner.corner(flat_samples,labels=labels)
+            plt.savefig(run_dir.joinpath('corner.pdf'))
+        fig.clear()
+        plt.close()
+    elif len(valid_dict)<2:
+        print("\n WARNING: More than two valid parameters are required to generate corner plot! Defaulting to only free parameters... \n")
+        flat_samples = np.vstack([free_dict[i] for i in free_dict]).T
+        labels = [key for key in free_dict]
+        with plt.style.context('default'):
+            fig = corner.corner(flat_samples,labels=labels)
+            plt.savefig(run_dir.joinpath('corner.pdf'))
+        fig.clear()
+        plt.close()
+
+    
+
+    return
+
+
     
 def plot_best_model(param_dict,
                     line_list,
