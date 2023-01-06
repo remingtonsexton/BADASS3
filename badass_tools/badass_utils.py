@@ -1304,12 +1304,12 @@ def check_balmer_options(input,verbose=False):
 	# If feii_options not specified
 	if not input:
 		output = {
-			"R_const"		  :{"bool":False, "R_val":0.5}, # ratio between balmer continuum and higher-order balmer lines
+			"R_const"		   :{"bool":False, "R_val":0.5}, # ratio between balmer continuum and higher-order balmer lines
 			"balmer_amp_const" :{"bool":False, "balmer_amp_val":1.0}, # amplitude of overall balmer model (continuum + higher-order lines)
 			"balmer_disp_const":{"bool":True,  "balmer_disp_val":5000.0}, # broadening of higher-order Balmer lines
 			"balmer_voff_const":{"bool":True,  "balmer_voff_val":0.0}, # velocity offset of higher-order Balmer lines
 			"Teff_const"	   :{"bool":True,  "Teff_val":15000.0}, # effective temperature
-			"tau_const"		:{"bool":True,  "tau_val":1.0}, # optical depth
+			"tau_const"		   :{"bool":True,  "tau_val":1.0}, # optical depth
 		}
 		return output
 
@@ -1453,6 +1453,8 @@ def check_plot_options(input,verbose=False):
 			"plot_eqwidth_hist"  : False, # Plot MCMC hist. and chains for equivalent widths 
 			"plot_HTML"          : False,# make interactive plotly HTML best-fit plot
             "plot_pca"           : False, # Plot PCA reconstructed spectrum. If doing PCA, you probably want this as True
+            "plot_corner"        : False, # Plot corner (parameter covariance) plot
+            "corner_options"     : {},
 		}
 
 		return output
@@ -1494,11 +1496,34 @@ def check_plot_options(input,verbose=False):
                         "default": False,
                         "error_message": "\n plot_pca must be a bool.\n",             
                  },
+    "plot_corner" : {"conds":[
+							lambda x: isinstance(x,(bool))
+							],
+				  		"default": False,
+				  		"error_message": "\n plot_corner must be a bool.\n",
+				  },
+	"corner_options" : {"conds":[
+							lambda x: isinstance(x,(dict))
+							],
+				  		"default": {},
+				  		"error_message": "\n corner_options must be a dict of valid free parameters and labels.\n",
+				  },
 	
 	}
 	
 	output = check_dict(input,keyword_dict)
-			
+
+	# pars
+	corner_dict = {
+	"pars" : {"conds":	[lambda x: isinstance(x,(list))],
+			  "default": [],
+			  "error_message": "\n corner_options pars must be a list of valid free parameters.\n",},
+	"labels": {"conds":	[lambda x: isinstance(x,(list))],
+			  "default": [],
+			  "error_message": "\n corner_options labels must be a list of string labels corresponding to free parameters.\n",},
+		}
+	output["corner_options"] = check_dict(output["corner_options"],corner_dict)
+
 	return output
 
 ##################################################################################
