@@ -1,5 +1,5 @@
 
-############################### BADASS 9.3.0 LOGFILE ####################################
+############################### BADASS 9.3.1 LOGFILE ####################################
 
 
 -----------------------------------------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ Cosmology:
                     n_basinhop: 10                            
                  test_outflows: False                         
                      test_line: {'bool': False, 'line': ['NA_OIII_5007']}
-                max_like_niter: 25                            
+                max_like_niter: 10                            
                    output_pars: False                         
 
    mcmc_options:                                                                          
@@ -52,8 +52,8 @@ Cosmology:
                   fit_opt_feii: True                          
                    fit_uv_iron: False                         
                     fit_balmer: False                         
-                     fit_losvd: True                          
-                      fit_host: False                         
+                     fit_losvd: False                         
+                      fit_host: True                          
                      fit_power: True                          
                       fit_poly: True                          
                     fit_narrow: True                          
@@ -68,12 +68,12 @@ Cosmology:
               abs_line_profile: gaussian                      
 
    losvd_options:                                                                         
-                       library: IndoUS                        
-                     vel_const: {'bool': False, 'val': 0.0}   
-                    disp_const: {'bool': False, 'val': 250.0} 
+                                Stellar LOSVD fitting is turned off.
 
    host_options:                                                                          
-                                Host-galaxy template component is turned off.
+                           age: [1.0, 5.0, 10.0]              
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 150.0} 
 
    power_options:                                                                         
                           type: simple                        
@@ -96,13 +96,13 @@ Cosmology:
                                 Balmer pseudo-continuum fitting is turned off.
 
    plot_options:                                                                          
-               plot_param_hist: True                          
+               plot_param_hist: False                         
                 plot_flux_hist: False                         
                  plot_lum_hist: False                         
              plot_eqwidth_hist: False                         
                       plot_pca: False                         
    output_options:                                                                        
-                   write_chain: False                         
+                   write_chain: True                          
                        verbose: True                          
 
 -----------------------------------------------------------------------------------------------------------------
@@ -128,6 +128,17 @@ BR_H_BETA
                               line_profile                  voigt                         
                               line_type                     br                            
                               shape                         free                          
+                              voff                          free                          
+NA_HEII_4687                                                                              
+                              amp                           free                          
+                              center                        4687.021                      
+                              center_pix                    275.26886940804314            
+                              disp                          free                          
+                              disp_res_ang                  0.9484233693983825            
+                              disp_res_kms                  60.663302583151015            
+                              label                         He II                         
+                              line_profile                  gaussian                      
+                              line_type                     na                            
                               voff                          free                          
 NA_H_BETA                                                                                 
                               amp                           free                          
@@ -204,135 +215,144 @@ OUT_OIII_5007
 -----------------------------------------------------------------------------------------------------------------
 Parameter                     Max. Like. Value              +/- 1-sigma                   Flag                          
 -----------------------------------------------------------------------------------------------------------------
-APOLY_COEFF_1                 -0.4742                       0.1309                        0                             
-APOLY_COEFF_2                 0.0785                        0.0293                        0                             
-APOLY_COEFF_3                 0.0182                        0.0038                        0                             
-APOLY_COEFF_4                 0.0176                        0.0050                        0                             
-APOLY_COEFF_5                 -0.0106                       0.0024                        0                             
-BR_H_BETA_AMP                 16.3350                       0.2807                        0                             
-BR_H_BETA_DISP                423.1272                      8.6664                        0                             
-BR_H_BETA_EW                  63.1386                       1.0698                        0                             
-BR_H_BETA_FLUX                -14.3848                      0.0043                        0                             
-BR_H_BETA_FWHM                998.3306                      20.6968                       0                             
-BR_H_BETA_LUM                 42.7608                       0.0043                        0                             
-BR_H_BETA_NPIX                88.0000                       1.0659                        0                             
-BR_H_BETA_SHAPE               0.0105                        0.0017                        0                             
-BR_H_BETA_SNR                 34.8138                       0.5989                        0                             
-BR_H_BETA_VOFF                141.1980                      7.1716                        0                             
-F_OPT_FEII_TEMPLATE_EW        29.1445                       0.9060                        0                             
-F_OPT_FEII_TEMPLATE_FLUX      -14.6340                      0.0122                        0                             
-F_OPT_FEII_TEMPLATE_LUM       42.5116                       0.0122                        0                             
-G_OPT_FEII_TEMPLATE_EW        30.5910                       1.3002                        0                             
-G_OPT_FEII_TEMPLATE_FLUX      -14.7105                      0.0172                        0                             
-G_OPT_FEII_TEMPLATE_LUM       42.4352                       0.0172                        0                             
-H_BETA_COMP_DISP              0.0000                        0.0000                        0                             
-H_BETA_COMP_EW                0.0000                        0.0000                        1                             
-H_BETA_COMP_FLUX              0.0000                        0.0000                        1                             
-H_BETA_COMP_FWHM              0.0000                        0.0000                        0                             
-H_BETA_COMP_LUM               0.0000                        0.0000                        1                             
-H_BETA_COMP_NPIX              0.0000                        0.0000                        0                             
-H_BETA_COMP_SNR               0.0000                        0.0000                        0                             
-H_BETA_COMP_VOFF              0.0000                        0.0000                        0                             
-LOG_LIKE                      -1157.1048                    49.3538                       0                             
-L_CONT_AGN_5100               44.3075                       0.0578                        0                             
-L_CONT_HOST_5100              44.4189                       0.0496                        0                             
-L_CONT_TOT_5100               44.6812                       0.0009                        0                             
-NA_H_BETA_AMP                 0.0000                        0.0000                        0                             
-NA_H_BETA_DISP                127.3536                      24.4165                       0                             
-NA_H_BETA_EW                  0.0000                        0.0000                        1                             
-NA_H_BETA_FLUX                0.0000                        0.0000                        0                             
-NA_H_BETA_FWHM                0.0000                        0.0000                        0                             
-NA_H_BETA_LUM                 0.0000                        0.0000                        1                             
-NA_H_BETA_NPIX                0.0000                        0.0000                        0                             
-NA_H_BETA_SNR                 0.0000                        0.0000                        0                             
-NA_H_BETA_VOFF                10.2054                       3.0306                        0                             
-NA_OIII_4960_AMP              0.6141                        0.3789                        0                             
-NA_OIII_4960_DISP             127.3536                      24.4165                       0                             
-NA_OIII_4960_EW               0.5290                        0.1124                        0                             
-NA_OIII_4960_FLUX             -16.4274                      0.1059                        0                             
-NA_OIII_4960_FWHM             305.2109                      56.9519                       0                             
-NA_OIII_4960_LUM              40.7182                       0.1059                        0                             
-NA_OIII_4960_NPIX             2.0000                        1.1923                        0                             
-NA_OIII_4960_SNR              1.2456                        0.5043                        0                             
-NA_OIII_4960_VOFF             86.1340                       19.6469                       0                             
-NA_OIII_5007_AMP              1.8299                        0.3789                        0                             
-NA_OIII_5007_DISP             127.3536                      24.4165                       0                             
-NA_OIII_5007_EW               1.6217                        0.3449                        0                             
-NA_OIII_5007_FLUX             -15.9497                      0.1060                        0                             
-NA_OIII_5007_FWHM             305.6643                      56.0908                       0                             
-NA_OIII_5007_LUM              41.1960                       0.1060                        0                             
-NA_OIII_5007_NPIX             7.0000                        1.3105                        0                             
-NA_OIII_5007_SNR              3.7695                        0.8032                        0                             
-NA_OIII_5007_VOFF             86.1340                       19.6469                       0                             
-NOISE_SCALE                   1.5846                        0.0836                        0                             
-OIII_4960_COMP_DISP           372.1408                      32.2331                       0                             
-OIII_4960_COMP_EW             2.6203                        0.1173                        0                             
-OIII_4960_COMP_FLUX           -15.7327                      0.0191                        0                             
-OIII_4960_COMP_FWHM           764.5783                      63.8075                       0                             
-OIII_4960_COMP_LUM            41.4129                       0.0191                        0                             
-OIII_4960_COMP_NPIX           13.0000                       2.0297                        0                             
-OIII_4960_COMP_SNR            2.7306                        0.1556                        0                             
-OIII_4960_COMP_VOFF           -127.0686                     14.3324                       0                             
-OIII_5007_COMP_DISP           372.1692                      32.2379                       0                             
-OIII_5007_COMP_EW             8.0419                        0.3606                        0                             
-OIII_5007_COMP_FLUX           -15.2545                      0.0191                        0                             
-OIII_5007_COMP_FWHM           761.5253                      65.0600                       0                             
-OIII_5007_COMP_LUM            41.8911                       0.0191                        0                             
-OIII_5007_COMP_NPIX           22.0000                       1.9985                        0                             
-OIII_5007_COMP_SNR            8.4654                        0.4575                        0                             
-OIII_5007_COMP_VOFF           -127.1125                     14.3361                       0                             
-OPT_FEII_DISP                 592.7621                      16.1906                       0                             
-OPT_FEII_F_AMP                1.7325                        0.0516                        0                             
-OPT_FEII_G_AMP                2.0112                        0.0667                        0                             
-OPT_FEII_S_AMP                2.0669                        0.0650                        0                             
-OPT_FEII_VOFF                 388.2335                      14.6473                       0                             
-OPT_FEII_Z_AMP                0.4634                        0.0209                        0                             
-OUT_H_BETA_AMP                0.0000                        0.4648                        0                             
-OUT_H_BETA_DISP               386.7273                      37.6475                       0                             
-OUT_H_BETA_EW                 0.0000                        0.0000                        1                             
-OUT_H_BETA_FLUX               0.0000                        0.0000                        0                             
-OUT_H_BETA_FWHM               0.0000                        0.0000                        0                             
-OUT_H_BETA_LUM                0.0000                        0.0000                        1                             
-OUT_H_BETA_NPIX               0.0000                        0.0000                        0                             
-OUT_H_BETA_SNR                0.0000                        0.0000                        0                             
-OUT_H_BETA_VOFF               -171.6171                     21.0512                       0                             
-OUT_OIII_4960_AMP             0.9305                        0.2693                        0                             
-OUT_OIII_4960_DISP            386.7273                      37.6475                       0                             
-OUT_OIII_4960_EW              2.0891                        0.1849                        0                             
-OUT_OIII_4960_FLUX            -15.8310                      0.0369                        0                             
-OUT_OIII_4960_FWHM            911.6757                      88.2584                       0                             
-OUT_OIII_4960_LUM             41.3147                       0.0369                        0                             
-OUT_OIII_4960_NPIX            13.0000                       2.5118                        0                             
-OUT_OIII_4960_SNR             1.8184                        0.1460                        0                             
-OUT_OIII_4960_VOFF            -171.6171                     21.0512                       0                             
-OUT_OIII_5007_AMP             2.7730                        0.2693                        0                             
-OUT_OIII_5007_DISP            386.7273                      37.6475                       0                             
-OUT_OIII_5007_EW              6.4125                        0.5684                        0                             
-OUT_OIII_5007_FLUX            -15.3527                      0.0369                        0                             
-OUT_OIII_5007_FWHM            911.5462                      88.5830                       0                             
-OUT_OIII_5007_LUM             41.7929                       0.0369                        0                             
-OUT_OIII_5007_NPIX            22.0000                       2.0323                        0                             
-OUT_OIII_5007_SNR             5.7214                        0.5331                        0                             
-OUT_OIII_5007_VOFF            -171.6171                     21.0512                       0                             
-POWER_AMP                     2.9844                        0.4067                        0                             
-POWER_SLOPE                   0.9536                        0.2137                        0                             
-RCHI_SQUARED                  1.1433                        0.0047                        0                             
+APOLY_COEFF_1                 0.4586                        0.0598                        0                             
+APOLY_COEFF_2                 0.0435                        0.0063                        0                             
+APOLY_COEFF_3                 -0.1050                       0.0233                        0                             
+APOLY_COEFF_4                 0.0226                        0.0018                        0                             
+APOLY_COEFF_5                 0.0070                        0.0010                        0                             
+BR_H_BETA_AMP                 12.8192                       0.3035                        0                             
+BR_H_BETA_DISP                472.3767                      8.0238                        0                             
+BR_H_BETA_EW                  51.0136                       1.1196                        0                             
+BR_H_BETA_FLUX                -14.4430                      0.0082                        0                             
+BR_H_BETA_FWHM                1114.4914                     19.0976                       0                             
+BR_H_BETA_LUM                 42.7026                       0.0082                        0                             
+BR_H_BETA_NPIX                87.0000                       0.9875                        0                             
+BR_H_BETA_SHAPE               0.0000                        0.0000                        0                             
+BR_H_BETA_SNR                 26.8768                       0.6429                        0                             
+BR_H_BETA_VOFF                189.0250                      9.1043                        0                             
+F_OPT_FEII_TEMPLATE_EW        28.8544                       0.9116                        0                             
+F_OPT_FEII_TEMPLATE_FLUX      -14.6384                      0.0128                        0                             
+F_OPT_FEII_TEMPLATE_LUM       42.5072                       0.0128                        0                             
+G_OPT_FEII_TEMPLATE_EW        28.6705                       1.5064                        0                             
+G_OPT_FEII_TEMPLATE_FLUX      -14.7348                      0.0203                        0                             
+G_OPT_FEII_TEMPLATE_LUM       42.4108                       0.0203                        0                             
+HOST_TEMP_DISP                298.7944                      33.5040                       0                             
+HOST_TEMP_VEL                 -1.0579                       0.1405                        0                             
+H_BETA_COMP_DISP              485.8154                      18.2715                       0                             
+H_BETA_COMP_EW                5.8689                        0.9922                        0                             
+H_BETA_COMP_FLUX              -15.3900                      0.0752                        0                             
+H_BETA_COMP_FWHM              632.1005                      38.8794                       0                             
+H_BETA_COMP_LUM               41.7556                       0.0752                        0                             
+H_BETA_COMP_NPIX              24.0000                       2.0206                        0                             
+H_BETA_COMP_SNR               4.9492                        0.8294                        0                             
+H_BETA_COMP_VOFF              -22.4897                      32.3806                       0                             
+LOG_LIKE                      -1153.3166                    69.6865                       0                             
+L_CONT_AGN_5100               44.5831                       0.0403                        0                             
+L_CONT_HOST_5100              44.0526                       0.1277                        0                             
+L_CONT_TOT_5100               44.6817                       0.0021                        0                             
+NA_HEII_4687_AMP              0.8344                        0.0684                        0                             
+NA_HEII_4687_DISP             500.0000                      0.0000                        1                             
+NA_HEII_4687_EW               2.1487                        0.1811                        0                             
+NA_HEII_4687_FLUX             -15.7842                      0.0348                        0                             
+NA_HEII_4687_FWHM             1178.5449                     0.5060                        0                             
+NA_HEII_4687_LUM              41.3614                       0.0348                        0                             
+NA_HEII_4687_NPIX             17.0000                       1.0523                        0                             
+NA_HEII_4687_SNR              2.1848                        0.1766                        0                             
+NA_HEII_4687_VOFF             -261.2840                     32.5272                       0                             
+NA_H_BETA_AMP                 2.4038                        0.3705                        0                             
+NA_H_BETA_DISP                216.6223                      11.4178                       0                             
+NA_H_BETA_EW                  3.1926                        0.5288                        0                             
+NA_H_BETA_FLUX                -15.6692                      0.0729                        0                             
+NA_H_BETA_FWHM                514.1415                      26.4789                       0                             
+NA_H_BETA_LUM                 41.4765                       0.0729                        0                             
+NA_H_BETA_NPIX                10.0000                       1.1499                        0                             
+NA_H_BETA_SNR                 3.5667                        0.5655                        0                             
+NA_H_BETA_VOFF                278.2860                      24.8681                       0                             
+NA_OIII_4960_AMP              1.0235                        0.1750                        0                             
+NA_OIII_4960_DISP             216.6223                      11.4178                       0                             
+NA_OIII_4960_EW               1.3560                        0.0561                        0                             
+NA_OIII_4960_FLUX             -16.0201                      0.0182                        0                             
+NA_OIII_4960_FWHM             516.2070                      27.1382                       0                             
+NA_OIII_4960_LUM              41.1255                       0.0182                        0                             
+NA_OIII_4960_NPIX             9.0000                        0.6680                        0                             
+NA_OIII_4960_SNR              1.9500                        0.1066                        0                             
+NA_OIII_4960_VOFF             10.6840                       1.4067                        0                             
+NA_OIII_5007_AMP              3.0499                        0.1750                        0                             
+NA_OIII_5007_DISP             216.6223                      11.4178                       0                             
+NA_OIII_5007_EW               4.2002                        0.1792                        0                             
+NA_OIII_5007_FLUX             -15.5420                      0.0182                        0                             
+NA_OIII_5007_FWHM             513.3377                      26.8390                       0                             
+NA_OIII_5007_LUM              41.6037                       0.0182                        0                             
+NA_OIII_5007_NPIX             12.0000                       0.4454                        0                             
+NA_OIII_5007_SNR              6.6007                        0.3680                        0                             
+NA_OIII_5007_VOFF             10.6840                       1.4067                        0                             
+NOISE_SCALE                   1.5758                        0.1141                        0                             
+OIII_4960_COMP_DISP           406.8835                      11.7120                       0                             
+OIII_4960_COMP_EW             2.5491                        0.0511                        0                             
+OIII_4960_COMP_FLUX           -15.7448                      0.0094                        0                             
+OIII_4960_COMP_FWHM           640.1960                      30.5396                       0                             
+OIII_4960_COMP_LUM            41.4008                       0.0094                        0                             
+OIII_4960_COMP_NPIX           11.0000                       0.8907                        0                             
+OIII_4960_COMP_SNR            2.7487                        0.1208                        0                             
+OIII_4960_COMP_VOFF           -165.6670                     25.6756                       0                             
+OIII_5007_COMP_DISP           406.9118                      11.7111                       0                             
+OIII_5007_COMP_EW             7.8460                        0.1737                        0                             
+OIII_5007_COMP_FLUX           -15.2666                      0.0094                        0                             
+OIII_5007_COMP_FWHM           640.9427                      31.8172                       0                             
+OIII_5007_COMP_LUM            41.8791                       0.0094                        0                             
+OIII_5007_COMP_NPIX           24.0000                       0.6428                        0                             
+OIII_5007_COMP_SNR            8.5312                        0.3593                        0                             
+OIII_5007_COMP_VOFF           -165.7247                     25.6831                       0                             
+OPT_FEII_DISP                 582.8171                      13.1687                       0                             
+OPT_FEII_F_AMP                1.7370                        0.0525                        0                             
+OPT_FEII_G_AMP                1.9529                        0.0614                        0                             
+OPT_FEII_S_AMP                2.0945                        0.0667                        0                             
+OPT_FEII_VOFF                 376.7608                      18.4545                       0                             
+OPT_FEII_Z_AMP                0.4482                        0.0130                        0                             
+OUT_H_BETA_AMP                1.0260                        0.4210                        0                             
+OUT_H_BETA_DISP               466.7916                      12.3045                       0                             
+OUT_H_BETA_EW                 2.9036                        0.5047                        0                             
+OUT_H_BETA_FLUX               -15.6870                      0.0853                        0                             
+OUT_H_BETA_FWHM               1101.8820                     29.2392                       0                             
+OUT_H_BETA_LUM                41.4586                       0.0853                        0                             
+OUT_H_BETA_NPIX               17.0000                       2.6411                        0                             
+OUT_H_BETA_SNR                2.1593                        0.3705                        0                             
+OUT_H_BETA_VOFF               -381.1052                     42.7725                       0                             
+OUT_OIII_4960_AMP             0.4368                        0.0967                        0                             
+OUT_OIII_4960_DISP            466.7916                      12.3045                       0                             
+OUT_OIII_4960_EW              1.2011                        0.0857                        0                             
+OUT_OIII_4960_FLUX            -16.0694                      0.0312                        0                             
+OUT_OIII_4960_FWHM            1100.2682                     28.8907                       0                             
+OUT_OIII_4960_LUM             41.0762                       0.0312                        0                             
+OUT_OIII_4960_NPIX            1.0000                        1.2332                        0                             
+OUT_OIII_4960_SNR             1.0560                        0.3186                        0                             
+OUT_OIII_4960_VOFF            -381.1052                     42.7725                       0                             
+OUT_OIII_5007_AMP             1.3017                        0.0967                        0                             
+OUT_OIII_5007_DISP            466.7916                      12.3045                       0                             
+OUT_OIII_5007_EW              3.7058                        0.2644                        0                             
+OUT_OIII_5007_FLUX            -15.5911                      0.0312                        0                             
+OUT_OIII_5007_FWHM            1101.8283                     29.1743                       0                             
+OUT_OIII_5007_LUM             41.5545                       0.0312                        0                             
+OUT_OIII_5007_NPIX            21.0000                       1.0523                        0                             
+OUT_OIII_5007_SNR             2.6733                        0.2230                        0                             
+OUT_OIII_5007_VOFF            -381.1052                     42.7725                       0                             
+POWER_AMP                     5.5962                        0.4888                        0                             
+POWER_SLOPE                   -2.3447                       0.1401                        0                             
+RCHI_SQUARED                  1.1119                        0.0081                        0                             
 R_SQUARED                     0.9971                        0.0000                        0                             
-STEL_DISP                     0.9984                        0.2634                        0                             
-STEL_VEL                      0.4403                        0.1433                        0                             
-S_OPT_FEII_TEMPLATE_EW        19.7272                       0.6406                        0                             
-S_OPT_FEII_TEMPLATE_FLUX      -14.8717                      0.0138                        0                             
-S_OPT_FEII_TEMPLATE_LUM       42.2739                       0.0138                        0                             
-Z_OPT_FEII_TEMPLATE_EW        25.0962                       1.3172                        0                             
-Z_OPT_FEII_TEMPLATE_FLUX      -14.7261                      0.0213                        0                             
-Z_OPT_FEII_TEMPLATE_LUM       42.4195                       0.0213                        0                             
+S_OPT_FEII_TEMPLATE_EW        19.7789                       1.0897                        0                             
+S_OPT_FEII_TEMPLATE_FLUX      -14.8717                      0.0215                        0                             
+S_OPT_FEII_TEMPLATE_LUM       42.2739                       0.0215                        0                             
+Z_OPT_FEII_TEMPLATE_EW        23.9051                       1.2360                        0                             
+Z_OPT_FEII_TEMPLATE_FLUX      -14.7479                      0.0204                        0                             
+Z_OPT_FEII_TEMPLATE_LUM       42.3978                       0.0204                        0                             
 NOISE_STD.                    0.3403                        
-RESID_STD                     0.4588                        
+RESID_STD                     0.4587                        
 -----------------------------------------------------------------------------------------------------------------
 
 ### Emcee Options ###
 -----------------------------------------------------------------------------------------------------------------
-ndim                          28                            
+ndim                          31                            
 nwalkers                      100                           
 auto_stop                     False                         
 user burn_in                  1500                          
@@ -340,139 +360,148 @@ write_iter                    100
 write_thresh                  100                           
 min_iter                      2500                          
 max_iter                      2500                          
-start_time                    2022-11-04 22:19:41.156429    
+start_time                    2023-01-05 07:28:03.428100    
 -----------------------------------------------------------------------------------------------------------------
-end_time                      2022-11-04 22:51:07.189838    
-emcee_runtime                 0:31:26                       
+end_time                      2023-01-05 08:02:46.389485    
+emcee_runtime                 0:34:42                       
 -----------------------------------------------------------------------------------------------------------------
 
 ### Best-fit Parameters & Uncertainties ###
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Parameter                     Best-fit Value  68% CI low      68% CI upp      95% CI low      95% CI upp      Mean            Std. Dev.       Median          Med. Abs. Dev.  Flag            
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-APOLY_COEFF_1                 0.65781         0.50829         0.28773         1.67010         0.47957         0.31418         0.57107         0.48349         0.26287         0.00000         
-APOLY_COEFF_2                 0.04297         0.06418         0.09372         0.19580         0.15390         0.03258         0.09196         0.04351         0.05417         0.00000         
-APOLY_COEFF_3                 -0.02372        0.04584         0.05666         0.09277         0.11204         -0.01747        0.05215         -0.01794        0.03552         0.00000         
-APOLY_COEFF_4                 0.03229         0.06920         0.11459         0.14770         0.20247         0.05321         0.09104         0.05008         0.06121         0.00000         
-APOLY_COEFF_5                 -0.01913        0.05664         0.06666         0.10499         0.12716         -0.01268        0.06106         -0.01563        0.04241         0.00000         
-BR_H_BETA_AMP                 16.58483        0.90223         0.36484         1.41547         1.04015         16.42849        0.64001         16.47425        0.41512         0.00000         
-BR_H_BETA_DISP                428.64992       12.43841        8.12375         25.92695        21.29196        427.88020       11.59142        427.45423       7.13688         0.00000         
-BR_H_BETA_EW                  67.62164        4.64692         3.27170         7.57566         7.74139         67.75119        4.13813         67.53208        2.70516         0.00000         
-BR_H_BETA_FLUX                -14.38185       0.01460         0.01220         0.03139         0.02631         -14.38464       0.01466         -14.38386       0.00879         0.00000         
-BR_H_BETA_FWHM                1011.61868      32.30165        18.05848        61.16181        50.44601        1009.93875      27.52160        1009.00757      17.08607        0.00000         
-BR_H_BETA_LUM                 42.76406        0.01516         0.01141         0.03394         0.02538         42.76098        0.01466         42.76176        0.00879         0.00000         
-BR_H_BETA_NPIX                83.01676        5.01676         -0.01676        5.01676         4.98324         83.23640        2.67700         83.00000        1.00000         0.00000         
-BR_H_BETA_SHAPE               0.00102         0.00062         0.05735         0.00100         0.11628         0.04607         0.03540         0.03952         0.02391         0.00000         
-BR_H_BETA_SNR                 33.32082        1.82408         1.28216         3.50692         2.70982         32.93747        1.57039         32.93901        1.03186         0.00000         
-BR_H_BETA_VOFF                136.06609       7.56229         17.60647        18.62852        32.74230        142.95350       13.16194        141.84701       8.75344         0.00000         
-F_OPT_FEII_TEMPLATE_EW        29.35428        1.56797         2.44514         3.19372         4.92858         29.97199        2.05775         29.88250        1.34080         0.00000         
-F_OPT_FEII_TEMPLATE_FLUX      -14.62985       0.01953         0.02780         0.04257         0.05693         -14.62464       0.02491         -14.62498       0.01638         0.00000         
-F_OPT_FEII_TEMPLATE_LUM       42.51668        0.02261         0.02558         0.04269         0.05474         42.52099        0.02491         42.52064        0.01638         0.00000         
-G_OPT_FEII_TEMPLATE_EW        30.38214        1.96380         2.86393         4.32148         4.85945         30.64077        2.38724         30.60768        1.60184         0.00000         
-G_OPT_FEII_TEMPLATE_FLUX      -14.71207       0.02488         0.03559         0.05561         0.05738         -14.71145       0.03000         -14.71057       0.01988         0.00000         
-G_OPT_FEII_TEMPLATE_LUM       42.43361        0.02521         0.03583         0.05824         0.05622         42.43417        0.03000         42.43505        0.01988         0.00000         
-H_BETA_COMP_DISP              363.06327       18.72607        22.81529        46.00973        34.88846        360.13212       21.09469        360.46928       13.55452        0.00000         
-H_BETA_COMP_EW                0.00017         0.00000         1.95304         0.00000         5.06382         1.70355         1.59383         1.26228         0.79567         0.00000         
-H_BETA_COMP_FLUX              -16.01613       0.48563         0.41795         1.36593         0.61418         -16.27118       0.52941         -16.17184       0.29440         0.00000         
-H_BETA_COMP_FWHM              709.48083       116.36036       59.04474        199.06645       143.97834       680.39825       88.64701        681.23420       61.55893        0.00000         
-H_BETA_COMP_LUM               41.10089        0.47816         0.41692         1.30969         0.66503         40.87444        0.52941         40.97378        0.29440         0.00000         
-H_BETA_COMP_NPIX              0.00000         0.00000         6.00000         0.00000         16.00000        4.17007         5.65411         0.00000         0.00000         1.00000         
-H_BETA_COMP_SNR               0.00000         0.00000         1.36210         0.00000         3.60843         0.95654         1.32077         0.00000         0.00000         1.00000         
-H_BETA_COMP_VOFF              -143.96283      14.27666        24.54050        35.15698        47.64905        -137.74718      20.94411        -138.60463      12.83809        1.00000         
-LOG_LIKE                      1424.96613      4.21839         2.96788         8.55438         5.42068         1423.67064      3.76998         1424.11810      2.46111         0.00000         
-L_CONT_AGN_5100               44.00893        0.39317         0.23080         0.75695         0.31281         43.82831        0.30077         43.86084        0.22916         0.00000         
-L_CONT_HOST_5100              44.66471        0.07880         0.01896         0.20477         0.01973         44.60142        0.07122         44.62234        0.04039         0.00000         
-L_CONT_TOT_5100               44.68284        0.00240         0.00279         0.00568         0.00432         44.68249        0.00259         44.68259        0.00179         0.00000         
-NA_H_BETA_AMP                 0.00017         -0.00001        0.33635         -0.00001        0.79669         0.28571         0.25517         0.21576         0.14024         0.00000         
-NA_H_BETA_DISP                121.12957       19.19177        33.92256        41.56113        75.15215        129.66101       28.90664        127.87258       17.61761        0.00000         
-NA_H_BETA_EW                  0.00005         -0.00019        0.41670         0.00000         0.98507         0.35134         0.32646         0.25676         0.17244         0.00000         
-NA_H_BETA_FLUX                -16.82781       0.43351         0.45379         1.36385         0.61938         -17.01054       0.54016         -16.91046       0.32212         0.00000         
-NA_H_BETA_FWHM                285.68606       42.28836        79.81227        100.46957       167.90671       310.22658       66.95825        305.96139       40.80259        0.00000         
-NA_H_BETA_LUM                 40.34775        0.50011         0.37598         1.38043         0.58566         40.13508        0.54016         40.23516        0.32212         0.00000         
-NA_H_BETA_NPIX                0.00000         0.00000         0.00000         0.00000         3.00000         0.29576         0.95300         0.00000         0.00000         1.00000         
-NA_H_BETA_SNR                 0.00000         0.00000         0.00000         0.00000         1.25783         0.14716         0.43924         0.00000         0.00000         1.00000         
-NA_H_BETA_VOFF                28.88364        88.98274        26.35715        147.62708       97.00842        5.18154         61.64312        3.98661         39.17062        0.00000         
-NA_OIII_4960_AMP              0.56426         0.35166         0.43107         0.76076         0.88756         1.74627         0.40345         1.71967         0.25825         0.00000         
-NA_OIII_4960_DISP             121.12957       19.19177        33.92256        41.56113        75.15215        129.66101       28.90664        127.87258       17.61761        0.00000         
-NA_OIII_4960_EW               0.39088         0.06331         0.21673         0.15506         0.41226         0.49041         0.15634         0.46849         0.09691         0.00000         
-NA_OIII_4960_FLUX             -16.42493       0.17756         0.08569         0.32041         0.21390         -16.48050       0.13558         -16.48009       0.09208         0.00000         
-NA_OIII_4960_FWHM             285.45213       43.84799        81.44822        98.72360        170.86286       310.69066       67.02006        305.81636       40.82590        0.00000         
-NA_OIII_4960_LUM              40.71633        0.17165         0.08803         0.31731         0.20194         40.66512        0.13558         40.66553        0.09208         0.00000         
-NA_OIII_4960_NPIX             0.00000         0.00000         2.00000         0.00000         4.00000         1.67469         1.40489         2.00000         1.00000         1.00000         
-NA_OIII_4960_SNR              0.00000         -1.00105        1.61083         0.00000         1.57759         0.90572         0.58234         1.13505         0.18404         0.00000         
-NA_OIII_4960_VOFF             85.62336        25.08656        17.94957        54.30214        43.48752        80.91267        23.91927        80.71619        14.75904        0.00000         
-NA_OIII_5007_AMP              1.68150         0.35166         0.43107         0.76076         0.88756         1.74627         0.40345         1.71967         0.25825         0.00000         
-NA_OIII_5007_DISP             121.12957       19.19177        33.92256        41.56113        75.15215        129.66101       28.90664        127.87258       17.61761        0.00000         
-NA_OIII_5007_EW               1.19898         0.18462         0.66533         0.48268         1.23527         1.50378         0.48051         1.43530         0.29716         0.00000         
-NA_OIII_5007_FLUX             -15.95033       0.17498         0.08974         0.31900         0.21449         -16.00289       0.13577         -16.00246       0.09225         0.00000         
-NA_OIII_5007_FWHM             307.63851       66.80180        52.40200        116.07458       147.32600       310.37202       66.65605        305.87303       40.64413        0.00000         
-NA_OIII_5007_LUM              41.18743        0.16536         0.09609         0.30665         0.21925         41.14273        0.13577         41.14316        0.09225         0.00000         
-NA_OIII_5007_NPIX             6.03175         2.03175         0.96825         3.03175         2.96825         6.65621         1.62927         6.00000         1.00000         0.00000         
-NA_OIII_5007_SNR              3.28072         0.59813         1.07167         1.36120         2.08634         3.51662         0.84803         3.44750         0.53412         0.00000         
-NA_OIII_5007_VOFF             85.62336        25.08656        17.94957        54.30214        43.48752        80.91267        23.91927        80.71619        14.75904        0.00000         
-NOISE_SCALE                   1.23234         0.02449         0.03785         0.05283         0.06795         1.23917         0.03138         1.23715         0.02005         0.00000         
-OIII_4960_COMP_DISP           371.30900       24.10703        17.09268        46.21151        33.35143        365.46551       20.82764        366.56235       13.72409        0.00000         
-OIII_4960_COMP_EW             2.52076         0.09516         0.22861         0.27230         0.38552         2.57501         0.16685         2.57234         0.11129         0.00000         
-OIII_4960_COMP_FLUX           -15.73944       0.02111         0.03141         0.06010         0.04937         -15.74012       0.02727         -15.73952       0.01784         0.00000         
-OIII_4960_COMP_FWHM           762.00601       76.59099        69.73773        163.31708       125.60761       748.81450       75.76700        753.83987       51.46970        0.00000         
-OIII_4960_COMP_LUM            41.40847        0.02787         0.02477         0.05980         0.04761         41.40551        0.02727         41.40610        0.01784         0.00000         
-OIII_4960_COMP_NPIX           11.00503        0.00503         1.99497         0.00503         4.99497         12.38896        1.89098         11.00000        0.00000         0.00000         
-OIII_4960_COMP_SNR            2.51062         0.18102         0.23935         0.36017         0.43262         2.54752         0.20822         2.54108         0.14491         0.00000         
-OIII_4960_COMP_VOFF           -126.50679      20.51296        18.86743        38.55239        42.56457        -125.32092      20.67176        -125.47175      13.18990        1.00000         
-OIII_5007_COMP_DISP           370.55969       24.21015        17.93784        45.39798        35.06918        365.49356       20.82987        366.58958       13.72614        0.00000         
-OIII_5007_COMP_EW             7.72079         0.27685         0.69374         0.86011         1.13998         7.90682         0.51167         7.89933         0.34214         0.00000         
-OIII_5007_COMP_FLUX           -15.25983       0.02687         0.02511         0.06003         0.04805         -15.26194       0.02728         -15.26135       0.01783         0.00000         
-OIII_5007_COMP_FWHM           762.73137       78.48164        65.91787        167.17655       122.51347       748.81930       75.89413        753.75689       51.34456        0.00000         
-OIII_5007_COMP_LUM            41.87549        0.01704         0.03557         0.04840         0.05857         41.88368        0.02728         41.88427        0.01783         0.00000         
-OIII_5007_COMP_NPIX           22.01508        1.01508         0.98492         5.01508         0.98492         21.54314        1.46815         22.00000        1.00000         0.00000         
-OIII_5007_COMP_SNR            7.79240         0.62074         0.70038         1.21640         1.23155         7.85353         0.64274         7.84945         0.45384         0.00000         
-OIII_5007_COMP_VOFF           -126.64632      20.46348        18.90788        39.09576        42.90371        -125.37768      20.67679        -125.51819      13.20356        1.00000         
-OPT_FEII_DISP                 594.15539       15.60037        22.69159        37.61858        36.44477        594.75194       18.95685        594.45622       12.72780        0.00000         
-OPT_FEII_F_AMP                1.75147         0.08785         0.06952         0.14208         0.16562         1.75659         0.08025         1.75498         0.05553         0.00000         
-OPT_FEII_G_AMP                2.02434         0.11262         0.11502         0.22821         0.21240         2.01609         0.11332         2.01894         0.07411         0.00000         
-OPT_FEII_S_AMP                2.08066         0.14372         0.06714         0.25567         0.16904         2.04591         0.10850         2.04465         0.07247         0.00000         
-OPT_FEII_VOFF                 382.21174       13.91394        19.07776        33.00865        36.18992        382.78262       17.36218        383.45330       11.13137        0.00000         
-OPT_FEII_Z_AMP                0.46143         0.02693         0.04594         0.06809         0.07961         0.46694         0.03690         0.46790         0.02519         0.00000         
-OUT_H_BETA_AMP                0.00030         0.54414         0.58199         1.09906         1.29090         3.25950         0.57851         3.26520         0.36532         0.00000         
-OUT_H_BETA_DISP               387.04947       17.99952        27.51477        46.40691        40.24514        384.69967       22.99891        385.99800       15.17490        0.00000         
-OUT_H_BETA_EW                 0.00035         0.00000         1.48973         0.00000         4.10259         1.35221         1.29672         0.98877         0.62072         0.00000         
-OUT_H_BETA_FLUX               -16.20027       0.45176         0.44858         1.26573         0.65648         -16.36521       0.53288         -16.27160       0.29833         0.00000         
-OUT_H_BETA_FWHM               909.55160       45.24714        63.22061        106.58934       99.05114        907.48570       54.12911        910.42953       35.58419        0.00000         
-OUT_H_BETA_LUM                41.01654        0.54999         0.34385         1.41843         0.61582         40.78041        0.53288         40.87402        0.29833         0.00000         
-OUT_H_BETA_NPIX               0.00000         0.00000         0.00000         0.00000         15.00000        3.02746         5.34807         0.00000         0.00000         1.00000         
-OUT_H_BETA_SNR                0.00000         0.00000         0.00000         0.00000         2.40455         0.52011         0.90032         0.00000         0.00000         1.00000         
-OUT_H_BETA_VOFF               -170.80567      32.26768        28.35844        68.77482        59.95919        174.84815       32.46697        173.16692       19.81993        0.00000         
-OUT_OIII_4960_AMP             0.96663         0.41524         0.19939         0.79320         0.49392         2.73738         0.32679         2.76726         0.21703         0.00000         
-OUT_OIII_4960_DISP            387.04947       17.99952        27.51477        46.40691        40.24514        384.69967       22.99891        385.99800       15.17490        0.00000         
-OUT_OIII_4960_EW              2.09360         0.18163         0.26444         0.49249         0.42679         2.08459         0.23648         2.10151         0.15121         0.00000         
-OUT_OIII_4960_FLUX            -15.81462       0.05172         0.03707         0.12612         0.06998         -15.83393       0.05116         -15.82729       0.03061         0.00000         
-OUT_OIII_4960_FWHM            910.71063       46.22232        63.66943        110.00555       97.14622        907.43890       54.11616        910.41602       35.94060        0.00000         
-OUT_OIII_4960_LUM             41.33076        0.04901         0.03750         0.11873         0.06715         41.31169        0.05116         41.31833        0.03061         0.00000         
-OUT_OIII_4960_NPIX            10.96089        3.96089         1.03911         4.96089         5.03911         11.17552        2.77278         11.00000        1.00000         0.00000         
-OUT_OIII_4960_SNR             1.87790         0.32930         0.07016         0.53298         0.15842         1.72607         0.19679         1.74994         0.14031         0.00000         
-OUT_OIII_4960_VOFF            -170.80567      32.26768        28.35844        68.77482        59.95919        174.84815       32.46697        173.16692       19.81993        0.00000         
-OUT_OIII_5007_AMP             2.88056         0.41524         0.19939         0.79320         0.49392         2.73738         0.32679         2.76726         0.21703         0.00000         
-OUT_OIII_5007_DISP            387.04947       17.99952        27.51477        46.40691        40.24514        384.69967       22.99891        385.99800       15.17490        0.00000         
-OUT_OIII_5007_EW              6.60363         0.74914         0.59797         1.66297         1.17719         6.40304         0.72663         6.45721         0.46691         0.00000         
-OUT_OIII_5007_FLUX            -15.35098       0.03636         0.05193         0.11613         0.07896         -15.35564       0.05116         -15.34900       0.03061         0.00000         
-OUT_OIII_5007_FWHM            911.26760       38.67718        67.90240        111.84424       92.42057        907.47054       54.15070        910.43773       35.70187        0.00000         
-OUT_OIII_5007_LUM             41.81097        0.05027         0.03764         0.12971         0.06264         41.78998        0.05116         41.79663        0.03061         0.00000         
-OUT_OIII_5007_NPIX            22.02010        1.02010         0.97990         5.02010         0.97990         21.42556        1.54971         22.00000        1.00000         0.00000         
-OUT_OIII_5007_SNR             5.49929         0.61751         0.66172         1.48667         1.03508         5.35784         0.65759         5.40568         0.44712         0.00000         
-OUT_OIII_5007_VOFF            -170.80567      32.26768        28.35844        68.77482        59.95919        -174.84815      32.46697        -173.16692      19.81993        0.00000         
-POWER_AMP                     0.06861         0.06731         1.25908         0.06847         2.49957         1.04808         0.80328         0.86491         0.54637         1.00000         
-POWER_SLOPE                   -0.46102        1.53905         5.54706         4.07618         6.44385         0.54777         3.16244         0.41145         2.62467         1.00000         
-RCHI_SQUARED                  1.03390         0.04735         0.05250         0.10108         0.09279         1.02858         0.05102         1.03015         0.03303         0.00000         
-R_SQUARED                     0.99705         0.00003         0.00002         0.00007         0.00004         0.99704         0.00003         0.99704         0.00002         0.00000         
-STEL_DISP                     0.35408         0.35193         11.33207        0.35193         27.57549        10.19719        9.28477         7.58065         4.91559         1.00000         
-STEL_VEL                      -4.60858        14.72001        27.53373        37.07778        46.35357        -0.79987        22.02516        -1.19111        14.64575        0.00000         
-S_OPT_FEII_TEMPLATE_EW        19.53058        1.17385         1.15009         2.13646         2.22041         19.56299        1.14355         19.53959        0.81558         0.00000         
-S_OPT_FEII_TEMPLATE_FLUX      -14.87370       0.02895         0.01856         0.04760         0.04366         -14.87563       0.02402         -14.87544       0.01721         0.00000         
-S_OPT_FEII_TEMPLATE_LUM       42.27038        0.02848         0.02096         0.04618         0.04569         42.27000        0.02402         42.27018        0.01721         0.00000         
-Z_OPT_FEII_TEMPLATE_EW        25.79246        2.81888         2.33974         5.09937         4.66025         25.48331        2.51610         25.55530        1.70895         0.00000         
-Z_OPT_FEII_TEMPLATE_FLUX      -14.71512       0.03910         0.04036         0.08629         0.06632         -14.72269       0.04061         -14.71931       0.02704         0.00000         
-Z_OPT_FEII_TEMPLATE_LUM       42.43209        0.03961         0.03903         0.08809         0.06433         42.42293        0.04061         42.42631        0.02704         0.00000         
+APOLY_COEFF_1                 -0.28997        1.06303         2.16696         1.87333         3.26428         0.26462         1.44801         0.22332         1.11839         0.00000         
+APOLY_COEFF_2                 0.07943         0.26698         0.11759         0.77641         0.13492         -0.10208        0.26067         -0.00901        0.12798         0.00000         
+APOLY_COEFF_3                 -0.01715        0.07431         0.04657         0.14082         0.08974         -0.03720        0.06103         -0.03604        0.04213         0.00000         
+APOLY_COEFF_4                 0.04600         0.09672         0.08198         0.16242         0.18509         0.04666         0.08865         0.04126         0.06062         0.00000         
+APOLY_COEFF_5                 -0.00211        0.07780         0.06916         0.13430         0.13187         -0.00492        0.07067         -0.00541        0.04820         0.00000         
+BR_H_BETA_AMP                 12.60846        0.77600         0.78727         1.75793         1.52293         12.52316        0.82751         12.56892        0.54109         0.00000         
+BR_H_BETA_DISP                471.65988       11.48312        13.97294        24.58905        29.57330        473.87864       14.03723        472.83651       8.67680         0.00000         
+BR_H_BETA_EW                  49.89968        3.51792         2.50718         7.08404         4.40401         48.85303        2.95559         48.99888        2.03920         0.00000         
+BR_H_BETA_FLUX                -14.45323       0.02094         0.02458         0.05392         0.03429         -14.45689       0.02328         -14.45488       0.01569         0.00000         
+BR_H_BETA_FWHM                1113.45060      31.20579        29.85505        55.84868        73.74528        1118.08308      33.07040        1115.55232      20.30340        0.00000         
+BR_H_BETA_LUM                 42.69190        0.01954         0.02607         0.05221         0.03682         42.68873        0.02328         42.69074        0.01569         0.00000         
+BR_H_BETA_NPIX                81.96089        5.96089         0.03911         5.96089         5.03911         81.18152        3.20726         82.00000        3.00000         0.00000         
+BR_H_BETA_SHAPE               0.00000         0.00000         0.03498         0.00000         0.09345         0.03051         0.03042         0.01934         0.01417         0.00000         
+BR_H_BETA_SNR                 25.54986        1.76936         1.87740         4.08136         2.89840         24.99648        1.85531         25.09808        1.21545         0.00000         
+BR_H_BETA_VOFF                190.16278       10.25150        5.39594         19.40353        17.23319        189.20934       8.73911         189.26179       5.02054         0.00000         
+F_OPT_FEII_TEMPLATE_EW        29.32878        1.84006         1.98772         4.47638         3.23849         29.06911        2.02259         29.10036        1.31050         0.00000         
+F_OPT_FEII_TEMPLATE_FLUX      -14.62519       0.03022         0.01822         0.06155         0.03898         -14.63543       0.02562         -14.63405       0.01653         0.00000         
+F_OPT_FEII_TEMPLATE_LUM       42.51520        0.02438         0.02342         0.05911         0.03830         42.51019        0.02562         42.51157        0.01653         0.00000         
+G_OPT_FEII_TEMPLATE_EW        29.66919        2.67162         1.83586         4.87464         3.91302         29.42744        2.23819         29.44771        1.52494         0.00000         
+G_OPT_FEII_TEMPLATE_FLUX      -14.72145       0.03212         0.02728         0.06476         0.05080         -14.72631       0.02946         -14.72409       0.01981         0.00000         
+G_OPT_FEII_TEMPLATE_LUM       42.42513        0.03592         0.02380         0.06293         0.05291         42.41931        0.02946         42.42153        0.01981         0.00000         
+HOST_TEMP_DISP                307.10636       34.20720        32.47247        76.47227        77.99220        305.19037       37.93215        304.23423       21.56985        0.00000         
+HOST_TEMP_VEL                 3.58395         19.62780        15.80070        46.86838        42.67292        -0.45406        21.21764        0.27755         11.18953        0.00000         
+H_BETA_COMP_DISP              479.70643       15.97287        17.80249        38.75589        29.49773        478.23248       17.65468        479.72161       11.44096        0.00000         
+H_BETA_COMP_EW                5.44871         1.55702         2.08202         3.08547         4.31311         5.86197         1.87919         5.76653         1.21843         0.00000         
+H_BETA_COMP_FLUX              -15.37112       0.13167         0.15080         0.31959         0.25763         -15.40391       0.15746         -15.38553       0.09321         0.00000         
+H_BETA_COMP_FWHM              640.88985       55.02703        68.38163        151.02740       168.28643       654.94367       100.73378       642.74365       40.85285        0.00000         
+H_BETA_COMP_LUM               41.78434        0.15408         0.12420         0.31936         0.24779         41.74171        0.15746         41.76009        0.09321         0.00000         
+H_BETA_COMP_NPIX              24.91866        4.91866         1.08134         10.91866        4.08134         22.73886        4.52249         24.00000        2.00000         0.00000         
+H_BETA_COMP_SNR               4.54745         1.61525         1.63922         3.11843         3.51377         4.88634         1.67984         4.81851         1.10271         0.00000         
+H_BETA_COMP_VOFF              -10.50943       58.39177        45.50307        95.15936        108.53877       -7.17319        52.94295        -11.41461       35.08726        1.00000         
+LOG_LIKE                      1418.58028      4.04760         4.32841         8.75829         7.63211         1418.41354      4.27436         1418.67546      2.88701         0.00000         
+L_CONT_AGN_5100               44.67202        0.05488         0.00855         0.12298         0.01400         44.63120        0.04153         44.64151        0.02538         0.00000         
+L_CONT_HOST_5100              44.35210        0.92743         -0.13306        44.35210        -0.16450        38.56725        14.10662        43.74048        0.28842         0.00000         
+L_CONT_TOT_5100               44.68184        0.00213         0.00273         0.00416         0.00560         44.68242        0.00251         44.68220        0.00164         0.00000         
+NA_HEII_4687_AMP              0.71333         0.16062         0.16807         0.31479         0.25483         0.69730         0.15468         0.69940         0.11250         0.00000         
+NA_HEII_4687_DISP             499.93764       1.25487         0.06131         3.07857         0.06141         498.84534       1.00732         499.12863       0.54845         1.00000         
+NA_HEII_4687_EW               1.85134         0.45374         0.38690         0.82480         0.67462         1.79114         0.40272         1.79877         0.29215         0.00000         
+NA_HEII_4687_FLUX             -15.84683       0.08498         0.11324         0.22760         0.15391         -15.87478       0.10332         -15.86181       0.06915         0.00000         
+NA_HEII_4687_FWHM             1177.25817      2.19522         1.51402         6.17875         2.41903         1175.99239      2.47691         1176.65172      1.36363         0.00000         
+NA_HEII_4687_LUM              41.29700        0.08851         0.11279         0.22951         0.14942         41.27084        0.10332         41.28381        0.06915         0.00000         
+NA_HEII_4687_NPIX             14.00000        2.00000         3.00000         7.00000         4.00000         13.82183        3.54470         14.00000        2.00000         0.00000         
+NA_HEII_4687_SNR              1.73517         0.34402         0.46466         0.69136         0.74011         1.74533         0.44793         1.77593         0.27812         0.00000         
+NA_HEII_4687_VOFF             -268.89347      24.95862        21.48144        67.07690        48.63634        -271.75174      27.77133        -269.12253      15.35138        0.00000         
+NA_H_BETA_AMP                 2.42536         0.89700         0.82589         1.49900         1.92870         2.53876         0.87031         2.50663         0.57857         0.00000         
+NA_H_BETA_DISP                223.66564       19.41496        18.67470        43.75372        38.32649        222.79762       20.68730        222.27188       12.93225        0.00000         
+NA_H_BETA_EW                  3.13956         1.45322         1.06297         2.07349         2.98170         3.37788         1.30277         3.24046         0.86860         0.00000         
+NA_H_BETA_FLUX                -15.64524       0.14195         0.20641         0.34365         0.34369         -15.65473       0.18692         -15.63671       0.12068         0.00000         
+NA_H_BETA_FWHM                500.68052       16.43250        73.53955        73.38091        122.90284       526.71177       48.61837        525.64252       30.64329        0.00000         
+NA_H_BETA_LUM                 41.54390        0.18684         0.16498         0.41638         0.28053         41.49090        0.18692         41.50891        0.12068         0.00000         
+NA_H_BETA_NPIX                10.95767        2.95767         2.04233         5.95767         4.04233         10.69449        2.78196         11.00000        2.00000         0.00000         
+NA_H_BETA_SNR                 3.98860         1.83361         0.74677         2.69965         2.36296         3.66453         1.32096         3.59143         0.86752         0.00000         
+NA_H_BETA_VOFF                282.33033       16.17902        11.40810        36.13000        35.25189        282.26912       17.63693        281.10476       9.29244         0.00000         
+NA_OIII_4960_AMP              1.05058         0.24223         0.32410         0.49484         0.67886         3.20536         0.29514         3.18137         0.19533         0.00000         
+NA_OIII_4960_DISP             223.66564       19.41496        18.67470        43.75372        38.32649        222.79762       20.68730        222.27188       12.93225        0.00000         
+NA_OIII_4960_EW               1.43394         0.19596         0.18016         0.36376         0.37793         1.45300         0.19280         1.44280         0.12739         0.00000         
+NA_OIII_4960_FLUX             -15.98835       0.06356         0.05037         0.12226         0.09918         -15.99238       0.05724         -15.99156       0.03823         0.00000         
+NA_OIII_4960_FWHM             509.74836       25.95345        63.63723        80.94535        110.80554       527.75883       48.41849        526.47606       30.25500        0.00000         
+NA_OIII_4960_LUM              41.15727        0.06959         0.04345         0.12525         0.10224         41.15324        0.05724         41.15406        0.03823         0.00000         
+NA_OIII_4960_NPIX             9.98995         1.98995         0.01005         3.98995         1.01005         8.82139         1.46068         9.00000         1.00000         0.00000         
+NA_OIII_4960_SNR              1.83075         0.10492         0.29570         0.24813         0.57603         1.96954         0.20514         1.95586         0.13826         0.00000         
+NA_OIII_4960_VOFF             7.36616         25.05086        18.18022        45.64189        46.54531        6.79246         22.85997        6.96525         14.09426        0.00000         
+NA_OIII_5007_AMP              3.13071         0.24223         0.32410         0.49484         0.67886         3.20536         0.29514         3.18137         0.19533         0.00000         
+NA_OIII_5007_DISP             223.66564       19.41496        18.67470        43.75372        38.32649        222.79762       20.68730        222.27188       12.93225        0.00000         
+NA_OIII_5007_EW               4.43050         0.56308         0.56904         1.15335         1.08574         4.46729         0.59089         4.43383         0.39055         0.00000         
+NA_OIII_5007_FLUX             -15.50913       0.07369         0.03987         0.12067         0.10460         -15.51426       0.05727         -15.51343       0.03825         0.00000         
+NA_OIII_5007_FWHM             525.98073       41.07605        46.71977        102.58922       94.55656        527.33322       48.39760        525.92884       30.24944        0.00000         
+NA_OIII_5007_LUM              41.63385        0.06504         0.04802         0.12335         0.09900         41.63136        0.05727         41.63219        0.03825         0.00000         
+NA_OIII_5007_NPIX             12.02116        1.02116         0.97884         1.02116         2.97884         12.81707        1.25409         13.00000        1.00000         0.00000         
+NA_OIII_5007_SNR              6.48959         0.56418         0.60186         1.08837         1.43008         6.63524         0.62186         6.59464         0.40718         0.00000         
+NA_OIII_5007_VOFF             7.36616         25.05086        18.18022        45.64189        46.54531        6.79246         22.85997        6.96525         14.09426        0.00000         
+NOISE_SCALE                   1.23358         0.02320         0.03989         0.05475         0.07873         1.24317         0.03309         1.24148         0.02200         0.00000         
+OIII_4960_COMP_DISP           402.56638       17.12940        15.60973        38.77992        26.22762        398.74746       16.77715        399.99582       10.97417        0.00000         
+OIII_4960_COMP_EW             2.51911         0.15145         0.18686         0.28772         0.42493         2.57163         0.18000         2.56261         0.11339         0.00000         
+OIII_4960_COMP_FLUX           -15.74625       0.02512         0.03137         0.05517         0.06243         -15.74121       0.02967         -15.74156       0.01894         0.00000         
+OIII_4960_COMP_FWHM           671.81539       70.91735        23.72595        134.42007       76.57429        646.32424       51.30093        646.71857       31.90197        0.00000         
+OIII_4960_COMP_LUM            41.39713        0.02587         0.03021         0.05273         0.06468         41.40441        0.02967         41.40406        0.01894         0.00000         
+OIII_4960_COMP_NPIX           10.98086        0.98086         0.01914         -0.01914        3.01914         11.52697        1.02165         11.00000        0.00000         0.00000         
+OIII_4960_COMP_SNR            2.61284         0.21629         0.15400         0.34570         0.40125         2.60592         0.19171         2.59329         0.12913         0.00000         
+OIII_4960_COMP_VOFF           -173.55978      14.33634        37.75800        37.79665        57.97063        -164.25926      25.35758        -164.75947      18.34437        1.00000         
+OIII_5007_COMP_DISP           403.38788       19.47309        13.06386        38.61354        25.45546        398.77480       16.77659        400.02601       10.97754        0.00000         
+OIII_5007_COMP_EW             7.76860         0.43498         0.59354         0.95250         1.26670         7.90434         0.55903         7.86907         0.35150         0.00000         
+OIII_5007_COMP_FLUX           -15.26813       0.02526         0.03074         0.05263         0.06299         -15.26300       0.02968         -15.26336       0.01895         0.00000         
+OIII_5007_COMP_FWHM           651.45977       51.06555        43.63254        115.63600       97.35051        646.03517       51.42923        646.77626       32.44124        0.00000         
+OIII_5007_COMP_LUM            41.87878        0.02644         0.03003         0.05503         0.06143         41.88262        0.02968         41.88226        0.01895         0.00000         
+OIII_5007_COMP_NPIX           23.00000        1.00000         1.00000         4.00000         2.00000         23.06992        1.71069         23.00000        1.00000         0.00000         
+OIII_5007_COMP_SNR            8.14323         0.64545         0.44905         0.98329         1.22595         8.11696         0.57393         8.08621         0.38717         0.00000         
+OIII_5007_COMP_VOFF           -171.32607      18.25956        33.24080        40.12356        55.24654        -164.30481      25.36488        -164.80151      18.34679        1.00000         
+OPT_FEII_DISP                 583.91962       13.03077        14.46022        26.37159        33.98762        584.83388       15.21083        584.39237       9.33156         0.00000         
+OPT_FEII_F_AMP                1.75676         0.09323         0.08931         0.19302         0.16947         1.74285         0.09278         1.74394         0.06179         0.00000         
+OPT_FEII_G_AMP                2.00202         0.13551         0.09257         0.25246         0.21743         1.98106         0.11828         1.98997         0.07714         0.00000         
+OPT_FEII_S_AMP                2.04254         0.07741         0.14470         0.19206         0.25152         2.07909         0.11299         2.07964         0.07527         0.00000         
+OPT_FEII_VOFF                 380.33288       14.43840        9.17020         24.66092        25.62755        379.17933       12.60796        378.83334       7.87249         0.00000         
+OPT_FEII_Z_AMP                0.45981         0.04900         0.02851         0.07703         0.07025         0.45570         0.03883         0.45538         0.02585         0.00000         
+OUT_H_BETA_AMP                0.95758         0.96941         0.92417         1.66503         2.11376         4.26847         0.95992         4.23431         0.63630         0.00000         
+OUT_H_BETA_DISP               461.48194       8.95224         17.10049        27.50468        26.61992        463.74144       14.01033        464.06482       9.23046         0.00000         
+OUT_H_BETA_EW                 2.69785         1.10015         0.47975         1.72454         1.36048         2.48409         0.79246         2.47112         0.54192         0.00000         
+OUT_H_BETA_FLUX               -15.69060       0.18252         0.10067         0.36823         0.19320         -15.77523       0.15502         -15.75139       0.09476         0.00000         
+OUT_H_BETA_FWHM               1087.44071      21.27566        41.19958        63.95272        67.36256        1093.55413      33.02941        1094.58692      21.75130        0.00000         
+OUT_H_BETA_LUM                41.46031        0.18353         0.09796         0.37623         0.18248         41.37039        0.15502         41.39424        0.09476         0.00000         
+OUT_H_BETA_NPIX               16.03015        7.03015         0.96985         16.03015        2.96985         13.19855        5.00605         14.00000        3.00000         0.00000         
+OUT_H_BETA_SNR                1.72455         0.50590         0.58950         1.72455         1.03985         1.78319         0.66325         1.81499         0.38345         0.00000         
+OUT_H_BETA_VOFF               -382.56050      23.56998        22.09406        63.86143        51.94459        386.69852       27.19502        384.86585       14.88531        0.00000         
+OUT_OIII_4960_AMP             0.41479         0.27656         0.25875         0.52959         0.53595         1.22484         0.27731         1.23494         0.17884         0.00000         
+OUT_OIII_4960_DISP            461.48194       8.95224         17.10049        27.50468        26.61992        463.74144       14.01033        464.06482       9.23046         0.00000         
+OUT_OIII_4960_EW              1.16826         0.27998         0.19394         0.53920         0.38773         1.11863         0.24190         1.13005         0.15769         0.00000         
+OUT_OIII_4960_FLUX            -16.08356       0.09022         0.09096         0.24535         0.13378         -16.11206       0.10050         -16.09664       0.05984         0.00000         
+OUT_OIII_4960_FWHM            1089.26239      24.41241        37.06460        64.03101        63.31203        1093.21996      33.00221        1093.70133      21.78373        0.00000         
+OUT_OIII_4960_LUM             41.06914        0.09725         0.08356         0.24859         0.12979         41.03356        0.10050         41.04898        0.05984         0.00000         
+OUT_OIII_4960_NPIX            0.00000         0.00000         1.00000         0.00000         6.00000         1.19022         1.80055         0.00000         0.00000         1.00000         
+OUT_OIII_4960_SNR             0.00000         0.00000         1.05507         0.00000         1.28786         0.49912         0.57329         0.00000         0.00000         1.00000         
+OUT_OIII_4960_VOFF            -382.56050      23.56998        22.09406        63.86143        51.94459        386.69852       27.19502        384.86585       14.88531        0.00000         
+OUT_OIII_5007_AMP             1.23607         0.27656         0.25875         0.52959         0.53595         1.22484         0.27731         1.23494         0.17884         0.00000         
+OUT_OIII_5007_DISP            461.48194       8.95224         17.10049        27.50468        26.61992        463.74144       14.01033        464.06482       9.23046         0.00000         
+OUT_OIII_5007_EW              3.57660         0.87535         0.57844         1.63329         1.21067         3.43705         0.74636         3.47101         0.48701         0.00000         
+OUT_OIII_5007_FLUX            -15.60006       0.09533         0.08579         0.25113         0.13362         -15.63374       0.10049         -15.61832       0.05984         0.00000         
+OUT_OIII_5007_FWHM            1086.98531      19.25953        41.85990        62.36327        67.06792        1093.49901      33.04605        1094.36003      21.78873        0.00000         
+OUT_OIII_5007_LUM             41.54855        0.09964         0.07669         0.24319         0.13872         41.51188        0.10049         41.52730        0.05984         0.00000         
+OUT_OIII_5007_NPIX            19.97608        0.97608         2.02392         8.97608         3.02392         19.04311        3.70410         20.00000        1.00000         0.00000         
+OUT_OIII_5007_SNR             2.61628         0.86347         0.24044         1.31459         0.82103         2.37966         0.56319         2.38663         0.38065         0.00000         
+OUT_OIII_5007_VOFF            -382.56050      23.56998        22.09406        63.86143        51.94459        -386.69852      27.19502        -384.86585      14.88531        0.00000         
+POWER_AMP                     6.44366         0.44296         0.64953         1.35503         0.68637         6.23690         0.58516         6.35561         0.39146         0.00000         
+POWER_SLOPE                   -1.32598        3.34708         1.30803         4.34588         2.96909         -2.03319        2.06841         -1.93207        1.60900         1.00000         
+RCHI_SQUARED                  1.04943         0.06018         0.04232         0.11788         0.09960         1.03644         0.05409         1.03738         0.03475         0.00000         
+R_SQUARED                     0.99703         0.00003         0.00003         0.00007         0.00005         0.99702         0.00003         0.99703         0.00002         0.00000         
+S_OPT_FEII_TEMPLATE_EW        19.78597        1.34927         0.94056         2.34709         1.88799         19.53084        1.11689         19.55760        0.78704         0.00000         
+S_OPT_FEII_TEMPLATE_FLUX      -14.86864       0.02860         0.01895         0.05189         0.03739         -14.87585       0.02345         -14.87425       0.01637         0.00000         
+S_OPT_FEII_TEMPLATE_LUM       42.27719        0.02890         0.01877         0.05206         0.03615         42.26977        0.02345         42.27137        0.01637         0.00000         
+Z_OPT_FEII_TEMPLATE_EW        25.10358        3.17343         1.67036         5.23235         4.17871         24.44488        2.46992         24.36477        1.68044         0.00000         
+Z_OPT_FEII_TEMPLATE_FLUX      -14.72596       0.05755         0.02481         0.09560         0.06036         -14.74061       0.04117         -14.73987       0.02803         0.00000         
+Z_OPT_FEII_TEMPLATE_LUM       42.41779        0.05078         0.03036         0.09624         0.06123         42.40501        0.04117         42.40575        0.02803         0.00000         
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-total_runtime                 0:43:55                       
-end_time                      2022-11-04 22:56:37.603126    
+total_runtime                 0:43:34                       
+end_time                      2023-01-05 08:07:30.223294    
 -----------------------------------------------------------------------------------------------------------------
