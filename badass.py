@@ -264,6 +264,10 @@ __status__	 = "Release"
 # - Add explicit flat prior 
 # - Add flux normalization option (default is SDSS normalization of 1.E-17)
 
+# Version 9.3.?
+# - Fixed output line SNR to be calculated even if NPIX <1
+
+
 ##########################################################################################################
 
 
@@ -1476,7 +1480,7 @@ def determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, 
         ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)')
 
         plt.tight_layout()
-        plt.savefig(run_dir.joinpath('good_pixels.pdf'),fmt='pdf',dpi=150)
+        plt.savefig(run_dir.joinpath('good_pixels.pdf'))
         fig.clear()
         plt.close()
     ##################################################################################
@@ -3084,6 +3088,7 @@ def line_list_default():
         "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
         "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"         	   ,"h3":"free"           ,"h4":"free"           , "line_type":"na" ,"label":r"[O III]"},
 
+        # "na_unknown_1":{"center":4500., "line_type":"na", "line_profile":"gaussian"},
         ##############################################################################################################################################################################################################################################
 
         ### Region 4 (5500 Å - 6200 Å)
@@ -4879,7 +4884,7 @@ def line_test_plot(lam_gal,comp_dict_outflow,comp_dict_no_outflow,line_list_outf
     ax1.set_title(run_dir.parent.name,fontsize=12)
     #
     fig.tight_layout()
-    plt.savefig(run_dir.joinpath('line_test.pdf'),fmt='pdf')
+    plt.savefig(run_dir.joinpath('line_test.pdf'))
     plt.close()
     #
     return
@@ -5242,10 +5247,11 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
         eval_ind = np.where(comp_dict[l]>_noise)[0]
         npix = len(eval_ind)
         npix_dict[l+"_NPIX"] = int(npix)
-        if len(eval_ind)>0:
-            snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
-        else: 
-            snr = 0
+        # if len(eval_ind)>0:
+        #     snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
+        # else: 
+        #     snr = 0
+        snr = np.nanmax(comp_dict[l])/np.nanmean(_noise)
         snr_dict[l+"_SNR"] = snr
     # compute for combined lines
     if len(combined_line_list)>0:
@@ -7287,10 +7293,11 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
             eval_ind = np.where(comp_dict[key]>_noise)[0]
             npix = len(eval_ind)
             npix_dict[key+"_NPIX"] = int(npix)
-            if len(eval_ind)>0:
-                snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(_noise[eval_ind])
-            else: 
-                snr = 0
+            # if len(eval_ind)>0:
+            #     snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(_noise[eval_ind])
+            # else: 
+            #     snr = 0
+            snr = np.nanmax(comp_dict[key])/np.nanmean(_noise)
             snr_dict[key+"_SNR"] = snr
 
         # For combined lines ONLY, calculate integrated dispersions and velocity 
@@ -9311,7 +9318,7 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
     # Save the figure
     histo_dir = run_dir.joinpath('histogram_plots')
     histo_dir.mkdir(parents=True, exist_ok=True)
-    plt.savefig(histo_dir.joinpath('%s_MCMC.png' % (key)), bbox_inches="tight",dpi=300,fmt='png')
+    plt.savefig(histo_dir.joinpath('%s_MCMC.png' % (key)), bbox_inches="tight",dpi=300)
 
     # Close plot window
     fig.clear()
