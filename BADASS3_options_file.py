@@ -8,6 +8,8 @@
 # 
 
 # In[1]:
+
+
 import glob
 import time
 import natsort
@@ -44,7 +46,7 @@ options_file = "BADASS_options.py"
 
 
 ########################## Directory Structure #################################
-spec_dir = 'examples/'#"G:\\Research\MUSE\\J104457\\sdss\\"#'examples/' # folder with spectra in it
+spec_dir = 'examples/' # folder with spectra in it
 #spec_dir = 'G:\\Research\\Reefe_DR8_CLs\\Reefe_DR8_CLs\\f_6\\'
 #spec_dir = 'G:\\Research\\Reefe_DR8_CLs\\Old\\Reefe_DR8_BPT_K01_AGN_Controls_Short_argo_in\\f_39\\'
 # Get full list of spectrum folders; these will be the working directories
@@ -58,20 +60,20 @@ print(spec_loc)
 # In[4]:
 
 
-nobj = -2# Object in the spec_loc list
+nobj = -1 # Object in the spec_loc list
 file = glob.glob(spec_loc[nobj]+'/*.fits')[0] # Get name of FITS spectra file
-
-print(f"Fitting {file = } with {options_file = }\n")
-
+#
+print(file)
+#sys
 # #### Run IRSA Dust Query
 # To correct for Galactic extinction.  This only needs to be done once so that the data is stored locally.
 
 # In[5]:
 
-#sys
+
 badass_utils.fetch_IRSA_dust(spec_loc[nobj])
 
- 
+
 # #### Run 
 
 # In[6]:
