@@ -70,7 +70,7 @@ __author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Re
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	= "MIT"
-__version__	= "9.3.1"
+__version__	= "9.3.2"
 __maintainer__ = "Remington O. Sexton"
 __email__	  = "rsexton2@gmu.edu"
 __status__	 = "Release"
@@ -266,6 +266,8 @@ __status__	 = "Release"
 
 # Version 9.3.?
 # - Fixed output line SNR to be calculated even if NPIX <1
+# - Constraint and initial value checking before fit takes place to prevent crashing.
+# - 
 
 
 ##########################################################################################################
@@ -3806,56 +3808,55 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
     # OUT_OIII_5007_1
     # OUT_OIII_5007_2
     # OUT_OIII_5007_3 etc...
-    lines = np.unique(["_".join(l.split('_')[0:3]) for l in line_par_input if l.split('_')[0] == 'OUT'])
-    n_comps = np.zeros(lines.shape, dtype=int)
-    for j, line in enumerate(lines):
-        i = 1
-        check_next = True
-        while check_next:
-            check_next = False
-            for key in line_par_input:
-                if f"{line}_{i}" in key:
-                    n_comps[j] += 1
-                    check_next = True
-                    i += 1
-                    break
-        if n_comps[j] == 0:
-            n_comps[j] = 1
+    # lines = np.unique(["_".join(l.split('_')[0:3]) for l in line_par_input if l.split('_')[0] == 'OUT'])
+    # n_comps = np.zeros(lines.shape, dtype=int)
+    # for j, line in enumerate(lines):
+    #     i = 1
+    #     check_next = True
+    #     while check_next:
+    #         check_next = False
+    #         for key in line_par_input:
+    #             if f"{line}_{i}" in key:
+    #                 n_comps[j] += 1
+    #                 check_next = True
+    #                 i += 1
+    #                 break
+    #     if n_comps[j] == 0:
+    #         n_comps[j] = 1
 
-    # Check if any lines have multiple components
-    for k, nci in enumerate(n_comps):
-        if nci > 1:
-            # If so, add soft constraint on VOFF such that they are always ordered the same
-            for m in range(1, nci):
-                # For example:
-                # OUT_OIII_5007_2_VOFF > OUT_OIII_5007_1_VOFF
-                # OUT_OIII_5007_3_VOFF > OUT_OIII_5007_2_VOFF
-                # etc...
-                con1 = (f"{lines[k]}_{m+1}_FWHM", f"{lines[k]}_{m}_FWHM")
-                # Just in case the user already placed the soft con in question:
-                if con1 not in soft_cons:
-                    soft_cons.append(con1)
+    # # Check if any lines have multiple components
+    # for k, nci in enumerate(n_comps):
+    #     if nci > 1:
+    #         # If so, add soft constraint on VOFF such that they are always ordered the same
+    #         for m in range(1, nci):
+    #             # For example:
+    #             # OUT_OIII_5007_2_VOFF > OUT_OIII_5007_1_VOFF
+    #             # OUT_OIII_5007_3_VOFF > OUT_OIII_5007_2_VOFF
+    #             # etc...
+    #             con1 = (f"{lines[k]}_{m+1}_FWHM", f"{lines[k]}_{m}_FWHM")
+    #             # Just in case the user already placed the soft con in question:
+    #             if con1 not in soft_cons:
+    #                 soft_cons.append(con1)
                 
-                con2 = (f"{lines[k]}_{m}_AMP", f"{lines[k]}_{m+1}_AMP")
-                if con2 not in soft_cons:
-                    soft_cons.append(con2)
+    #             con2 = (f"{lines[k]}_{m}_AMP", f"{lines[k]}_{m+1}_AMP")
+    #             if con2 not in soft_cons:
+    #                 soft_cons.append(con2)
             
-            # Add additional constraints for narrow/broad components
-            if f"{lines[k].replace('OUT_', 'NA_')}_FWHM" in line_par_input:
-                con1 = (f"{lines[k]}_1_FWHM", f"{lines[k].replace('OUT_', 'NA_')}_FWHM")
-                if con1 not in soft_cons:
-                    soft_cons.append(con1)
-                con2 = (f"{lines[k].replace('OUT_', 'NA_')}_AMP", f"{lines[k]}_1_AMP")
-                if con2 not in soft_cons:
-                    soft_cons.append(con2)
-            if f"{lines[k].replace('OUT_', 'BR_')}_FWHM" in line_par_input:
-                con = (f"{lines[k].replace('OUT_', 'BR_')}_FWHM", f"{lines[k]}_{nci}_FWHM")
-                if con not in soft_cons:
-                    soft_cons.append(con)
-
-    # Add automatic soft_cons if lines have multiple components, to ensure the order is consistent
+    #         # Add additional constraints for narrow/broad components
+    #         if f"{lines[k].replace('OUT_', 'NA_')}_FWHM" in line_par_input:
+    #             con1 = (f"{lines[k]}_1_FWHM", f"{lines[k].replace('OUT_', 'NA_')}_FWHM")
+    #             if con1 not in soft_cons:
+    #                 soft_cons.append(con1)
+    #             con2 = (f"{lines[k].replace('OUT_', 'NA_')}_AMP", f"{lines[k]}_1_AMP")
+    #             if con2 not in soft_cons:
+    #                 soft_cons.append(con2)
+    #         if f"{lines[k].replace('OUT_', 'BR_')}_FWHM" in line_par_input:
+    #             con = (f"{lines[k].replace('OUT_', 'BR_')}_FWHM", f"{lines[k]}_{nci}_FWHM")
+    #             if con not in soft_cons:
+    #                 soft_cons.append(con)
 
 
+    # Check that soft cons can be parsed; if not, convert to free parameter
     for con in soft_cons:
         # print(con)
         valid_cons = []
@@ -3874,6 +3875,16 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
             if verbose:
                 print("\n - %s soft constraint removed because one or more free parameters is not available." % str(con))
                 
+    # Now check to see that initial values are obeyed; if not, throw exception and warning message
+    for con in out_cons:
+        print(con)
+        # Parse cons and evaluate
+        val1 = ne.evaluate(con[0],local_dict = line_par_dict).item()
+        val2 = ne.evaluate(con[1],local_dict = line_par_dict).item()
+        print(con, val1, val2)
+        if val1<val2:
+            raise ValueError("\n The initial value for %s is less than the initial value for %s, but the constraint %s says otherwise.  Either remove the constraint or initialize the values appropriately.\n" % (con[0],con[1],con))
+
     return out_cons
 
 ##################################################################################
