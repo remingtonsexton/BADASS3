@@ -1566,6 +1566,12 @@ def check_output_options(input,verbose=False):
 				  		"default": True,
 				  		"error_message": "\n write_chain must be a bool.\n",
 				  },
+	"write_options" : {"conds":[
+							lambda x: isinstance(x,(bool))
+							],
+				  		"default": False,
+				  		"error_message": "\n write_options must be a bool.\n",
+				  },
 	"verbose" : {"conds":[
 							lambda x: isinstance(x,(bool))
 							],
