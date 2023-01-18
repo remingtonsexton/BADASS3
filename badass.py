@@ -66,14 +66,14 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 warnings.filterwarnings("ignore", category=UserWarning) 
 
-__author__	 = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Reefe (GMU), William Matzko (GMU), Nicholas Darden (UCR)"
+__author__	   = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Reefe (GMU), William Matzko (GMU), Nicholas Darden (UCR)"
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
-__credits__	= ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
-__license__	= "MIT"
-__version__	= "9.3.2"
+__credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
+__license__	   = "MIT"
+__version__	   = "9.3.2"
 __maintainer__ = "Remington O. Sexton"
-__email__	  = "rsexton2@gmu.edu"
-__status__	 = "Release"
+__email__	   = "rsexton2@gmu.edu"
+__status__	   = "Release"
 
 ##########################################################################################################
 
@@ -267,8 +267,7 @@ __status__	 = "Release"
 # Version 9.3.?
 # - Fixed output line SNR to be calculated even if NPIX <1
 # - Constraint and initial value checking before fit takes place to prevent crashing.
-# - 
-
+# - implemented restart file; saves all fitting options to restart fit
 
 ##########################################################################################################
 
@@ -554,6 +553,7 @@ def run_single_thread(fits_file,
 
     # output_options
     write_chain			= output_options["write_chain"]
+    write_options       = output_options["write_options"]
     verbose				= output_options["verbose"]
     #
     # Start fitting process
@@ -707,6 +707,7 @@ def run_single_thread(fits_file,
         write_log((),'update_balmer',run_dir)
     elif (fit_balmer==False):
         balmer_template = None
+
 
     ####################################################################################################################################################################################
 
@@ -906,6 +907,32 @@ def run_single_thread(fits_file,
         return
 
     ####################################################################################################################################################################################
+    
+    # Write restart file
+    if write_options:
+
+        dump_options(fit_options,
+            comp_options,
+            mcmc_options,
+            pca_options,
+            line_list,
+            soft_cons,
+            user_mask,
+            combined_lines,
+            losvd_options,
+            host_options,
+            power_options,
+            poly_options,
+            opt_feii_options,
+            uv_iron_options,
+            balmer_options,
+            plot_options,
+            output_options,
+            run_dir,
+            )
+
+    ####################################################################################################################################################################################
+
     # Peform maximum likelihood
     result_dict, comp_dict     = max_likelihood(param_dict,
                                                 line_list,
@@ -964,7 +991,8 @@ def run_single_thread(fits_file,
         sys.stdout.flush()
         return
 
-    #######################################################################################################
+
+    ####################################################################################################################################################################################
  
     # Initialize parameters for emcee
     if verbose:
@@ -3877,11 +3905,11 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
                 
     # Now check to see that initial values are obeyed; if not, throw exception and warning message
     for con in out_cons:
-        print(con)
+        # print(con)
         # Parse cons and evaluate
         val1 = ne.evaluate(con[0],local_dict = line_par_dict).item()
         val2 = ne.evaluate(con[1],local_dict = line_par_dict).item()
-        print(con, val1, val2)
+        # print(con, val1, val2)
         if val1<val2:
             raise ValueError("\n The initial value for %s is less than the initial value for %s, but the constraint %s says otherwise.  Either remove the constraint or initialize the values appropriately.\n" % (con[0],con[1],con))
 
@@ -10944,6 +10972,76 @@ def plotly_best_fit(objname,line_list,fit_mask,run_dir):
     # fig.write_image(run_dir.joinpath("%s_bestfit.pdf" % objname))
 
     return
+
+# Restart File
+##################################################################################
+def dump_options(fit_options,
+            comp_options,
+            mcmc_options,
+            pca_options,
+            line_list,
+            soft_cons,
+            user_mask,
+            combined_lines,
+            losvd_options,
+            host_options,
+            power_options,
+            poly_options,
+            opt_feii_options,
+            uv_iron_options,
+            balmer_options,
+            plot_options,
+            output_options,
+            run_dir,
+            ):
+
+        opt_file_path = run_dir.joinpath('log', 'badass_options.py')
+        opt_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with opt_file_path.open(mode='w') as f:
+            f.write("\n# BADASS Options File")
+            f.write("\n# Use the file as the input for the options_file in BADASS to re-run the fit with the same options.")
+            f.write("\n# --------------------------------------------------------------------------------------------------")
+            f.write("\n#")
+            f.write("\nfit_options = %s" % fit_options)
+            f.write("\n#")
+            f.write("\nmcmc_options = %s" % mcmc_options)
+            f.write("\n#")
+            f.write("\ncomp_options = %s" % comp_options)
+            f.write("\n#")
+            f.write("\nlosvd_options = %s" % losvd_options)
+            f.write("\n#")
+            f.write("\nhost_options = %s" % host_options)
+            f.write("\n#")
+            f.write("\npower_options = %s" % power_options)
+            f.write("\n#")
+            f.write("\npoly_options = %s" % poly_options)
+            f.write("\n#")
+            f.write("\nopt_feii_options = %s" % opt_feii_options)
+            f.write("\n#")
+            f.write("\nuv_iron_options = %s" % uv_iron_options)
+            f.write("\n#")
+            f.write("\nbalmer_options = %s" % balmer_options)
+            f.write("\n#")
+            f.write("\nplot_options = %s" % plot_options)
+            f.write("\n#")
+            f.write("\noutput_options = %s" % output_options)
+            f.write("\n#")
+            f.write("\npca_options = %s" % pca_options)
+            f.write("\n#")
+            f.write("\nuser_mask = %s" % user_mask)
+            f.write("\n#")
+            f.write("\nuser_constraints = %s" % soft_cons)
+            f.write("\n#")
+            f.write("\nuser_lines = %s" % line_list)
+            f.write("\n#")
+            f.write("\ncombined_lines = %s" % combined_lines)
+            f.write("\n#")
+            f.write("\n# --------------------------------------------------------------------------------------------------")
+            f.write("\n# End of BADASS Options File")
+            
+        return
+
+
 
 # Clean-up Routine
 ##################################################################################
