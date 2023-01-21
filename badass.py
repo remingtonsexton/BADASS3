@@ -3192,7 +3192,7 @@ def line_list_default():
         "BR_H_BETA"   :{"center":4862.691, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
 
         ### Region 3 (6200 Å - 6800 Å)
-        "BR_H_ALPHA"  :{"center":6585.278, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
+        "BR_H_ALPHA"  :{"center":6564.632, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
 
     }
     # Default Outlfow Lines
