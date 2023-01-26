@@ -70,7 +70,7 @@ __author__	   = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. 
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
-__version__	   = "9.3.2"
+__version__	   = "9.4.0"
 __maintainer__ = "Remington O. Sexton"
 __email__	   = "rsexton2@gmu.edu"
 __status__	   = "Release"
@@ -269,6 +269,9 @@ __status__	   = "Release"
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
 
+# Version 9.4.0
+# - New generalized line component option for easily adding n number of line components; depricates 'outflow'
+#   components. 
 ##########################################################################################################
 
 
@@ -282,6 +285,9 @@ def run_BADASS(data,
                fit_options=False,
                mcmc_options=False,
                comp_options=False,
+               narrow_options=False,
+               broad_options=False,
+               absorp_options=False,
                pca_options=False,
                user_lines=None,
                user_constraints=None,
@@ -336,7 +342,9 @@ def run_BADASS(data,
         print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
 
         files = [glob.glob(os.path.join(wd, '*.fits'))[0] for wd in work_dirs]
-        arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options, pca_options, user_lines, user_constraints, user_mask,
+        arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options,
+                      narrow_options, broad_options, absorp_options,
+                      pca_options, user_lines, user_constraints, user_mask,
                       combined_lines, losvd_options, host_options, power_options, poly_options, opt_feii_options, uv_iron_options, balmer_options,
                       outflow_test_options, plot_options, output_options, sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv, flux_norm) for file in files]
 
@@ -355,7 +363,9 @@ def run_BADASS(data,
         process = psutil.Process(os.getpid())
         print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
 
-        run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options, pca_options,
+        run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options, 
+                          narrow_options, broad_options, absorp_options,
+                          pca_options,
                           user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options, poly_options,
                           opt_feii_options, uv_iron_options, balmer_options, outflow_test_options, plot_options, output_options,
                           sdss_spec, ifu_spec, spec, wave, err, fwhm_res, z, ebv, flux_norm)
@@ -372,6 +382,9 @@ def run_single_thread(fits_file,
                fit_options=False,
                mcmc_options=False,
                comp_options=False,
+               narrow_options=False,
+               broad_options=False,
+               absorp_options=False,
                pca_options=False,
                user_lines=None,
                user_constraints=None,
@@ -421,6 +434,12 @@ def run_single_thread(fits_file,
                 fit_options			 = options.fit_options
             if hasattr(options,"comp_options"):
                 comp_options		 = options.comp_options
+            if hasattr(options,"narrow_options"):
+                narrow_options         = options.narrow_options
+            if hasattr(options,"broad_options"):
+                broad_options         = options.broad_options
+            if hasattr(options,"absorp_options"):
+                absorp_options         = options.absorp_options
             if hasattr(options,"mcmc_options"):
                 mcmc_options		 = options.mcmc_options
             if hasattr(options,"pca_options"):
@@ -461,6 +480,9 @@ def run_single_thread(fits_file,
     # Check inputs; raises exception if user input is invalid.
     fit_options			 = badass_utils.check_fit_options(fit_options,comp_options)
     comp_options		 = badass_utils.check_comp_options(comp_options)
+    narrow_options       = badass_utils.check_narrow_options(narrow_options)
+    broad_options        = badass_utils.check_broad_options(broad_options)
+    absorp_options       = badass_utils.check_absorp_options(absorp_options)
     mcmc_options		 = badass_utils.check_mcmc_options(mcmc_options)
     pca_options          = badass_utils.check_pca_options(pca_options)
     user_lines			 = badass_utils.check_user_lines(user_lines)
@@ -525,11 +547,9 @@ def run_single_thread(fits_file,
     fit_poly            = comp_options["fit_poly"]
     fit_narrow			= comp_options["fit_narrow"]
     fit_broad			= comp_options["fit_broad"]
-    fit_outflow			= comp_options["fit_outflow"]
     fit_absorp			= comp_options["fit_absorp"]
     tie_line_disp		= comp_options["tie_line_disp"]
     tie_line_voff		= comp_options["tie_line_voff"]
-    n_moments 			= comp_options["n_moments"]
     # plot_options
     plot_param_hist		= plot_options["plot_param_hist"]
     plot_flux_hist		= plot_options["plot_flux_hist"]
@@ -711,18 +731,19 @@ def run_single_thread(fits_file,
 
     ####################################################################################################################################################################################
 
-    # Initialize maximum likelihood parameters
+    # Initialize free parameters (all components, lines, etc.)
     if verbose:
-        print('\n Initializing parameters for Maximum Likelihood Fitting.')
+        print('\n Initializing parameters...')
         print('----------------------------------------------------------------------------------------------------')
 
     param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
-                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 comp_options,narrow_options,broad_options,absorp_options,
+                                 user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                  opt_feii_options,uv_iron_options,balmer_options,
                                  run_dir,fit_type='init',fit_stat=fit_stat,
                                  fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
                                  fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
-                                 fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
+                                 fit_narrow=fit_narrow,fit_broad=fit_broad,fit_absorp=fit_absorp,
                                  tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,verbose=verbose)
 
     # Output all free parameters of fit prior to fitting (useful for diagnostics)
@@ -999,12 +1020,13 @@ def run_single_thread(fits_file,
         print('\n Initializing parameters for MCMC.')
         print('----------------------------------------------------------------------------------------------------')
     param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
-                                                           comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                                           comp_options,narrow_options,broad_options,absorp_options,
+                                                           user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                                            opt_feii_options,uv_iron_options,balmer_options,
                                                            run_dir,fit_type='final',fit_stat=fit_stat,
                                                            fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
                                                            fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
-                                                           fit_narrow=fit_narrow,fit_broad=fit_broad,fit_outflow=fit_outflow,fit_absorp=fit_absorp,
+                                                           fit_narrow=fit_narrow,fit_broad=fit_broad,fit_absorp=fit_absorp,
                                                            tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,
                                                            remove_lines=False,verbose=verbose)
     #
@@ -2612,19 +2634,17 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, disp_res, fit_
 
 
 def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale,
-                    comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                    comp_options,narrow_options,broad_options,absorp_options,
+                    user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                     opt_feii_options,uv_iron_options,balmer_options,
                     run_dir,fit_type='init',fit_stat="RCHI2",
                     fit_opt_feii=True,fit_uv_iron=True,fit_balmer=True,
                     fit_losvd=False,fit_host=True,fit_power=True,fit_poly=False,
-                    fit_narrow=True,fit_broad=True,fit_outflow=True,fit_absorp=True,
+                    fit_narrow=True,fit_broad=True,fit_absorp=True,
                     tie_line_disp=False,tie_line_voff=False,remove_lines=False,verbose=True):
     """
     Initializes all free parameters for the fit based on user input and options.
     """
-    # Issue warnings for dumb options
-    if ((fit_narrow==False) & (fit_outflow==True)): # why would you fit outflow without narrow lines?
-        raise ValueError('\n Why would you fit outflows without narrow lines? Turn on narrow line component! \n')
 
     ################################################################################
     # Initial conditions for some parameters
@@ -2942,8 +2962,8 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     #### Emission Lines ##########################################################
     
-
-    #
+    # If user lines is defined, replace the default line list with the 
+    # user-input line list
     if (user_lines is None) or (len(user_lines)==0):
         line_list = line_list_default()
     elif user_lines is not None:
@@ -2958,10 +2978,18 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             line_list.pop(l,None)
 
     # Check line component options for 
-    line_list = check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=edge_pad,verbose=verbose)
+    line_list = check_line_comp_options(lam_gal,line_list,comp_options,narrow_options,broad_options,absorp_options,edge_pad=edge_pad,verbose=verbose)
     # Add the FWHM resolution and central pixel locations for each line so we don't have to 
     # find them during the fit.
     line_list = add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=verbose)
+
+    
+    for line in line_list:
+            print("\t",line)
+            for hpar in line_list[line]:
+                print("\t\t",hpar,"=",line_list[line][hpar])
+    sys.exit()
+    
     # Generate line free parameters based on input line_list
     line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,verbose=verbose)
     # Check hard line constraints; returns updated line_list and line_par_input
@@ -3195,34 +3223,14 @@ def line_list_default():
         "BR_H_ALPHA"  :{"center":6564.632, "amp":"free", "disp":"free", "voff":"free", "line_type":"br"},
 
     }
-    # Default Outlfow Lines
-    # Outflows share a universal width and voff across all lines, but amplitudes will be different.
-    # This is because outflows are (almost always) strongest in [OIII], and doesn't suffer from blending from
-    # neighboring lines or broad lines as the H-alpha/[NII]/[SII] lines do.  The width and voff will be added when parameters are generated.
-    # For the H-beta/[OIII] region, [OIII]5007 dicates the amplitude of the outflow component (since parameters are flux-weighted, i.e., the strongest
-    # lines have more influence on the fit of a parameter than weaker ones), so the [OIII]4960 and H-beta outflow amplitudes are a fraction of the
-    # narrow-to-outflow line ratio. This same reasoning applies to the H-alpha/[NII]/[SII] region, with H-alpha deciding the line amplitudes.
-    outflow_lines = {
-        # H-beta/[OIII]
-        "OUT_H_BETA"    :{"center":4862.691, "amp":"OUT_OIII_5007_AMP/NA_OIII_5007_AMP*NA_H_BETA_AMP"     , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "h3":"OUT_OIII_5007_H3", "h4":"OUT_OIII_5007_H4", "line_type":"out"},
-        "OUT_OIII_4960" :{"center":4960.295, "amp":"OUT_OIII_5007_AMP/2.98"							      , "disp":"OUT_OIII_5007_DISP", "voff":"OUT_OIII_5007_VOFF", "h3":"OUT_OIII_5007_H3", "h4":"OUT_OIII_5007_H4", "line_type":"out"},
-        "OUT_OIII_5007" :{"center":5008.240, "amp":"free"         									      , "disp":"free"              , "voff":"free",               "h3":"free"            , "h4":"free"            , "line_type":"out"},
-        # [OI]/H-alpha/[NII]/[SiII]
-        "OUT_OI_6302"   :{"center":6302.046, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6302_AMP"      , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_OI_6365"   :{"center":6365.535, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_OI_6365_AMP"      , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_NII_6549"  :{"center":6549.859, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_NII_6585_AMP/2.93", "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_H_ALPHA"   :{"center":6564.632, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_H_ALPHA_AMP" 	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_NII_6585"  :{"center":6585.278, "amp":"free"											 	  , "disp":"free"			  , "voff":"free"			  , "line_type":"out"},
-        "OUT_SII_6718"  :{"center":6718.294, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6718_AMP"	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-        "OUT_SII_6732"  :{"center":6732.668, "amp":"OUT_NII_6585_AMP/NA_NII_6585_AMP*NA_SII_6732_AMP"	  , "disp":"OUT_NII_6585_DISP", "voff":"OUT_NII_6585_VOFF", "line_type":"out"},
-    }
+
     # Default Absorption Lines
     absorp_lines = {
         "ABS_NAI_5897":{"center":5897.558, "amp":"free", "disp":"free", "voff":"free", "line_type":"abs","label":r"Na D"},
     }
     #
     # Combine all line lists into single list
-    line_list = {**narrow_lines, **broad_lines, **outflow_lines, **absorp_lines}
+    line_list = {**narrow_lines, **broad_lines, **absorp_lines}
 
     return line_list
 
@@ -3230,21 +3238,31 @@ def line_list_default():
 
 #### Check Line Component Options ################################################
 
-def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=True):
+def check_line_comp_options(lam_gal,line_list,comp_options,
+                            narrow_options,broad_options,absorp_options,
+                            edge_pad=10,verbose=True):
     """
-    Checks each entry in the complete (narrow, broad, outflow, absorption, and user) line list
+    Checks each entry in the complete (narrow, broad, absorption, and user) line list
     and ensures all necessary keywords are input.  It also checks every line entry against the 
     front-end component options (comp_options).  The only required keyword for a line entry is 
     the "center" wavelength of the line.  If "amp", "disp", "voff", "h3" and "h4" (for Gauss-Hermite)
     line profiles are missing, it assumes these are all "free" parameters in the fitting of that line. 
     If "line_type" is not defined, it is assumed to be "na" (narrow).  If "line_profile" is not defined, 
     it is assumed to be "gaussian". 
+
+    Line list hyper-parameters:
+    amp, amp_init, amp_plim
+    disp, disp_init, disp_plim
+    voff, voff_init, voff_plim
+    shape, shape_init, shape_plim,
+    h3, h4, h5, h6, h7, h8, h9, h10, _init, _plim
+    line_type
+    line_profile
+    ncomp
+    label
     """
     # Input checking
     # If fit_narrow=False, set fit_outflow=False as well (doesn't make sense to fit outflows without their narrow lines)
-    if (comp_options["fit_narrow"]==False) and (comp_options["fit_outflow"]==True):
-        if verbose:
-            raise ValueError("\n  Why would you fit outflows without narrow lines? Turn on narrow line component! \n")
     # Step 1: Check each entry to make sure "center" keyword is defined.
     for line in list(line_list):
         if ("center" not in line_list[line]) or (not isinstance(line_list[line]["center"],(int,float))):
@@ -3268,27 +3286,28 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
         if (comp_options["fit_broad"]==False) and ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="br"):
             line_list.pop(line, None)
     #
-    # If fit_outflow=False, purge outflow lines from line_list
-    for line in list(line_list):
-        if (comp_options["fit_outflow"]==False) and ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="out"):
-            line_list.pop(line, None)
-    #
     # If fit_absorp=False, purge outflow lines from line_list
     for line in list(line_list):
         if (comp_options["fit_absorp"]==False) and ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="abs"):
             line_list.pop(line, None)
+    # If line_type is not explicitly defined, define the line_type as 'user'
+    for line in list(line_list):
+        if ("line_type" not in line_list[line]): 
+            line_list[line]["line_type"] = 'user'
     #
     # Step 4: Assign line_profile keyword; if line_profile is not defined, add a keyword for the line profile.  If it 
     # is defined, make sure its consisten with the comp_options and line_type:
     for line in list(line_list):
+        # If line_type is defined as narrow
         if ("line_type" in line_list[line]) and (line_list[line]["line_type"]=='na'):
-            line_list[line]["line_profile"] = comp_options["na_line_profile"]
+            line_list[line]["line_profile"] = narrow_options["line_profile"]
+        # If line_type is defined as broad
         if ("line_type" in line_list[line]) and (line_list[line]["line_type"]=='br'):
-            line_list[line]["line_profile"] = comp_options["br_line_profile"]
-        if ("line_type" in line_list[line]) and (line_list[line]["line_type"]=='out'):
-            line_list[line]["line_profile"] = comp_options["out_line_profile"]
+            line_list[line]["line_profile"] = broad_options["line_profile"]
+        # If line_type is defined as absorp
         if ("line_type" in line_list[line]) and (line_list[line]["line_type"]=='abs'):
-            line_list[line]["line_profile"] = comp_options["abs_line_profile"]
+            line_list[line]["line_profile"] = absorp_options["line_profile"]
+        # If 
         if (("line_type" not in line_list[line]) and ("line_profile" not in line_list[line])) or (("line_type" in line_list[line]) and (line_list[line]["line_type"]=="user") and ("line_profile" not in line_list[line])):
             if verbose:
                 print("\n Warning: %s has no defined line_type or line_profile keywords.  Assuming line_profile='gaussian'.\n" % line)
@@ -3296,13 +3315,13 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
             line_list[line]["line_profile"] = "gaussian"
         if ("line_type" not in line_list[line]) and ("line_profile" in line_list[line]):
             line_list[line]["line_type"] = "user" # User-defined line
-        if ("line_type" in line_list[line]) and (line_list[line]["line_type"] not in ["na","br","out","abs","user"]):
-            raise ValueError("\n User-input line_type not recognized.  Available options are 'na' (narrow), 'br' (broad), 'out' (outflow), or 'abs' (absorption). If unsure, leave out this keyword.\n ")
+        if ("line_type" in line_list[line]) and (line_list[line]["line_type"] not in ["na","br","abs","user"]):
+            raise ValueError("\n line_type not recognized.  Available options are 'na' (narrow), 'br' (broad), 'out' (outflow), or 'abs' (absorption). If unsure, leave out this keyword.\n ")
         if ("line_profile" in line_list[line]) and (line_list[line]["line_profile"] not in ["gaussian","lorentzian","gauss-hermite","voigt","laplace","uniform"]):
-            raise ValueError("\n User-input line_profile not recognized.  Available options are 'gaussian', 'lorentzian', 'gauss-hermite', 'voigt', 'laplace', or 'uniform'.  Default is 'gaussian'.\n ")
+            raise ValueError("\n line_profile not recognized.  Available options are 'gaussian', 'lorentzian', 'gauss-hermite', 'voigt', 'laplace', or 'uniform'.  Default is 'gaussian'.\n ")
     #
     # Step 5: Check parameters based on the defined line profile; if line_profile is not defined, add a keyword for the line profile.  If it 
-    # is defined, make sure its consisten with the comp_options and line_type:
+    # is defined, make sure its consistent with the comp_options and line_type:
     for line in list(line_list):
         if ("amp" not in line_list[line]): # Assume "free"
             line_list[line]["amp"]="free"
@@ -3310,13 +3329,27 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
             line_list[line]["disp"]="free"
         if ("voff" not in line_list[line]): # Assume "free"
             line_list[line]["voff"]="free"
-        if (line_list[line]["line_profile"]=="gauss-hermite") and (comp_options["n_moments"]>2): # If Gauss-Hermite line profile
-            for m in range(3,3+(comp_options["n_moments"]-2),1):
+
+        # Gauss-Hermite higher-order moments for each narrow, broad, and absorp
+        if (line_list[line]["line_type"]=="na") and (line_list[line]["line_profile"]=="gauss-hermite") and (narrow_options["n_moments"]>2): # If Gauss-Hermite line profile
+            for m in range(3,3+(narrow_options["n_moments"]-2),1):
                 if ("h"+str(m) not in line_list[line]): # Assume "free"
                     line_list[line]["h"+str(m)]="free"
+        if (line_list[line]["line_type"]=="br") and (line_list[line]["line_profile"]=="gauss-hermite") and (broad_options["n_moments"]>2): # If Gauss-Hermite line profile
+            for m in range(3,3+(broad_options["n_moments"]-2),1):
+                if ("h"+str(m) not in line_list[line]): # Assume "free"
+                    line_list[line]["h"+str(m)]="free"
+        if (line_list[line]["line_type"]=="abs") and (line_list[line]["line_profile"]=="gauss-hermite") and (absorp_options["n_moments"]>2): # If Gauss-Hermite line profile
+            for m in range(3,3+(absorp_options["n_moments"]-2),1):
+                if ("h"+str(m) not in line_list[line]): # Assume "free"
+                    line_list[line]["h"+str(m)]="free"
+
+        # Shape parameter for each narrow, broad and absorp
         if (line_list[line]["line_profile"]=='voigt'):
             if ("shape" not in line_list[line]): # Assume "free"
                 line_list[line]["shape"]="free"
+
+        # Higher-order moments for laplace and uniform (h3 and h4) only for each narrow, broad, and absorp.
         if (line_list[line]["line_profile"] in ['laplace','uniform']):
             if ("h3" not in line_list[line]): # Assume "free"
                 line_list[line]["h3"]="free"
@@ -3328,13 +3361,34 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
         # less than or equal to 2 (for which the line profile is just Gaussian), remove any 
         # unnecessary higher-order line parameters that may be in the line dictionary.
         if (line_list[line]["line_profile"]=="gauss-hermite"):
-            for m in range(comp_options["n_moments"]+1,11,1):
-                if ("h"+str(m) in line_list[line]):
-                    line_list[line].pop("h"+str(m),None) # Remove sigma key
-                if ("h"+str(m)+"_init" in line_list[line]):
-                    line_list[line].pop("h"+str(m)+"_init",None) # Remove sigma key
-                if ("h"+str(m)+"_plim" in line_list[line]):
-                    line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
+
+            if line_list[line]["line_type"]=="na":
+                for m in range(narrow_options["n_moments"]+1,11,1):
+                    if ("h"+str(m) in line_list[line]):
+                        line_list[line].pop("h"+str(m),None) # Remove sigma key
+                    if ("h"+str(m)+"_init" in line_list[line]):
+                        line_list[line].pop("h"+str(m)+"_init",None) # Remove sigma key
+                    if ("h"+str(m)+"_plim" in line_list[line]):
+                        line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
+
+            if line_list[line]["line_type"]=="br":
+                for m in range(broad_options["n_moments"]+1,11,1):
+                    if ("h"+str(m) in line_list[line]):
+                        line_list[line].pop("h"+str(m),None) # Remove sigma key
+                    if ("h"+str(m)+"_init" in line_list[line]):
+                        line_list[line].pop("h"+str(m)+"_init",None) # Remove sigma key
+                    if ("h"+str(m)+"_plim" in line_list[line]):
+                        line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
+
+            if line_list[line]["line_type"]=="abs":
+                for m in range(absorp_options["n_moments"]+1,11,1):
+                    if ("h"+str(m) in line_list[line]):
+                        line_list[line].pop("h"+str(m),None) # Remove sigma key
+                    if ("h"+str(m)+"_init" in line_list[line]):
+                        line_list[line].pop("h"+str(m)+"_init",None) # Remove sigma key
+                    if ("h"+str(m)+"_plim" in line_list[line]):
+                        line_list[line].pop("h"+str(m)+"_plim",None) # Remove sigma key
+
         # If line profile is not Gauss-Hermite, parse all higher-order moments and parameters
         elif (line_list[line]["line_profile"] not in ["gauss-hermite","laplace","uniform"]):
             for m in range(3,11,1):
@@ -3356,59 +3410,59 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
     # If tie_line_disp=True, tie line widths (narrow, broad, outflow, and absorption disp) are tied, respectively.
     if comp_options["tie_line_disp"]:
         for line in list(line_list):
-            # The universal narrow, broad, and outflow widths will be added when parameters are generated
+            # The universal narrow, broad, and absorp widths will be added when parameters are generated
             # If h3,h4, or shape parameters are present, remove them
-            for m in range(3,3+(comp_options["n_moments"]-2),1):
-                if ("h"+str(m) in line_list[line]):
-                    line_list[line].pop("h"+str(m),None)
+            
+            if line_list[line]["line_type"]=="na":
+                for m in range(3,3+(narrow_options["n_moments"]-2),1):
+                    if ("h"+str(m) in line_list[line]):
+                        line_list[line].pop("h"+str(m),None)
+            if line_list[line]["line_type"]=="br":
+                for m in range(3,3+(broad_options["n_moments"]-2),1):
+                    if ("h"+str(m) in line_list[line]):
+                        line_list[line].pop("h"+str(m),None)
+            if line_list[line]["line_type"]=="abs":
+                for m in range(3,3+(absorp_options["n_moments"]-2),1):
+                    if ("h"+str(m) in line_list[line]):
+                        line_list[line].pop("h"+str(m),None)
+
             if ("shape" in line_list[line]):
                 line_list[line].pop("shape",None)
-            # line_list[line].pop("sigma",None) # Removes the key completly
-            # line_list[line].pop("disp",None) # Removes the key completly
+            
+            # Re-populate the hyperparameters
             # Narrow lines
             if ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="na"): 
                 # line_list[line].pop("sigma",None) # Remove sigma key
                 line_list[line]["disp"] = "NA_DISP" # Replace with disp key
                 # If line profile is Gauss-Hermite, add h3 and h4
-                if comp_options["na_line_profile"]=="gauss-hermite":
-                    for m in range(3,3+(comp_options["n_moments"]-2),1):
+                if narrow_options["line_profile"]=="gauss-hermite":
+                    for m in range(3,3+(narrow_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "NA_H"+str(m)
-                if comp_options["na_line_profile"]=="voigt":
+                if narrow_options["line_profile"]=="voigt":
                     line_list[line]["shape"] = "NA_SHAPE"
-                if comp_options["na_line_profile"] in ["laplace","uniform"]:
+                if narrow_options["line_profile"] in ["laplace","uniform"]:
                     line_list[line]["h3"] = "NA_H3"
                     line_list[line]["h4"] = "NA_H4"
             # Broad lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="br"): 
                 line_list[line]["disp"] = "BR_DISP" 
-                if comp_options["br_line_profile"]=="gauss-hermite":
-                    for m in range(3,3+(comp_options["n_moments"]-2),1):
+                if broad_options["line_profile"]=="gauss-hermite":
+                    for m in range(3,3+(broad_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "BR_H"+str(m)
-                if comp_options["br_line_profile"]=="voigt":
+                if broad_options["line_profile"]=="voigt":
                     line_list[line]["shape"] = "BR_SHAPE"
-                if comp_options["br_line_profile"] in ["laplace","uniform"]:
+                if broad_options["line_profile"] in ["laplace","uniform"]:
                     line_list[line]["h3"] = "BR_H3"
                     line_list[line]["h4"] = "BR_H4"
-            # Outflow lines
-            elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="out"): 
-                line_list[line]["disp"] = "OUT_DISP"
-                if comp_options["out_line_profile"]=="gauss-hermite":
-                    for m in range(3,3+(comp_options["n_moments"]-2),1):
-                        line_list[line]["h"+str(m)] = "OUT_H"+str(m)
-                if comp_options["out_line_profile"]=="voigt":
-                    line_list[line]["shape"] = "OUT_SHAPE"
-                if comp_options["out_line_profile"] in ["laplace","uniform"]:
-                    line_list[line]["h3"] = "OUT_H3"
-                    line_list[line]["h4"] = "OUT_H4"
             # Absorption lines
             elif ("line_type" in line_list[line]) and (line_list[line]["line_type"]=="abs"): 
                 line_list[line]["disp"] = "ABS_DISP"
-                if comp_options["abs_line_profile"]=="gauss-hermite":
-                    for m in range(3,3+(comp_options["n_moments"]-2),1):
+                if absorp_options["line_profile"]=="gauss-hermite":
+                    for m in range(3,3+(absorp_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "ABS_H"+str(m)
-                if comp_options["abs_line_profile"]=="voigt":
+                if absorp_options["line_profile"]=="voigt":
                     line_list[line]["shape"] = "ABS_SHAPE"
-                if comp_options["abs_line_profile"] in ["laplace","uniform"]:
+                if absorp_options["line_profile"] in ["laplace","uniform"]:
                     line_list[line]["h3"] = "ABS_H3"
                     line_list[line]["h4"] = "ABS_H4"
             elif ("line_type" not in line_list[line]) or (line_list[line]["line_type"]=="user"):
@@ -3416,12 +3470,12 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                     print("\n Warning: %s has no line_type keyword specified.  Assuming narrow line." % (line))
                 line_list[line]["disp"] = "NA_DISP"
                 line_list[line]["line_type"] = "na"
-                if comp_options["na_line_profile"]=="gauss-hermite":
-                    for m in range(3,3+(comp_options["n_moments"]-2),1):
+                if narrow_options["line_profile"]=="gauss-hermite":
+                    for m in range(3,3+(narrow_options["n_moments"]-2),1):
                         line_list[line]["h"+str(m)] = "NA_H"+str(m)
-                if comp_options["na_line_profile"]=="voigt":
+                if narrow_options["line_profile"]=="voigt":
                     line_list[line]["shape"] = "NA_SHAPE"
-                if comp_options["na_line_profile"] in ["laplace","uniform"]:
+                if narrow_options["line_profile"] in ["laplace","uniform"]:
                     line_list[line]["h3"] = "NA_H3"
                     line_list[line]["h4"] = "NA_H4"
     #
@@ -3441,11 +3495,21 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                 line_list[line]["line_type"] = "na"
     #
     # Do a final check for valid keywords. If any keywords don't belong, raise an error.
-    init_hmoments = ["h"+str(m)+"_init" for m in range(3,3+(comp_options["n_moments"]-2),1)]
-    plim_hmoments = ["h"+str(m)+"_plim" for m in range(3,3+(comp_options["n_moments"]-2),1)]
-    prior_hmoments = ["h"+str(m)+"_prior" for m in range(3,3+(comp_options["n_moments"]-2),1)]
-
-    hmoments	  = ["h"+str(m) for m in range(3,3+(comp_options["n_moments"]-2),1)]
+    na_init_hmoments  = ["h"+str(m)+"_init" for m in range(3,3+(narrow_options["n_moments"]-2),1)]
+    na_plim_hmoments  = ["h"+str(m)+"_plim" for m in range(3,3+(narrow_options["n_moments"]-2),1)]
+    na_prior_hmoments = ["h"+str(m)+"_prior" for m in range(3,3+(narrow_options["n_moments"]-2),1)]
+    na_hmoments	      = ["h"+str(m) for m in range(3,3+(narrow_options["n_moments"]-2),1)]
+    na_stuff = na_init_hmoments + na_plim_hmoments + na_prior_hmoments + na_hmoments
+    br_init_hmoments  = ["h"+str(m)+"_init" for m in range(3,3+(broad_options["n_moments"]-2),1)]
+    br_plim_hmoments  = ["h"+str(m)+"_plim" for m in range(3,3+(broad_options["n_moments"]-2),1)]
+    br_prior_hmoments = ["h"+str(m)+"_prior" for m in range(3,3+(broad_options["n_moments"]-2),1)]
+    br_hmoments       = ["h"+str(m) for m in range(3,3+(broad_options["n_moments"]-2),1)]
+    br_stuff = br_init_hmoments + br_plim_hmoments + br_prior_hmoments + br_hmoments
+    abs_init_hmoments  = ["h"+str(m)+"_init" for m in range(3,3+(absorp_options["n_moments"]-2),1)]
+    abs_plim_hmoments  = ["h"+str(m)+"_plim" for m in range(3,3+(absorp_options["n_moments"]-2),1)]
+    abs_prior_hmoments = ["h"+str(m)+"_prior" for m in range(3,3+(absorp_options["n_moments"]-2),1)]
+    abs_hmoments       = ["h"+str(m) for m in range(3,3+(absorp_options["n_moments"]-2),1)]
+    abs_stuff = abs_init_hmoments + abs_plim_hmoments + abs_prior_hmoments + abs_hmoments
     #
     for line in list(line_list):
 
@@ -3454,7 +3518,7 @@ def check_line_comp_options(lam_gal,line_list,comp_options,edge_pad=10,verbose=T
                           "amp_init","amp_plim","disp_init","disp_plim","voff_init","voff_plim",
                           "shape_init","shape_plim",
                           "amp_prior","disp_prior","voff_prior","shape_prior",
-                          "label"]+hmoments+init_hmoments+plim_hmoments+prior_hmoments:
+                          "label"]+na_stuff+br_stuff+abs_stuff:
                 raise ValueError("\n %s not a valid keyword for the line list! \n" % key)
     #
     return line_list
@@ -4250,12 +4314,13 @@ def line_test(param_dict,
 
     # Generate parameters without lines
     param_dict_no_line, line_list_no_line, combined_line_list_no_line, soft_cons_no_line = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
-                                 comp_options,user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 comp_options,narrow_options,broad_options,absorp_options,
+                                 user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                  opt_feii_options,uv_iron_options,balmer_options,
                                  run_dir,fit_type='init',fit_stat=fit_stat,
                                  fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
                                  fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
-                                 fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_outflow=comp_options["fit_outflow"],fit_absorp=comp_options["fit_absorp"],
+                                 fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_absorp=comp_options["fit_absorp"],
                                  tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=verbose)
 
 
@@ -11174,15 +11239,9 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_poly',':',str(comp_options['fit_poly']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_narrow',':',str(comp_options['fit_narrow']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_broad',':',str(comp_options['fit_broad']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_outflow',':',str(comp_options['fit_outflow']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('fit_absorp',':',str(comp_options['fit_absorp']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('tie_line_disp',':',str(comp_options['tie_line_disp']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('tie_line_voff',':',str(comp_options['tie_line_voff']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('na_line_profile',':',str(comp_options['na_line_profile']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('br_line_profile',':',str(comp_options['br_line_profile']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('out_line_profile',':',str(comp_options['out_line_profile']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('abs_line_profile',':',str(comp_options['abs_line_profile']) )) 
-
             logfile.write('\n')
             # LOSVD options
             if comp_options["fit_losvd"]==True:

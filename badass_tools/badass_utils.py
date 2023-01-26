@@ -361,10 +361,6 @@ def check_comp_options(input,verbose=False):
 			"fit_absorp"	   : False, # absorption lines
 			"tie_line_disp"	: False, # tie line widths
 			"tie_line_voff"	: False, # tie line velocity offsets
-			"na_line_profile"  : "gaussian",	 # narrow line profile
-			"br_line_profile"  : "gaussian",	 # broad line profile
-			"out_line_profile" : "gaussian",	 # outflow line profile
-			"abs_line_profile" : "gaussian",	 # absorption line profile
 	}
 
 	Note: if fit_losvd and fit_host are both true, fit_losvd will override fit_host
@@ -385,11 +381,6 @@ def check_comp_options(input,verbose=False):
 			"fit_absorp"	   : False, # absorption lines
 			"tie_line_disp"	: False, # tie line widths
 			"tie_line_voff"	: False, # tie line velocity offsets
-			"na_line_profile"  : "gaussian",	 # narrow line profile
-			"br_line_profile"  : "gaussian",	 # broad line profile
-			"out_line_profile" : "gaussian",	 # outflow line profile
-			"abs_line_profile" : "gaussian",	 # absorption line profile
-			"n_moments"		   : 4, # number of higher-order moments for GH line profiles
 		}
 		return output
 
@@ -448,12 +439,6 @@ def check_comp_options(input,verbose=False):
 				  "default": True,
 				  "error_message": "\n fit_broad must be a bool.\n",
 				  },
-	"fit_outflow" : {"conds":[
-							lambda x: isinstance(x,(bool))
-							],
-				  "default": True,
-				  "error_message": "\n fit_outflow must be a bool.\n",
-				  },
 	"fit_absorp" : {"conds":[
 							lambda x: isinstance(x,(bool))
 							],
@@ -472,41 +457,6 @@ def check_comp_options(input,verbose=False):
 				  "default": False,
 				  "error_message": "\n tie_line_voff must be a bool.\n",
 				  },
-	"na_line_profile" : {"conds":[
-							lambda x: isinstance(x,(str)),
-							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
-							],
-				  "default": "gaussian",
-				  "error_message": "\n na_line_profile must be a bool.\n",
-				  },
-	"br_line_profile" : {"conds":[
-							lambda x: isinstance(x,(str)),
-							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
-							],
-				  "default": "gaussian",
-				  "error_message": "\n br_line_profile must be a bool.\n",
-				  },
-	"out_line_profile" : {"conds":[
-							lambda x: isinstance(x,(str)),
-							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
-							],
-				  "default": "gaussian",
-				  "error_message": "\n out_line_profile must be a bool.\n",
-				  },
-	"abs_line_profile" : {"conds":[
-							lambda x: isinstance(x,(str)),
-							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
-							],
-				  "default": "gaussian",
-				  "error_message": "\n abs_line_profile must be a bool.\n",
-				  },
-	"n_moments" : {"conds" : [
-								 lambda x: isinstance(x,(int)),
-								 lambda x: (x>=2) & (x<=10)
-								 ],
-					 "default" : 4,
-					 "error_message" : "\n Higher-order moments for Gauss-Hermite line profiles must be >=2 or <= 10.\n",
-					},
 	}
 	
 	output = check_dict(input,keyword_dict)
@@ -514,16 +464,286 @@ def check_comp_options(input,verbose=False):
 	# Check to see if fit_losvd and fit_host are both True.  If both True,
 	# issue a warning, then fit_losvd will override fit_host and set fit_host=False.
 	if (output["fit_losvd"]==True) & (output["fit_host"]==True):
-		output["fit_host"]=False
+		output["fit_losvd"]=False
 		if (verbose==True):
-			print("\n Warning: fit_losvd and fit_host both True.  fit_losvd will override fit_host and set fit_host=False.\n")
+			print("\n Warning: fit_losvd and fit_host both True.  fit_host will override fit_losvd and set fit_losvd=False.\n")
 		
 
 	return output
 
 ##################################################################################
 
-#### Check PCA options #####################################################
+#### Check line options ##########################################################
+
+#### Narrow line options
+
+def check_narrow_options(input,verbose=False):
+	"""
+	Checks the inputs of the check_narrow_options dictionary and ensures that 
+	all keywords have valid values. 
+
+	narrow_options={
+			"ncomp": 1, # number of components; default 1
+			"amp_plim": (0,), # line amplitude parameter limits; default (0,)
+			"disp_plim": (0,300), # line dispersion parameter limits; default (0,)
+			"voff_plim": (-500,500), # line velocity offset parameter limits; default (0,)
+			"line_profile": "gaussian", # line profile shape*
+			"n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+			}
+	"""
+
+	if not input:
+		output={
+				"ncomp": 1, # number of components; default 1
+				"amp_plim": (0,), # line amplitude parameter limits; default (0,)
+				"disp_plim": (0,300), # line dispersion parameter limits; default (0,)
+				"voff_plim": (-500,500), # line velocity offset parameter limits; default (0,)
+				"line_profile": "gaussian", # line profile shape*
+				"n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+				}
+		return output
+
+	keyword_dict ={
+
+	"ncomp" : {"conds":[
+							lambda x: isinstance(x,(int)),
+							lambda x: (x>=1) & (x<=20)
+							],
+				  "default": 1,
+				  "error_message": "\n Number of narrow line components (ncomp) must be an int and must be >= 1.\n",
+				  },
+
+	"amp_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]>=0),
+							],
+				  "default": (0,),
+				  "error_message": "\n Narrow line amplitude limits (amp_plim) must be a list or tuple, and the amplitude minimum must be >= 0.\n",
+				  },
+
+	"disp_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]>=0),
+							],
+				  "default": (0,300),
+				  "error_message": "\n Narrow line dispersion limits (disp_plim) must be a list or tuple, and the minimum dispersion must be >= 0.\n",
+				  },
+
+	"voff_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]<x[1]),
+							],
+				  "default": (-500,500),
+				  "error_message": "\n Narrow line velocity offset limits (voff_plim) must be a list or tuple.\n",
+				  },
+
+	"line_profile" : {"conds":[
+							lambda x: isinstance(x,(str)),
+							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
+							],
+				  "default": "gaussian",
+				  "error_message": "\n Narrow line profile shape (line_profile) must be a string.  Choices are 'gaussian', 'lorentzian', 'gauss-hermite', 'lapalce', or 'uniform'.\n",
+				  },
+
+	"n_moments" : {"conds" : [
+								 lambda x: isinstance(x,(int)),
+								 lambda x: (x>=2) & (x<=10)
+								 ],
+					 "default" : 4,
+					 "error_message" : "\n Higher-order moments for Gauss-Hermite narrow line profiles (n_moments) must be >=2 or <= 10.\n",
+					},
+
+	}
+	
+	output = check_dict(input,keyword_dict)
+
+	return output
+
+##################################################################################
+
+#### Broad line options
+
+def check_broad_options(input,verbose=False):
+	"""
+	Checks the inputs of the check_narrow_options dictionary and ensures that 
+	all keywords have valid values. 
+
+	broad_options={
+			"ncomp": 1, # number of components; default 1
+			"amp_plim": (0,), # line amplitude parameter limits; default (0,)
+			"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
+			"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
+			"line_profile": "gaussian", # line profile shape*
+			"n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+			}
+	"""
+
+	if not input:
+		output={
+				"ncomp": 1, # number of components; default 1
+				"amp_plim": (0,), # line amplitude parameter limits; default (0,)
+				"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
+				"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
+				"line_profile": "gaussian", # line profile shape*
+				"n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+				}
+		return output
+
+	keyword_dict ={
+
+	"ncomp" : {"conds":[
+							lambda x: isinstance(x,(int)),
+							lambda x: (x>=1) & (x<=20)
+							],
+				  "default": 1,
+				  "error_message": "\n Number of broad line components (ncomp) must be an int and must be >= 1.\n",
+				  },
+
+	"amp_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]>=0),
+							],
+				  "default": (0,),
+				  "error_message": "\n Broad line amplitude limits (amp_plim) must be a list or tuple, and the amplitude minimum must be >= 0.\n",
+				  },
+
+	"disp_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]>=0),
+							],
+				  "default": (0,300),
+				  "error_message": "\n Broad line dispersion limits (disp_plim) must be a list or tuple, and the minimum dispersion must be >= 0.\n",
+				  },
+
+	"voff_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]<x[1]),
+							],
+				  "default": (-500,500),
+				  "error_message": "\n Broad line velocity offset limits (voff_plim) must be a list or tuple.\n",
+				  },
+
+	"line_profile" : {"conds":[
+							lambda x: isinstance(x,(str)),
+							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
+							],
+				  "default": "gaussian",
+				  "error_message": "\n Broad line profile shape (line_profile) must be a string.  Choices are 'gaussian', 'lorentzian', 'gauss-hermite', 'lapalce', or 'uniform'.\n",
+				  },
+
+	"n_moments" : {"conds" : [
+								 lambda x: isinstance(x,(int)),
+								 lambda x: (x>=2) & (x<=10)
+								 ],
+					 "default" : 4,
+					 "error_message" : "\n Higher-order moments for Gauss-Hermite broad line profiles (n_moments) must be >=2 or <= 10.\n",
+					},
+
+	}
+	
+	output = check_dict(input,keyword_dict)
+
+	return output
+
+##################################################################################
+
+#### Absorption line options
+
+def check_absorp_options(input,verbose=False):
+	"""
+	Checks the inputs of the check_narrow_options dictionary and ensures that 
+	all keywords have valid values. 
+
+	absorp_options={
+			"ncomp": 1, # number of components; default 1
+			"amp_plim": (-1,0), # line amplitude parameter limits; default (0,)
+			"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
+			"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
+			"line_profile": "gaussian", # line profile shape*
+			"n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+			}
+	"""
+
+	if not input:
+		output={
+				"ncomp": 1, # number of components; default 1
+				"amp_plim": (-1,0), # line amplitude parameter limits; default (0,)
+				"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
+				"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
+				"line_profile": "gaussian", # line profile shape*
+				"n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+				}
+		return output
+
+	keyword_dict ={
+
+	"ncomp" : {"conds":[
+							lambda x: isinstance(x,(int)),
+							lambda x: (x>=1) & (x<=20)
+							],
+				  "default": 1,
+				  "error_message": "\n Number of absorp line components (ncomp) must be an int and must be >= 1.\n",
+				  },
+
+	"amp_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]<=0) & (x[1]<=0),
+							],
+				  "default": (0,),
+				  "error_message": "\n Absorption line amplitude limits (amp_plim) must be a list or tuple, and the amplitude minimum must be >= 0.\n",
+				  },
+
+	"disp_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]>=0),
+							],
+				  "default": (0,300),
+				  "error_message": "\n Absorption line dispersion limits (disp_plim) must be a list or tuple, and the minimum dispersion must be >= 0.\n",
+				  },
+
+	"voff_plim" : {"conds":[
+							lambda x: isinstance(x,(tuple,list)),
+							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: (x[0]<x[1]),
+							],
+				  "default": (-500,500),
+				  "error_message": "\n Absorption line velocity offset limits (voff_plim) must be a list or tuple.\n",
+				  },
+
+	"line_profile" : {"conds":[
+							lambda x: isinstance(x,(str)),
+							lambda x: x in ["gaussian","lorentzian","voigt","gauss-hermite","laplace","uniform"]
+							],
+				  "default": "gaussian",
+				  "error_message": "\n Absorption line profile shape (line_profile) must be a string.  Choices are 'gaussian', 'lorentzian', 'gauss-hermite', 'lapalce', or 'uniform'.\n",
+				  },
+
+	"n_moments" : {"conds" : [
+								 lambda x: isinstance(x,(int)),
+								 lambda x: (x>=2) & (x<=10)
+								 ],
+					 "default" : 4,
+					 "error_message" : "\n Higher-order moments for Gauss-Hermite absorption line profiles (n_moments) must be >=2 or <= 10.\n",
+					},
+
+	}
+	
+	output = check_dict(input,keyword_dict)
+
+	return output
+
+##################################################################################
+
+
+#### Check PCA options ###########################################################
 
 def check_pca_options(input,verbose=False):
     '''
