@@ -53,8 +53,8 @@ import spectres
 import corner
 # Import BADASS tools modules
 cwd = os.getcwd() # get current working directory
-sys.path.insert(1,cwd+'/badass_tools/')
-import badass_utils as badass_utils
+sys.path.insert(1,cwd+'/badass_utils/')
+import badass_check_input as badass_check_input
 import gh_alternative as gh_alt # Gauss-Hermite alternative line profiles
 from sklearn.decomposition import PCA
 from astroML.datasets import sdss_corrected_spectra # SDSS templates for PCA analysis
@@ -478,25 +478,25 @@ def run_single_thread(fits_file,
             print("\n Error in importing options file! Options file must be a .py file!\n ")
 
     # Check inputs; raises exception if user input is invalid.
-    fit_options			 = badass_utils.check_fit_options(fit_options,comp_options)
-    comp_options		 = badass_utils.check_comp_options(comp_options)
-    narrow_options       = badass_utils.check_narrow_options(narrow_options)
-    broad_options        = badass_utils.check_broad_options(broad_options)
-    absorp_options       = badass_utils.check_absorp_options(absorp_options)
-    mcmc_options		 = badass_utils.check_mcmc_options(mcmc_options)
-    pca_options          = badass_utils.check_pca_options(pca_options)
-    user_lines			 = badass_utils.check_user_lines(user_lines)
-    user_constraints	 = badass_utils.check_user_constraints(user_constraints)
-    user_mask			 = badass_utils.check_user_mask(user_mask)
-    losvd_options		 = badass_utils.check_losvd_options(losvd_options)
-    host_options		 = badass_utils.check_host_options(host_options)
-    power_options		 = badass_utils.check_power_options(power_options)
-    poly_options         = badass_utils.check_poly_options(poly_options)
-    opt_feii_options	 = badass_utils.check_opt_feii_options(opt_feii_options)
-    uv_iron_options		 = badass_utils.check_uv_iron_options(uv_iron_options)
-    balmer_options		 = badass_utils.check_balmer_options(balmer_options)
-    plot_options		 = badass_utils.check_plot_options(plot_options)
-    output_options		 = badass_utils.check_output_options(output_options)
+    fit_options			 = badass_check_input.check_fit_options(fit_options,comp_options)
+    comp_options		 = badass_check_input.check_comp_options(comp_options)
+    narrow_options       = badass_check_input.check_narrow_options(narrow_options)
+    broad_options        = badass_check_input.check_broad_options(broad_options)
+    absorp_options       = badass_check_input.check_absorp_options(absorp_options)
+    mcmc_options		 = badass_check_input.check_mcmc_options(mcmc_options)
+    pca_options          = badass_check_input.check_pca_options(pca_options)
+    user_lines			 = badass_check_input.check_user_lines(user_lines)
+    user_constraints	 = badass_check_input.check_user_constraints(user_constraints)
+    user_mask			 = badass_check_input.check_user_mask(user_mask)
+    losvd_options		 = badass_check_input.check_losvd_options(losvd_options)
+    host_options		 = badass_check_input.check_host_options(host_options)
+    power_options		 = badass_check_input.check_power_options(power_options)
+    poly_options         = badass_check_input.check_poly_options(poly_options)
+    opt_feii_options	 = badass_check_input.check_opt_feii_options(opt_feii_options)
+    uv_iron_options		 = badass_check_input.check_uv_iron_options(uv_iron_options)
+    balmer_options		 = badass_check_input.check_balmer_options(balmer_options)
+    plot_options		 = badass_check_input.check_plot_options(plot_options)
+    output_options		 = badass_check_input.check_output_options(output_options)
     verbose				 = output_options["verbose"]
 
     # Check user input spectrum if sdss_spec=False
@@ -504,7 +504,7 @@ def run_single_thread(fits_file,
         # If user does not provide a error spectrum one will be provided for them!
         if err is None:
             err = np.abs(0.1*spec)
-        spec, wave, err, fwhm_res, z, ebv, flux_norm = badass_utils.check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,flux_norm)
+        spec, wave, err, fwhm_res, z, ebv, flux_norm = badass_check_input.check_user_input_spec(spec,wave,err,fwhm_res,z,ebv,flux_norm)
 
     # Unpack input
     # fit_options
@@ -1516,7 +1516,11 @@ def determine_fit_reg_sdss(fits_file, run_dir, fit_reg, good_thresh, fit_losvd, 
     mask = ((lam_gal >= new_fit_reg[0]) & (lam_gal <= new_fit_reg[1]))
     igood = np.where((gal[mask]>0) & (ivar[mask]>0) & (and_mask[mask]==0))[0]
     ibad  = np.where(and_mask[mask]!=0)[0]
-    good_frac = (len(igood)*1.0)/len(gal[mask])
+    try:
+        good_frac = (len(igood)*1.0)/len(gal[mask])
+    except:
+        print("\n Warning: error in calculating fraction of good pixels; assuming all pixels are good!\n")
+        good_frac = 1.0
 
     if 0:
         ##################################################################################
@@ -1809,7 +1813,7 @@ def metal_masker(wave,spec,noise,fits_file):
     neuralnet = bifrost.NeuralNet()
 
     # Set up file paths
-    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data_files', 'neural_network')
+    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data', 'neural_network')
     if not os.path.exists(path):
         os.mkdir(path)
     _file = os.path.join(path, "metal.absorption.network.h5")
@@ -2513,15 +2517,15 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, disp_res, fit_
     """
     # Stellar template directory
     if (losvd_options["library"]=="IndoUS"):
-        temp_dir  = "badass_data_files/IndoUS/"
+        temp_dir  = "badass_data/IndoUS/"
         fwhm_temp = 1.35 # Indo-US Template Library FWHM in Å (linear)
         disp_temp = fwhm_temp/2.3548
     if (losvd_options["library"]=="Vazdekis2010"):
-        temp_dir  = "badass_data_files/Vazdekis2010/"
+        temp_dir  = "badass_data/Vazdekis2010/"
         fwhm_temp = 2.51 # Vazdekis+10 spectra have a constant resolution FWHM of 2.51A (linear)
         disp_temp = fwhm_temp/2.3548
     if (losvd_options["library"]=="eMILES"):
-        temp_dir  = "badass_data_files/eMILES/"
+        temp_dir  = "badass_data/eMILES/"
         fwhm_temp = 2.51 # eMILES spectra have a constant resolution FWHM of 2.51A (linear)
         disp_temp = fwhm_temp/2.3548
 
@@ -2982,16 +2986,11 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # Add the FWHM resolution and central pixel locations for each line so we don't have to 
     # find them during the fit.
     line_list = add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=verbose)
-
-    
-    for line in line_list:
-            print("\t",line)
-            for hpar in line_list[line]:
-                print("\t\t",hpar,"=",line_list[line][hpar])
-    sys.exit()
-    
+    #
     # Generate line free parameters based on input line_list
-    line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,verbose=verbose)
+    line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,
+                                          narrow_options,broad_options,absorp_options,
+                                          line_list,velscale,verbose=verbose)
     # Check hard line constraints; returns updated line_list and line_par_input
     line_list, line_par_input = check_hard_cons(lam_gal,galaxy,noise,comp_options,line_list,line_par_input,par_input,velscale,verbose=verbose)
     # Append line_par_input to par_input
@@ -3553,59 +3552,97 @@ def add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=True):
 
 #### Initialize Line Parameters ##################################################
 
-def initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,verbose=True):
+def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
+                         narrow_options,broad_options,absorp_options,
+                         line_list,velscale,verbose=True):
+    """
+    This function initializes the initial guess, parameter limits (lower and upper), and 
+    priors if not explicily defined by the user in the line list for each line.
 
-    # Smooth galaxy by a small amount to get rid of 
-    # noise spike (for low S/N spectra)
-    # galaxy = gaussian_filter1d(galaxy,2.)
+    Special care is taken with tring to determine the location of the particular line
+    in terms of velocity.
 
-    def get_init_amp(line_center):
-        line_window = 10 # angstroms on either side of the expected line
-        line_center = float(line_center)
-        try:
-            return np.nanmax([np.nanmax(galaxy[(lam_gal>(line_center-line_window)) & (lam_gal<(line_center+line_window))]), 0.0])
-        except ValueError:
-            return 0.0
-
-
-    def get_init_voff(line_center):
-        line_window = 10
-        line_center = float(line_center)
-
-        interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal)),kind='linear',bounds_error=False)
-        try: 
-            eval_ind = np.where((lam_gal>(line_center-line_window)) & (lam_gal<(line_center+line_window)))
-            max_idx = np.where(galaxy==np.nanmax(galaxy[eval_ind]))[0]
-            max_wave = lam_gal[max_idx]
-            voff  = (interp_ftn(max_wave)-interp_ftn(line_center))*velscale
-            #
-            if (galaxy[max_idx]>(np.nanmedian(5.0*noise[eval_ind]+galaxy[eval_ind]))) and (np.abs(voff)<250.0):
-                # print(voff)
-                return voff
-            else:
-                # print(0.0)
-                return 0.0
-        except:
-            return 0.0
-
-    line_par_input = {}
+    """
     # Initial conditions for some parameters
     max_amp = np.nanmax(galaxy)
     median_amp = np.nanmedian(galaxy)
     opt_feii_amp_init = (0.1*np.nanmedian(galaxy))
     uv_iron_amp_init  = (0.1*np.nanmedian(galaxy)) 
     balmer_amp_init  = (0.1*np.nanmedian(galaxy)) 
-    # Defaut parameter limits for certain line types
+    c = 299792.458 # speed of light (km/s)
+    # Perform a continuous wavelet transform with a gaussian wavelet of widths from 1*velscale to 8*velscale
+    def gaussian_wavelet(loc,scale):
+            return scipy.signal.windows.gaussian(loc,scale, sym=True)
+    # Search range on either side of the line center (km/s); if no peak is found within this range 
+    # the value of the spectrum at the assumed center is used.
+    search_kms = 2000.0
+    try:
+        peaks   = scipy.signal.find_peaks_cwt(galaxy, widths =np.arange(1,8), wavelet=gaussian_wavelet)
+        troughs = scipy.signal.find_peaks_cwt(-galaxy, widths =np.arange(1,8), wavelet=gaussian_wavelet)
+        peak_wave   = lam_gal[peaks]
+        trough_wave = lam_gal[troughs]
+    except:
+        peak_wave   = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["na","br"]]
+        trough_wave = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["abs"]]
+
     # Pre-defined initial values and parameter limits for different line_types.
     def amp_hyperpars(line_type,line_center): # amplitude hyperparameters
         line_center = float(line_center)
         line_window = 10.0 # sampling window for each line in Angstroms
-        if (line_type in ["na","user"]):
-            return get_init_amp(line_center), (0.0,max_amp)
-        elif (line_type in ["br","out"]):
-                return (get_init_amp(line_center))/2.0, (0.0,max_amp)
-        elif (line_type=="abs"):
-            return -median_amp, (-median_amp,0.0,)
+        # if (line_type in ["na","user"]):
+        #     return get_init_amp(line_center), (0.0,max_amp)
+        # elif (line_type in ["br","out"]):
+        #         return (get_init_amp(line_center))/2.0, (0.0,max_amp)
+        # elif (line_type=="abs"):
+        #     return -median_amp, (-median_amp,0.0,)
+
+        # Smooth the spectrum 
+        # smoothed = scipy.ndimage.gaussian_filter1d(galaxy,2.0, mode='mirror')
+        smoothed = scipy.ndimage.median_filter(galaxy,100,mode='mirror')
+
+
+        # Plot for testing
+        fig = plt.figure(figsize=(10,5))
+        ax1 = fig.add_subplot(1,1,1)
+        ax1.step(lam_gal, galaxy,linewidth=0.5)
+        ax1.step(lam_gal, smoothed,linewidth=0.5)
+        ax1.step(lam_gal, noise, linewidth=0.5)
+        # for p in peaks:
+        #     ax1.axvline(lam_gal[p],linestyle="--",linewidth=0.5,color="xkcd:bright orange")
+        # for p in troughs:
+        #     ax1.axvline(lam_gal[p],linestyle="--",linewidth=0.5,color="xkcd:bright orange")
+        ax1.axvline(line_center,linewidth=0.5,linestyle="--",color="xkcd:bright orange")
+        ax1.set_xlim(lam_gal.min(),lam_gal.max())
+        plt.tight_layout()
+        # 
+        if line_type in ["na","br"]:
+            # calculate velocities of peaks around line center
+            peak_vel = (peak_wave-line_center)/line_center*c
+            print(peak_vel)
+            peak_ang = peak_wave[np.argmin(np.abs(peak_vel))]
+            print(peak_ang)
+            # If velocity less than search_kms, calculate amplitude at that point
+            if np.abs(peak_vel[np.argmin(np.abs(peak_vel))])<=search_kms:
+                ax1.axvline(peak_ang,linewidth=1,linestyle="--",color="xkcd:aqua")
+                return galaxy[find_nearest(lam_gal,peak_ang)[1]], (0.0, max_amp)
+            else:
+                return galaxy[find_nearest(lam_gal,line_center)[1]], (0.0, max_amp)
+        elif line_type in ["abs"]:
+            # calculate velocities of troughs around line center
+            trough_vel = (trough_wave-line_center)/line_center*c
+            print(trough_vel)
+            trough_ang = trough_wave[np.argmin(np.abs(trough_vel))]
+            print(trough_ang)
+
+            # If velocity less than search_kms, calculate amplitude at that point
+            if np.abs(trough_vel[np.argmin(np.abs(trough_vel))])<=search_kms:
+                ax1.axvline(trough_ang,linewidth=1,linestyle="--",color="xkcd:aqua")
+                return -galaxy[find_nearest(lam_gal,trough_ang)[1]], (-max_amp, 0.0)
+            else:
+                return -galaxy[find_nearest(lam_gal,line_center)[1]], (-max_amp, 0.0)
+
+
+
     #
     def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
         # default initial widths for lines (if not specified)
@@ -3649,6 +3686,27 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,ve
         elif line_type in ["br","abs","out"]:
             return voff_init, br_voff_lim
 
+    def get_init_voff(line_center):
+        line_window = 10
+        line_center = float(line_center)
+
+        interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal)),kind='linear',bounds_error=False)
+        try: 
+            eval_ind = np.where((lam_gal>(line_center-line_window)) & (lam_gal<(line_center+line_window)))
+            max_idx = np.where(galaxy==np.nanmax(galaxy[eval_ind]))[0]
+            max_wave = lam_gal[max_idx]
+            voff  = (interp_ftn(max_wave)-interp_ftn(line_center))*velscale
+            #
+            if (galaxy[max_idx]>(np.nanmedian(5.0*noise[eval_ind]+galaxy[eval_ind]))) and (np.abs(voff)<250.0):
+                # print(voff)
+                return voff
+            else:
+                # print(0.0)
+                return 0.0
+        except:
+            return 0.0
+
+
     def h_moment_hyperpars():
         # Higher-order moments for Gauss-Hermite line profiles
         # extends to Laplace and Uniform kernels
@@ -3661,14 +3719,20 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,ve
     def shape_hyperpars(): # shape of the Voigt profile; if line_profile="voigt"
         shape_init = 0.0
         shape_lim = (0.0,1.0)
-        return shape_init, shape_lim	
+        return shape_init, shape_lim    
+
+
+    line_par_input = {}
+    #    
     # We start with standard lines and options. These are added one-by-one.  Then we check specific line options and then override any lines that have
     # been already added.  Params are added regardless of component options as long as the parameter is set to "free"
     for line in list(line_list):
         if (("amp" in line_list[line]) and (line_list[line]["amp"]=="free")):
-            amp_default = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
-            line_par_input[line+"_AMP"] = {"init": line_list[line].get("amp_init",amp_default[0]), 
-                                           "plim":line_list[line].get("amp_plim",amp_default[1]),
+            # We need to pass the line_type to amp_hyperpars so it can distinguish between 
+            # an emission or absorption feature.
+            amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
+            line_par_input[line+"_AMP"] = {"init": line_list[line].get("amp_init",amp_default_init), 
+                                           "plim":line_list[line].get("amp_plim",amp_default_plim),
                                            "prior":line_list[line].get("amp_prior")
                                            }
             # If prior is None, pop it out
@@ -3678,6 +3742,13 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,line_list,velscale,ve
             if (line_par_input[line+"_AMP"]["init"]<line_par_input[line+"_AMP"]["plim"][0]) or (line_par_input[line+"_AMP"]["init"]>line_par_input[line+"_AMP"]["plim"][1]):
                 raise ValueError("\n Amplitude (amp) initial value (amp_init) for %s outside of parameter limits (amp_plim)!\n" % (line))
         
+        for line in line_list:
+            print("\t",line)
+            for hpar in line_list[line]:
+                print("\t\t",hpar,"=",line_list[line][hpar])
+        # sys.exit()
+        continue
+
         if (("disp" in line_list[line]) and (line_list[line]["disp"]=="free")):
             disp_default = disp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
             line_par_input[line+"_DISP"] = {"init": line_list[line].get("disp_init",disp_default[0]), 
@@ -7470,30 +7541,30 @@ def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbo
 
     ages = np.array([0.9, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 
             9.0, 10.0, 11.0, 12.0, 13.0, 14.0],dtype=float)
-    temp = ["badass_data_files/eMILES/Eku1.30Zp0.06T00.0900_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.1000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.2000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.3000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.4000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.5000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.6000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.7000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.8000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T00.9000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T01.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T02.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T03.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T04.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T05.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T06.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T07.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T08.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T09.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T10.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T11.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T12.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T13.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data_files/eMILES/Eku1.30Zp0.06T14.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"
+    temp = ["badass_data/eMILES/Eku1.30Zp0.06T00.0900_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.1000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.2000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.3000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.4000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.5000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.6000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.7000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.8000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T00.9000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T01.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T02.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T03.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T04.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T05.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T06.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T07.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T08.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T09.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T10.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T11.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T12.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T13.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
+            "badass_data/eMILES/Eku1.30Zp0.06T14.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"
             ]
     #
     fwhm_temp = 2.51 # FWHM resolution of eMILES in Å
@@ -7607,8 +7678,8 @@ def initialize_opt_feii(lam_gal, opt_feii_options, disp_res, fit_mask, velscale)
              """
     if (opt_feii_options['opt_template']['type']=='VC04'):
         # Load the data into Pandas DataFrames
-        df_br = pd.read_csv("badass_data_files/feii_templates/veron-cetty_2004/VC04_br_feii_template.csv")
-        df_na = pd.read_csv("badass_data_files/feii_templates/veron-cetty_2004/VC04_na_feii_template.csv")
+        df_br = pd.read_csv("badass_data/feii_templates/veron-cetty_2004/VC04_br_feii_template.csv")
+        df_na = pd.read_csv("badass_data/feii_templates/veron-cetty_2004/VC04_na_feii_template.csv")
         # Generate a new grid with the original resolution, but the size of the fitting region
         dlam_feii = df_br["angstrom"].to_numpy()[1]-df_br["angstrom"].to_numpy()[0] # angstroms
         npad = 100 # anstroms
@@ -7702,10 +7773,10 @@ def initialize_opt_feii(lam_gal, opt_feii_options, disp_res, fit_mask, velscale)
             return g
         #
         # Read in template data
-        F_trans_df = pd.read_csv('badass_data_files/feii_templates/kovacevic_2010/K10_F_transitions.csv')
-        S_trans_df = pd.read_csv('badass_data_files/feii_templates/kovacevic_2010/K10_S_transitions.csv')
-        G_trans_df = pd.read_csv('badass_data_files/feii_templates/kovacevic_2010/K10_G_transitions.csv')
-        Z_trans_df = pd.read_csv('badass_data_files/feii_templates/kovacevic_2010/K10_Z_transitions.csv')
+        F_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_F_transitions.csv')
+        S_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_S_transitions.csv')
+        G_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_G_transitions.csv')
+        Z_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_Z_transitions.csv')
         # Generate a high-resolution wavelength scale that is universal to all transitions
         fwhm = 1.0 # Angstroms
         disp = fwhm/2.3548
@@ -7868,8 +7939,8 @@ def initialize_uv_iron(lam_gal, feii_options, disp_res, fit_mask, velscale):
     """
 
     # Load the data into Pandas DataFrames
-    # df_uviron = pd.read_csv("badass_data_files/feii_templates/vestergaard-wilkes_2001/VW01_UV_B_47_191.csv") # UV B+47+191
-    df_uviron = pd.read_csv("badass_data_files/feii_templates/vestergaard-wilkes_2001/VW01_UV_B.csv") # UV B only
+    # df_uviron = pd.read_csv("badass_data/feii_templates/vestergaard-wilkes_2001/VW01_UV_B_47_191.csv") # UV B+47+191
+    df_uviron = pd.read_csv("badass_data/feii_templates/vestergaard-wilkes_2001/VW01_UV_B.csv") # UV B only
 
     # Generate a new grid with the original resolution, but the size of the fitting region
     dlam_uviron = df_uviron["angstrom"].to_numpy()[1]-df_uviron["angstrom"].to_numpy()[0] # angstroms
@@ -7898,8 +7969,8 @@ def initialize_uv_iron(lam_gal, feii_options, disp_res, fit_mask, velscale):
 
 def initialize_balmer(lam_gal, balmer_options, disp_res,fit_mask, velscale):
     # Import the template for the higher-order balmer lines (7 <= n <= 500)
-    # df = pd.read_csv("badass_data_files/balmer_template/higher_order_balmer.csv")
-    df = pd.read_csv("badass_data_files/balmer_template/higher_order_balmer_n8_500.csv")
+    # df = pd.read_csv("badass_data/balmer_template/higher_order_balmer.csv")
+    df = pd.read_csv("badass_data/balmer_template/higher_order_balmer_n8_500.csv")
     # Generate a new grid with the original resolution, but the size of the fitting region
     dlam_balmer = df["angstrom"].to_numpy()[1]-df["angstrom"].to_numpy()[0] # angstroms
     npad = 100 # angstroms
