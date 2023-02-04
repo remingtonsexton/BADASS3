@@ -53,8 +53,10 @@ import spectres
 import corner
 # Import BADASS tools modules
 cwd = os.getcwd() # get current working directory
-sys.path.insert(1,cwd+'/badass_utils/')
+sys.path.insert(1,cwd+'/badass_utils/') # utility functions
 import badass_check_input as badass_check_input
+sys.path.insert(1,cwd+'/badass_tools/') # tool functions
+import badass_tools as badass_tools
 import gh_alternative as gh_alt # Gauss-Hermite alternative line profiles
 from sklearn.decomposition import PCA
 from astroML.datasets import sdss_corrected_spectra # SDSS templates for PCA analysis
@@ -3564,89 +3566,92 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
     """
     # Initial conditions for some parameters
-    max_amp = np.nanmax(galaxy)
-    median_amp = np.nanmedian(galaxy)
-    opt_feii_amp_init = (0.1*np.nanmedian(galaxy))
-    uv_iron_amp_init  = (0.1*np.nanmedian(galaxy)) 
-    balmer_amp_init  = (0.1*np.nanmedian(galaxy)) 
+    print(narrow_options)
+    # max_amp = np.nanmax(galaxy)
+    # median_amp = np.nanmedian(galaxy)
+    # opt_feii_amp_init = (0.1*np.nanmedian(galaxy))
+    # uv_iron_amp_init  = (0.1*np.nanmedian(galaxy)) 
+    # balmer_amp_init  = (0.1*np.nanmedian(galaxy)) 
     c = 299792.458 # speed of light (km/s)
-    # Perform a continuous wavelet transform with a gaussian wavelet of widths from 1*velscale to 8*velscale
-    def gaussian_wavelet(loc,scale):
-            return scipy.signal.windows.gaussian(loc,scale, sym=True)
     # Search range on either side of the line center (km/s); if no peak is found within this range 
     # the value of the spectrum at the assumed center is used.
-    search_kms = 2000.0
+    search_kms = 500.0
+
+    # First we remove the continuum 
+    galaxy_csub = badass_tools.continuum_subtract(lam_gal,galaxy,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
+                   noise_scale=1.0,opt_rchi2=True,plot=False,
+                   fig_scale=8,fontsize=16,verbose=False)
+    # smoothed = scipy.ndimage.median_filter(galaxy_csub,size=3,mode="mirror")
+
+
+    # Perform a continuous wavelet transform with a gaussian wavelet of widths from 1*velscale to 8*velscale
+    def gaussian_wavelet(loc,scale):
+        """
+        Gaussian wavelet.
+        """
+        return scipy.signal.gaussian(loc,scale, sym=True)
+    #
     try:
-        peaks   = scipy.signal.find_peaks_cwt(galaxy, widths =np.arange(1,8), wavelet=gaussian_wavelet)
-        troughs = scipy.signal.find_peaks_cwt(-galaxy, widths =np.arange(1,8), wavelet=gaussian_wavelet)
+        widths = np.arange(1,8)
+        peaks   = scipy.signal.find_peaks_cwt(galaxy_csub, widths =widths, wavelet=gaussian_wavelet)
+        troughs = scipy.signal.find_peaks_cwt(-galaxy_csub, widths =widths, wavelet=gaussian_wavelet)
         peak_wave   = lam_gal[peaks]
         trough_wave = lam_gal[troughs]
     except:
+        if verbose:
+            print("\n Warning! Peak finding algorithm used for initial guesses of amplitude and velocity failed! Defaulting to user-defined locations...")
         peak_wave   = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["na","br"]]
         trough_wave = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["abs"]]
 
     # Pre-defined initial values and parameter limits for different line_types.
     def amp_hyperpars(line_type,line_center): # amplitude hyperparameters
         line_center = float(line_center)
-        line_window = 10.0 # sampling window for each line in Angstroms
-        # if (line_type in ["na","user"]):
-        #     return get_init_amp(line_center), (0.0,max_amp)
-        # elif (line_type in ["br","out"]):
-        #         return (get_init_amp(line_center))/2.0, (0.0,max_amp)
-        # elif (line_type=="abs"):
-        #     return -median_amp, (-median_amp,0.0,)
-
-        # Smooth the spectrum 
-        # smoothed = scipy.ndimage.gaussian_filter1d(galaxy,2.0, mode='mirror')
-        smoothed = scipy.ndimage.median_filter(galaxy,100,mode='mirror')
-
-
-        # Plot for testing
-        fig = plt.figure(figsize=(10,5))
-        ax1 = fig.add_subplot(1,1,1)
-        ax1.step(lam_gal, galaxy,linewidth=0.5)
-        ax1.step(lam_gal, smoothed,linewidth=0.5)
-        ax1.step(lam_gal, noise, linewidth=0.5)
-        # for p in peaks:
-        #     ax1.axvline(lam_gal[p],linestyle="--",linewidth=0.5,color="xkcd:bright orange")
-        # for p in troughs:
-        #     ax1.axvline(lam_gal[p],linestyle="--",linewidth=0.5,color="xkcd:bright orange")
-        ax1.axvline(line_center,linewidth=0.5,linestyle="--",color="xkcd:bright orange")
-        ax1.set_xlim(lam_gal.min(),lam_gal.max())
-        plt.tight_layout()
-        # 
+        # print(line_center,line_type)
+        # Set max amplitude based on whether or not user provided limits for amplitude 
+        if (line_type=="na") and (narrow_options["amp_plim"] is not None):
+            max_amp = np.max(narrow_options["amp_plim"])
+        elif (line_type=="br") and (broad_options["amp_plim"] is not None):
+            max_amp = np.max(broad_options["amp_plim"])
+        elif (line_type=="abs") and (absorp_options["amp_plim"] is not None):
+            max_amp = np.abs(np.min(absorp_options["amp_plim"]))
+        else:
+            # The default maximum amplitude is 2 x max(data) to allow
+            # for better fits to masked lines.
+            max_amp = 2*np.nanmax(galaxy)
+        #
         if line_type in ["na","br"]:
-            # calculate velocities of peaks around line center
-            peak_vel = (peak_wave-line_center)/line_center*c
-            print(peak_vel)
-            peak_ang = peak_wave[np.argmin(np.abs(peak_vel))]
-            print(peak_ang)
+            # calculate velocities of peaks around line center\
+            peak_ang = peak_wave[np.argmin(np.abs(peak_wave-line_center))] # peak in angstroms
+            peak_vel = (peak_ang-line_center)/line_center*c # peak in velocity offset
+            # print(peak_ang, peak_vel)
             # If velocity less than search_kms, calculate amplitude at that point
-            if np.abs(peak_vel[np.argmin(np.abs(peak_vel))])<=search_kms:
-                ax1.axvline(peak_ang,linewidth=1,linestyle="--",color="xkcd:aqua")
-                return galaxy[find_nearest(lam_gal,peak_ang)[1]], (0.0, max_amp)
+            if peak_vel<=search_kms:
+                init_amp = galaxy[find_nearest(lam_gal,peak_ang)[1]]
+                return np.nanmin([init_amp,max_amp]), (0.0, max_amp)
             else:
-                return galaxy[find_nearest(lam_gal,line_center)[1]], (0.0, max_amp)
+                init_amp = galaxy[find_nearest(lam_gal,line_center)[1]]
+                return np.nanmin([init_amp,max_amp]), (0.0, max_amp)
         elif line_type in ["abs"]:
             # calculate velocities of troughs around line center
-            trough_vel = (trough_wave-line_center)/line_center*c
-            print(trough_vel)
-            trough_ang = trough_wave[np.argmin(np.abs(trough_vel))]
-            print(trough_ang)
-
+            # trough_vel = (trough_wave-line_center)/line_center*c
+            # trough_ang = trough_wave[np.argmin(np.abs(trough_vel))]
+            trough_ang = trough_wave[np.argmin(np.abs(trough_wave-line_center))] # peak in angstroms
+            trough_vel = (trough_ang-line_center)/line_center*c # peak in velocity offset
+            # print(trough_vel, trough_ang)
             # If velocity less than search_kms, calculate amplitude at that point
-            if np.abs(trough_vel[np.argmin(np.abs(trough_vel))])<=search_kms:
-                ax1.axvline(trough_ang,linewidth=1,linestyle="--",color="xkcd:aqua")
-                return -galaxy[find_nearest(lam_gal,trough_ang)[1]], (-max_amp, 0.0)
+            if trough_vel<=search_kms:
+                init_amp = -galaxy[find_nearest(lam_gal,trough_ang)[1]]
+                return np.nanmax([init_amp,-max_amp]), (-max_amp, 0.0)
             else:
-                return -galaxy[find_nearest(lam_gal,line_center)[1]], (-max_amp, 0.0)
-
-
+                init_amp = -galaxy[find_nearest(lam_gal,line_center)[1]]
+                return np.nanmax([init_amp,-max_amp]), (-max_amp, 0.0)
+        else:
+            return galaxy[find_nearest(lam_gal,line_center)[1]], (0.0, max_amp)
 
     #
     def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
         # default initial widths for lines (if not specified)
-        na_disp_init = 50.0
+        na_disp_init  = 50.0
         out_disp_init = 250.0
         br_disp_init = 500.0
         abs_disp_init = 50.0
@@ -3730,7 +3735,11 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         if (("amp" in line_list[line]) and (line_list[line]["amp"]=="free")):
             # We need to pass the line_type to amp_hyperpars so it can distinguish between 
             # an emission or absorption feature.
+
+            # If amplitude parameter limits are already set in (narrow,broad,absorp)_options, then use those, otherwise,
+            # automatically generate them
             amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
+
             line_par_input[line+"_AMP"] = {"init": line_list[line].get("amp_init",amp_default_init), 
                                            "plim":line_list[line].get("amp_plim",amp_default_plim),
                                            "prior":line_list[line].get("amp_prior")
@@ -3741,13 +3750,6 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             # Check to make sure init value is within limits of plim
             if (line_par_input[line+"_AMP"]["init"]<line_par_input[line+"_AMP"]["plim"][0]) or (line_par_input[line+"_AMP"]["init"]>line_par_input[line+"_AMP"]["plim"][1]):
                 raise ValueError("\n Amplitude (amp) initial value (amp_init) for %s outside of parameter limits (amp_plim)!\n" % (line))
-        
-        for line in line_list:
-            print("\t",line)
-            for hpar in line_list[line]:
-                print("\t\t",hpar,"=",line_list[line][hpar])
-        # sys.exit()
-        continue
 
         if (("disp" in line_list[line]) and (line_list[line]["disp"]=="free")):
             disp_default = disp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
@@ -3775,9 +3777,16 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
                 raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
         
-        if (line_list[line]["line_profile"]=="gauss-hermite") & (comp_options["n_moments"]>2):
+        if (line_list[line]["line_profile"]=="gauss-hermite"):# & (comp_options["n_moments"]>2):
+            if (line_list[line]["line_type"]=="na") and (narrow_options["n_moments"]>2):
+                n_moments = narrow_options["n_moments"]
+            if (line_list[line]["line_type"]=="br") and (broad_options["n_moments"]>2):
+                n_moments = narrow_options["n_moments"]
+            if (line_list[line]["line_type"]=="abs") and (absorp_options["n_moments"]>2):
+                n_moments = narrow_options["n_moments"]
+
             h_default = h_moment_hyperpars()
-            for m in range(3,3+(comp_options["n_moments"]-2),1):
+            for m in range(3,3+(n_moments-2),1):
                 if ("h"+str(m) in line_list[line]):
                     if (line_list[line]["h"+str(m)]=="free"):
                         line_par_input[line+"_H"+str(m)] = {"init": line_list[line].get("h"+str(m)+"_init",h_default[0]), 
@@ -3916,7 +3925,12 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
                                          }
         
         
-                
+    for line in line_par_input:
+        print(line)
+        for p in line_par_input[line]:
+            print("\t",p,":",line_par_input[line][p])
+    sys.exit()
+
     return line_par_input
 
 ##################################################################################

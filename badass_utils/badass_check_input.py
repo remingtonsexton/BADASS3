@@ -515,28 +515,31 @@ def check_narrow_options(input,verbose=False):
 
 	"amp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]>=0),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (0,),
+				  "default": None,
 				  "error_message": "\n Narrow line amplitude limits (amp_plim) must be a list or tuple, and the amplitude minimum must be >= 0.\n",
 				  },
 
 	"disp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]>=0),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (0,300),
+				  "default": None,
 				  "error_message": "\n Narrow line dispersion limits (disp_plim) must be a list or tuple, and the minimum dispersion must be >= 0.\n",
 				  },
 
 	"voff_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]<x[1]),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (-500,500),
+				  "default":None,
 				  "error_message": "\n Narrow line velocity offset limits (voff_plim) must be a list or tuple.\n",
 				  },
 
@@ -604,28 +607,31 @@ def check_broad_options(input,verbose=False):
 
 	"amp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]>=0),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (0,),
+				  "default": None,
 				  "error_message": "\n Broad line amplitude limits (amp_plim) must be a list or tuple, and the amplitude minimum must be >= 0.\n",
 				  },
 
 	"disp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]>=0),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (0,300),
+				  "default": None,
 				  "error_message": "\n Broad line dispersion limits (disp_plim) must be a list or tuple, and the minimum dispersion must be >= 0.\n",
 				  },
 
 	"voff_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]<x[1]),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (-500,500),
+				  "default": None,
 				  "error_message": "\n Broad line velocity offset limits (voff_plim) must be a list or tuple.\n",
 				  },
 
@@ -693,28 +699,31 @@ def check_absorp_options(input,verbose=False):
 
 	"amp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]<=0) & (x[1]<=0),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (0,),
+				  "default": None,
 				  "error_message": "\n Absorption line amplitude limits (amp_plim) must be a list or tuple, and the amplitude minimum must be >= 0.\n",
 				  },
 
 	"disp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]>=0),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (0,300),
+				  "default": None,
 				  "error_message": "\n Absorption line dispersion limits (disp_plim) must be a list or tuple, and the minimum dispersion must be >= 0.\n",
 				  },
 
 	"voff_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
-							lambda x: (len(x)>=1) & (len(x)<=2),
+							lambda x: len(x)==2,
 							lambda x: (x[0]<x[1]),
+							lambda x: (isinstance(x[0],(int,float)) & (isinstance(x[1],(int,float))))
 							],
-				  "default": (-500,500),
+				  "default": None,
 				  "error_message": "\n Absorption line velocity offset limits (voff_plim) must be a list or tuple.\n",
 				  },
 
