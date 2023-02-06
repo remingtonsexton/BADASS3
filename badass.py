@@ -3565,17 +3565,8 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
     in terms of velocity.
 
     """
-    # Initial conditions for some parameters
-    print(narrow_options)
-    # max_amp = np.nanmax(galaxy)
-    # median_amp = np.nanmedian(galaxy)
-    # opt_feii_amp_init = (0.1*np.nanmedian(galaxy))
-    # uv_iron_amp_init  = (0.1*np.nanmedian(galaxy)) 
-    # balmer_amp_init  = (0.1*np.nanmedian(galaxy)) 
+    # Constants
     c = 299792.458 # speed of light (km/s)
-    # Search range on either side of the line center (km/s); if no peak is found within this range 
-    # the value of the spectrum at the assumed center is used.
-    search_kms = 500.0
 
     # First we remove the continuum 
     galaxy_csub = badass_tools.continuum_subtract(lam_gal,galaxy,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
@@ -3587,7 +3578,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
     # Perform a continuous wavelet transform with a gaussian wavelet of widths from 1*velscale to 8*velscale
     def gaussian_wavelet(loc,scale):
         """
-        Gaussian wavelet.
+        Gaussian wavelet used for peak detection.
         """
         return scipy.signal.gaussian(loc,scale, sym=True)
     #
@@ -3603,21 +3594,24 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         peak_wave   = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["na","br"]]
         trough_wave = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["abs"]]
 
-    # Pre-defined initial values and parameter limits for different line_types.
-    def amp_hyperpars(line_type,line_center): # amplitude hyperparameters
+    def amp_hyperpars(line_type,line_center,voff_init,voff_plim):
+        """
+        Assigns the user-defined or default line amplitude
+        initial guesses and limits.
+        """
         line_center = float(line_center)
         # print(line_center,line_type)
         # Set max amplitude based on whether or not user provided limits for amplitude 
         if (line_type=="na") and (narrow_options["amp_plim"] is not None):
-            max_amp = np.max(narrow_options["amp_plim"])
+            min_amp, max_amp = np.min(narrow_options["amp_plim"]), np.max(narrow_options["amp_plim"])
         elif (line_type=="br") and (broad_options["amp_plim"] is not None):
-            max_amp = np.max(broad_options["amp_plim"])
+            min_amp, max_amp = np.min(broad_options["amp_plim"]), np.max(broad_options["amp_plim"])
         elif (line_type=="abs") and (absorp_options["amp_plim"] is not None):
-            max_amp = np.abs(np.min(absorp_options["amp_plim"]))
+            min_amp, max_amp = np.abs(np.max(absorp_options["amp_plim"])), np.abs(np.min(absorp_options["amp_plim"]))
         else:
             # The default maximum amplitude is 2 x max(data) to allow
             # for better fits to masked lines.
-            max_amp = 2*np.nanmax(galaxy)
+            min_amp, max_amp = 0.0, 2*np.nanmax(galaxy)
         #
         if line_type in ["na","br"]:
             # calculate velocities of peaks around line center\
@@ -3625,12 +3619,19 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             peak_vel = (peak_ang-line_center)/line_center*c # peak in velocity offset
             # print(peak_ang, peak_vel)
             # If velocity less than search_kms, calculate amplitude at that point
-            if peak_vel<=search_kms:
+            if (peak_vel>=voff_plim[0]) & (peak_vel<=voff_plim[1]):
                 init_amp = galaxy[find_nearest(lam_gal,peak_ang)[1]]
-                return np.nanmin([init_amp,max_amp]), (0.0, max_amp)
+                if (init_amp>=min_amp) & (init_amp<=max_amp):
+                    return init_amp, (min_amp, max_amp)
+                else:
+                    return max_amp-(max_amp-min_amp)/2.0, (min_amp, max_amp)
             else:
                 init_amp = galaxy[find_nearest(lam_gal,line_center)[1]]
-                return np.nanmin([init_amp,max_amp]), (0.0, max_amp)
+                if (init_amp>=min_amp) & (init_amp<=max_amp):
+                    return init_amp, (min_amp, max_amp)
+                else:
+                    return max_amp-(max_amp-min_amp)/2.0, (min_amp, max_amp)
+        #
         elif line_type in ["abs"]:
             # calculate velocities of troughs around line center
             # trough_vel = (trough_wave-line_center)/line_center*c
@@ -3639,78 +3640,138 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             trough_vel = (trough_ang-line_center)/line_center*c # peak in velocity offset
             # print(trough_vel, trough_ang)
             # If velocity less than search_kms, calculate amplitude at that point
-            if trough_vel<=search_kms:
+            if (trough_vel>=voff_plim[0]) & (trough_vel<=voff_plim[1]):
                 init_amp = -galaxy[find_nearest(lam_gal,trough_ang)[1]]
-                return np.nanmax([init_amp,-max_amp]), (-max_amp, 0.0)
+                if (init_amp<=-min_amp) & (init_amp>=-max_amp):
+                    return init_amp, (-max_amp, -min_amp)
+                else:
+                    return -max_amp+(max_amp-min_amp)/2.0,(-max_amp, -min_amp)
             else:
                 init_amp = -galaxy[find_nearest(lam_gal,line_center)[1]]
-                return np.nanmax([init_amp,-max_amp]), (-max_amp, 0.0)
+                if (init_amp<=-min_amp) & (init_amp>=-max_amp):
+                    return init_amp, (-max_amp, -min_amp)
+                else:
+                    return -max_amp+(max_amp-min_amp)/2.0,(-max_amp, -min_amp)
+        #
         else:
-            return galaxy[find_nearest(lam_gal,line_center)[1]], (0.0, max_amp)
+            init_amp = galaxy[find_nearest(lam_gal,line_center)[1]]
+            if (init_amp>=min_amp) & (init_amp<=max_amp):
+                return init_amp, (min_amp, max_amp)
+            else:
+                return max_amp-(max_amp-min_amp)/2.0, (min_amp, max_amp)
 
     #
     def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
-        # default initial widths for lines (if not specified)
-        na_disp_init  = 50.0
-        out_disp_init = 250.0
-        br_disp_init = 500.0
-        abs_disp_init = 50.0
-        # default width bounds for lines (if not specified)
-        na_disp_lim  = (0.001  , 500.0)
-        out_disp_lim = (0.001  , 1000.0)
-        br_disp_lim  = (200.0, 6000.0)
-        abs_disp_lim = (0.001  , 500.0)
-        if line_type in ["na","user"]:
-            if (line_profile in ["gauss-hermite","laplace","uniform"]):
-                # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
-                # able to accomodate excess width from an outflow component.
-                return 50.0, (0.001,1000.0)
+        """
+        Assigns the user-defined or default line width (dispersion)
+        initial guesses and limits.
+        """
+        # Defaults
+        na_disp_default_init  = 50.0
+        na_disp_default_plim  = (0.001,300.0)
+        br_disp_default_init  = 500.0
+        br_disp_default_plim  = (300.0,3000.0)
+        abs_disp_default_init = 50.0
+        abs_disp_default_plim = (0.001,300.0)
+        # First determine whether to use user-defined or default limits
+        if (line_type in ["na"]):
+            if (narrow_options["disp_plim"] is not None):
+                min_disp, max_disp = narrow_options["disp_plim"][0], narrow_options["disp_plim"][1]
             else:
-                return na_disp_init, na_disp_lim
-        elif line_type in ["br"]:
-            return br_disp_init, br_disp_lim
-        elif line_type in ["out"]:
-            return out_disp_init, out_disp_lim
-        elif line_type in ["abs"]:
-            if (line_profile in ["gauss-hermite","laplace","uniform"]):
-                # An exception is granted to line profiles that are Gauss-Hermite, since they need to be
-                # able to accomodate excess width from an outflow component.
-                return 50.0, (0.001,1000.0)
+                min_disp, max_disp = na_disp_default_plim[0], na_disp_default_plim[1]
+
+        elif (line_type in ["br"]):
+            if (broad_options["disp_plim"] is not None):
+                min_disp, max_disp = broad_options["disp_plim"][0], broad_options["disp_plim"][1]
             else:
-                return abs_disp_init, abs_disp_lim
+                min_disp, max_disp = br_disp_default_plim[0], br_disp_default_plim[1]
+        elif (line_type in ["abs"]):
+            if (absorp_options["disp_plim"] is not None):
+                min_disp, max_disp = absorp_options["disp_plim"][0], absorp_options["disp_plim"][1]
+            else:
+                min_disp, max_disp = abs_disp_default_plim[0], abs_disp_default_plim[1]
+        else:
+            min_disp, max_disp = na_disp_default_plim[0], na_disp_default_plim[1]
+        # Now determine the best initial guess choice based on those limits
+        if (line_type in ["na"]):
+            if (na_disp_default_init>=min_disp) & (na_disp_default_init<=max_disp):
+                return na_disp_default_init, (min_disp, max_disp)
+            else:
+                return max_disp-(max_disp-min_disp)/2.0, (min_disp, max_disp)
+        elif (line_type in ["br"]):
+            if (br_disp_default_init>=min_disp) & (br_disp_default_init<=max_disp):
+                return br_disp_default_init, (min_disp, max_disp)
+            else:
+                return max_disp-(max_disp-min_disp)/2.0, (min_disp, max_disp)
+        elif (line_type in ["abs"]):
+            if (abs_disp_default_init>=min_disp) & (abs_disp_default_init<=max_disp):
+                return abs_disp_default_init, (min_disp, max_disp)
+            else:
+                return max_disp-(max_disp-min_disp)/2.0, (min_disp, max_disp)
+        else:
+            if (na_disp_default_init>=min_disp) & (na_disp_default_init<=max_disp):
+                return na_disp_default_init, (min_disp, max_disp)
+            else:
+                return max_disp-(max_disp-min_disp)/2.0, (min_disp, max_disp)
+
     #
     def voff_hyperpars(line_type, line_center):
-        voff_init = get_init_voff(line_center)
-
-
-
-        na_voff_lim = (-500,500)
-        br_voff_lim = (-1000,1000)
-        if line_type in ["na","user"]:
-            return voff_init, na_voff_lim
-        elif line_type in ["br","abs","out"]:
-            return voff_init, br_voff_lim
-
-    def get_init_voff(line_center):
-        line_window = 10
-        line_center = float(line_center)
-
-        interp_ftn = interp1d(lam_gal,np.arange(len(lam_gal)),kind='linear',bounds_error=False)
-        try: 
-            eval_ind = np.where((lam_gal>(line_center-line_window)) & (lam_gal<(line_center+line_window)))
-            max_idx = np.where(galaxy==np.nanmax(galaxy[eval_ind]))[0]
-            max_wave = lam_gal[max_idx]
-            voff  = (interp_ftn(max_wave)-interp_ftn(line_center))*velscale
-            #
-            if (galaxy[max_idx]>(np.nanmedian(5.0*noise[eval_ind]+galaxy[eval_ind]))) and (np.abs(voff)<250.0):
-                # print(voff)
-                return voff
+        """
+        Assigns the user-defined or default line velocity offset (voff)
+        initial guesses and limits.
+        """
+        voff_default_init     = 0.0
+        na_voff_default_plim  = (-500,500)
+        br_voff_default_plim  = (-1000,1000)
+        abs_voff_default_plim = (-500,500)
+        # First determine whether to use user-defined or default limits
+        if (line_type in ["na"]):
+            if (narrow_options["voff_plim"] is not None):
+                min_voff, max_voff = narrow_options["voff_plim"][0], narrow_options["voff_plim"][1]
             else:
-                # print(0.0)
-                return 0.0
-        except:
-            return 0.0
+                min_voff, max_voff = na_voff_default_plim[0], na_voff_default_plim[1]
 
+        elif (line_type in ["br"]):
+            if (broad_options["voff_plim"] is not None):
+                min_voff, max_voff = broad_options["voff_plim"][0], broad_options["voff_plim"][1]
+            else:
+                min_voff, max_voff = br_voff_default_plim[0], br_voff_default_plim[1]
+        elif (line_type in ["abs"]):
+            if (absorp_options["voff_plim"] is not None):
+                min_voff, max_voff = absorp_options["voff_plim"][0], absorp_options["voff_plim"][1]
+            else:
+                min_voff, max_voff = abs_voff_default_plim[0], abs_voff_default_plim[1]
+        else:
+            min_voff, max_voff = na_voff_default_plim[0], na_voff_default_plim[1]
+        #
+        if line_type in ["na","br"]:
+            # calculate velocities of peaks around line center\
+            peak_ang = peak_wave[np.argmin(np.abs(peak_wave-line_center))] # peak in angstroms
+            peak_vel = (peak_ang-line_center)/line_center*c # peak in velocity offset
+            # print(peak_ang, peak_vel)
+            if (peak_vel>=min_voff) & (peak_vel<=max_voff):
+                return peak_vel, (min_voff, max_voff)
+            else:
+                return 0.0, (min_voff, max_voff)
+        #
+        elif line_type in ["abs"]:
+            # calculate velocities of troughs around line center
+            # trough_vel = (trough_wave-line_center)/line_center*c
+            # trough_ang = trough_wave[np.argmin(np.abs(trough_vel))]
+            trough_ang = trough_wave[np.argmin(np.abs(trough_wave-line_center))] # peak in angstroms
+            trough_vel = (trough_ang-line_center)/line_center*c # peak in velocity offset
+            # print(trough_vel, trough_ang)
+            if (trough_vel>=min_voff) & (trough_vel<=max_voff):
+                return trough_vel, (min_voff, max_voff)
+            else:
+                return 0.0, (min_voff, max_voff)
+        #
+        else:
+            init_voff = 0.0
+            if (init_voff>=min_voff) & (init_voff<=max_voff):
+                return init_voff, (min_voff, max_voff)
+            else:
+                return max_voff-(max_voff-min_voff)/2.0, (min_voff, max_voff)
 
     def h_moment_hyperpars():
         # Higher-order moments for Gauss-Hermite line profiles
@@ -3732,13 +3793,27 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
     # We start with standard lines and options. These are added one-by-one.  Then we check specific line options and then override any lines that have
     # been already added.  Params are added regardless of component options as long as the parameter is set to "free"
     for line in list(line_list):
-        if (("amp" in line_list[line]) and (line_list[line]["amp"]=="free")):
-            # We need to pass the line_type to amp_hyperpars so it can distinguish between 
-            # an emission or absorption feature.
 
+        # Velocity offsets determine both the intial guess in line velocity as well as amplitude, so it makes sense to perform the voff for each line first.
+        if (("voff" in line_list[line]) and (line_list[line]["voff"]=="free")):
+            voff_default = voff_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
+            line_par_input[line+"_VOFF"] = {"init": line_list[line].get("voff_init",voff_default[0]), 
+                                            "plim":line_list[line].get("voff_plim",voff_default[1]),
+                                            "prior":line_list[line].get("voff_prior",{"type":"gaussian"})
+                                            }
+            # If prior is None, pop it out
+            if line_par_input[line+"_VOFF"]["prior"] is None:
+                line_par_input[line+"_VOFF"].pop("prior",None)
+            # Check to make sure init value is within limits of plim
+            if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
+                raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
+
+        if (("amp" in line_list[line]) and (line_list[line]["amp"]=="free")):
             # If amplitude parameter limits are already set in (narrow,broad,absorp)_options, then use those, otherwise,
             # automatically generate them
-            amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
+            amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],
+                                                               line_par_input[line+"_VOFF"]["init"],line_par_input[line+"_VOFF"]["plim"],
+                                                              )
 
             line_par_input[line+"_AMP"] = {"init": line_list[line].get("amp_init",amp_default_init), 
                                            "plim":line_list[line].get("amp_plim",amp_default_plim),
@@ -3752,9 +3827,9 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
                 raise ValueError("\n Amplitude (amp) initial value (amp_init) for %s outside of parameter limits (amp_plim)!\n" % (line))
 
         if (("disp" in line_list[line]) and (line_list[line]["disp"]=="free")):
-            disp_default = disp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
-            line_par_input[line+"_DISP"] = {"init": line_list[line].get("disp_init",disp_default[0]), 
-                                            "plim":line_list[line].get("disp_plim",disp_default[1]),
+            disp_default_init, disp_default_plim = disp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],line_list[line]["line_profile"])
+            line_par_input[line+"_DISP"] = {"init": line_list[line].get("disp_init",disp_default_init), 
+                                            "plim":line_list[line].get("disp_plim",disp_default_plim),
                                             "prior":line_list[line].get("disp_prior")
                                             }
             # If prior is None, pop it out
@@ -3764,26 +3839,15 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             if (line_par_input[line+"_DISP"]["init"]<line_par_input[line+"_DISP"]["plim"][0]) or (line_par_input[line+"_DISP"]["init"]>line_par_input[line+"_DISP"]["plim"][1]):
                 raise ValueError("\n DISP (disp) initial value (disp_init) for %s outside of parameter limits (disp_plim)!\n" % (line))
         
-        if (("voff" in line_list[line]) and (line_list[line]["voff"]=="free")):
-            voff_default = voff_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
-            line_par_input[line+"_VOFF"] = {"init": line_list[line].get("voff_init",voff_default[0]), 
-                                            "plim":line_list[line].get("voff_plim",voff_default[1]),
-                                            "prior":line_list[line].get("voff_prior",{"type":"gaussian"})
-                                            }
-            # If prior is None, pop it out
-            if line_par_input[line+"_VOFF"]["prior"] is None:
-                line_par_input[line+"_VOFF"].pop("prior",None)
-            # Check to make sure init value is within limits of plim
-            if (line_par_input[line+"_VOFF"]["init"]<line_par_input[line+"_VOFF"]["plim"][0]) or (line_par_input[line+"_VOFF"]["init"]>line_par_input[line+"_VOFF"]["plim"][1]):
-                raise ValueError("\n Velocity offset (voff) initial value (voff_init) for %s outside of parameter limits (voff_plim)!\n" % (line))
+
         
         if (line_list[line]["line_profile"]=="gauss-hermite"):# & (comp_options["n_moments"]>2):
             if (line_list[line]["line_type"]=="na") and (narrow_options["n_moments"]>2):
                 n_moments = narrow_options["n_moments"]
             if (line_list[line]["line_type"]=="br") and (broad_options["n_moments"]>2):
-                n_moments = narrow_options["n_moments"]
+                n_moments = broad_options["n_moments"]
             if (line_list[line]["line_type"]=="abs") and (absorp_options["n_moments"]>2):
-                n_moments = narrow_options["n_moments"]
+                n_moments = absorp_options["n_moments"]
 
             h_default = h_moment_hyperpars()
             for m in range(3,3+(n_moments-2),1):
@@ -3925,11 +3989,11 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
                                          }
         
         
-    for line in line_par_input:
-        print(line)
-        for p in line_par_input[line]:
-            print("\t",p,":",line_par_input[line][p])
-    sys.exit()
+    # for line in line_par_input:
+    #     print(line)
+    #     for p in line_par_input[line]:
+    #         print("\t",p,":",line_par_input[line][p])
+    # sys.exit()
 
     return line_par_input
 
@@ -6880,9 +6944,14 @@ def line_constructor(lam_gal,free_dict,comp_dict,comp_options,line,line_list,vel
         else:
             voff = free_dict[line+"_VOFF"]
 
-        hmoments = np.empty(comp_options["n_moments"]-2)
-        if (comp_options["n_moments"]>2):
-            for i,m in enumerate(range(3,3+(comp_options["n_moments"]-2),1)):
+        # Moments are specific to the type of line; na, br, and abs line moments are defined in their
+        # respective _options, but for user lines the moments have to be determined manually.
+
+
+        n_moments = len([i for i in line_list[line] if i in ["h3","h4","h5","h6","h7","h8","h9","h10"]])
+        hmoments = np.empty(n_moments)
+        if (n_moments>0):
+            for i,m in enumerate(range(3,3+(n_moments),1)):
                 if (isinstance(line_list[line]["h"+str(m)],(str))) and (line_list[line]["h"+str(m)]!="free"):
                     hl = ne.evaluate(line_list[line]["h"+str(m)],local_dict = free_dict).item()
                 else:
