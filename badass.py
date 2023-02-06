@@ -2993,8 +2993,32 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,
                                           narrow_options,broad_options,absorp_options,
                                           line_list,velscale,verbose=verbose)
+    
+
+    for line in line_list:
+        print("\n")
+        print(line)
+        for hpar in line_list[line]:
+            print("\t",hpar,":",line_list[line][hpar])
+    print("\n") 
+    for par in line_par_input:
+        print(par)
+        for hpar in line_par_input[par]:
+            print("\t",hpar,":",line_par_input[par][hpar])
+    sys.exit()
+
+
+
+
     # Check hard line constraints; returns updated line_list and line_par_input
     line_list, line_par_input = check_hard_cons(lam_gal,galaxy,noise,comp_options,line_list,line_par_input,par_input,velscale,verbose=verbose)
+    
+
+
+
+
+
+
     # Append line_par_input to par_input
     par_input = {**par_input, **line_par_input}
 
@@ -3551,6 +3575,27 @@ def add_disp_res(line_list,lam_gal,disp_res,velscale,verbose=True):
     return line_list
 
 ##################################################################################
+
+#### Add Line Clones #############################################################
+
+def add_line_clones(line_list,narrow_options,broad_options,absorp_options):
+    """
+    Create clones of lines which have multiple components (ncomp) defined 
+    for narrow, broad, and absoprtion lines.  Hard constraints are preserved
+    for clones, but soft constraints are not. 
+
+    Also outputs a dictionary of additional components that can be toggled
+    for testing.
+    """
+
+    
+
+
+
+
+
+##################################################################################
+
 
 #### Initialize Line Parameters ##################################################
 
