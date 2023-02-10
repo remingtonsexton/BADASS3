@@ -3011,20 +3011,20 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     # print("\n") 
 
-    # for line in line_list:
-    #     print("\n")
-    #     print(line)
-    #     for hpar in line_list[line]:
-    #         print("\t",hpar,":",line_list[line][hpar])
+    for line in line_list:
+        print("\n")
+        print(line)
+        for hpar in line_list[line]:
+            print("\t",hpar,":",line_list[line][hpar])
     
     # print("\n") 
 
-    # for n in ncomp_dict:
-    #     print(n)
-    #     for line in ncomp_dict[n]:
-    #         print("\t",line)
-    #         for hpar in ncomp_dict[n][line]:
-    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
+    for n in ncomp_dict:
+        print(n)
+        for line in ncomp_dict[n]:
+            print("\t",line)
+            for hpar in ncomp_dict[n][line]:
+                print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
     
     # sys.exit()
 
@@ -3040,7 +3040,12 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # elif (combined_lines is None) or (len(combined_lines)==0):
     #     combined_line_list = generate_comb_line_list({},line_list)
 
-    combined_lines_list = generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,absorp_options)
+    combined_line_list = generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,absorp_options)
+
+    for c in combined_line_list:
+        print(c)
+        for line in combined_line_list[c]:
+            print("\t",line)
 
     sys.exit(0)
     ##############################################################################
@@ -3126,6 +3131,8 @@ def generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,ab
     # return combined_line_list
     #################################################################################
 
+    orig_line_list = ncomp_dict["NCOMP_1"]
+
     opt_dict = {"na":narrow_options,"br":broad_options,"abs":absorp_options}
     combined_line_list = {}
     for line_type in opt_dict:
@@ -3133,12 +3140,14 @@ def generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,ab
         if ncomp>0:    
             for n in np.arange(ncomp-1)+2:
                 # Create a dictionary for each additional set of components
-                for line in line_list: # line is the "parent" line
-                    if line_list[line]["line_type"]==line_type:   
-                        print(line)
+                for line in orig_line_list: # line is the "parent" line
+                    if orig_line_list[line]["line_type"]==line_type:
+                        if line+"_COMB" not in combined_line_list:
+                            combined_line_list[line+"_COMB"] = []
+                            combined_line_list[line+"_COMB"].append(line)
+                        combined_line_list[line+"_COMB"].append(line+"_%d" % n)
 
-
-    return
+    return combined_line_list
 
 
 
