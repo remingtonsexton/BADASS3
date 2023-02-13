@@ -3011,20 +3011,20 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     # print("\n") 
 
-    for line in line_list:
-        print("\n")
-        print(line)
-        for hpar in line_list[line]:
-            print("\t",hpar,":",line_list[line][hpar])
+    # for line in line_list:
+    #     print("\n")
+    #     print(line)
+    #     for hpar in line_list[line]:
+    #         print("\t",hpar,":",line_list[line][hpar])
     
     # print("\n") 
 
-    for n in ncomp_dict:
-        print(n)
-        for line in ncomp_dict[n]:
-            print("\t",line)
-            for hpar in ncomp_dict[n][line]:
-                print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
+    # for n in ncomp_dict:
+    #     print(n)
+    #     for line in ncomp_dict[n]:
+    #         print("\t",line)
+    #         for hpar in ncomp_dict[n][line]:
+    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
     
     # sys.exit()
 
@@ -3034,20 +3034,14 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     ##############################################################################
 
     # Create combined_line_list
-    # A list of combined lines, and some relevant information
-    # if combined_lines is not None:
-    #     combined_line_list = generate_comb_line_list(combined_lines,line_list)
-    # elif (combined_lines is None) or (len(combined_lines)==0):
-    #     combined_line_list = generate_comb_line_list({},line_list)
-
     combined_line_list = generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,absorp_options)
 
-    for c in combined_line_list:
-        print(c)
-        for line in combined_line_list[c]:
-            print("\t",line)
+    # for c in combined_line_list:
+    #     print(c)
+    #     for hpar in combined_line_list[c]:
+    #         print("\t",hpar,combined_line_list[c][hpar])
+    # sys.exit(0)
 
-    sys.exit(0)
     ##############################################################################
 
     # Check soft-constraints
@@ -3073,11 +3067,17 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             ("BR_MGII_2799_DISP","NA_MGII_2799_DISP"),
             #
             # Region 5 soft constraints
-            ("BR_H_BETA_DISP","NA_OIII_5007_DISP"),
-            ("BR_H_BETA_DISP","OUT_OIII_5007_DISP"),
+            # ("BR_H_BETA_DISP","NA_OIII_5007_DISP"),
+            # ("BR_H_BETA_DISP","NA_OIII_5007_2_DISP"),
+            # ("BR_H_BETA_DISP","NA_OIII_5007_3_DISP"),
             #
-            ("OUT_OIII_5007_DISP","NA_OIII_5007_DISP"),
-            ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
+            # ("NA_H_BETA_AMP*(NA_OIII_5007_2_AMP/NA_OIII_5007_AMP)","NA_H_BETA_2_AMP"),
+            # ("NA_H_BETA_AMP*(NA_OIII_5007_3_AMP/NA_OIII_5007_AMP)","NA_H_BETA_3_AMP"),
+            # ("",""),
+            #
+            # ("NA_OIII_5007_2_DISP","NA_OIII_5007_DISP"),
+            # ("NA_OIII_5007_3_DISP","NA_OIII_5007_2_DISP"),
+            # ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
             #
             # Region 3 soft constraints
             ("OUT_NII_6585_DISP","NA_NII_6585_DISP"),
@@ -3110,27 +3110,11 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 #### Line List ###################################################################
 
 def generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,absorp_options):
-    # OLD #################################################################################
-    # combined_line_list={}
-    # valid_lines = [i for i in line_list]
-    # for comb_line in combined_lines:
-    #     # Check to make sure lines are in line list
-    #     if np.all([True if i in valid_lines else False for i in combined_lines[comb_line] ]):
-    #         all_line_profiles = [line_list[i]["line_profile"] for i in combined_lines[comb_line] ]
-    #         if ("voigt" in all_line_profiles) or ("lorentzian" in all_line_profiles):
-    #             line_profile = "voigt"
-    #         else:
-    #             line_profile = "gaussian"
-    #         combined_line_list[comb_line] = {"lines":combined_lines[comb_line],
-    #                                          "center":line_list[combined_lines[comb_line][0]]["center"],
-    #                                          "center_pix":line_list[combined_lines[comb_line][0]]["center_pix"],
-    #                                          "disp_res_kms":line_list[combined_lines[comb_line][0]]["disp_res_kms"],
-    #                                          "line_profile":line_profile,
-    #                                         }
-    # #
-    # return combined_line_list
-    #################################################################################
-
+    """
+    Generate a list of 'combined lines' for lines with multiple components, for which 
+    velocity moments (integrated velocity and dispersion) and other quantities will 
+    be calculated during the fit.
+    """
     orig_line_list = ncomp_dict["NCOMP_1"]
 
     opt_dict = {"na":narrow_options,"br":broad_options,"abs":absorp_options}
@@ -3143,9 +3127,15 @@ def generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,ab
                 for line in orig_line_list: # line is the "parent" line
                     if orig_line_list[line]["line_type"]==line_type:
                         if line+"_COMB" not in combined_line_list:
-                            combined_line_list[line+"_COMB"] = []
-                            combined_line_list[line+"_COMB"].append(line)
-                        combined_line_list[line+"_COMB"].append(line+"_%d" % n)
+                            combined_line_list[line+"_COMB"] = {}
+                            combined_line_list[line+"_COMB"]["lines"] = []
+                            combined_line_list[line+"_COMB"]["lines"].append(line)
+                            #
+                            combined_line_list[line+"_COMB"]["center"] = orig_line_list[line]["center"]
+                            combined_line_list[line+"_COMB"]["center_pix"] = orig_line_list[line]["center_pix"]
+                            combined_line_list[line+"_COMB"]["disp_res_kms"] = orig_line_list[line]["disp_res_kms"]
+                            combined_line_list[line+"_COMB"]["line_profile"] = orig_line_list[line]["line_profile"]
+                        combined_line_list[line+"_COMB"]["lines"].append(line+"_%d" % n)
 
     return combined_line_list
 
@@ -3752,6 +3742,10 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             # The default maximum amplitude is 2 x max(data) to allow
             # for better fits to masked lines.
             min_amp, max_amp = 0.0, 2*np.nanmax(galaxy)
+        #
+        # Determine amplitude factor; factor by which we divide the amplitude because of multiple
+        # components. 
+        
         #
         if line_type in ["na","br"]:
             # calculate velocities of peaks around line center\
