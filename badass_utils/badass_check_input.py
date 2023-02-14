@@ -483,7 +483,6 @@ def check_narrow_options(input,verbose=False):
 	all keywords have valid values. 
 
 	narrow_options={
-			"ncomp": 1, # number of components; default 1
 			"amp_plim": (0,), # line amplitude parameter limits; default (0,)
 			"disp_plim": (0,300), # line dispersion parameter limits; default (0,)
 			"voff_plim": (-500,500), # line velocity offset parameter limits; default (0,)
@@ -494,7 +493,6 @@ def check_narrow_options(input,verbose=False):
 
 	if not input:
 		output={
-				"ncomp": 1, # number of components; default 1
 				"amp_plim": (0,), # line amplitude parameter limits; default (0,)
 				"disp_plim": (0,300), # line dispersion parameter limits; default (0,)
 				"voff_plim": (-500,500), # line velocity offset parameter limits; default (0,)
@@ -504,14 +502,6 @@ def check_narrow_options(input,verbose=False):
 		return output
 
 	keyword_dict ={
-
-	"ncomp" : {"conds":[
-							lambda x: isinstance(x,(int)),
-							lambda x: (x>=1) & (x<=20)
-							],
-				  "default": 1,
-				  "error_message": "\n Number of narrow line components (ncomp) must be an int and must be >= 1.\n",
-				  },
 
 	"amp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
@@ -575,7 +565,6 @@ def check_broad_options(input,verbose=False):
 	all keywords have valid values. 
 
 	broad_options={
-			"ncomp": 1, # number of components; default 1
 			"amp_plim": (0,), # line amplitude parameter limits; default (0,)
 			"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
 			"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
@@ -586,7 +575,6 @@ def check_broad_options(input,verbose=False):
 
 	if not input:
 		output={
-				"ncomp": 1, # number of components; default 1
 				"amp_plim": (0,), # line amplitude parameter limits; default (0,)
 				"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
 				"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
@@ -596,14 +584,6 @@ def check_broad_options(input,verbose=False):
 		return output
 
 	keyword_dict ={
-
-	"ncomp" : {"conds":[
-							lambda x: isinstance(x,(int)),
-							lambda x: (x>=1) & (x<=20)
-							],
-				  "default": 1,
-				  "error_message": "\n Number of broad line components (ncomp) must be an int and must be >= 1.\n",
-				  },
 
 	"amp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),
@@ -667,7 +647,6 @@ def check_absorp_options(input,verbose=False):
 	all keywords have valid values. 
 
 	absorp_options={
-			"ncomp": 1, # number of components; default 1
 			"amp_plim": (-1,0), # line amplitude parameter limits; default (0,)
 			"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
 			"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
@@ -678,7 +657,6 @@ def check_absorp_options(input,verbose=False):
 
 	if not input:
 		output={
-				"ncomp": 1, # number of components; default 1
 				"amp_plim": (-1,0), # line amplitude parameter limits; default (0,)
 				"disp_plim": (0,3000), # line dispersion parameter limits; default (0,)
 				"voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
@@ -688,14 +666,6 @@ def check_absorp_options(input,verbose=False):
 		return output
 
 	keyword_dict ={
-
-	"ncomp" : {"conds":[
-							lambda x: isinstance(x,(int)),
-							lambda x: (x>=1) & (x<=20)
-							],
-				  "default": 1,
-				  "error_message": "\n Number of absorp line components (ncomp) must be an int and must be >= 1.\n",
-				  },
 
 	"amp_plim" : {"conds":[
 							lambda x: isinstance(x,(tuple,list)),

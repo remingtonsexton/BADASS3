@@ -2986,102 +2986,46 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # Check line component options for 
     line_list = check_line_comp_options(lam_gal,line_list,comp_options,narrow_options,broad_options,absorp_options,edge_pad=edge_pad,verbose=verbose)
     
-    # for line in line_list:
-    #     print("\n")
-    #     print(line)
-    #     for hpar in line_list[line]:
-    #         print("\t",hpar,":",line_list[line][hpar])
-    # sys.exit()
 
     # Once the line list is checked we can add clones to lines that have multiple components; 
     # This updates the line_list to include all components as well as produces a dictionary 
     # of components (ncomp_dict) which lists the lines belonging to each additional component.
-    line_list, ncomp_dict = add_line_clones(line_list)
-
-    # for line in line_list:
-    #     print("\n")
-    #     print(line)
-    #     for hpar in line_list[line]:
-    #         print("\t",hpar,":",line_list[line][hpar])
-    # print("\n") 
-    # for n in ncomp_dict:
-    #     print(n)
-    #     for line in ncomp_dict[n]:
-    #         print("\t",line)
-    #         for hpar in ncomp_dict[n][line]:
-    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
-    # sys.exit()
+    line_list, ncomp_dict = add_line_clones(line_list,narrow_options,broad_options,absorp_options)
 
     # Add the FWHM resolution and central pixel locations for each line so we don't have to 
     # find them during the fit.
     line_list, ncomp_dict = add_disp_res(line_list,ncomp_dict,lam_gal,disp_res,velscale,verbose=verbose)
-
-    # for line in line_list:
-    #     print("\n")
-    #     print(line)
-    #     for hpar in line_list[line]:
-    #         print("\t",hpar,":",line_list[line][hpar])
-    # print("\n") 
-    # for n in ncomp_dict:
-    #     print(n)
-    #     for line in ncomp_dict[n]:
-    #         print("\t",line)
-    #         for hpar in ncomp_dict[n][line]:
-    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
-    # sys.exit()
     #
     # Generate line free parameters based on input line_list
     line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,
                                           narrow_options,broad_options,absorp_options,
                                           line_list,velscale,verbose=verbose)
 
-    # for line in line_list:
-    #     print("\n")
-    #     print(line)
-    #     for hpar in line_list[line]:
-    #         print("\t",hpar,":",line_list[line][hpar])
-    # print("\n") 
-    # for n in ncomp_dict:
-    #     print(n)
-    #     for line in ncomp_dict[n]:
-    #         print("\t",line)
-    #         for hpar in ncomp_dict[n][line]:
-    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
-    # print("\n") 
-    # for par in line_par_input:
-    #     print(par)
-    #     for hpar in line_par_input[par]:
-    #         print("\t",hpar,":",line_par_input[par][hpar])
-    # print("-----------------------------------------------------------------------------------------------")
-    # sys.exit()
-
     # Check hard line constraints; returns updated line_list and line_par_input
-    line_list, ncomp_dict = check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,verbose=verbose)
+    line_list, line_par_input = check_hard_cons(lam_gal,galaxy,noise,comp_options,line_list,line_par_input,par_input,velscale,verbose=verbose)
     
+    # for par in line_par_input:
+    #     print(par)
+    #     for hpar in line_par_input[par]:
+    #         print("\t",hpar,":",line_par_input[par][hpar])
 
-    # Re-Generate line free parameters based on revised line_list
-    line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,
-                                          narrow_options,broad_options,absorp_options,
-                                          line_list,velscale,verbose=verbose)
+    # print("\n") 
 
     # for line in line_list:
     #     print("\n")
     #     print(line)
     #     for hpar in line_list[line]:
     #         print("\t",hpar,":",line_list[line][hpar])
+    
     # print("\n") 
+
     # for n in ncomp_dict:
     #     print(n)
     #     for line in ncomp_dict[n]:
     #         print("\t",line)
     #         for hpar in ncomp_dict[n][line]:
     #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
-    # print("\n") 
-    # for par in line_par_input:
-    #     print(par)
-    #     for hpar in line_par_input[par]:
-    #         print("\t",hpar,":",line_par_input[par][hpar])
-    # print("-----------------------------------------------------------------------------------------------")
+    
     # sys.exit()
 
     # Append line_par_input to par_input
@@ -3090,9 +3034,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     ##############################################################################
 
     # Create combined_line_list
-    # The default line list is automatically generated from lines with multiple components.
-    # User can provide a combined line list, which can override the default.
-    combined_line_list = generate_comb_line_list(line_list,ncomp_dict,combined_lines)
+    combined_line_list = generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,absorp_options)
 
     # for c in combined_line_list:
     #     print(c)
@@ -3128,7 +3070,11 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             # ("BR_H_BETA_DISP","NA_OIII_5007_DISP"),
             # ("BR_H_BETA_DISP","NA_OIII_5007_2_DISP"),
             # ("BR_H_BETA_DISP","NA_OIII_5007_3_DISP"),
-            # #
+            #
+            # ("NA_H_BETA_AMP*(NA_OIII_5007_2_AMP/NA_OIII_5007_AMP)","NA_H_BETA_2_AMP"),
+            # ("NA_H_BETA_AMP*(NA_OIII_5007_3_AMP/NA_OIII_5007_AMP)","NA_H_BETA_3_AMP"),
+            # ("",""),
+            #
             # ("NA_OIII_5007_2_DISP","NA_OIII_5007_DISP"),
             # ("NA_OIII_5007_3_DISP","NA_OIII_5007_2_DISP"),
             # ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
@@ -3163,41 +3109,33 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
 #### Line List ###################################################################
 
-def generate_comb_line_list(line_list,ncomp_dict,user_combined_lines):
+def generate_comb_line_list(line_list,ncomp_dict,narrow_options,broad_options,absorp_options):
     """
     Generate a list of 'combined lines' for lines with multiple components, for which 
     velocity moments (integrated velocity and dispersion) and other quantities will 
     be calculated during the fit.
     """
     orig_line_list = ncomp_dict["NCOMP_1"]
-    combined_line_list = {}
 
-    for line in orig_line_list:
-        ncomp = line_list[line]["ncomp"]
+    opt_dict = {"na":narrow_options,"br":broad_options,"abs":absorp_options}
+    combined_line_list = {}
+    for line_type in opt_dict:
+        ncomp = opt_dict[line_type]["ncomp"]
         if ncomp>0:    
             for n in np.arange(ncomp-1)+2:
                 # Create a dictionary for each additional set of components
-                if line+"_COMB" not in combined_line_list:
-                    combined_line_list[line+"_COMB"] = {}
-                    combined_line_list[line+"_COMB"]["lines"] = []
-                    combined_line_list[line+"_COMB"]["lines"].append(line)
-                    #
-                    combined_line_list[line+"_COMB"]["center"] = orig_line_list[line]["center"]
-                    combined_line_list[line+"_COMB"]["center_pix"] = orig_line_list[line]["center_pix"]
-                    combined_line_list[line+"_COMB"]["disp_res_kms"] = orig_line_list[line]["disp_res_kms"]
-                    combined_line_list[line+"_COMB"]["line_profile"] = orig_line_list[line]["line_profile"]
-                combined_line_list[line+"_COMB"]["lines"].append(line+"_%d" % n)
-
-    valid_lines = [i for i in line_list]
-    for comb_line in user_combined_lines:
-        # Check to make sure lines are in line list; only add the lines that are valid
-        if len([True if i in valid_lines else False for i in user_combined_lines[comb_line] ])>1: # if at least two lines are valid
-            surrogate_lines = [i for i in user_combined_lines[comb_line] if i in valid_lines ]
-            combined_line_list[comb_line] = {"lines":surrogate_lines,
-                                             "center":line_list[surrogate_lines[0]]["center"],
-                                             "center_pix":line_list[surrogate_lines[0]]["center_pix"],
-                                             "disp_res_kms":line_list[surrogate_lines[0]]["disp_res_kms"],
-                                            }        
+                for line in orig_line_list: # line is the "parent" line
+                    if orig_line_list[line]["line_type"]==line_type:
+                        if line+"_COMB" not in combined_line_list:
+                            combined_line_list[line+"_COMB"] = {}
+                            combined_line_list[line+"_COMB"]["lines"] = []
+                            combined_line_list[line+"_COMB"]["lines"].append(line)
+                            #
+                            combined_line_list[line+"_COMB"]["center"] = orig_line_list[line]["center"]
+                            combined_line_list[line+"_COMB"]["center_pix"] = orig_line_list[line]["center_pix"]
+                            combined_line_list[line+"_COMB"]["disp_res_kms"] = orig_line_list[line]["disp_res_kms"]
+                            combined_line_list[line+"_COMB"]["line_profile"] = orig_line_list[line]["line_profile"]
+                        combined_line_list[line+"_COMB"]["lines"].append(line+"_%d" % n)
 
     return combined_line_list
 
@@ -3632,7 +3570,7 @@ def check_line_comp_options(lam_gal,line_list,comp_options,
                           "amp_init","amp_plim","disp_init","disp_plim","voff_init","voff_plim",
                           "shape_init","shape_plim",
                           "amp_prior","disp_prior","voff_prior","shape_prior",
-                          "label","ncomp"]+na_stuff+br_stuff+abs_stuff:
+                          "label"]+na_stuff+br_stuff+abs_stuff:
                 raise ValueError("\n %s not a valid keyword for the line list! \n" % key)
     #
     return line_list
@@ -3678,7 +3616,7 @@ def add_disp_res(line_list,ncomp_dict,lam_gal,disp_res,velscale,verbose=True):
 
 #### Add Line Clones #############################################################
 
-def add_line_clones(line_list):
+def add_line_clones(line_list,narrow_options,broad_options,absorp_options):
     """
     Create clones of lines which have multiple components (ncomp) defined 
     for narrow, broad, and absoprtion lines.  Hard constraints are preserved
@@ -3688,56 +3626,54 @@ def add_line_clones(line_list):
     for testing.
     """
     # Iterate through options lists
+    opt_dict = {"na":narrow_options,"br":broad_options,"abs":absorp_options}
     ncomp_dict = {}
-    for line in line_list:
-        # Determine how many components (ncomp) each line has;
-        # If not explicitly provided, assume ncomp is 1
-        ncomp = line_list[line].get("ncomp",1)
-    #     print(ncomp)
-        for n in np.arange(ncomp)+1:
-            if n==1: # the first component is the "parent" line
-                if "NCOMP_1" not in ncomp_dict:
-                    ncomp_dict["NCOMP_1"] = {}
-                ncomp_dict["NCOMP_1"][line] = line_list[line]
-            elif n>1:
-                # the n>1 components are "child" components, which are clones of the parent
-                if "NCOMP_%d" % n not in ncomp_dict:
-                    ncomp_dict["NCOMP_%d" % n]  = {}
-                ncomp_dict["NCOMP_%d" % n][line+"_%d" % n] = {} 
-                for hpar in line_list[line]:
-                    # First non-fittable hyperparameters (center, line_type, line_profile)
-                    if hpar=="center":
-                        ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line]["center"]
-                    if hpar=="line_type":
-                        ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line]["line_type"]
-                    if hpar=="line_profile":
-                        ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line]["line_profile"]
-                    # Now fittable hyperparameters (amp, disp, voff, h3, shape, etc.)
-                    # Parameters that are free in the parent will become free in the child. 
-                    # Parameters that are tied in the parenter will become tied to their respective child component parameters.
-                    if (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]) and (line_list[line][hpar]=="free"):
-                        ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line][hpar]
-                    elif (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]) and (line_list[line][hpar]!="free"):
-    #                     print(hpar,line_list[line][hpar])
-    #                     print(line_list.keys())
-                        for key in line_list.keys():
-                            if key in line_list[line][hpar]:
-                                new_hpar = line_list[line][hpar].replace(key,key+"_%d" % n)
-                                ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = new_hpar
+    for line_type in opt_dict:
+        ncomp = opt_dict[line_type]["ncomp"]
+        if ncomp>0:    
+            for n in np.arange(ncomp-1)+2:
+                if ("NCOMP_%d" % n) not in ncomp_dict:
+                    ncomp_dict["NCOMP_%d" % n] = {}
+        #         print(n)
+                # Create a dictionary for each additional set of components
+                for line in line_list: # line is the "parent" line
+                    if line_list[line]["line_type"]==line_type:
+                        ncomp_dict["NCOMP_%d" % n][line+"_%d" % n] = {} 
+            #             print(line_list[line])
+            #             print(line)
+                        # Create a new child line based on the parent line
+    #                     ncomp_dict["NCOMP_%d" % n] = {}
+                        for hpar in line_list[line]:
+                            # First non-fittable hyperparameters (center, line_type, line_profile)
+                            if hpar=="center":
+                                ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line]["center"]
+                            if hpar=="line_type":
+                                ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line]["line_type"]
+                            if hpar=="line_profile":
+                                ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line]["line_profile"]
+                            # Now fittable hyperparameters (amp, disp, voff, h3, shape, etc.)
+                            # Parameters that are free in the parent will become free in the child. 
+                            # Parameters that are tied in the parenter will become tied to their respective child component parameters.
+                            if (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]) and (line_list[line][hpar]=="free"):
+                                ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line][hpar]
+                            elif (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]) and (line_list[line][hpar]!="free"):
+            #                     print(hpar,line_list[line][hpar])
+            #                     print(line_list.keys())
+                                for key in line_list.keys():
+                                    if key in line_list[line][hpar]:
+                                        new_hpar = line_list[line][hpar].replace(key,key+"_%d" % n)
+                                        ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = new_hpar
     
-    new_line_list = {}
+    new_line_list = copy.deepcopy(line_list)             
     for n in ncomp_dict:
         for line in ncomp_dict[n]:
             new_line_list[line] = ncomp_dict[n][line]
     
-
-    # Finally, pop the ncomp keyword out of any lines
-    # for line in new_line_list:
-        # if "ncomp" in new_line_list[line]:
-            # new_line_list[line].pop("ncomp",None)
-    # for line in ncomp_dict["NCOMP_1"]:
-        # ncomp_dict["NCOMP_1"][line].pop("ncomp",None)
-
+    # Add the original line list as NCOMP_1 to ncomp_dict
+    ncomp_dict["NCOMP_1"] = {}
+    for line in line_list:
+        ncomp_dict["NCOMP_1"][line] = line_list[line]
+    
 
     return new_line_list, ncomp_dict
 
@@ -3788,7 +3724,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         peak_wave   = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["na","br"]]
         trough_wave = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["abs"]]
 
-    def amp_hyperpars(line_type,line_center,voff_init,voff_plim,amp_factor):
+    def amp_hyperpars(line_type,line_center,voff_init,voff_plim):
         """
         Assigns the user-defined or default line amplitude
         initial guesses and limits.
@@ -3809,6 +3745,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         #
         # Determine amplitude factor; factor by which we divide the amplitude because of multiple
         # components. 
+        
         #
         if line_type in ["na","br"]:
             # calculate velocities of peaks around line center\
@@ -3819,15 +3756,15 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             if (peak_vel>=voff_plim[0]) & (peak_vel<=voff_plim[1]):
                 init_amp = galaxy[find_nearest(lam_gal,peak_ang)[1]]
                 if (init_amp>=min_amp) & (init_amp<=max_amp):
-                    return init_amp/amp_factor, (min_amp, max_amp)
+                    return init_amp, (min_amp, max_amp)
                 else:
-                    return max_amp-(max_amp-min_amp)/2.0/amp_factor, (min_amp, max_amp)
+                    return max_amp-(max_amp-min_amp)/2.0, (min_amp, max_amp)
             else:
                 init_amp = galaxy[find_nearest(lam_gal,line_center)[1]]
                 if (init_amp>=min_amp) & (init_amp<=max_amp):
-                    return init_amp/amp_factor, (min_amp, max_amp)
+                    return init_amp, (min_amp, max_amp)
                 else:
-                    return max_amp-(max_amp-min_amp)/2.0/amp_factor, (min_amp, max_amp)
+                    return max_amp-(max_amp-min_amp)/2.0, (min_amp, max_amp)
         #
         elif line_type in ["abs"]:
             # calculate velocities of troughs around line center
@@ -3840,22 +3777,22 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             if (trough_vel>=voff_plim[0]) & (trough_vel<=voff_plim[1]):
                 init_amp = -galaxy[find_nearest(lam_gal,trough_ang)[1]]
                 if (init_amp<=-min_amp) & (init_amp>=-max_amp):
-                    return init_amp/amp_factor, (-max_amp, -min_amp)
+                    return init_amp, (-max_amp, -min_amp)
                 else:
-                    return -max_amp+(max_amp-min_amp)/2.0/amp_factor,(-max_amp, -min_amp)
+                    return -max_amp+(max_amp-min_amp)/2.0,(-max_amp, -min_amp)
             else:
                 init_amp = -galaxy[find_nearest(lam_gal,line_center)[1]]
                 if (init_amp<=-min_amp) & (init_amp>=-max_amp):
-                    return init_amp/amp_factor, (-max_amp, -min_amp)
+                    return init_amp, (-max_amp, -min_amp)
                 else:
-                    return -max_amp+(max_amp-min_amp)/2.0/amp_factor,(-max_amp, -min_amp)
+                    return -max_amp+(max_amp-min_amp)/2.0,(-max_amp, -min_amp)
         #
         else:
             init_amp = galaxy[find_nearest(lam_gal,line_center)[1]]
             if (init_amp>=min_amp) & (init_amp<=max_amp):
-                return init_amp/amp_factor, (min_amp, max_amp)
+                return init_amp, (min_amp, max_amp)
             else:
-                return max_amp-(max_amp-min_amp)/2.0/amp_factor, (min_amp, max_amp)
+                return max_amp-(max_amp-min_amp)/2.0, (min_amp, max_amp)
 
     #
     def disp_hyperpars(line_type,line_center,line_profile): # FWHM hyperparameters
@@ -4008,14 +3945,8 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         if (("amp" in line_list[line]) and (line_list[line]["amp"]=="free")):
             # If amplitude parameter limits are already set in (narrow,broad,absorp)_options, then use those, otherwise,
             # automatically generate them
-            if "ncomp" in line_list[line]:
-                amp_factor = line_list[line]["ncomp"]
-            else:
-                amp_factor = 1
-
             amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],
                                                                line_par_input[line+"_VOFF"]["init"],line_par_input[line+"_VOFF"]["plim"],
-                                                               amp_factor
                                                               )
 
             line_par_input[line+"_AMP"] = {"init": line_list[line].get("amp_init",amp_default_init), 
@@ -4204,7 +4135,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
 #### Check Line Hard Constraints #################################################
 
-def check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,verbose=True):
+def check_hard_cons(lam_gal,galaxy,noise,comp_options,line_list,line_par_input,par_input,velscale,verbose=True):
 
     # Get list of all params
     # param_dict = {par:0 for par in line_par_input}
@@ -4220,16 +4151,13 @@ def check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,verbose=True):
                         ne.evaluate(line_list[line][hpar], local_dict = param_dict).item()
                     except: 
                         if verbose:
-                            print("\n WARNING: Hard-constraint %s not found in parameter list or could not be parsed; removing %s line from line list.\n" % (line_list[line][hpar],line))
-                        line_list.pop(line,"None")
-                        for n in ncomp_dict:
-                            for l in ncomp_dict[n]:
-                                if l==line:
-                                    ncomp_dict[n].pop(line,"None") 
-                                    break
-                        break
+                            print("Hard-constraint %s not found in parameter list or could not be parsed; converting to free parameter.\n" % line_list[line][hpar])
+                        _line_list = {line:line_list[line]}
+                        _line_list[line][hpar]="free"
+                        _line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,_line_list,velscale)
+                        line_par_input = {**_line_par_input,**line_par_input}
 
-    return line_list, ncomp_dict
+    return line_list, line_par_input
 
 ##################################################################################
 
