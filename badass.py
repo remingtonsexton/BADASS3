@@ -3131,7 +3131,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             # #
             # ("NA_OIII_5007_2_DISP","NA_OIII_5007_DISP"),
             # ("NA_OIII_5007_3_DISP","NA_OIII_5007_2_DISP"),
-            # ("NA_OIII_5007_AMP","OUT_OIII_5007_AMP"),
+            ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
             #
             # Region 3 soft constraints
             ("OUT_NII_6585_DISP","NA_NII_6585_DISP"),
