@@ -272,11 +272,8 @@ __status__	   = "Release"
 # - implemented restart file; saves all fitting options to restart fit
 
 # Version 9.4.0
-# - New generalized line component option for easily adding n number of line components; deprecates 'outflow'
+# - New generalized line component option for easily adding n number of line components; depricates 'outflow'
 #   components. 
-# - W80 now a standard line parameter
-# - New testing suite that incorporates testing for multiple components, lines, metrics, etc. with the 
-#   ability to continue fitting with the best model.
 ##########################################################################################################
 
 
@@ -288,7 +285,6 @@ def run_BADASS(data,
                options_file=None,
                dust_cache=None,
                fit_options=False,
-               test_options=False,
                mcmc_options=False,
                comp_options=False,
                narrow_options=False,
@@ -348,7 +344,7 @@ def run_BADASS(data,
         print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
 
         files = [glob.glob(os.path.join(wd, '*.fits'))[0] for wd in work_dirs]
-        arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, test_options, mcmc_options, comp_options,
+        arguments = [(pathlib.Path(file), options_file, dust_cache, fit_options, mcmc_options, comp_options,
                       narrow_options, broad_options, absorp_options,
                       pca_options, user_lines, user_constraints, user_mask,
                       combined_lines, losvd_options, host_options, power_options, poly_options, opt_feii_options, uv_iron_options, balmer_options,
@@ -369,7 +365,7 @@ def run_BADASS(data,
         process = psutil.Process(os.getpid())
         print(f"Start process memory: {process.memory_info().rss/1e9:<30.8f}")
 
-        run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, test_options, mcmc_options, comp_options, 
+        run_single_thread(pathlib.Path(data), options_file, dust_cache, fit_options, mcmc_options, comp_options, 
                           narrow_options, broad_options, absorp_options,
                           pca_options,
                           user_lines, user_constraints, user_mask, combined_lines, losvd_options, host_options, power_options, poly_options,
@@ -386,7 +382,6 @@ def run_single_thread(fits_file,
                options_file = None,
                dust_cache=None,
                fit_options=False,
-               test_options=False,
                mcmc_options=False,
                comp_options=False,
                narrow_options=False,
@@ -439,8 +434,6 @@ def run_single_thread(fits_file,
             # print("\n Successfully imported options file!\n")
             if hasattr(options,"fit_options"):
                 fit_options			 = options.fit_options
-            if hasattr(options,"test_options"):
-                test_options          = options.test_options
             if hasattr(options,"comp_options"):
                 comp_options		 = options.comp_options
             if hasattr(options,"narrow_options"):
@@ -488,7 +481,6 @@ def run_single_thread(fits_file,
 
     # Check inputs; raises exception if user input is invalid.
     fit_options			 = badass_check_input.check_fit_options(fit_options,comp_options)
-    test_options         = badass_check_input.check_test_options(test_options)
     comp_options		 = badass_check_input.check_comp_options(comp_options)
     narrow_options       = badass_check_input.check_narrow_options(narrow_options)
     broad_options        = badass_check_input.check_broad_options(broad_options)
@@ -525,7 +517,8 @@ def run_single_thread(fits_file,
     mask_metal			= fit_options["mask_metal"]
     fit_stat		  	= fit_options["fit_stat"]
     n_basinhop	   		= fit_options["n_basinhop"]
-    test_lines			= fit_options["test_lines"]
+    test_outflows		= fit_options["test_outflows"]
+    test_line			= fit_options["test_line"]
     max_like_niter		= fit_options["max_like_niter"]
     output_pars			= fit_options["output_pars"]
     cosmology		    = fit_options["cosmology"]
@@ -745,7 +738,7 @@ def run_single_thread(fits_file,
         print('\n Initializing parameters...')
         print('----------------------------------------------------------------------------------------------------')
 
-    param_dict, line_list, combined_line_list, soft_cons, ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
+    param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                                  comp_options,narrow_options,broad_options,absorp_options,
                                  user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                  opt_feii_options,uv_iron_options,balmer_options,
@@ -808,48 +801,21 @@ def run_single_thread(fits_file,
 
 
     #### Line Testing ################################################################################################################################################################################
-
-    if (test_lines==True):
+    
+    if (test_line["bool"]==True):
         # If line test, check to make sure line is in line list
-        if (isinstance(test_options["lines"],str)) and (test_options["lines"] not in ncomp_dict["NCOMP_1"]):
+        if (isinstance(test_line["line"],str)) and (test_line["line"] not in line_list):
             shutil.rmtree(run_dir)
-            print("\n Line to test not found in line list or is not a PARENT line! Make sure line is within fitting region for test and is a PARENT line.\n")
+            print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
             return
-        elif (isinstance(test_options["lines"],list)):
-            if len(test_options["lines"])==0:
-                shutil.rmtree(run_dir)
-                print("\n There are currently no lines to test! You must list valid lines in test_options!\n")
-                return
-            elif len(test_options["lines"])>0:
-                valid_lines  = [i for i in test_options["lines"] if i in ncomp_dict["NCOMP_1"]]
-                valid_ranges = [r for i,r in enumerate(test_options["ranges"]) if test_options["lines"][i] in ncomp_dict["NCOMP_1"]]
-                if len(valid_lines)>0:
-                    # update lines
-                    test_options["lines"] = valid_lines
-                    test_options["ranges"] = valid_ranges
-                else:
-                    shutil.rmtree(run_dir)
-                    print("\n There are no valid lines provided by the user to test! Make sure the lines you want to test are valid (within fitting ranges and are PARENT lines and not CHILD lines).!\n")
-                    return
-
-        # Next, make sure each line fits within its respective range.
-        valid_lines  = []
-        valid_ranges = []
-        for i,line in enumerate(test_options["lines"]):    
-            print(line_list[line]["center"],test_options["ranges"][i][0],test_options["ranges"][i][1])
-            if (line_list[line]["center"]>test_options["ranges"][i][0]) & (line_list[line]["center"]<test_options["ranges"][i][1]):
-                valid_lines.append(line)
-                valid_ranges.append(test_options["ranges"][i])
-        print(valid_lines,valid_ranges)
-                
-
-
-
-        sys.exit()
-
+        elif (isinstance(test_line["line"],list)) and not (np.all([False if line not in line_list else True for line in test_line["line"]])):
+            shutil.rmtree(run_dir)
+            print("\n Line to test not found in line list! Make sure line is within fitting region for test.\n")
+            return
+            
 
         if verbose:
-            print("\n Testing for %s" % (test_options["lines"]))
+            print("\n Testing for %s" % (test_line["line"]))
 
 
         line_test(param_dict,
@@ -865,7 +831,7 @@ def run_single_thread(fits_file,
                   user_lines,
                   user_constraints,
                   combined_lines,
-                  test_options,
+                  test_line,
                   comp_options,
                   losvd_options,
                   host_options,
@@ -3019,20 +2985,75 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     # Check line component options for 
     line_list = check_line_comp_options(lam_gal,line_list,comp_options,narrow_options,broad_options,absorp_options,edge_pad=edge_pad,verbose=verbose)
+    
+    # for line in line_list:
+    #     print("\n")
+    #     print(line)
+    #     for hpar in line_list[line]:
+    #         print("\t",hpar,":",line_list[line][hpar])
+    # sys.exit()
 
     # Once the line list is checked we can add clones to lines that have multiple components; 
     # This updates the line_list to include all components as well as produces a dictionary 
     # of components (ncomp_dict) which lists the lines belonging to each additional component.
     line_list, ncomp_dict = add_line_clones(line_list)
 
+    # for line in line_list:
+    #     print("\n")
+    #     print(line)
+    #     for hpar in line_list[line]:
+    #         print("\t",hpar,":",line_list[line][hpar])
+    # print("\n") 
+    # for n in ncomp_dict:
+    #     print(n)
+    #     for line in ncomp_dict[n]:
+    #         print("\t",line)
+    #         for hpar in ncomp_dict[n][line]:
+    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
+    # sys.exit()
+
     # Add the FWHM resolution and central pixel locations for each line so we don't have to 
     # find them during the fit.
     line_list, ncomp_dict = add_disp_res(line_list,ncomp_dict,lam_gal,disp_res,velscale,verbose=verbose)
 
+    # for line in line_list:
+    #     print("\n")
+    #     print(line)
+    #     for hpar in line_list[line]:
+    #         print("\t",hpar,":",line_list[line][hpar])
+    # print("\n") 
+    # for n in ncomp_dict:
+    #     print(n)
+    #     for line in ncomp_dict[n]:
+    #         print("\t",line)
+    #         for hpar in ncomp_dict[n][line]:
+    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
+    # sys.exit()
+    #
     # Generate line free parameters based on input line_list
     line_par_input = initialize_line_pars(lam_gal,galaxy,noise,comp_options,
                                           narrow_options,broad_options,absorp_options,
                                           line_list,velscale,verbose=verbose)
+
+    # for line in line_list:
+    #     print("\n")
+    #     print(line)
+    #     for hpar in line_list[line]:
+    #         print("\t",hpar,":",line_list[line][hpar])
+    # print("\n") 
+    # for n in ncomp_dict:
+    #     print(n)
+    #     for line in ncomp_dict[n]:
+    #         print("\t",line)
+    #         for hpar in ncomp_dict[n][line]:
+    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
+    # print("\n") 
+    # for par in line_par_input:
+    #     print(par)
+    #     for hpar in line_par_input[par]:
+    #         print("\t",hpar,":",line_par_input[par][hpar])
+    # print("-----------------------------------------------------------------------------------------------")
+    # sys.exit()
 
     # Check hard line constraints; returns updated line_list and line_par_input
     line_list, ncomp_dict = check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,verbose=verbose)
@@ -3136,7 +3157,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     soft_cons = check_soft_cons(soft_cons,par_input,verbose=verbose)
 
-    return par_input, line_list, combined_line_list, soft_cons, ncomp_dict
+    return par_input, line_list, combined_line_list, soft_cons
 
 ##################################################################################
 
@@ -4596,7 +4617,7 @@ def line_test(param_dict,
               user_lines,
               user_constraints,
               combined_lines,
-              test_options,
+              test_line,
               comp_options,
               losvd_options,
               host_options,
@@ -4630,61 +4651,6 @@ def line_test(param_dict,
     """
     Performs component (or line) testing based on user input wavelength range.
     """
-
-
-    for opt in test_options:
-        print(opt,test_options[opt])
-     # dict to store test results of ALL tests
-    test_results = {"TEST":[],
-                    "RANGE":[],
-                    "NCOMP_A":[],
-                    "NCOMP_B":[],
-                    "AIC":[],
-                    "ANOVA":[],
-                    "BIC":[],
-                    "CHI2_RATIO":[],
-                    "F_TEST":[],
-                    "MCML":[],
-                    "SSR_RATIO":[],
-                    }
-
-    # Determine ALL fits that will need to take place
-    for i,line in enumerate(test_options["lines"]):
-        # The PARENT test (NCOMP_A=0 (no line) vs. NCOMP_B=1 (with line)); always performed
-        test_results["TEST"].append(test_options["lines"][i])
-        test_results["RANGE"].append(test_options["ranges"][i])
-        test_results["NCOMP_A"].append(0)
-        test_results["NCOMP_B"].append(1)
-        if test_options["test_ncomp"]:
-            max_ncomp = line_list[line]["ncomp"]# the maximum ncomp to test
-            print(max_ncomp)
-            for n in range(1,max_ncomp):
-                test_results["TEST"].append(test_options["lines"][i])
-                test_results["RANGE"].append(test_options["ranges"][i])
-                test_results["NCOMP_A"].append(n)
-                test_results["NCOMP_B"].append(n+1)
-
-    # Loop through tests
-    
-
-
-    print("\n")
-    for r in test_results:
-        print(r,test_results[r])
-
-
-
-
-
-
-
-
-
-
-
-
-
-    sys.exit(0)
 
     if (test_outflows==True):
         remove_lines = [line for line in line_list if line_list[line]["line_type"]=="out"]
@@ -11637,7 +11603,8 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('good_thresh',':',str(fit_options['good_thresh']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('mask_bad_pix',':',str(fit_options['mask_bad_pix']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('n_basinhop',':',str(fit_options['n_basinhop']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('test_lines',':',str(fit_options['test_lines']) )) 
+            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('test_outflows',':',str(fit_options['test_outflows']) )) 
+            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('test_line',':',str(fit_options['test_line']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('max_like_niter',':',str(fit_options['max_like_niter']) )) 
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('output_pars',':',str(fit_options['output_pars']) )) 
             logfile.write('\n')

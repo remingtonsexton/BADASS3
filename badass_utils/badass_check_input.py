@@ -43,9 +43,7 @@ def check_fit_options(input,comp_options,verbose=False):
 		"mask_emline" : False, # mask emission lines for continuum fitting.
 		"mask_metal": True, # interpolate over metal absorption lines for high-z spectra
 		"n_basinhop": 5, # Number of consecutive basinhopping thresholds before solution achieved
-		"test_outflows": False, # only test for outflows; stops after test
-		"test_line": {"bool":False,
-					  "line":"br_H_beta"},
+		"test_lines": False, # only test for outflows; stops after test
 		"max_like_niter": 1, # number of maximum likelihood iterations
 		"output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 		# Rerun fitting on detected lines only and in final fit.
@@ -68,9 +66,7 @@ def check_fit_options(input,comp_options,verbose=False):
 				"mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 				"fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
 				"n_basinhop": 10, # Number of consecutive basinhopping thresholds before solution achieved
-				"test_outflows": False, # only test for outflows; "fit_outflows" must be set to True!
-				"test_line": {"bool":False,
-				              "line":"NA_OIII_5007"},
+				"test_lines": False, # only test for outflows; "fit_outflows" must be set to True!
 				"max_like_niter": 10, # number of maximum likelihood iterations
 				"output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 				"cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
@@ -134,19 +130,12 @@ def check_fit_options(input,comp_options,verbose=False):
 					 "default" : 5,
 					 "error_message" : "\n Number of consecutive successful basin-hopping iterations before maximum-likelihood fit is acheived must be an integer.\n",
 					},
-	"test_outflows" : {
+	"test_lines" : {
 					 "conds" : [
 								 lambda x: isinstance(x,(bool))
 								 ],
 					 "default" : False,
-					 "error_message" : "\n Testing for outflows (test_outflows) must be either True or False.\n",
-					},
-	"test_line" : {
-					 "conds" : [
-								 lambda x: isinstance(x,(dict))
-								 ],
-					 "default" : {"bool":False, "line":"br_H_beta"},
-					 "error_message" : "\n Line test (test_line) must be a dict.\n",
+					 "error_message" : "\n Testing for lines (test_lines) must be either True or False.\n",
 					},
 	"max_like_niter" : {
 					 "conds" : [
@@ -174,16 +163,6 @@ def check_fit_options(input,comp_options,verbose=False):
 	}
 	output = check_dict(input,keyword_dict)
 
-	# test_line_dict
-	test_line_dict = {
-	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
-				"default": False,
-				"error_message": "\n test_line bool must be True or False.\n",},
-	"line" : 	{"conds":[	lambda x: isinstance(x,(str,tuple,list))],
-				"default": "br_H_beta",
-				"error_message": "\n test_line line must be string and a valid line, or list of lines, from the line list.\n",},
-		}
-	output["test_line"] = check_dict(output["test_line"],test_line_dict)
 
 	# cosmology_dict 
 	cosmology_dict = {
@@ -198,6 +177,99 @@ def check_fit_options(input,comp_options,verbose=False):
 	output["cosmology"] = check_dict(output["cosmology"],cosmology_dict)
 
 			
+	return output
+	
+##################################################################################
+
+#### Check Test Options ###########################################################
+
+def check_test_options(input,verbose=False):
+	"""
+	Checks the inputs of the fit_options dictionary and ensures that 
+	all keywords have valid values. 
+
+	test_options = {
+					"lines": [], # The lines to test
+					"ranges":[], # The range over which the test is performed
+					"test_ncomp": False,# Test multiple components for each line?
+					"metrics": [],# Fitting metrics to use when determining the best model
+					"thresholds": [],
+					"continue_fit":False, # continue the fit with the best chosen model
+					}
+
+	"""
+	# "" : {"conds":,
+	# 	  "default":,
+	# 	  "error_message"},
+
+	output={} # output dictionary
+
+	if not input:
+		output = {
+					"lines": [], # The lines to test
+					"ranges":[], # The range over which the test is performed
+					"test_ncomp": False,# Test multiple components for each line?
+					"metrics": [],# Fitting metrics to use when determining the best model
+					"thresholds": [],
+					"continue_fit":False, # continue the fit with the best chosen model
+					}
+
+		return output
+	
+	keyword_dict ={
+	"lines" : {
+					 "conds" : [
+								 lambda x: isinstance(x,(str,list,tuple)),
+							],
+					 "default" : [],
+					 "error_message" : "\n lines must be the name of a valid line (string) or a list/tuple of valid lines (list/tuple of strings).\n",
+					},
+	"ranges" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(list,tuple)),
+						],
+				 "default" : [],
+				 "error_message" : "\n ranges must be a list or tuple of valid fitting ranges for each line (list of size 2 lists/tuples).\n",
+				},
+	"test_ncomp" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(bool)),
+						],
+				 "default" : [],
+				 "error_message" : "\n test_ncomp must be either True or False.\n",
+				},	
+	"metrics" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(list,tuple)),
+						],
+				 "default" : [],
+				 "error_message" : "\n metrics must be a list or tuple of valid test metrics.\n",
+				},
+	"thresholds" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(list,tuple)),
+						],
+				 "default" : [],
+				 "error_message" : "\n thresholds must be a list or tuple of test thresholds corresponding to metrics.\n",
+				},
+	"auto_stop" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(bool)),
+						],
+				 "default" : [],
+				 "error_message" : "\n auto_stop must be either True or False.\n",
+				},		
+	"continue_fit" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(bool)),
+						],
+				 "default" : [],
+				 "error_message" : "\n continue_fit must be either True or False.\n",
+				},		
+
+	}
+	output = check_dict(input,keyword_dict)
+
 	return output
 	
 ################################################################################## 
