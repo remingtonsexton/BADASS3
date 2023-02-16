@@ -813,49 +813,59 @@ def run_single_thread(fits_file,
         # If line test, check to make sure line is in line list
         if (isinstance(test_options["lines"],str)) and (test_options["lines"] not in ncomp_dict["NCOMP_1"]):
             shutil.rmtree(run_dir)
-            print("\n Line to test not found in line list or is not a PARENT line! Make sure line is within fitting region for test and is a PARENT line.\n")
+            if verbose:
+                print("\n WARNING: Line to test not found in line list or is not a PARENT line! Make sure line is within fitting region for test and is a PARENT line.\n")
             return
         elif (isinstance(test_options["lines"],list)):
             if len(test_options["lines"])==0:
                 shutil.rmtree(run_dir)
-                print("\n There are currently no lines to test! You must list valid lines in test_options!\n")
+                if verbose:
+                    print("\n WARNING: There are currently no lines to test! You must list valid lines in test_options!\n")
                 return
             elif len(test_options["lines"])>0:
                 valid_lines  = [i for i in test_options["lines"] if i in ncomp_dict["NCOMP_1"]]
                 valid_ranges = [r for i,r in enumerate(test_options["ranges"]) if test_options["lines"][i] in ncomp_dict["NCOMP_1"]]
+
+                # Invalid lines warning
+                invalid_lines = [i for i in test_options["lines"] if i not in ncomp_dict["NCOMP_1"]]
+                if len(invalid_lines)>0:
+                    if verbose:
+                        print("\n WARNING: The following lines were omitted from testing because they are outside the fitting range or invalid for some other reason: %s \n" % (invalid_lines))
+
                 if len(valid_lines)>0:
                     # update lines
                     test_options["lines"] = valid_lines
                     test_options["ranges"] = valid_ranges
                 else:
                     shutil.rmtree(run_dir)
-                    print("\n There are no valid lines provided by the user to test! Make sure the lines you want to test are valid (within fitting ranges and are PARENT lines and not CHILD lines).!\n")
+                    if verbose:
+                        print("\n WARNING: There are no valid lines provided by the user to test! Make sure the lines you want to test are valid (within fitting ranges and are PARENT lines and not CHILD lines).!\n")
                     return
 
         # Next, make sure each line fits within its respective range.
         valid_lines  = []
         valid_ranges = []
         for i,line in enumerate(test_options["lines"]):    
-            print(line_list[line]["center"],test_options["ranges"][i][0],test_options["ranges"][i][1])
             if (line_list[line]["center"]>test_options["ranges"][i][0]) & (line_list[line]["center"]<test_options["ranges"][i][1]):
                 valid_lines.append(line)
                 valid_ranges.append(test_options["ranges"][i])
-        print(valid_lines,valid_ranges)
-                
-
-
-
-        sys.exit()
+            else:
+                print("\n WARNING: Testing range provided for %s line does not include the line.  Omitting %s from the line test. \n" % (line,line))
+        test_options["lines"]  = valid_lines
+        test_options["ranges"] = valid_ranges
+        #
 
 
         if verbose:
-            print("\n Testing for %s" % (test_options["lines"]))
+            print("\n Performing line testing for %s" % (test_options["lines"]))
+            print("----------------------------------------------------------------------------------------------------")
 
 
         line_test(param_dict,
                   line_list,
                   combined_line_list,
                   soft_cons,
+                  ncomp_dict,
                   lam_gal,
                   galaxy,
                   noise,
@@ -867,6 +877,9 @@ def run_single_thread(fits_file,
                   combined_lines,
                   test_options,
                   comp_options,
+                  narrow_options,
+                  broad_options,
+                  absorp_options,
                   losvd_options,
                   host_options,
                   power_options,
@@ -898,6 +911,7 @@ def run_single_thread(fits_file,
                   spaxely=spaxely)
         # Exit BADASS
         print(' - Line testing complete for %s! \n' % fits_file.parent.name)
+        print("----------------------------------------------------------------------------------------------------")
         return
 
     ####################################################################################################################################################################################
@@ -2681,7 +2695,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                     fit_opt_feii=True,fit_uv_iron=True,fit_balmer=True,
                     fit_losvd=False,fit_host=True,fit_power=True,fit_poly=False,
                     fit_narrow=True,fit_broad=True,fit_absorp=True,
-                    tie_line_disp=False,tie_line_voff=False,remove_lines=False,verbose=True):
+                    tie_line_disp=False,tie_line_voff=False,remove_lines=True,verbose=True):
     """
     Initializes all free parameters for the fit based on user input and options.
     """
@@ -3004,18 +3018,18 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     
     # If user lines is defined, replace the default line list with the 
     # user-input line list
-    if (user_lines is None) or (len(user_lines)==0):
+    if ((user_lines is None) or (len(user_lines)==0)) & (remove_lines==False):
         line_list = line_list_default()
-    elif user_lines is not None:
+    else:
         line_list = user_lines
 
-    # Remove lines
-    if remove_lines:
-        # if len(remove_lines)==1:
-        # 	line_list.pop(remove_lines,None)
-        # elif len(remove_lines)>1:
-        for l in remove_lines:
-            line_list.pop(l,None)
+    # # Remove lines
+    # if remove_lines:
+    #     # if len(remove_lines)==1:
+    #     # 	line_list.pop(remove_lines,None)
+    #     # elif len(remove_lines)>1:
+    #     for l in remove_lines:
+    #         line_list.pop(l,None)
 
     # Check line component options for 
     line_list = check_line_comp_options(lam_gal,line_list,comp_options,narrow_options,broad_options,absorp_options,edge_pad=edge_pad,verbose=verbose)
@@ -3035,7 +3049,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                           line_list,velscale,verbose=verbose)
 
     # Check hard line constraints; returns updated line_list and line_par_input
-    line_list, ncomp_dict = check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,verbose=verbose)
+    line_list, ncomp_dict = check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,remove_lines,verbose=verbose)
     
 
     # Re-Generate line free parameters based on revised line_list
@@ -3148,6 +3162,9 @@ def generate_comb_line_list(line_list,ncomp_dict,user_combined_lines):
     velocity moments (integrated velocity and dispersion) and other quantities will 
     be calculated during the fit.
     """
+    if len(line_list)==0:
+        return {}
+
     orig_line_list = ncomp_dict["NCOMP_1"]
     combined_line_list = {}
 
@@ -3170,13 +3187,16 @@ def generate_comb_line_list(line_list,ncomp_dict,user_combined_lines):
     valid_lines = [i for i in line_list]
     for comb_line in user_combined_lines:
         # Check to make sure lines are in line list; only add the lines that are valid
-        if len([True if i in valid_lines else False for i in user_combined_lines[comb_line] ])>1: # if at least two lines are valid
-            surrogate_lines = [i for i in user_combined_lines[comb_line] if i in valid_lines ]
-            combined_line_list[comb_line] = {"lines":surrogate_lines,
-                                             "center":line_list[surrogate_lines[0]]["center"],
-                                             "center_pix":line_list[surrogate_lines[0]]["center_pix"],
-                                             "disp_res_kms":line_list[surrogate_lines[0]]["disp_res_kms"],
-                                            }        
+        try:
+            if len([True if i in valid_lines else False for i in user_combined_lines[comb_line] ])>1: # if at least two lines are valid
+                surrogate_lines = [i for i in user_combined_lines[comb_line] if i in valid_lines ]
+                combined_line_list[comb_line] = {"lines":surrogate_lines,
+                                                 "center":line_list[surrogate_lines[0]]["center"],
+                                                 "center_pix":line_list[surrogate_lines[0]]["center_pix"],
+                                                 "disp_res_kms":line_list[surrogate_lines[0]]["disp_res_kms"],
+                                                }        
+        except:
+            pass
 
     return combined_line_list
 
@@ -4183,7 +4203,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
 #### Check Line Hard Constraints #################################################
 
-def check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,verbose=True):
+def check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,remove_lines=True,verbose=True):
 
     # Get list of all params
     # param_dict = {par:0 for par in line_par_input}
@@ -4198,15 +4218,19 @@ def check_hard_cons(line_list,ncomp_dict,line_par_input,par_input,verbose=True):
                     try:
                         ne.evaluate(line_list[line][hpar], local_dict = param_dict).item()
                     except: 
-                        if verbose:
-                            print("\n WARNING: Hard-constraint %s not found in parameter list or could not be parsed; removing %s line from line list.\n" % (line_list[line][hpar],line))
-                        line_list.pop(line,"None")
-                        for n in ncomp_dict:
-                            for l in ncomp_dict[n]:
-                                if l==line:
-                                    ncomp_dict[n].pop(line,"None") 
-                                    break
-                        break
+                        if remove_lines: # By default, remove lines that don't obey hard constraints
+                            if verbose:
+                                print("\n WARNING: Hard-constraint %s not found in parameter list or could not be parsed; removing %s line from line list.\n" % (line_list[line][hpar],line))
+                            line_list.pop(line,"None")
+                            for n in ncomp_dict:
+                                for l in ncomp_dict[n]:
+                                    if l==line:
+                                        ncomp_dict[n].pop(line,"None") 
+                                        break
+                            break
+                        else: # for line tests, convert to free parameters instead.
+                            
+
 
     return line_list, ncomp_dict
 
@@ -4583,10 +4607,12 @@ def bayesian_AB_test(resid_line, resid_no_line, line, wave, noise, data, eval_in
 
 ##################################################################################
 
+
 def line_test(param_dict,
               line_list,
               combined_line_list,
               soft_cons,
+              ncomp_dict,
               lam_gal,
               galaxy,
               noise,
@@ -4598,6 +4624,9 @@ def line_test(param_dict,
               combined_lines,
               test_options,
               comp_options,
+              narrow_options,
+              broad_options,
+              absorp_options,
               losvd_options,
               host_options,
               power_options,
@@ -4631,9 +4660,10 @@ def line_test(param_dict,
     Performs component (or line) testing based on user input wavelength range.
     """
 
+    # print("\n")
+    # for opt in test_options:
+    #     print(opt,test_options[opt])
 
-    for opt in test_options:
-        print(opt,test_options[opt])
      # dict to store test results of ALL tests
     test_results = {"TEST":[],
                     "RANGE":[],
@@ -4657,23 +4687,272 @@ def line_test(param_dict,
         test_results["NCOMP_B"].append(1)
         if test_options["test_ncomp"]:
             max_ncomp = line_list[line]["ncomp"]# the maximum ncomp to test
-            print(max_ncomp)
             for n in range(1,max_ncomp):
                 test_results["TEST"].append(test_options["lines"][i])
                 test_results["RANGE"].append(test_options["ranges"][i])
                 test_results["NCOMP_A"].append(n)
                 test_results["NCOMP_B"].append(n+1)
 
-    # Loop through tests
-    
+    # Loop through tests, constructing a line list for each test and only testing the necessary components.
+    # Each test must begin with the parent line against a no-line model (continuum only).
+    # dict to store fitted results for each fit per-line
+    fit_res_dict = {}
+    for i,line in enumerate(test_results["TEST"]):
+        #    
+        if line not in fit_res_dict:
+            fit_res_dict[line] = {}
+        fit_A_ncomp = test_results["NCOMP_A"][i]
+        fit_B_ncomp = test_results["NCOMP_B"][i]
+        print("\n Performing test %d of %d (NCOMP %d versus NCOMP %d for %s )...\n" % (i+1,len(test_results["TEST"]),fit_A_ncomp,fit_B_ncomp,line))
+
+        # Check if A has been fit, if not, fit. Then check if B has been fit, if not, fit.
+        if "NCOMP_%d" % (fit_A_ncomp) not in fit_res_dict[line]: 
+            print("\t","Fitting NCOMP %d" % (fit_A_ncomp))
+            # Special Case for A
+            if fit_A_ncomp==0: # perform no-line fit (conitnuum only fit)
+            #     user_line_list = {}
+            #     remove_lines=True
+                
+            # else:
+            #     user_line_list = {}
+            #     for n in np.arange(fit_A_ncomp)+1:
+            #         user_line_list.update(ncomp_dict["NCOMP_%d" % n])
+                user_line_list = {}
+                user_line_list.update(ncomp_dict["NCOMP_1"])
+                user_line_list.pop(line,None)
+                for u in user_line_list:
+                    user_line_list[u]["ncomp"]=1
+            # Generate parameters without lines
+            test_idx = ((lam_gal>=test_results["RANGE"][i][0]) & (lam_gal<=test_results["RANGE"][i][1]))
+            _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal[test_idx],galaxy[test_idx],noise[test_idx],test_results["RANGE"][i],disp_res[test_idx],fit_mask,velscale,
+                                 comp_options,narrow_options,broad_options,absorp_options,
+                                 user_line_list,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 opt_feii_options,uv_iron_options,balmer_options,
+                                 run_dir,fit_type='init',fit_stat=fit_stat,
+                                 fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
+                                 fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
+                                 fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_absorp=comp_options["fit_absorp"],
+                                 tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=False,verbose=False)
+
+            # print("-------------------------------------------------------")
+            # for p in _param_dict:
+            #     print(p)
+            #     for hpar in _param_dict[p]:
+            #         print("\t",hpar,"=",_param_dict[p][hpar])
+            # print("\n")
+            # for l in _line_list:
+            #     print(l)
+            #     for hpar in _line_list[l]:
+            #         print("\t",hpar,"=",_line_list[l][hpar])
+            # print("\n")
+            # for l in _combined_line_list:
+            #     print(l)
+            #     for hpar in _combined_line_list[l]:
+            #         print("\t",hpar,"=",_combined_line_list[l][hpar])
+            # print("\n")
+            # for s in _soft_cons:
+            #     print(s)
+            # print("-------------------------------------------------------")
+
+            # slice data (galaxy,lam_gal,noise) to size of test range
+            mcpars, mccomps, mcLL = max_likelihood(_param_dict,
+                                                   _line_list,
+                                                   _combined_line_list,
+                                                   _soft_cons,
+                                                   lam_gal[test_idx],
+                                                   galaxy[test_idx],
+                                                   noise[test_idx],
+                                                   z,
+                                                   cosmology,
+                                                   comp_options,
+                                                   losvd_options,
+                                                   host_options,
+                                                   power_options,
+                                                   poly_options,
+                                                   opt_feii_options,
+                                                   uv_iron_options,
+                                                   balmer_options,
+                                                   outflow_test_options,
+                                                   host_template,
+                                                   opt_feii_templates,
+                                                   uv_iron_template,
+                                                   balmer_template,
+                                                   stel_templates,
+                                                   blob_pars,
+                                                   disp_res[test_idx],
+                                                   fit_mask[test_idx]-fit_mask[test_idx][0],
+                                                   velscale,
+                                                   flux_norm,
+                                                   run_dir,
+                                                   fit_type='init',
+                                                   fit_stat=fit_stat,
+                                                   output_model=False,
+                                                   test_outflows=True,
+                                                   n_basinhop=n_basinhop,
+                                                   max_like_niter=0,
+                                                   verbose=False)
+
+            # for p in mcpars:
+            #     print(p,"=",mcpars[p])
+            # print("\n")
+            # for c in mccomps:
+            #     print(c)
+            # print("\n")
+            # for l in mcLL:
+            #     print(l)
+            
+            # Plot for testing
+            fig = plt.figure(figsize=(10,6))
+            ax1 = fig.add_subplot(2,1,1)
+            ax2 = fig.add_subplot(2,1,2)
+            ax1.step(mccomps["WAVE"][0],mccomps["DATA"][0],color="xkcd:white",label="Data")
+            ax1.step(mccomps["WAVE"][0],mccomps["MODEL"][0],color="xkcd:bright red",label="Model")
+            ax2.step(mccomps["WAVE"][0],mccomps["RESID"][0],color="xkcd:radioactive green",label="Residuals")
+            ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
+            ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
+            for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
+                ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+            ax1.legend()
+            ax2.legend()
+            plt.suptitle("%s test: NCOMP %d" % (line,fit_A_ncomp))
+            plt.tight_layout()
+            #
+            # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
+            dof = len(lam_gal[test_idx])-len(_param_dict)
+            if dof<=0: 
+                if verbose:
+                    print("\n WARNING: Degrees-of-Freedom in fit is <= 0.  One should increase the test range and/or decrease the number of free parameters of the model appropriately.\n")
+                dof = 1
+            # Add data to fit_res_dict
+            fit_res_dict[line]["NCOMP_%d" % (fit_A_ncomp)] = {"mcpars":mcpars,"mccomps":mccomps,"mcLL":mcLL,"dof":dof}
+
+            # sys.exit()
+        # Check B.
+        if "NCOMP_%d" % (fit_B_ncomp) not in fit_res_dict[line]: 
+            remove_lines=False
+            print("\t","Fitting NCOMP %d" % (fit_B_ncomp))
+            user_line_list = {}
+            for n in np.arange(1,fit_B_ncomp+1):
+                user_line_list.update(ncomp_dict["NCOMP_%d" % n])
+
+            for u in user_line_list:
+                user_line_list[u]["ncomp"]=1
+
+            # Generate parameters without lines
+            test_idx = ((lam_gal>=test_results["RANGE"][i][0]) & (lam_gal<=test_results["RANGE"][i][1]))
+            _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal[test_idx],galaxy[test_idx],noise[test_idx],test_results["RANGE"][i],disp_res[test_idx],fit_mask,velscale,
+                                 comp_options,narrow_options,broad_options,absorp_options,
+                                 user_line_list,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                 opt_feii_options,uv_iron_options,balmer_options,
+                                 run_dir,fit_type='init',fit_stat=fit_stat,
+                                 fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
+                                 fit_losvd=comp_options["fit_losvd"],fit_host=comp_options["fit_host"],fit_power=comp_options["fit_power"],fit_poly=comp_options["fit_poly"],
+                                 fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_absorp=comp_options["fit_absorp"],
+                                 tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=False)
+
+            # print("-------------------------------------------------------")
+            # for p in _param_dict:
+            #     print(p)
+            #     for hpar in _param_dict[p]:
+            #         print("\t",hpar,"=",_param_dict[p][hpar])
+            # print(len(_param_dict))
+            # print("\n")
+            # for l in _line_list:
+            #     print(l)
+            #     for hpar in _line_list[l]:
+            #         print("\t",hpar,"=",_line_list[l][hpar])
+            # print("\n")
+            # for l in _combined_line_list:
+            #     print(l)
+            #     for hpar in _combined_line_list[l]:
+            #         print("\t",hpar,"=",_combined_line_list[l][hpar])
+            # print("\n")
+            # for s in _soft_cons:
+            #     print(s)
+            # print("-------------------------------------------------------")
+
+            # slice data (galaxy,lam_gal,noise) to size of test range
+            
+            mcpars, mccomps, mcLL = max_likelihood(_param_dict,
+                                                   _line_list,
+                                                   {}, # don't calculate combined line quantities
+                                                   _soft_cons,
+                                                   lam_gal[test_idx],
+                                                   galaxy[test_idx],
+                                                   noise[test_idx],
+                                                   z,
+                                                   cosmology,
+                                                   comp_options,
+                                                   losvd_options,
+                                                   host_options,
+                                                   power_options,
+                                                   poly_options,
+                                                   opt_feii_options,
+                                                   uv_iron_options,
+                                                   balmer_options,
+                                                   outflow_test_options,
+                                                   host_template,
+                                                   opt_feii_templates,
+                                                   uv_iron_template,
+                                                   balmer_template,
+                                                   stel_templates,
+                                                   blob_pars,
+                                                   disp_res[test_idx],
+                                                   fit_mask[test_idx]-fit_mask[test_idx][0],
+                                                   velscale,
+                                                   flux_norm,
+                                                   run_dir,
+                                                   fit_type='init',
+                                                   fit_stat=fit_stat,
+                                                   output_model=False,
+                                                   test_outflows=True,
+                                                   n_basinhop=n_basinhop,
+                                                   max_like_niter=0,
+                                                   verbose=False)
+
+            # for p in mcpars:
+            #     print(p,"=",mcpars[p])
+            # print("\n")
+            # for c in mccomps:
+            #     print(c)
+            # print("\n")
+            # for l in mcLL:
+            #     print(l)
+            
+            # Plot for testing
+            fig = plt.figure(figsize=(10,6))
+            ax1 = fig.add_subplot(2,1,1)
+            ax2 = fig.add_subplot(2,1,2)
+            ax1.step(mccomps["WAVE"][0],mccomps["DATA"][0],color="xkcd:white",label="Data")
+            ax1.step(mccomps["WAVE"][0],mccomps["MODEL"][0],color="xkcd:bright red",label="Model")
+            ax2.step(mccomps["WAVE"][0],mccomps["RESID"][0],color="xkcd:radioactive green",label="Residuals")
+            ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
+            ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
+            for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
+                ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+            ax1.legend()
+            ax2.legend()
+            plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
+            plt.tight_layout()
+            #
+            # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
+            dof = len(lam_gal[test_idx])-len(_param_dict)
+            if dof<=0: 
+                if verbose:
+                    print("\n WARNING: Degrees-of-Freedom in fit is <= 0.  One should increase the test range and/or decrease the number of free parameters of the model appropriately.\n")
+                dof = 1
+            # Add data to fit_res_dict
+            fit_res_dict[line]["NCOMP_%d" % (fit_B_ncomp)] = {"mcpars":mcpars,"mccomps":mccomps,"mcLL":mcLL,"dof":dof}
 
 
-    print("\n")
-    for r in test_results:
-        print(r,test_results[r])
+    # print("\n")
+    # for r in test_results:
+    #     print(r,test_results[r])
 
 
-
+        for l in fit_res_dict:
+            for f in fit_res_dict[l]:
+                print(l,f,fit_res_dict[l][f]["dof"])
 
 
 
