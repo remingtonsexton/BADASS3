@@ -188,12 +188,12 @@ def check_test_options(input,verbose=False):
 	Checks the inputs of the fit_options dictionary and ensures that 
 	all keywords have valid values. 
 
-	test_options = {
+	test_options = {"test_mode":"line",
 					"lines": [], # The lines to test
 					"ranges":[], # The range over which the test is performed
-					"test_ncomp": False,# Test multiple components for each line?
 					"metrics": [],# Fitting metrics to use when determining the best model
 					"thresholds": [],
+					"auto_stop":True,
 					"continue_fit":False, # continue the fit with the best chosen model
 					}
 
@@ -205,18 +205,27 @@ def check_test_options(input,verbose=False):
 	output={} # output dictionary
 
 	if not input:
-		output = {
+		output = {	"test_mode":"line",
 					"lines": [], # The lines to test
 					"ranges":[], # The range over which the test is performed
-					"test_ncomp": False,# Test multiple components for each line?
-					"metrics": [],# Fitting metrics to use when determining the best model
-					"thresholds": [],
-					"continue_fit":False, # continue the fit with the best chosen model
+					"metrics": ["BADASS"],# Fitting metrics to use when determining the best model
+					"thresholds": [0.95],
+					"plot_tests":True,
+					"auto_stop":True,
+					"continue_fit":True, # continue the fit with the best chosen model
 					}
 
 		return output
 	
 	keyword_dict ={
+	"test_mode" : {
+					 "conds" : [
+								 lambda x: isinstance(x,(str)),
+								 lambda x: x in ["line","config"]
+							],
+					 "default" : [],
+					 "error_message" : "\n lines must be the name of a valid line (string) or a list/tuple of valid lines (list/tuple of strings).\n",
+					},
 	"lines" : {
 					 "conds" : [
 								 lambda x: isinstance(x,(str,list,tuple)),
@@ -231,39 +240,39 @@ def check_test_options(input,verbose=False):
 				 "default" : [],
 				 "error_message" : "\n ranges must be a list or tuple of valid fitting ranges for each line (list of size 2 lists/tuples).\n",
 				},
-	"test_ncomp" : {
-				 "conds" : [
-							 lambda x: isinstance(x,(bool)),
-						],
-				 "default" : [],
-				 "error_message" : "\n test_ncomp must be either True or False.\n",
-				},	
 	"metrics" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(list,tuple)),
 						],
-				 "default" : [],
+				 "default" : ["BADASS"],
 				 "error_message" : "\n metrics must be a list or tuple of valid test metrics.\n",
 				},
 	"thresholds" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(list,tuple)),
 						],
-				 "default" : [],
+				 "default" : [0.95],
 				 "error_message" : "\n thresholds must be a list or tuple of test thresholds corresponding to metrics.\n",
 				},
+	"plot_tests" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(bool)),
+						],
+				 "default" : True,
+				 "error_message" : "\n plot_tests must be either True or False.\n",
+				},		
 	"auto_stop" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(bool)),
 						],
-				 "default" : [],
+				 "default" : True,
 				 "error_message" : "\n auto_stop must be either True or False.\n",
 				},		
 	"continue_fit" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(bool)),
 						],
-				 "default" : [],
+				 "default" : True,
 				 "error_message" : "\n continue_fit must be either True or False.\n",
 				},		
 
