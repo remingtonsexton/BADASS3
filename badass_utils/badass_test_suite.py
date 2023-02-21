@@ -347,6 +347,14 @@ def bayesian_AB_test(resid_B, resid_A, wave, noise, data, eval_ind, ddof, run_di
 
 
 def check_test_stats(target,current,verbose=False):
+	"""
+	Function for checking thresholds of line
+	tests.  Note, this omits the AON (amplitude-over-noise)
+	test, since it is not a test between models.
+	"""
+
+	target = [t in target if t in ["ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO"]]
+
 	checked = []
 	for stat in target:
 		# Confidence based matrics; metric must remain above a current threshold to 

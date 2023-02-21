@@ -123,26 +123,26 @@ user_lines = {
 # "continue_fit":True, # continue the fit with the best chosen model
 # }
 
-test_options = {
-"test_mode":"line",
-"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
-"ranges":[(4900,5050),(4700,4940),], # The range over which the test is performed must include the tested line
-"metrics": ["BADASS", "ANOVA", "CHI2_RATIO"],# Fitting metrics to use when determining the best model
-"thresholds": [0.95, 0.95, 0.25],
-"auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
-"plot_tests":True,
-"continue_fit":True, # continue the fit with the best chosen model
-}
-
 # test_options = {
 # "test_mode":"line",
-# "lines": "BR_H_BETA", # The lines to test
-# "ranges":(4700,4940), # The range over which the test is performed must include the tested line
-# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.25],
+# "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
+# "ranges":[(4900,5050),(4700,4940),], # The range over which the test is performed must include the tested line
+# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
+# "thresholds": [0.95, 0.95, 0.25, 3.0],
 # "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
+# "plot_tests":True,
 # "continue_fit":True, # continue the fit with the best chosen model
 # }
+
+test_options = {
+"test_mode":"line",
+"lines": "BR_H_BETA", # The lines to test
+"ranges":(4700,4940), # The range over which the test is performed must include the tested line
+"metrics": ["BADASS", "ANOVA", "CHI2_RATIO"],# Fitting metrics to use when determining the best model
+"thresholds": [0.95, 0.95, 0.25],
+"auto_stop":False, # automatically stop testing once threshold is reached; False test all no matter what
+"continue_fit":True, # continue the fit with the best chosen model
+}
 
 user_constraints = [
 #     ("br_MgII_2799_2_amp","br_MgII_2799_amp"),

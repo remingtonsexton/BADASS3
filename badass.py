@@ -746,6 +746,7 @@ def run_single_thread(fits_file,
 
     if (test_lines==True) and (test_options["test_mode"]=="line"):
 
+        # 
 
         # Initialize free parameters (all components, lines, etc.)
         param_dict, line_list, combined_line_list, soft_cons, ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
@@ -4481,8 +4482,8 @@ def line_test(param_dict,
     # Determine ALL fits that will need to take place
     for i,line in enumerate(test_options["lines"]):
         #
-        max_ncomp = np.max([line_list[l]["ncomp"] for l in line_list if ("parent" in line_list[l]) and (line_list[l]["parent"] in line)])# the maximum ncomp to test
-        # print(i,line,max_ncomp)
+        max_ncomp = np.max([line_list[l]["ncomp"] for l in line_list if ( (l in line) or (("parent" in line_list[l]) and (line_list[l]["parent"] in line)))])# the maximum ncomp to test
+        print(i,line,max_ncomp)
         #    
         fit_res_dict = {}
         if i not in fit_res_dict:
@@ -4834,13 +4835,18 @@ def line_test(param_dict,
 
             # Check parameters if auto_stop=True; this automatically stops the testing of a line
             if (test_options["auto_stop"]) and (n<=max_ncomp):
+
+                #
+                print(fit_B_ncomp)
+                #
+
+
                 current_metrics = {}
-                for m in test_options["metrics"]:
-                    # Get last appended metrics 
-                    current_metrics[m] = test_results[m][-1]
                 target_metrics = {}
                 for  m,metric in enumerate(test_options["metrics"]):
-                    target_metrics[metric] = test_options["thresholds"][m]
+                    if metric not in ["AON"]:
+                        target_metrics[metric] = test_options["thresholds"][m]
+                        current_metrics[metric]     = test_results[metric][-1]
 
 
                 checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics,verbose)
@@ -4873,6 +4879,7 @@ def line_test(param_dict,
         else:
             new_line_list[line] = line_list[line]
             
+    passed_tests = {}
     # Now we check the test_results
     for test in test_options["lines"]:
         res = {} # results by tested line
@@ -4890,20 +4897,25 @@ def line_test(param_dict,
             current_metrics = {}
             target_metrics = {}
             for  m,metric in enumerate(test_options["metrics"]):
-                current_metrics[metric] = res[metric][i]
-                target_metrics[metric] = test_options["thresholds"][m]
+                if metric not in ["AON"]:
+                    current_metrics[metric] = res[metric][i]
+                    target_metrics[metric] = test_options["thresholds"][m]
     
             checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics)
+            print(test,i,len(res["TEST"])-1)
             print("\t",target_metrics)
             print("\t",current_metrics)
             print("\t",checked_metrics)
-            if np.all(checked_metrics) and (i<=len(res["TEST"])-1):
-                max_ncomp = res["NCOMP_A"][i]
+            if np.all(checked_metrics) and (i==0):
+                break
+            elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
+                max_ncomp = res["NCOMP_B"][i]
     #             print(max_ncomp)
                 for line in line_list:
-                    if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                    if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
                         new_line_list[line] = line_list[line]
                 break
+
             elif (i==len(res["TEST"])-1):
                 max_ncomp = res["NCOMP_B"][i]
     #             print(max_ncomp)        
@@ -4912,11 +4924,17 @@ def line_test(param_dict,
                         new_line_list[line] = line_list[line]
     
     
+
+
+
+
     print("\n")
+    print("New Line List:")
     for line in new_line_list:
         print(line)
 
-
+    print("\n")
+    print("Test Results:")
     for t in test_results:
         print(t,test_results[t])
 
