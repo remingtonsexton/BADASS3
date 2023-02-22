@@ -4471,6 +4471,7 @@ def line_test(param_dict,
                     "NCOMP_B":[],
                     # "AIC_RATIO":[],
                     "ANOVA":[],
+                    "AON":[],
                     "BADASS":[],
                     # "BIC_RATIO":[],
                     "CHI2_RATIO":[],
@@ -4823,6 +4824,27 @@ def line_test(param_dict,
             # rsquared_A, rsquared_B, rsquared_ratio = badass_test_suite.calculate_rsquared_ratio(mccomps_A, mccomps_B)
             # test_results["R_SQUARED_RATIO"].append(rsquared_ratio)
             # sys.exit()
+
+            # For amplitude-over-noise statistic, we need to extract the AON for the NCOMP_1 measurement for the lines being tested;
+            # if any  (at least one) line being tested has a AON over the user-specified threshold (ex. 3-sigma), then the line is kept
+            # in the new line list; otheriwse it is removed
+            
+            def calculate_aon(line,mccomps):
+                
+                print(line)
+
+                for c in mccomps:
+                    print(c)
+
+                sys.exit()
+
+                return
+
+            if fit_B_ncomp==1:
+                aon = calculate_aon(line,mccomps_B)
+                test_results["AON"].append(aon)
+
+
 
             # Plot tests
             if test_options["plot_tests"]:
