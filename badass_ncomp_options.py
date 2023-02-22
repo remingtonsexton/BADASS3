@@ -112,21 +112,23 @@ user_lines = {
 
 }
 
+
 # test_options = {
 # "test_mode":"line",
-# "lines": [["BR_H_BETA","NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], # The lines to test
-# "ranges":[(4700,5050)], # The range over which the test is performed must include the tested line
+# "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], # The lines to test
+# "ranges":[(4940,5050)], # The range over which the test is performed must include the tested line
 # # "groups": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],["BR_H_BETA"]], # groups of line associated lines including the lines being tested
-# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.25],
+# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],# Fitting metrics to use when determining the best model
+# "thresholds": [0.95, 0.95, 0.25, 3.0],
 # "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
+# "plot_tests":True,
 # "continue_fit":True, # continue the fit with the best chosen model
 # }
 
 # test_options = {
 # "test_mode":"line",
-# "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
-# "ranges":[(4900,5050),(4700,4940),], # The range over which the test is performed must include the tested line
+# "lines": "BR_H_BETA", # The lines to test
+# "ranges":(4700,4940), # The range over which the test is performed must include the tested line
 # "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 # "thresholds": [0.95, 0.95, 0.25, 3.0],
 # "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
@@ -136,13 +138,16 @@ user_lines = {
 
 test_options = {
 "test_mode":"line",
-"lines": "BR_H_BETA", # The lines to test
-"ranges":(4700,4940), # The range over which the test is performed must include the tested line
-"metrics": ["BADASS", "ANOVA", "CHI2_RATIO"],# Fitting metrics to use when determining the best model
-"thresholds": [0.95, 0.95, 0.25],
-"auto_stop":False, # automatically stop testing once threshold is reached; False test all no matter what
+"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
+"ranges":[(4900,5050),(4700,4940),], # The range over which the test is performed must include the tested line
+"metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
+"thresholds": [0.95, 0.95, 0.25, 5.0],
+"auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
+"plot_tests":True,
 "continue_fit":True, # continue the fit with the best chosen model
 }
+
+
 
 user_constraints = [
 #     ("br_MgII_2799_2_amp","br_MgII_2799_amp"),

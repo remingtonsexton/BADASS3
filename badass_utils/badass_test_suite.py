@@ -346,6 +346,27 @@ def bayesian_AB_test(resid_B, resid_A, wave, noise, data, eval_ind, ddof, run_di
 ##################################################################################
 
 
+def calculate_aon(test,line_list,mccomps):
+	"""
+	Calculates the amplitude-over-noise for the maximum of 
+	all lines being tested for a given test.
+	"""
+
+	full_profile = np.zeros(len(mccomps["WAVE"][0]))
+	for l in line_list:
+		if (l in test) or (("parent" in line_list[l]) and (line_list[l]["parent"] in test)):
+			full_profile+=mccomps[l][0]
+
+	avg_noise = np.nanmean(mccomps["NOISE"][0])
+
+	aon = np.nanmax(full_profile)/avg_noise
+
+	return aon
+
+
+##################################################################################
+
+
 def check_test_stats(target,current,verbose=False):
 	"""
 	Function for checking thresholds of line
@@ -353,7 +374,8 @@ def check_test_stats(target,current,verbose=False):
 	test, since it is not a test between models.
 	"""
 
-	target = [t in target if t in ["ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO"]]
+	target = {t:target[t] for t in target if t in ["ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO"]}
+	current = {c:current[c] for c in current if c in ["ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO"]}
 
 	checked = []
 	for stat in target:
@@ -368,14 +390,6 @@ def check_test_stats(target,current,verbose=False):
 
 
 ##################################################################################
-
-
-
-
-
-
-
-
 
 
 

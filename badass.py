@@ -4484,7 +4484,7 @@ def line_test(param_dict,
     for i,line in enumerate(test_options["lines"]):
         #
         max_ncomp = np.max([line_list[l]["ncomp"] for l in line_list if ( (l in line) or (("parent" in line_list[l]) and (line_list[l]["parent"] in line)))])# the maximum ncomp to test
-        print(i,line,max_ncomp)
+        # print(i,line,max_ncomp)
         #    
         fit_res_dict = {}
         if i not in fit_res_dict:
@@ -4825,24 +4825,11 @@ def line_test(param_dict,
             # test_results["R_SQUARED_RATIO"].append(rsquared_ratio)
             # sys.exit()
 
-            # For amplitude-over-noise statistic, we need to extract the AON for the NCOMP_1 measurement for the lines being tested;
+            # For amplitude-over-noise statistic, we need to extract the AON for the NCOMP B measurement for the lines being tested;
             # if any  (at least one) line being tested has a AON over the user-specified threshold (ex. 3-sigma), then the line is kept
             # in the new line list; otheriwse it is removed
-            
-            def calculate_aon(line,mccomps):
-                
-                print(line)
-
-                for c in mccomps:
-                    print(c)
-
-                sys.exit()
-
-                return
-
-            if fit_B_ncomp==1:
-                aon = calculate_aon(line,mccomps_B)
-                test_results["AON"].append(aon)
+            aon = badass_test_suite.calculate_aon(line,_line_list,mccomps_B)
+            test_results["AON"].append(aon)
 
 
 
@@ -4857,11 +4844,6 @@ def line_test(param_dict,
 
             # Check parameters if auto_stop=True; this automatically stops the testing of a line
             if (test_options["auto_stop"]) and (n<=max_ncomp):
-
-                #
-                print(fit_B_ncomp)
-                #
-
 
                 current_metrics = {}
                 target_metrics = {}
@@ -4894,14 +4876,11 @@ def line_test(param_dict,
     new_line_list = {}
     # Get lines that are not being tested and are not associated and add them to the new line list.
     all_tested_lines = np.unique([line for group in test_options["lines"] for line in group])
-    print(all_tested_lines)
     for line in line_list:
         if (line in all_tested_lines) or (("parent" in line_list[line]) and (line_list[line]["parent"] in all_tested_lines)):
             pass
         else:
             new_line_list[line] = line_list[line]
-            
-    passed_tests = {}
     # Now we check the test_results
     for test in test_options["lines"]:
         res = {} # results by tested line
@@ -4924,10 +4903,10 @@ def line_test(param_dict,
                     target_metrics[metric] = test_options["thresholds"][m]
     
             checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics)
-            print(test,i,len(res["TEST"])-1)
-            print("\t",target_metrics)
-            print("\t",current_metrics)
-            print("\t",checked_metrics)
+            # print(test,i,len(res["TEST"])-1)
+            # print("\t",target_metrics)
+            # print("\t",current_metrics)
+            # print("\t",checked_metrics)
             if np.all(checked_metrics) and (i==0):
                 break
             elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
@@ -4944,21 +4923,50 @@ def line_test(param_dict,
                 for line in line_list:
                     if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
                         new_line_list[line] = line_list[line]
-    
-    
+    print("\n")
+    print("New Line List:")
+    for line in new_line_list:
+        print(line)
+    print("\n")
+    print("Test Results:")
+    for t in test_results:
+        print(t,test_results[t])
 
-
-
+    # Now check AON if it is a test statistic
+    remove_aon = []
+    if "AON" in test_options["metrics"]:
+        aon_thresh = test_options["thresholds"][test_options["metrics"].index("AON")]
+        print(aon_thresh)
+        for test in test_options["lines"]:
+            # Get the NCOMP_0 vs. NCOMP_1 AON
+            aon = [test_results["AON"][i] for i,t in enumerate(test_results["TEST"]) if t==test][0]
+            print(aon)
+            if aon>=aon_thresh:
+                break
+            else:
+                if verbose:
+                    print("\n %s line(s) does not meet amplitude-over-noise (AON) threshold.  Removing from line list." % (test))
+                for line in new_line_list:
+                    if (line in test) or (("parent" in new_line_list[line]) and (new_line_list[line]["parent"] in test)):
+                        #new_line_list.pop(line,None)
+                        remove_aon.append(line)
+    if len(remove_aon)>0:
+        for line in remove_aon:
+            new_line_list.pop(line,None)
+    #
 
     print("\n")
     print("New Line List:")
     for line in new_line_list:
         print(line)
-
     print("\n")
     print("Test Results:")
     for t in test_results:
         print(t,test_results[t])
+
+    
+
+    
 
     sys.exit(0)
 
