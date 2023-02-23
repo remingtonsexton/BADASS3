@@ -1,0 +1,98 @@
+
+############################### BADASS 9.4.0 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spec-1087-52930-0084.fits     
+(RA, DEC):                    (6.996777,0.045459)           
+SDSS redshift:                0.08282                       
+fitting region:               (4400,5500) [A]               
+velocity scale:               69.11 [km/s/pixel]            
+Galactic E(B-V):              0.017                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (4400, 5500)                  
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 10                            
+                    test_lines: True                          
+                max_like_niter: 10                            
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: True                          
+                   fit_uv_iron: False                         
+                    fit_balmer: False                         
+                     fit_losvd: False                         
+                      fit_host: True                          
+                     fit_power: True                          
+                      fit_poly: True                          
+                    fit_narrow: True                          
+                     fit_broad: True                          
+                    fit_absorp: True                          
+                 tie_line_disp: False                         
+                 tie_line_voff: False                         
+
+   losvd_options:                                                                         
+                                Stellar LOSVD fitting is turned off.
+
+   host_options:                                                                          
+                           age: [1.0, 5.0, 10.0]              
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 150.0} 
+
+   power_options:                                                                         
+                          type: simple                        
+
+   poly_options:                                                                          
+                         ppoly: bool: False, order: 3                                                                               
+                         apoly: bool: True, order: 3                                                                                
+                         mpoly: bool: False, order: 3                                                                               
+
+   opt_feii_options:                                                                      
+                 opt_template:: type: VC04                                                                                          
+                 opt_amp_const: bool: False, br_opt_feii_val: 1.0, na_opt_feii_val: 1.0                                             
+                opt_disp_const: bool: False, br_opt_feii_val: 3000.0, na_opt_feii_val: 500.0                                        
+                opt_voff_const: bool: False, br_opt_feii_val: 0.0, na_opt_feii_val: 0.0                                             
+   uv_iron_options:                                                                       
+                                UV Iron fitting is turned off.
+
+   balmer_options:                                                                        
+                                Balmer pseudo-continuum fitting is turned off.
+
+   plot_options:                                                                          
+               plot_param_hist: False                         
+                plot_flux_hist: False                         
+                 plot_lum_hist: False                         
+             plot_eqwidth_hist: False                         
+                      plot_pca: False                         
+   output_options:                                                                        
+                   write_chain: False                         
+                       verbose: True                          
+
+-----------------------------------------------------------------------------------------------------------------
+
+### PCA Options ###
+-----------------------------------------------------------------------------------------------------------------
+pca_options:                                                  
+
+                        do_pca: False                         
+
+-----------------------------------------------------------------------------------------------------------------

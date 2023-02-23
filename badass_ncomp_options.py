@@ -64,7 +64,7 @@ broad_options ={
 #     "amp_plim": (0,40), # line amplitude parameter limits; default (0,)
 #     "disp_plim": (300,3000), # line dispersion parameter limits; default (0,)
 #     "voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
-    "line_profile": "gauss-hermite", # line profile shape*
+    "line_profile": "gaussian", # line profile shape*
     "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
 }
 
@@ -108,7 +108,13 @@ user_lines = {
     "BR_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":2,"parent":"BR_H_BETA"},
     "BR_H_BETA_3"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":3,"parent":"BR_H_BETA"},
 
-    "NA_UNK_1"       :{"center":5200,"line_type":"na"}
+    "NA_UNK_1"       :{"center":5200,"line_type":"na"},
+
+
+    "NA_MGII_2799"     :{"center":2799.0,"line_type":"na",},
+    "NA_MGII_2799_2"   :{"center":2799.0,"line_type":"na","ncomp":2,"parent":"NA_MGII_2799"},
+    "BR_MGII_2799"     :{"center":2799.0,"line_type":"br",},
+    "BR_MGII_2799_2"   :{"center":2799.0,"line_type":"br","ncomp":2,"parent":"BR_MGII_2799"},
 
 }
 
@@ -147,6 +153,16 @@ test_options = {
 "continue_fit":True, # continue the fit with the best chosen model
 }
 
+# test_options = {
+# "test_mode":"line",
+# "lines":["BR_MGII_2799","NA_MGII_2799"], # The lines to test
+# "ranges":[(2600,3000),(2600,3000)], # The range over which the test is performed must include the tested line
+# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
+# "thresholds": [0.95, 0.95, 0.25, 5.0],
+# "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
+# "plot_tests":True,
+# "continue_fit":True, # continue the fit with the best chosen model
+# }
 
 
 user_constraints = [

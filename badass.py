@@ -4960,10 +4960,6 @@ def line_test(param_dict,
     for line in new_line_list:
         print(line)
     print("\n")
-    print("Test Results:")
-    for t in test_results:
-        print(t,test_results[t])
-
     
 
     
