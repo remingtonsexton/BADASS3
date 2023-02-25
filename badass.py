@@ -4540,25 +4540,7 @@ def line_test(param_dict,
 
 
                 
-                # print("-------------------------------------------------------")
-                # for p in _param_dict:
-                #     print(p)
-                #     for hpar in _param_dict[p]:
-                #         print("\t",hpar,"=",_param_dict[p][hpar])
-                # print("\n")
-                # for l in _line_list:
-                #     print(l)
-                #     for hpar in _line_list[l]:
-                #         print("\t",hpar,"=",_line_list[l][hpar])
-                # print("\n")
-                # for l in _combined_line_list:
-                #     print(l)
-                #     for hpar in _combined_line_list[l]:
-                #         print("\t",hpar,"=",_combined_line_list[l][hpar])
-                # print("\n")
-                # for s in _soft_cons:
-                #     print(s)
-                # print("-------------------------------------------------------")
+                
 
                 mcpars, mccomps, mcLL = max_likelihood(_param_dict,
                                                        _line_list,
@@ -4597,14 +4579,53 @@ def line_test(param_dict,
                                                        max_like_niter=0,
                                                        verbose=False)
 
-                # for p in mcpars:
-                #     print(p,"=",mcpars[p])
+                print("-------------------------------------------------------")
+                print("\n")
+                # Print out fitted parameters
+                # for p in _param_dict:
+                #     print(p)
+                #     for hpar in _param_dict[p]:
+                #         print("\t",hpar,"=",_param_dict[p][hpar])
                 # print("\n")
-                # for c in mccomps:
-                #     print(c)
-                # print("\n")
-                # for l in mcLL:
+                # Print out line list
+                # for l in _line_list:
                 #     print(l)
+                #     for hpar in _line_list[l]:
+                #         print("\t",hpar,"=",_line_list[l][hpar])
+                # print("\n")
+                # Print out combined lines
+                # for l in _combined_line_list:
+                #     print(l)
+                #     for hpar in _combined_line_list[l]:
+                #         print("\t",hpar,"=",_combined_line_list[l][hpar])
+                # print("\n")
+                # Print out soft cons
+                # for s in _soft_cons:
+                #     print(s)
+                print("\n")
+                # Calculate R-Squared statistic of best fit
+                r2 = badass_test_suite.r_squared(mccomps["DATA"][0],mccomps["MODEL"][0])
+                print(" R-Squared = %0.4f" % r2)
+
+
+                print("\n")
+                # Calculate rCHI2 statistic of best fit
+                rchi2 = badass_test_suite.r_chi_squared(mccomps["DATA"][0],mccomps["MODEL"][0],mccomps["NOISE"][0],len(_param_dict))
+                print(" reduced Chi-Squared = %0.4f" % rchi2)
+
+                print("\n")
+                # Calculate RMSE statistic of best fit
+                rmse = badass_test_suite.root_mean_squared_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                print(" Root Mean Squared Error = %0.4f" % rmse)
+
+                print("\n")
+                # Calculate MAE statistic of best fit
+                mae = badass_test_suite.mean_abs_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                print(" Mean Absolute Error = %0.4f" % mae)
+
+                print("\n")
+
+                print("-------------------------------------------------------")
                 
                 # Plot for testing
                 fig = plt.figure(figsize=(10,6))
@@ -4674,26 +4695,7 @@ def line_test(param_dict,
                                      fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_absorp=comp_options["fit_absorp"],
                                      tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=False)
 
-                # print("-------------------------------------------------------")
-                # for p in _param_dict:
-                #     print(p)
-                #     for hpar in _param_dict[p]:
-                #         print("\t",hpar,"=",_param_dict[p][hpar])
-                # print(len(_param_dict))
-                # print("\n")
-                # for l in _line_list:
-                #     print(l)
-                #     for hpar in _line_list[l]:
-                #         print("\t",hpar,"=",_line_list[l][hpar])
-                # print("\n")
-                # for l in _combined_line_list:
-                #     print(l)
-                #     for hpar in _combined_line_list[l]:
-                #         print("\t",hpar,"=",_combined_line_list[l][hpar])
-                # print("\n")
-                # for s in _soft_cons:
-                #     print(s)
-                # print("-------------------------------------------------------")
+                
 
                 # slice data (galaxy,lam_gal,noise) to size of test range
                 
@@ -4734,14 +4736,49 @@ def line_test(param_dict,
                                                        max_like_niter=0,
                                                        verbose=False)
 
-                # for p in mcpars:
-                #     print(p,"=",mcpars[p])
+                print("-------------------------------------------------------")
+                # for p in _param_dict:
+                #     print(p)
+                #     for hpar in _param_dict[p]:
+                #         print("\t",hpar,"=",_param_dict[p][hpar])
+                # print(len(_param_dict))
                 # print("\n")
-                # for c in mccomps:
-                #     print(c)
-                # print("\n")
-                # for l in mcLL:
+                # for l in _line_list:
                 #     print(l)
+                #     for hpar in _line_list[l]:
+                #         print("\t",hpar,"=",_line_list[l][hpar])
+                # print("\n")
+                # for l in _combined_line_list:
+                #     print(l)
+                #     for hpar in _combined_line_list[l]:
+                #         print("\t",hpar,"=",_combined_line_list[l][hpar])
+                # print("\n")
+                # for s in _soft_cons:
+                #     print(s)
+
+                print("\n")
+                # Calculate R-Squared statistic of best fit
+                r2 = badass_test_suite.r_squared(mccomps["DATA"][0],mccomps["MODEL"][0])
+                print(" R-Squared = %0.4f" % r2)
+
+
+                print("\n")
+                # Calculate rCHI2 statistic of best fit
+                rchi2 = badass_test_suite.r_chi_squared(mccomps["DATA"][0],mccomps["MODEL"][0],mccomps["NOISE"][0],len(_param_dict))
+                print(" reduced Chi-Squared = %0.4f" % rchi2)
+
+                print("\n")
+                # Calculate RMSE statistic of best fit
+                rmse = badass_test_suite.root_mean_squared_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                print(" Root Mean Squared Error = %0.4f" % rmse)
+
+                print("\n")
+                # Calculate MAE statistic of best fit
+                mae = badass_test_suite.mean_abs_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                print(" Mean Absolute Error = %0.4f" % mae)
+
+                print("\n")
+                print("-------------------------------------------------------")
                 
                 # Plot for testing
                 fig = plt.figure(figsize=(10,6))

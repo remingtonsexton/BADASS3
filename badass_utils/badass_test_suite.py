@@ -20,8 +20,60 @@ from scipy import stats
 from scipy.stats import f, chisquare
 from scipy.ndimage import generic_filter,gaussian_filter1d
 
+##################################################################################
+
+def r_squared(data,model):
+	"""
+	Simple calculation of R-squared
+	statistic for a single fit.
+	"""
+	# Calculate residual sum-of-squares (RSS)
+	rss = np.nansum((data-model)**2)
+	# Calculate total sum-of-squares (TSS)
+	tss = np.nansum((data)**2)
+	return 1-rss/tss
 
 ##################################################################################
+
+def r_chi_squared(data,model,noise,npar):
+	"""
+	Simple calculation of reduced Chi-squared
+	statistic for a single fit.
+	"""
+	# Degrees of freedon (number of data minus free fitted parameters0)
+	nu = len(data)-npar
+	rchi2 = np.nansum((data-model)**2/noise**2)/nu
+	return rchi2
+
+##################################################################################
+
+def root_mean_squared_error(data,model):
+	"""
+	Simple calculation of root mean squared error (RMSE)
+	statistic for a single fit.
+	"""
+	# Normalize by subtracting by the median of the data
+	data_med = np.nanmedian(data)
+	data  /= data_med
+	model /= data_med
+	return np.sqrt(len(data) * np.nansum((data-model)**2))
+
+##################################################################################
+
+def mean_abs_error(data,model):
+	"""
+	Simple calculation of mean absolute error (MAE)
+	statistic for a single fit.
+	"""
+	# Normalize by subtracting by the median of the data
+	data_med = np.nanmedian(data)
+	data  /= data_med
+	model /= data_med
+	return len(data) * np.nansum(np.abs(data-model))
+
+##################################################################################
+
+
 
 
 def ssr_test(resid_B,
