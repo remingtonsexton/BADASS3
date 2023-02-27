@@ -268,6 +268,13 @@ def check_test_options(input,verbose=False):
 				 "default" : True,
 				 "error_message" : "\n auto_stop must be either True or False.\n",
 				},		
+	"force_best" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(bool)),
+						],
+				 "default" : True,
+				 "error_message" : "\n force_best must be either True or False.\n",
+				},	
 	"continue_fit" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(bool)),

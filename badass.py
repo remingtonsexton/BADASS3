@@ -4695,8 +4695,6 @@ def line_test(param_dict,
                                      fit_narrow=comp_options["fit_narrow"],fit_broad=comp_options["fit_broad"],fit_absorp=comp_options["fit_absorp"],
                                      tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=False)
 
-                
-
                 # slice data (galaxy,lam_gal,noise) to size of test range
                 
                 mcpars, mccomps, mcLL = max_likelihood(_param_dict,
@@ -4734,7 +4732,8 @@ def line_test(param_dict,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
                                                        max_like_niter=0,
-                                                       verbose=False)
+                                                       force_best=True,
+                                                       verbose=True)
 
                 print("-------------------------------------------------------")
                 # for p in _param_dict:
@@ -4780,6 +4779,8 @@ def line_test(param_dict,
                 print("\n")
                 print("-------------------------------------------------------")
                 
+                
+
                 # Plot for testing
                 fig = plt.figure(figsize=(10,6))
                 ax1 = fig.add_subplot(2,1,1)
@@ -4795,6 +4796,8 @@ def line_test(param_dict,
                 ax2.legend()
                 plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
                 plt.tight_layout()
+                #
+                sys.exit(0)
                 #
                 # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
                 dof = len(lam_gal[test_idx])-len(_param_dict)
@@ -5759,6 +5762,10 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
 
 #### Maximum Likelihood Fitting ##################################################
 
+# basinhop_count = 0
+# basinhop_value = np.inf
+
+
 def max_likelihood(param_dict,
                    line_list,
                    combined_line_list,
@@ -5794,6 +5801,7 @@ def max_likelihood(param_dict,
                    test_outflows=False,
                    n_basinhop=5,
                    max_like_niter=10,
+                   force_best=False,
                    verbose=True):
 
     """
@@ -5830,6 +5838,41 @@ def max_likelihood(param_dict,
     nll = lambda *args: -lnprob(*args)
     # Perform global optimization using basin-hopping algorithm (superior to minimize(), but slower)
     # We will use minimize() for the monte carlo bootstrap iterations.
+
+    # basinhop_count = 0
+    # basinhop_value = np.inf
+
+    if force_best:
+        # global basinhop_value, basinhop_count
+        basinhop_count = 0
+        basinhop_value = np.inf
+        # Define a callback function for forcing a better fit to the B model 
+        # if force_best=True;
+        # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
+        def callback_ftn(x,f, accepted):
+            nonlocal basinhop_value, basinhop_count
+            print(basinhop_value,basinhop_count)
+            print("at minimum %.4f accepted %d" % (f, int(accepted)))
+            print("\n")
+            if f<=basinhop_value:
+                basinhop_value=f 
+                basinhop_count=0 # reset counter
+            elif f>basinhop_value:
+                basinhop_count+=1
+
+            # min_fvu = 1.0-rsquared_thresh
+            # if round(f,2)<=min_fvu:
+            #     # print(f)
+            #     # print(x,f,context)
+            #     return True
+            # else:
+            #     # print(f)
+            #     return False
+
+    if not force_best:
+
+        callback_ftn=None
+
     result = op.basinhopping(func = nll, 
                              x0 = params,
                              # T = 0.0,
@@ -5872,6 +5915,7 @@ def max_likelihood(param_dict,
                               "options":{"disp":False}},
                                disp=verbose,
                                niter_success=n_basinhop, # Max # of successive search iterations
+                               callback=callback_ftn,
                                )
     #
     # Get elapsed time
