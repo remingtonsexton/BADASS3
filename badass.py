@@ -4807,7 +4807,7 @@ def line_test(param_dict,
                 plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
                 plt.tight_layout()
                 #
-                sys.exit(0)
+                # sys.exit(0)
                 #
                 # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
                 dof = len(lam_gal[test_idx])-len(_param_dict)
