@@ -4604,23 +4604,23 @@ def line_test(param_dict,
                 #     print(s)
                 print("\n")
                 # Calculate R-Squared statistic of best fit
-                r2 = badass_test_suite.r_squared(mccomps["DATA"][0],mccomps["MODEL"][0])
+                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" R-Squared = %0.4f" % r2)
 
 
                 print("\n")
                 # Calculate rCHI2 statistic of best fit
-                rchi2 = badass_test_suite.r_chi_squared(mccomps["DATA"][0],mccomps["MODEL"][0],mccomps["NOISE"][0],len(_param_dict))
+                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
                 print(" reduced Chi-Squared = %0.4f" % rchi2)
 
                 print("\n")
                 # Calculate RMSE statistic of best fit
-                rmse = badass_test_suite.root_mean_squared_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Root Mean Squared Error = %0.4f" % rmse)
 
                 print("\n")
                 # Calculate MAE statistic of best fit
-                mae = badass_test_suite.mean_abs_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Mean Absolute Error = %0.4f" % mae)
 
                 print("\n")
@@ -4696,7 +4696,16 @@ def line_test(param_dict,
                                      tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=remove_lines,verbose=False)
 
                 # slice data (galaxy,lam_gal,noise) to size of test range
-                
+                if test_options["force_best"]:
+                    # force_thresh is the threshold that needs to be achieved (along with n_basinhop)
+                    # for the complex model if force_best=True.  For now, the threshold is the RMSE of 
+                    # the previous fit, and the complex model must achieive an RMSE lower than that of 
+                    # the simpler model
+                    force_thresh = badass_test_suite.root_mean_squared_error(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0],fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0])
+                    # print(force_thresh)
+                else: force_thresh=np.inf
+
+
                 mcpars, mccomps, mcLL = max_likelihood(_param_dict,
                                                        _line_list,
                                                        {}, # don't calculate combined line quantities
@@ -4732,21 +4741,22 @@ def line_test(param_dict,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
                                                        max_like_niter=0,
-                                                       force_best=True,
+                                                       force_best=test_options["force_best"],
+                                                       force_thresh=force_thresh,
                                                        verbose=True)
 
                 print("-------------------------------------------------------")
-                # for p in _param_dict:
-                #     print(p)
-                #     for hpar in _param_dict[p]:
-                #         print("\t",hpar,"=",_param_dict[p][hpar])
-                # print(len(_param_dict))
-                # print("\n")
-                # for l in _line_list:
-                #     print(l)
-                #     for hpar in _line_list[l]:
-                #         print("\t",hpar,"=",_line_list[l][hpar])
-                # print("\n")
+                for p in _param_dict:
+                    print(p)
+                    for hpar in _param_dict[p]:
+                        print("\t",hpar,"=",_param_dict[p][hpar])
+                print(len(_param_dict))
+                print("\n")
+                for l in _line_list:
+                    print(l)
+                    for hpar in _line_list[l]:
+                        print("\t",hpar,"=",_line_list[l][hpar])
+                print("\n")
                 # for l in _combined_line_list:
                 #     print(l)
                 #     for hpar in _combined_line_list[l]:
@@ -4757,23 +4767,23 @@ def line_test(param_dict,
 
                 print("\n")
                 # Calculate R-Squared statistic of best fit
-                r2 = badass_test_suite.r_squared(mccomps["DATA"][0],mccomps["MODEL"][0])
+                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" R-Squared = %0.4f" % r2)
 
 
                 print("\n")
                 # Calculate rCHI2 statistic of best fit
-                rchi2 = badass_test_suite.r_chi_squared(mccomps["DATA"][0],mccomps["MODEL"][0],mccomps["NOISE"][0],len(_param_dict))
+                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
                 print(" reduced Chi-Squared = %0.4f" % rchi2)
 
                 print("\n")
                 # Calculate RMSE statistic of best fit
-                rmse = badass_test_suite.root_mean_squared_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Root Mean Squared Error = %0.4f" % rmse)
 
                 print("\n")
                 # Calculate MAE statistic of best fit
-                mae = badass_test_suite.mean_abs_error(mccomps["DATA"][0],mccomps["MODEL"][0])
+                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Mean Absolute Error = %0.4f" % mae)
 
                 print("\n")
@@ -5802,6 +5812,7 @@ def max_likelihood(param_dict,
                    n_basinhop=5,
                    max_like_niter=10,
                    force_best=False,
+                   force_thresh=np.inf,
                    verbose=True):
 
     """
@@ -5843,31 +5854,57 @@ def max_likelihood(param_dict,
     # basinhop_value = np.inf
 
     if force_best:
+        n_basinhop = 100
+
         # global basinhop_value, basinhop_count
         basinhop_count = 0
+        accepted_count = 0
         basinhop_value = np.inf
+        accepted_rmse  = np.inf
         # Define a callback function for forcing a better fit to the B model 
         # if force_best=True;
         # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
         def callback_ftn(x,f, accepted):
-            nonlocal basinhop_value, basinhop_count
+            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count
             print(basinhop_value,basinhop_count)
             print("at minimum %.4f accepted %d" % (f, int(accepted)))
-            print("\n")
+            
             if f<=basinhop_value:
                 basinhop_value=f 
                 basinhop_count=0 # reset counter
             elif f>basinhop_value:
                 basinhop_count+=1
 
-            # min_fvu = 1.0-rsquared_thresh
-            # if round(f,2)<=min_fvu:
-            #     # print(f)
-            #     # print(x,f,context)
-            #     return True
+            current_comps = fit_model(x,param_names,line_list,combined_line_list,lam_gal,galaxy,noise,
+                                      comp_options,losvd_options,host_options,power_options,poly_options,
+                                      opt_feii_options,uv_iron_options,balmer_options,outflow_test_options,
+                                      host_template,opt_feii_templates,uv_iron_template,balmer_template,
+                                      stel_templates,blob_pars,disp_res,fit_mask,velscale,run_dir,"init",
+                                      fit_stat,True)
+            rmse = badass_test_suite.root_mean_squared_error(current_comps["DATA"],current_comps["MODEL"])
+            print(rmse)
+            print("\n")
+            # if accepted (lowest_f), update accepted_rmse:
+            # also update number of accepted solututions (accepted count) to ensure
+            # that a viable solution was actually found.
+            # if (accepted==1):
+            #     accepted_count+=1
+                
+            # if (accepted==1) and (accepted_count>2):
+            #     accepted_rmse = rmse
+
+            # if ((basinhop_count)>=25) and (accepted_rmse<force_thresh) and (accepted_count>5): # 
+            #     print("True",force_thresh,accepted_rmse,accepted_count,basinhop_count)
+            #     print("\n")
+            #     return True 
+                
             # else:
-            #     # print(f)
-            #     return False
+            #     print("False",force_thresh,accepted_rmse,accepted_count,basinhop_count)
+            #     print("\n")
+            #     return False 
+                
+
+            
 
     if not force_best:
 
@@ -5877,7 +5914,7 @@ def max_likelihood(param_dict,
                              x0 = params,
                              # T = 0.0,
                              stepsize=1.0,
-                             niter = 100, # Max # of iterations before stopping
+                             niter = 1000, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
                                                          prior_dict,
