@@ -4653,7 +4653,7 @@ def line_test(param_dict,
                     dof = 1
                 # Add data to fit_res_dict
                 npar = len(_param_dict)
-                fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)] = {"mcpars":mcpars,"mccomps":mccomps,"mcLL":mcLL,"line_list":user_line_list,"dof":dof,"npar":npar}
+                fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)] = {"mcpars":copy.deepcopy(mcpars),"mccomps":copy.deepcopy(mccomps),"mcLL":copy.deepcopy(mcLL),"line_list":copy.deepcopy(user_line_list),"dof":copy.deepcopy(dof),"npar":copy.deepcopy(npar)}
 
                 # sys.exit()
 
@@ -4701,10 +4701,17 @@ def line_test(param_dict,
                     # for the complex model if force_best=True.  For now, the threshold is the RMSE of 
                     # the previous fit, and the complex model must achieive an RMSE lower than that of 
                     # the simpler model
-                    force_thresh = badass_test_suite.root_mean_squared_error(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0],fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0])
+                    force_thresh = badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]))
                     # print(force_thresh)
                 else: force_thresh=np.inf
 
+
+                print("\n")
+                for l in _line_list:
+                    print(l)
+                    for hpar in _line_list[l]:
+                        print("\t",hpar,"=",_line_list[l][hpar])
+                print("\n")
 
                 mcpars, mccomps, mcLL = max_likelihood(_param_dict,
                                                        _line_list,
@@ -4743,20 +4750,20 @@ def line_test(param_dict,
                                                        max_like_niter=0,
                                                        force_best=test_options["force_best"],
                                                        force_thresh=force_thresh,
-                                                       verbose=True)
+                                                       verbose=False)
 
                 print("-------------------------------------------------------")
-                for p in _param_dict:
-                    print(p)
-                    for hpar in _param_dict[p]:
-                        print("\t",hpar,"=",_param_dict[p][hpar])
-                print(len(_param_dict))
-                print("\n")
-                for l in _line_list:
-                    print(l)
-                    for hpar in _line_list[l]:
-                        print("\t",hpar,"=",_line_list[l][hpar])
-                print("\n")
+                # for p in _param_dict:
+                #     print(p)
+                #     for hpar in _param_dict[p]:
+                #         print("\t",hpar,"=",_param_dict[p][hpar])
+                # print(len(_param_dict))
+                # print("\n")
+                # for l in _line_list:
+                #     print(l)
+                #     for hpar in _line_list[l]:
+                #         print("\t",hpar,"=",_line_list[l][hpar])
+                # print("\n")
                 # for l in _combined_line_list:
                 #     print(l)
                 #     for hpar in _combined_line_list[l]:
@@ -4817,7 +4824,7 @@ def line_test(param_dict,
                     dof = 1
                 # Add data to fit_res_dict
                 npar = len(_param_dict)
-                fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)] = {"mcpars":mcpars,"mccomps":mccomps,"mcLL":mcLL,"line_list":user_line_list,"dof":dof,"npar":npar}
+                fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)] = {"mcpars":copy.deepcopy(mcpars),"mccomps":copy.deepcopy(mccomps),"mcLL":copy.deepcopy(mcLL),"line_list":copy.deepcopy(user_line_list),"dof":copy.deepcopy(dof),"npar":copy.deepcopy(npar)}
 
         
 
@@ -5854,18 +5861,20 @@ def max_likelihood(param_dict,
     # basinhop_value = np.inf
 
     if force_best:
-        n_basinhop = 100
+        n_basinhop = 10000
 
         # global basinhop_value, basinhop_count
         basinhop_count = 0
         accepted_count = 0
         basinhop_value = np.inf
         accepted_rmse  = np.inf
+        rmse_arr = []
+
         # Define a callback function for forcing a better fit to the B model 
         # if force_best=True;
         # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
         def callback_ftn(x,f, accepted):
-            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count
+            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count, rmse_arr
             print(basinhop_value,basinhop_count)
             print("at minimum %.4f accepted %d" % (f, int(accepted)))
             
@@ -5881,27 +5890,51 @@ def max_likelihood(param_dict,
                                       host_template,opt_feii_templates,uv_iron_template,balmer_template,
                                       stel_templates,blob_pars,disp_res,fit_mask,velscale,run_dir,"init",
                                       fit_stat,True)
-            rmse = badass_test_suite.root_mean_squared_error(current_comps["DATA"],current_comps["MODEL"])
-            print(rmse)
-            print("\n")
+            rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(current_comps["DATA"]),copy.deepcopy(current_comps["MODEL"]))
+            # print(rmse)
+            # print("\n")
             # if accepted (lowest_f), update accepted_rmse:
             # also update number of accepted solututions (accepted count) to ensure
             # that a viable solution was actually found.
-            # if (accepted==1):
-            #     accepted_count+=1
+            if (accepted==1):
+                accepted_count+=1
                 
-            # if (accepted==1) and (accepted_count>2):
-            #     accepted_rmse = rmse
+            if (accepted==1) and (accepted_count>2) and (rmse<=accepted_rmse):
+                accepted_rmse = rmse
 
-            # if ((basinhop_count)>=25) and (accepted_rmse<force_thresh) and (accepted_count>5): # 
-            #     print("True",force_thresh,accepted_rmse,accepted_count,basinhop_count)
-            #     print("\n")
-            #     return True 
+            if (accepted==1) and (accepted_count>2):
+                rmse_arr.append(rmse)
+
+            rmse_mad = stats.median_abs_deviation(rmse_arr,nan_policy="omit")
+            rmse_std = np.nanstd(rmse_arr)
+
+            if ((basinhop_count)>=25) and (accepted_rmse<force_thresh) and (accepted_count>5): # 
+                print(" Fit Status: True")
+                print(" Force threshold: %0.2f" % force_thresh)
+                print(" Lowest RMSE: %0.2f" % accepted_rmse)
+                print(" Current RMSE: %0.2f" % rmse)
+                print(" RMSE MAD: %0.2f" % rmse_mad)
+                print(" RMSE STD: %0.2f" % rmse_std)
+                print(" Accepted count: %d" % accepted_count)
+                print(" Basinhop count: %d" % basinhop_count)
+                print("\n")
+                print("rmse array:")
+                print(rmse_arr)
+                print("\n")
+                return True 
                 
-            # else:
-            #     print("False",force_thresh,accepted_rmse,accepted_count,basinhop_count)
-            #     print("\n")
-            #     return False 
+            else:
+                print(" Fit Status: False")
+                print(" Force threshold: %0.2f" % force_thresh)
+                print(" Lowest RMSE: %0.2f" % accepted_rmse)
+                print(" Current RMSE: %0.2f" % rmse)
+                print(" RMSE MAD: %0.2f" % rmse_mad)
+                print(" RMSE STD: %0.2f" % rmse_std)
+                print(" Accepted count: %d" % accepted_count)
+                print(" Basinhop count: %d" % basinhop_count)
+                print("\n")
+                print("\n")
+                return False 
                 
 
             
@@ -5913,7 +5946,8 @@ def max_likelihood(param_dict,
     result = op.basinhopping(func = nll, 
                              x0 = params,
                              # T = 0.0,
-                             stepsize=1.0,
+                             stepsize=100.0,
+                             interval=2,
                              niter = 1000, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
@@ -5948,7 +5982,8 @@ def max_likelihood(param_dict,
                                                          output_model,
                                                          run_dir
                                                         ),
-                              'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
+                              # 'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
+                              "method":"Nelder-Mead","bounds":param_bounds,
                               "options":{"disp":False}},
                                disp=verbose,
                                niter_success=n_basinhop, # Max # of successive search iterations
