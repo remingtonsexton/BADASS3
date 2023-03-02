@@ -4750,7 +4750,7 @@ def line_test(param_dict,
                                                        max_like_niter=0,
                                                        force_best=test_options["force_best"],
                                                        force_thresh=force_thresh,
-                                                       verbose=False)
+                                                       verbose=True)
 
                 print("-------------------------------------------------------")
                 # for p in _param_dict:
@@ -5899,16 +5899,18 @@ def max_likelihood(param_dict,
             if (accepted==1):
                 accepted_count+=1
                 
-            if (accepted==1) and (accepted_count>2) and (rmse<=accepted_rmse):
+            if (accepted_count>2) and (rmse<=accepted_rmse): # (accepted==1) and
                 accepted_rmse = rmse
 
-            if (accepted==1) and (accepted_count>2):
+            # if (accepted==1) and (accepted_count>2):
+            # if 1:
+            if ((rmse<=force_thresh) or ((rmse-stats.median_abs_deviation(rmse_arr))<=force_thresh)) and (accepted_count>1):
                 rmse_arr.append(rmse)
 
             rmse_mad = stats.median_abs_deviation(rmse_arr,nan_policy="omit")
             rmse_std = np.nanstd(rmse_arr)
 
-            if ((basinhop_count)>=25) and (accepted_rmse<force_thresh) and (accepted_count>5): # 
+            if ((basinhop_count)>=25) and (accepted_rmse<force_thresh) and (accepted_count>1): # 
                 print(" Fit Status: True")
                 print(" Force threshold: %0.2f" % force_thresh)
                 print(" Lowest RMSE: %0.2f" % accepted_rmse)
@@ -5947,7 +5949,7 @@ def max_likelihood(param_dict,
                              x0 = params,
                              # T = 0.0,
                              stepsize=100.0,
-                             interval=2,
+                             # interval=90,
                              niter = 1000, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
