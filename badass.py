@@ -5861,9 +5861,10 @@ def max_likelihood(param_dict,
     # basinhop_value = np.inf
 
     if force_best:
-        n_basinhop = 10000
+        # n_basinhop = 10000
 
         # global basinhop_value, basinhop_count
+        accept_thresh  = 1.0 # constant
         basinhop_count = 0
         accepted_count = 0
         basinhop_value = np.inf
@@ -5874,7 +5875,7 @@ def max_likelihood(param_dict,
         # if force_best=True;
         # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
         def callback_ftn(x,f, accepted):
-            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count, rmse_arr
+            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count, accept_thresh, rmse_arr
             print(basinhop_value,basinhop_count)
             print("at minimum %.4f accepted %d" % (f, int(accepted)))
             
@@ -5891,26 +5892,25 @@ def max_likelihood(param_dict,
                                       stel_templates,blob_pars,disp_res,fit_mask,velscale,run_dir,"init",
                                       fit_stat,True)
             rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(current_comps["DATA"]),copy.deepcopy(current_comps["MODEL"]))
-            # print(rmse)
-            # print("\n")
+
             # if accepted (lowest_f), update accepted_rmse:
             # also update number of accepted solututions (accepted count) to ensure
             # that a viable solution was actually found.
             if (accepted==1):
                 accepted_count+=1
                 
-            if (accepted_count>2) and (rmse<=accepted_rmse): # (accepted==1) and
+            if (accepted_count>1) and (rmse<=accepted_rmse): # (accepted==1) and
                 accepted_rmse = rmse
 
             # if (accepted==1) and (accepted_count>2):
             # if 1:
-            if ((rmse<=force_thresh) or ((rmse-stats.median_abs_deviation(rmse_arr))<=force_thresh)) and (accepted_count>1):
+            if ((rmse<=force_thresh) or ((rmse-accept_thresh)<=force_thresh)) and (accepted_count>1):
                 rmse_arr.append(rmse)
 
             rmse_mad = stats.median_abs_deviation(rmse_arr,nan_policy="omit")
             rmse_std = np.nanstd(rmse_arr)
 
-            if ((basinhop_count)>=25) and (accepted_rmse<force_thresh) and (accepted_count>1): # 
+            if ((basinhop_count)>=n_basinhop) and (accepted_rmse<force_thresh) and (accepted_count>1): # 
                 print(" Fit Status: True")
                 print(" Force threshold: %0.2f" % force_thresh)
                 print(" Lowest RMSE: %0.2f" % accepted_rmse)
