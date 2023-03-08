@@ -260,7 +260,15 @@ def check_test_options(input,verbose=False):
 						],
 				 "default" : True,
 				 "error_message" : "\n plot_tests must be either True or False.\n",
-				},		
+				},
+	"conv_mode" : {
+					 "conds" : [
+								 lambda x: isinstance(x,(str)),
+								 lambda x: x in ["any","all"]
+							],
+					 "default" : "any",
+					 "error_message" : "\n conv_mode must be either 'any' or 'all'.\n",
+					},		
 	"auto_stop" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(bool)),

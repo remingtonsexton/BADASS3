@@ -12,7 +12,7 @@ as autocorrelation analysis to access parameter chain convergence.
 
 import numpy as np
 from numpy.polynomial import hermite
-from numpy import linspace, meshgrid
+from numpy import linspace, meshgrid 
 import scipy.optimize as op
 import pandas as pd
 import numexpr as ne
@@ -4914,18 +4914,24 @@ def line_test(param_dict,
                 # print(target_metrics)
                 # print(current_metrics)
                 # print(checked_metrics)
+                if test_options["conv_mode"]=="any":
+                    if np.any(checked_metrics):
+                        if verbose:
+                            print("\n Target metric (any) achieved for %s line test . \n" % (line))
+                        break
 
-                if np.all(checked_metrics):
-                    if verbose:
-                        print("\n All target metrics achieved for %s line test. \n" % (line))
-                    break
+                if test_options["conv_mode"]=="all":
+                    if np.all(checked_metrics):
+                        if verbose:
+                            print("\n All target metrics achieved for %s line test. \n" % (line))
+                        break
                 if (n==max_ncomp) and (np.any(checked_metrics)==False):
                     if verbose:
                         print("\n Reached end of testing for %s and have not reached thresholds.\n" % (line))
 
             
 
-
+    # sys.exit()
 
 
     
@@ -4960,19 +4966,32 @@ def line_test(param_dict,
                     target_metrics[metric] = test_options["thresholds"][m]
     
             checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics)
-            # print(test,i,len(res["TEST"])-1)
-            # print("\t",target_metrics)
-            # print("\t",current_metrics)
-            # print("\t",checked_metrics)
-            if np.all(checked_metrics) and (i==0):
-                break
-            elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
-                max_ncomp = res["NCOMP_B"][i]
-    #             print(max_ncomp)
-                for line in line_list:
-                    if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
-                        new_line_list[line] = line_list[line]
-                break
+            print(test,i,len(res["TEST"])-1)
+            print("\t",target_metrics)
+            print("\t",current_metrics)
+            print("\t",checked_metrics)
+
+            if test_options["conv_mode"]=="any":
+                if np.any(checked_metrics) and (i==0):
+                    break
+                elif np.any(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
+                    max_ncomp = res["NCOMP_B"][i]
+    #               print(max_ncomp)
+                    for line in line_list:
+                        if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                            new_line_list[line] = line_list[line]
+                    break
+            elif test_options["conv_mode"]=="all":
+                if np.all(checked_metrics) and (i==0):
+                    break
+            
+                elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
+                    max_ncomp = res["NCOMP_B"][i]
+    #               print(max_ncomp)
+                    for line in line_list:
+                        if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                            new_line_list[line] = line_list[line]
+                    break
 
             elif (i==len(res["TEST"])-1):
                 max_ncomp = res["NCOMP_B"][i]
@@ -4987,7 +5006,9 @@ def line_test(param_dict,
     print("\n")
     print("Test Results:")
     for t in test_results:
-        print(t,test_results[t])
+        print(t)
+        for res in test_results[t]:
+            print("\t",res)
 
     # Now check AON if it is a test statistic
     remove_aon = []
@@ -5861,10 +5882,9 @@ def max_likelihood(param_dict,
     # basinhop_value = np.inf
 
     if force_best:
-        # n_basinhop = 10000
+        # n_basinhop = 100
 
         # global basinhop_value, basinhop_count
-        accept_thresh  = 1.0 # constant
         basinhop_count = 0
         accepted_count = 0
         basinhop_value = np.inf
@@ -5875,7 +5895,7 @@ def max_likelihood(param_dict,
         # if force_best=True;
         # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
         def callback_ftn(x,f, accepted):
-            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count, accept_thresh, rmse_arr
+            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count, rmse_arr
             print(basinhop_value,basinhop_count)
             print("at minimum %.4f accepted %d" % (f, int(accepted)))
             
@@ -5884,6 +5904,8 @@ def max_likelihood(param_dict,
                 basinhop_count=0 # reset counter
             elif f>basinhop_value:
                 basinhop_count+=1
+            if (accepted==1):
+                accepted_count+=1
 
             current_comps = fit_model(x,param_names,line_list,combined_line_list,lam_gal,galaxy,noise,
                                       comp_options,losvd_options,host_options,power_options,poly_options,
@@ -5896,27 +5918,39 @@ def max_likelihood(param_dict,
             # if accepted (lowest_f), update accepted_rmse:
             # also update number of accepted solututions (accepted count) to ensure
             # that a viable solution was actually found.
-            if (accepted==1):
-                accepted_count+=1
-                
-            if (accepted_count>1) and (rmse<=accepted_rmse): # (accepted==1) and
-                accepted_rmse = rmse
-
-            # if (accepted==1) and (accepted_count>2):
-            # if 1:
-            if ((rmse<=force_thresh) or ((rmse-accept_thresh)<=force_thresh)) and (accepted_count>1):
-                rmse_arr.append(rmse)
-
             rmse_mad = stats.median_abs_deviation(rmse_arr,nan_policy="omit")
             rmse_std = np.nanstd(rmse_arr)
 
-            if ((basinhop_count)>=n_basinhop) and (accepted_rmse<force_thresh) and (accepted_count>1): # 
+            # Define an acceptance threshold as the median abs. deviation of the current RMSE array,
+            # and use a default value of 1.0 until it can be calculated reliably (len(rmse_arr)>5)
+            if len(rmse_arr)>=5:
+                accept_thresh = rmse_mad
+            else:
+                accept_thresh = 1.0
+            
+            # Best/lowest achieved RMSE
+            if (accepted_count>1) and (rmse<=accepted_rmse): # (accepted==1) and
+                accepted_rmse = rmse
+
+            # If RMSE is less than the goal threshold within the tolerance of the acceptance threshold, add it to the array
+            if ((rmse<=force_thresh) or ((rmse-accept_thresh)<=force_thresh)) and (accepted_count>1):
+                rmse_arr.append(rmse)
+
+            
+
+            # if ((basinhop_count)>=n_basinhop) and (accepted_rmse<force_thresh) and (accepted_count>1): # 
+
+            # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
+            # median within the median abs. deviation, terminate.
+            if ((basinhop_count)>=n_basinhop) and (accepted_rmse<(np.nanmedian(rmse_arr)+rmse_mad)) and (accepted_count>1): # 
+
                 print(" Fit Status: True")
                 print(" Force threshold: %0.2f" % force_thresh)
                 print(" Lowest RMSE: %0.2f" % accepted_rmse)
                 print(" Current RMSE: %0.2f" % rmse)
                 print(" RMSE MAD: %0.2f" % rmse_mad)
                 print(" RMSE STD: %0.2f" % rmse_std)
+                print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
                 print(" Accepted count: %d" % accepted_count)
                 print(" Basinhop count: %d" % basinhop_count)
                 print("\n")
@@ -5932,6 +5966,7 @@ def max_likelihood(param_dict,
                 print(" Current RMSE: %0.2f" % rmse)
                 print(" RMSE MAD: %0.2f" % rmse_mad)
                 print(" RMSE STD: %0.2f" % rmse_std)
+                print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
                 print(" Accepted count: %d" % accepted_count)
                 print(" Basinhop count: %d" % basinhop_count)
                 print("\n")
