@@ -2824,22 +2824,22 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                 print('	 		* varying optical FeII dispersion.')
             # Narrow FeII DISP
             par_input['NA_OPT_FEII_DISP'] = ({'init'  :10.0,
-                                              'plim'  :(0.1,250.0),
+                                              'plim'  :(0.1,500.0),
                                              })
             # Broad FeII DISP
             par_input['BR_OPT_FEII_DISP'] = ({'init'  :500.0,
-                                              'plim'  :(100.0,5000.0),
+                                              'plim'  :(500.0,5000.0),
                                              })
         if (opt_feii_options['opt_voff_const']['bool']==False):
             if verbose:
                 print('	 		* varying optical FeII voff')
             # Narrow FeII VOFF
             par_input['NA_OPT_FEII_VOFF'] = ({'init'  :0.0,
-                                                   'plim'  :(-1000.0,1000.0),
+                                                   'plim'  :(-500.0,500.0),
                                              })
             # Broad FeII VOFF
             par_input['BR_OPT_FEII_VOFF'] = ({'init'  :0.0,
-                                                   'plim'  :(-2000.0,2000.0),
+                                                   'plim'  :(-500.0,500.0),
                                              })
     elif (fit_opt_feii==True) & (opt_feii_options['opt_template']['type']=='K10'):
         if verbose:
@@ -2874,7 +2874,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
         if (opt_feii_options['opt_voff_const']['bool']==False):
             # Narrow FeII amplitude
             par_input['OPT_FEII_VOFF'] = ({'init'  :0.0,
-                                           'plim'  :(-1000.0,1000.0),
+                                           'plim'  :(-500.0,500.0),
                                           })
         if (opt_feii_options['opt_temp_const']['bool']==False):
             par_input['OPT_FEII_TEMP'] = ({'init'  :10000.0,
@@ -2909,7 +2909,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                 print('	 		* varying UV iron voff')
             # Narrow FeII VOFF
             par_input['UV_IRON_VOFF'] = ({'init'  :0.0,
-                                          'plim'  :(-2000.0,2000.0),
+                                          'plim'  :(-1000.0,1000.0),
                                              })
 
 
