@@ -5003,12 +5003,17 @@ def line_test(param_dict,
     print("New Line List:")
     for line in new_line_list:
         print(line)
+
     print("\n")
+
     print("Test Results:")
-    for t in test_results:
-        print(t)
-        for res in test_results[t]:
-            print("\t",res)
+    # for t in test_results:
+    #     print(t)
+        # for res in test_results[t]:
+        #     print("\t",res)
+    for i in range(5):
+        print("\t",test_results["ANOVA"][i],",",test_results["AON"][i],",",test_results["BADASS"][i],",",test_results["CHI2_RATIO"][i],",",test_results["F_RATIO"][i],",",test_results["SSR_RATIO"][i])
+
 
     # Now check AON if it is a test statistic
     remove_aon = []
@@ -5042,7 +5047,8 @@ def line_test(param_dict,
 
     
 
-    sys.exit(0)
+    # sys.exit(0)
+    return
 
     
 
