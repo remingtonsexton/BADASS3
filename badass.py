@@ -4846,6 +4846,8 @@ def line_test(param_dict,
             plt.suptitle("%s test: NCOMP %d versus NCOMP %d Residuals" % (line,fit_A_ncomp,fit_B_ncomp))
             plt.tight_layout()
 
+            # sys.exit(0)
+
             # Begin adding statistics to test_results
 
             # Perform Bayesian A/B test
@@ -5888,20 +5890,20 @@ def max_likelihood(param_dict,
     # basinhop_value = np.inf
 
     if force_best:
-        # n_basinhop = 100
+        # n_basinhop = 1000
 
         # global basinhop_value, basinhop_count
         basinhop_count = 0
         accepted_count = 0
         basinhop_value = np.inf
-        accepted_rmse  = np.inf
+        lowest_rmse  = force_thresh
         rmse_arr = []
 
         # Define a callback function for forcing a better fit to the B model 
         # if force_best=True;
         # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
         def callback_ftn(x,f, accepted):
-            nonlocal basinhop_value, basinhop_count, accepted_rmse, accepted_count, rmse_arr
+            nonlocal basinhop_value, basinhop_count, lowest_rmse, accepted_count, rmse_arr
             print(basinhop_value,basinhop_count)
             print("at minimum %.4f accepted %d" % (f, int(accepted)))
             
@@ -5927,6 +5929,17 @@ def max_likelihood(param_dict,
             rmse_mad = stats.median_abs_deviation(rmse_arr,nan_policy="omit")
             rmse_std = np.nanstd(rmse_arr)
 
+            # Reset rmse if the difference between the current lowest and current rmse is greater than the standard deviation
+            sigma_reset = 3.0
+            print("\n New Thresholds: %0.2f, %0.2f \n" % ((lowest_rmse/rmse),(sigma_reset*rmse_std)) )
+            # try:
+            if 1:
+                if (len(rmse_arr)>=2) and ((lowest_rmse/rmse)>(sigma_reset*rmse_std)):
+                    rmse_arr=[]
+            # except: 
+            #     pass
+
+
             # Define an acceptance threshold as the median abs. deviation of the current RMSE array,
             # and use a default value of 1.0 until it can be calculated reliably (len(rmse_arr)>5)
             if len(rmse_arr)>=5:
@@ -5935,24 +5948,50 @@ def max_likelihood(param_dict,
                 accept_thresh = 1.0
             
             # Best/lowest achieved RMSE
-            if (accepted_count>1) and (rmse<=accepted_rmse): # (accepted==1) and
-                accepted_rmse = rmse
+            if (rmse<=force_thresh) and (rmse<=lowest_rmse): # (accepted==1) and (accepted_count>1) and 
+                lowest_rmse = rmse
 
             # If RMSE is less than the goal threshold within the tolerance of the acceptance threshold, add it to the array
-            if ((rmse<=force_thresh) or ((rmse-accept_thresh)<=force_thresh)) and (accepted_count>1):
+            # if ((rmse<=force_thresh) or ((rmse-accept_thresh)<=force_thresh)) : # and (accepted_count>1)
+            # if (rmse-accept_thresh)<=force_thresh: # and (accepted_count>1)
+            if (rmse-accept_thresh)<=lowest_rmse: # and (accepted_count>1)
                 rmse_arr.append(rmse)
+            else:
+                rmse_arr.append(lowest_rmse+np.random.uniform())
 
-            
+            # try:
+            #     tau = np.nanmedian(integrated_time(np.array([rmse_arr]),c=5))
+            # except IndexError:
+            #     tau=np.inf
 
             # if ((basinhop_count)>=n_basinhop) and (accepted_rmse<force_thresh) and (accepted_count>1): # 
 
             # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
             # median within the median abs. deviation, terminate.
-            if ((basinhop_count)>=n_basinhop) and (accepted_rmse<(np.nanmedian(rmse_arr)+rmse_mad)) and (accepted_count>1): # 
+            if (basinhop_count>=n_basinhop) and (((lowest_rmse-rmse_mad)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
 
                 print(" Fit Status: True")
                 print(" Force threshold: %0.2f" % force_thresh)
-                print(" Lowest RMSE: %0.2f" % accepted_rmse)
+                print(" Lowest RMSE: %0.2f" % lowest_rmse)
+                print(" Current RMSE: %0.2f" % rmse)
+                print(" RMSE MAD: %0.2f" % rmse_mad)
+                print(" RMSE STD: %0.2f" % rmse_std)
+                print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
+                print(" Accepted count: %d" % accepted_count)
+                print(" Basinhop count: %d" % basinhop_count)
+                print("\n")
+                print(" rmse array:")
+                print(rmse_arr)
+                print(len(rmse_arr))
+                print("\n")
+                # print(" tau:%s" % tau)
+                # print("\n")
+                return True 
+                
+            else:
+                print(" Fit Status: False")
+                print(" Force threshold: %0.2f" % force_thresh)
+                print(" Lowest RMSE: %0.2f" % lowest_rmse)
                 print(" Current RMSE: %0.2f" % rmse)
                 print(" RMSE MAD: %0.2f" % rmse_mad)
                 print(" RMSE STD: %0.2f" % rmse_std)
@@ -5962,21 +6001,10 @@ def max_likelihood(param_dict,
                 print("\n")
                 print("rmse array:")
                 print(rmse_arr)
+                print(len(rmse_arr))
                 print("\n")
-                return True 
-                
-            else:
-                print(" Fit Status: False")
-                print(" Force threshold: %0.2f" % force_thresh)
-                print(" Lowest RMSE: %0.2f" % accepted_rmse)
-                print(" Current RMSE: %0.2f" % rmse)
-                print(" RMSE MAD: %0.2f" % rmse_mad)
-                print(" RMSE STD: %0.2f" % rmse_std)
-                print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
-                print(" Accepted count: %d" % accepted_count)
-                print(" Basinhop count: %d" % basinhop_count)
-                print("\n")
-                print("\n")
+                # print(" tau:%s" % tau)
+                # print("\n")
                 return False 
                 
 
@@ -6032,7 +6060,7 @@ def max_likelihood(param_dict,
                                niter_success=n_basinhop, # Max # of successive search iterations
                                callback=callback_ftn,
                                )
-    #
+    
     # Get elapsed time
     elap_time = (time.time() - start_time)
 
@@ -9768,6 +9796,60 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
 # Autocorrelation analysis 
 ##################################################################################
 
+def autocorr_func(c_x):
+    """"""
+    acf = []
+    for p in range(0,np.shape(c_x)[1],1):
+        x = c_x[:,p]
+        # Subtract mean value
+        rms_x = np.median(x)
+        x = x - rms_x
+        cc = np.correlate(x,x,mode='full')
+        cc = cc[cc.size // 2:]
+        cc = cc/np.max(cc)
+        acf.append(cc)
+    # Flip the array 
+    acf = np.swapaxes(acf,1,0)
+    return acf
+        
+def auto_window(taus, c):
+    """
+    (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
+    """
+    m = np.arange(len(taus)) < c * taus
+    if np.any(m):
+        return np.argmin(m)
+    return len(taus) - 1
+
+def integrated_time(acf, c=5, tol=0):
+    """Estimate the integrated autocorrelation time of a time series.
+    This estimate uses the iterative procedure described on page 16 of
+    `Sokal's notes <http://www.stat.unc.edu/faculty/cji/Sokal.pdf>`_ to
+    determine a reasonable window size.
+    Args:
+        acf: The time series. If multidimensional, set the time axis using the
+            ``axis`` keyword argument and the function will be computed for
+            every other axis.
+        c (Optional[float]): The step size for the window search. (default:
+            ``5``)
+        tol (Optional[float]): The minimum number of autocorrelation times
+            needed to trust the estimate. (default: ``0``)
+    Returns:
+        float or array: An estimate of the integrated autocorrelation time of
+            the time series ``x`` computed along the axis ``axis``.
+    (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
+    """
+    tau_est = np.empty(np.shape(acf)[1])
+    windows = np.empty(np.shape(acf)[1], dtype=int)
+
+    # Loop over parameters
+    for p in range(0,np.shape(acf)[1],1):
+        taus = 2.0*np.cumsum(acf[:,p])-1.0
+        windows[p] = auto_window(taus, c)
+        tau_est[p] = taus[windows[p]]
+
+    return tau_est
+
 def autocorr_convergence(emcee_chain,param_names,plot=False):
     """
     My own recipe for convergence.
@@ -9781,65 +9863,67 @@ def autocorr_convergence(emcee_chain,param_names,plot=False):
     sampler_chain = np.swapaxes(sampler_chain,1,0) 
     sampler_chain = np.swapaxes(sampler_chain,2,1)
 
+    #####################################################################
+    # def autocorr_func(c_x):
+    #     """"""
+    #     acf = []
+    #     for p in range(0,np.shape(c_x)[1],1):
+    #         x = c_x[:,p]
+    #         # Subtract mean value
+    #         rms_x = np.median(x)
+    #         x = x - rms_x
+    #         cc = np.correlate(x,x,mode='full')
+    #         cc = cc[cc.size // 2:]
+    #         cc = cc/np.max(cc)
+    #         acf.append(cc)
+    #     # Flip the array 
+    #     acf = np.swapaxes(acf,1,0)
+    #     return acf
+            
+    # def auto_window(taus, c):
+    #     """
+    #     (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
+    #     """
+    #     m = np.arange(len(taus)) < c * taus
+    #     if np.any(m):
+    #         return np.argmin(m)
+    #     return len(taus) - 1
+    
+    # def integrated_time(acf, c=5, tol=0):
+    #     """Estimate the integrated autocorrelation time of a time series.
+    #     This estimate uses the iterative procedure described on page 16 of
+    #     `Sokal's notes <http://www.stat.unc.edu/faculty/cji/Sokal.pdf>`_ to
+    #     determine a reasonable window size.
+    #     Args:
+    #         acf: The time series. If multidimensional, set the time axis using the
+    #             ``axis`` keyword argument and the function will be computed for
+    #             every other axis.
+    #         c (Optional[float]): The step size for the window search. (default:
+    #             ``5``)
+    #         tol (Optional[float]): The minimum number of autocorrelation times
+    #             needed to trust the estimate. (default: ``0``)
+    #     Returns:
+    #         float or array: An estimate of the integrated autocorrelation time of
+    #             the time series ``x`` computed along the axis ``axis``.
+    #     (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
+    #     """
+    #     tau_est = np.empty(np.shape(acf)[1])
+    #     windows = np.empty(np.shape(acf)[1], dtype=int)
 
+    #     # Loop over parameters
+    #     for p in range(0,np.shape(acf)[1],1):
+    #         taus = 2.0*np.cumsum(acf[:,p])-1.0
+    #         windows[p] = auto_window(taus, c)
+    #         tau_est[p] = taus[windows[p]]
+
+    #     return tau_est
+    #####################################################################
         
     nwalker = np.shape(sampler_chain)[0] # Number of walkers
     niter   = np.shape(sampler_chain)[1] # Number of iterations
     npar	= np.shape(sampler_chain)[2] # Number of parameters
         
-    def autocorr_func(c_x):
-        """"""
-        acf = []
-        for p in range(0,np.shape(c_x)[1],1):
-            x = c_x[:,p]
-            # Subtract mean value
-            rms_x = np.median(x)
-            x = x - rms_x
-            cc = np.correlate(x,x,mode='full')
-            cc = cc[cc.size // 2:]
-            cc = cc/np.max(cc)
-            acf.append(cc)
-        # Flip the array 
-        acf = np.swapaxes(acf,1,0)
-        return acf
-            
-    def auto_window(taus, c):
-        """
-        (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
-        """
-        m = np.arange(len(taus)) < c * taus
-        if np.any(m):
-            return np.argmin(m)
-        return len(taus) - 1
-    
-    def integrated_time(acf, c=5, tol=0):
-        """Estimate the integrated autocorrelation time of a time series.
-        This estimate uses the iterative procedure described on page 16 of
-        `Sokal's notes <http://www.stat.unc.edu/faculty/cji/Sokal.pdf>`_ to
-        determine a reasonable window size.
-        Args:
-            acf: The time series. If multidimensional, set the time axis using the
-                ``axis`` keyword argument and the function will be computed for
-                every other axis.
-            c (Optional[float]): The step size for the window search. (default:
-                ``5``)
-            tol (Optional[float]): The minimum number of autocorrelation times
-                needed to trust the estimate. (default: ``0``)
-        Returns:
-            float or array: An estimate of the integrated autocorrelation time of
-                the time series ``x`` computed along the axis ``axis``.
-        (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
-        """
-        tau_est = np.empty(np.shape(acf)[1])
-        windows = np.empty(np.shape(acf)[1], dtype=int)
 
-        # Loop over parameters
-        for p in range(0,np.shape(acf)[1],1):
-            taus = 2.0*np.cumsum(acf[:,p])-1.0
-            windows[p] = auto_window(taus, c)
-            tau_est[p] = taus[windows[p]]
-
-        return tau_est
 
     c_x = np.mean(sampler_chain[:,:,:],axis=0)
     
