@@ -5890,13 +5890,16 @@ def max_likelihood(param_dict,
     # basinhop_value = np.inf
 
     if force_best:
-        # n_basinhop = 1000
+        force_basinhop = copy.deepcopy(n_basinhop)
+        n_basinhop = 1000
+
+        print(force_basinhop,n_basinhop)
 
         # global basinhop_value, basinhop_count
         basinhop_count = 0
         accepted_count = 0
         basinhop_value = np.inf
-        lowest_rmse  = force_thresh
+        lowest_rmse  = np.inf
         rmse_arr = []
 
         # Define a callback function for forcing a better fit to the B model 
@@ -5930,12 +5933,12 @@ def max_likelihood(param_dict,
             rmse_std = np.nanstd(rmse_arr)
 
             # Reset rmse if the difference between the current lowest and current rmse is greater than the standard deviation
-            sigma_reset = 3.0
-            print("\n New Thresholds: %0.2f, %0.2f \n" % ((lowest_rmse/rmse),(sigma_reset*rmse_std)) )
-            # try:
-            if 1:
-                if (len(rmse_arr)>=2) and ((lowest_rmse/rmse)>(sigma_reset*rmse_std)):
-                    rmse_arr=[]
+            # sigma_reset = 3.0
+            # print("\n New Thresholds: %0.2f, %0.2f \n" % ((lowest_rmse/rmse),(sigma_reset*rmse_std)) )
+            # # try:
+            # if 1:
+            #     if (len(rmse_arr)>=2) and ((lowest_rmse/rmse)>(sigma_reset*rmse_std)):
+            #         rmse_arr=[]
             # except: 
             #     pass
 
@@ -5948,7 +5951,7 @@ def max_likelihood(param_dict,
                 accept_thresh = 1.0
             
             # Best/lowest achieved RMSE
-            if (rmse<=force_thresh) and (rmse<=lowest_rmse): # (accepted==1) and (accepted_count>1) and 
+            if (rmse<=lowest_rmse): #(rmse<=force_thresh) and  (accepted==1) and (accepted_count>1) and 
                 lowest_rmse = rmse
 
             # If RMSE is less than the goal threshold within the tolerance of the acceptance threshold, add it to the array
@@ -5968,7 +5971,7 @@ def max_likelihood(param_dict,
 
             # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
             # median within the median abs. deviation, terminate.
-            if (basinhop_count>=n_basinhop) and (((lowest_rmse-rmse_mad)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
+            if (basinhop_count>=force_basinhop) and (((lowest_rmse-rmse_mad)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
 
                 print(" Fit Status: True")
                 print(" Force threshold: %0.2f" % force_thresh)
@@ -5980,10 +5983,10 @@ def max_likelihood(param_dict,
                 print(" Accepted count: %d" % accepted_count)
                 print(" Basinhop count: %d" % basinhop_count)
                 print("\n")
-                print(" rmse array:")
-                print(rmse_arr)
-                print(len(rmse_arr))
-                print("\n")
+                # print(" rmse array:")
+                # print(rmse_arr)
+                # print(len(rmse_arr))
+                # print("\n")
                 # print(" tau:%s" % tau)
                 # print("\n")
                 return True 
@@ -5999,10 +6002,10 @@ def max_likelihood(param_dict,
                 print(" Accepted count: %d" % accepted_count)
                 print(" Basinhop count: %d" % basinhop_count)
                 print("\n")
-                print("rmse array:")
-                print(rmse_arr)
-                print(len(rmse_arr))
-                print("\n")
+                # print("rmse array:")
+                # print(rmse_arr)
+                # print(len(rmse_arr))
+                # print("\n")
                 # print(" tau:%s" % tau)
                 # print("\n")
                 return False 
