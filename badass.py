@@ -5932,17 +5932,6 @@ def max_likelihood(param_dict,
             rmse_mad = stats.median_abs_deviation(rmse_arr,nan_policy="omit")
             rmse_std = np.nanstd(rmse_arr)
 
-            # Reset rmse if the difference between the current lowest and current rmse is greater than the standard deviation
-            # sigma_reset = 3.0
-            # print("\n New Thresholds: %0.2f, %0.2f \n" % ((lowest_rmse/rmse),(sigma_reset*rmse_std)) )
-            # # try:
-            # if 1:
-            #     if (len(rmse_arr)>=2) and ((lowest_rmse/rmse)>(sigma_reset*rmse_std)):
-            #         rmse_arr=[]
-            # except: 
-            #     pass
-
-
             # Define an acceptance threshold as the median abs. deviation of the current RMSE array,
             # and use a default value of 1.0 until it can be calculated reliably (len(rmse_arr)>5)
             if len(rmse_arr)>=5:
@@ -5961,13 +5950,6 @@ def max_likelihood(param_dict,
                 rmse_arr.append(rmse)
             else:
                 rmse_arr.append(lowest_rmse+np.random.uniform())
-
-            # try:
-            #     tau = np.nanmedian(integrated_time(np.array([rmse_arr]),c=5))
-            # except IndexError:
-            #     tau=np.inf
-
-            # if ((basinhop_count)>=n_basinhop) and (accepted_rmse<force_thresh) and (accepted_count>1): # 
 
             # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
             # median within the median abs. deviation, terminate.
