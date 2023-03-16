@@ -6002,7 +6002,7 @@ def max_likelihood(param_dict,
     result = op.basinhopping(func = nll, 
                              x0 = params,
                              # T = 0.0,
-                             stepsize=100.0,
+                             stepsize=1.0,
                              # interval=90,
                              niter = 1000, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
@@ -6040,7 +6040,7 @@ def max_likelihood(param_dict,
                                                         ),
                               # 'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
                               "method":"Nelder-Mead","bounds":param_bounds,
-                              "options":{"disp":False}},
+                              "options":{"disp":False,}},# "adaptive":True, }},
                                disp=verbose,
                                niter_success=n_basinhop, # Max # of successive search iterations
                                callback=callback_ftn,
