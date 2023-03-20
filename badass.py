@@ -4579,8 +4579,8 @@ def line_test(param_dict,
                                                        max_like_niter=0,
                                                        verbose=False)
 
-                print("-------------------------------------------------------")
-                print("\n")
+                # print("-------------------------------------------------------")
+                # print("\n")
                 # Print out fitted parameters
                 # for p in _param_dict:
                 #     print(p)
@@ -4602,30 +4602,30 @@ def line_test(param_dict,
                 # Print out soft cons
                 # for s in _soft_cons:
                 #     print(s)
-                print("\n")
+                # print("\n")
                 # Calculate R-Squared statistic of best fit
-                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                print(" R-Squared = %0.4f" % r2)
+                # r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                # print(" R-Squared = %0.4f" % r2)
 
 
-                print("\n")
-                # Calculate rCHI2 statistic of best fit
-                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
-                print(" reduced Chi-Squared = %0.4f" % rchi2)
+                # print("\n")
+                # # Calculate rCHI2 statistic of best fit
+                # rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
+                # print(" reduced Chi-Squared = %0.4f" % rchi2)
 
-                print("\n")
-                # Calculate RMSE statistic of best fit
-                rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                print(" Root Mean Squared Error = %0.4f" % rmse)
+                # print("\n")
+                # # Calculate RMSE statistic of best fit
+                # rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                # print(" Root Mean Squared Error = %0.4f" % rmse)
 
-                print("\n")
-                # Calculate MAE statistic of best fit
-                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                print(" Mean Absolute Error = %0.4f" % mae)
+                # print("\n")
+                # # Calculate MAE statistic of best fit
+                # mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                # print(" Mean Absolute Error = %0.4f" % mae)
 
-                print("\n")
+                # print("\n")
 
-                print("-------------------------------------------------------")
+                # print("-------------------------------------------------------")
                 
                 # Plot for testing
                 fig = plt.figure(figsize=(10,6))
@@ -4706,12 +4706,12 @@ def line_test(param_dict,
                 else: force_thresh=np.inf
 
 
-                print("\n")
-                for l in _line_list:
-                    print(l)
-                    for hpar in _line_list[l]:
-                        print("\t",hpar,"=",_line_list[l][hpar])
-                print("\n")
+                # print("\n")
+                # for l in _line_list:
+                #     print(l)
+                #     for hpar in _line_list[l]:
+                #         print("\t",hpar,"=",_line_list[l][hpar])
+                # print("\n")
 
                 mcpars, mccomps, mcLL = max_likelihood(_param_dict,
                                                        _line_list,
@@ -4750,9 +4750,9 @@ def line_test(param_dict,
                                                        max_like_niter=0,
                                                        force_best=test_options["force_best"],
                                                        force_thresh=force_thresh,
-                                                       verbose=True)
+                                                       verbose=False)
 
-                print("-------------------------------------------------------")
+                # print("-------------------------------------------------------")
                 # for p in _param_dict:
                 #     print(p)
                 #     for hpar in _param_dict[p]:
@@ -4772,29 +4772,29 @@ def line_test(param_dict,
                 # for s in _soft_cons:
                 #     print(s)
 
-                print("\n")
+                # print("\n")
                 # Calculate R-Squared statistic of best fit
-                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                print(" R-Squared = %0.4f" % r2)
+                # r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                # print(" R-Squared = %0.4f" % r2)
 
 
-                print("\n")
-                # Calculate rCHI2 statistic of best fit
-                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
-                print(" reduced Chi-Squared = %0.4f" % rchi2)
+                # print("\n")
+                # # Calculate rCHI2 statistic of best fit
+                # rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
+                # print(" reduced Chi-Squared = %0.4f" % rchi2)
 
-                print("\n")
-                # Calculate RMSE statistic of best fit
-                rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                print(" Root Mean Squared Error = %0.4f" % rmse)
+                # print("\n")
+                # # Calculate RMSE statistic of best fit
+                # rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                # print(" Root Mean Squared Error = %0.4f" % rmse)
 
-                print("\n")
-                # Calculate MAE statistic of best fit
-                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                print(" Mean Absolute Error = %0.4f" % mae)
+                # print("\n")
+                # # Calculate MAE statistic of best fit
+                # mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                # print(" Mean Absolute Error = %0.4f" % mae)
 
-                print("\n")
-                print("-------------------------------------------------------")
+                # print("\n")
+                # print("-------------------------------------------------------")
                 
                 
 
@@ -4931,11 +4931,6 @@ def line_test(param_dict,
                     if verbose:
                         print("\n Reached end of testing for %s and have not reached thresholds.\n" % (line))
 
-            
-
-    # sys.exit()
-
-
     
     # Testing should've concluded at this stage; so now we need to check the results and determine the best line list
     new_line_list = {}
@@ -4959,6 +4954,7 @@ def line_test(param_dict,
     #     for r in res:
     #         print(r,res[r])
         for i in range(len(res["TEST"])):
+            print(i,len(res["TEST"]))
     #         print(res["NCOMP_A"][i],res["NCOMP_B"][i])
             current_metrics = {}
             target_metrics = {}
@@ -4968,52 +4964,75 @@ def line_test(param_dict,
                     target_metrics[metric] = test_options["thresholds"][m]
     
             checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics)
-            print(test,i,len(res["TEST"])-1)
-            print("\t",target_metrics)
-            print("\t",current_metrics)
-            print("\t",checked_metrics)
+            # print(test,i,len(res["TEST"])-1)
+            # print("\t",target_metrics)
+            # print("\t",current_metrics)
+            # print("\t",checked_metrics)
 
             if test_options["conv_mode"]=="any":
+                print("any")
                 if np.any(checked_metrics) and (i==0):
+                    print("any 1")
                     break
+
+
                 elif np.any(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
+                    print("any 2")
                     max_ncomp = res["NCOMP_B"][i]
     #               print(max_ncomp)
                     for line in line_list:
                         if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                            new_line_list[line] = line_list[line]
+                    break
+                # if reached the end and no convergence is met, use max number of components
+                elif (i==len(res["TEST"])-1):
+                    max_ncomp = res["NCOMP_B"][i]
+                    print("max_ncomp: %s" % (res["NCOMP_B"][i]) )
+                    print(test)
+                    for line in line_list:
+                        print(line)
+                        print(line_list[line]["ncomp"])
+                        if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
                             new_line_list[line] = line_list[line]
                     break
             elif test_options["conv_mode"]=="all":
+                print("all")
                 if np.all(checked_metrics) and (i==0):
+                    print("all 1")
                     break
             
                 elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
+                    print("all 2")
                     max_ncomp = res["NCOMP_B"][i]
     #               print(max_ncomp)
                     for line in line_list:
                         if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
                             new_line_list[line] = line_list[line]
                     break
+                # if reached the end and no convergence is met, use max number of components
+                elif (i==len(res["TEST"])-1):
+                    max_ncomp = res["NCOMP_B"][i]
+                    print("max_ncomp: %s" % (res["NCOMP_B"][i]) )
+                    print(test)
+                    for line in line_list:
+                        print(line)
+                        print(line_list[line]["ncomp"])
+                        if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                            new_line_list[line] = line_list[line]
+                    break
+    # print("\n")
+    # print("New Line List:")
+    # for line in new_line_list:
+    #     print(line)
 
-            elif (i==len(res["TEST"])-1):
-                max_ncomp = res["NCOMP_B"][i]
-    #             print(max_ncomp)        
-                for line in line_list:
-                    if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
-                        new_line_list[line] = line_list[line]
-    print("\n")
-    print("New Line List:")
-    for line in new_line_list:
-        print(line)
-
-    print("\n")
+    # print("\n")
 
     print("Test Results:")
     # for t in test_results:
     #     print(t)
         # for res in test_results[t]:
         #     print("\t",res)
-    for i in range(5):
+    for i in range(len(test_results["TEST"])):
         print("\t",test_results["ANOVA"][i],",",test_results["AON"][i],",",test_results["BADASS"][i],",",test_results["CHI2_RATIO"][i],",",test_results["F_RATIO"][i],",",test_results["SSR_RATIO"][i])
 
 
@@ -5021,11 +5040,11 @@ def line_test(param_dict,
     remove_aon = []
     if "AON" in test_options["metrics"]:
         aon_thresh = test_options["thresholds"][test_options["metrics"].index("AON")]
-        print(aon_thresh)
+        # print(aon_thresh)
         for test in test_options["lines"]:
             # Get the NCOMP_0 vs. NCOMP_1 AON
             aon = [test_results["AON"][i] for i,t in enumerate(test_results["TEST"]) if t==test][0]
-            print(aon)
+            # print(aon)
             if aon>=aon_thresh:
                 break
             else:
@@ -5047,16 +5066,7 @@ def line_test(param_dict,
     print("\n")
     
 
-    
-
-    # sys.exit(0)
-    return
-
-    
-
-    
-
-
+    sys.exit()
 
     # Write results to FITS
     write_line_test_results(mcpars_line,comp_dict_line,mcpars_no_line,comp_dict_no_line,fit_mask,run_dir,binnum,spaxelx,spaxely)
@@ -5893,7 +5903,7 @@ def max_likelihood(param_dict,
         force_basinhop = copy.deepcopy(n_basinhop)
         n_basinhop = 1000
 
-        print(force_basinhop,n_basinhop)
+        # print(force_basinhop,n_basinhop)
 
         # global basinhop_value, basinhop_count
         basinhop_count = 0
@@ -5907,8 +5917,8 @@ def max_likelihood(param_dict,
         # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
         def callback_ftn(x,f, accepted):
             nonlocal basinhop_value, basinhop_count, lowest_rmse, accepted_count, rmse_arr
-            print(basinhop_value,basinhop_count)
-            print("at minimum %.4f accepted %d" % (f, int(accepted)))
+            # print(basinhop_value,basinhop_count)
+            # print("at minimum %.4f accepted %d" % (f, int(accepted)))
             
             if f<=basinhop_value:
                 basinhop_value=f 
@@ -5944,8 +5954,6 @@ def max_likelihood(param_dict,
                 lowest_rmse = rmse
 
             # If RMSE is less than the goal threshold within the tolerance of the acceptance threshold, add it to the array
-            # if ((rmse<=force_thresh) or ((rmse-accept_thresh)<=force_thresh)) : # and (accepted_count>1)
-            # if (rmse-accept_thresh)<=force_thresh: # and (accepted_count>1)
             if (rmse-accept_thresh)<=lowest_rmse: # and (accepted_count>1)
                 rmse_arr.append(rmse)
             else:
@@ -5955,41 +5963,31 @@ def max_likelihood(param_dict,
             # median within the median abs. deviation, terminate.
             if (basinhop_count>=force_basinhop) and (((lowest_rmse-rmse_mad)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
 
-                print(" Fit Status: True")
-                print(" Force threshold: %0.2f" % force_thresh)
-                print(" Lowest RMSE: %0.2f" % lowest_rmse)
-                print(" Current RMSE: %0.2f" % rmse)
-                print(" RMSE MAD: %0.2f" % rmse_mad)
-                print(" RMSE STD: %0.2f" % rmse_std)
-                print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
-                print(" Accepted count: %d" % accepted_count)
-                print(" Basinhop count: %d" % basinhop_count)
-                print("\n")
-                # print(" rmse array:")
-                # print(rmse_arr)
-                # print(len(rmse_arr))
+                # print(" Fit Status: True")
+                # print(" Force threshold: %0.2f" % force_thresh)
+                # print(" Lowest RMSE: %0.2f" % lowest_rmse)
+                # print(" Current RMSE: %0.2f" % rmse)
+                # print(" RMSE MAD: %0.2f" % rmse_mad)
+                # print(" RMSE STD: %0.2f" % rmse_std)
+                # print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
+                # print(" Accepted count: %d" % accepted_count)
+                # print(" Basinhop count: %d" % basinhop_count)
                 # print("\n")
-                # print(" tau:%s" % tau)
-                # print("\n")
+
                 return True 
                 
             else:
-                print(" Fit Status: False")
-                print(" Force threshold: %0.2f" % force_thresh)
-                print(" Lowest RMSE: %0.2f" % lowest_rmse)
-                print(" Current RMSE: %0.2f" % rmse)
-                print(" RMSE MAD: %0.2f" % rmse_mad)
-                print(" RMSE STD: %0.2f" % rmse_std)
-                print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
-                print(" Accepted count: %d" % accepted_count)
-                print(" Basinhop count: %d" % basinhop_count)
-                print("\n")
-                # print("rmse array:")
-                # print(rmse_arr)
-                # print(len(rmse_arr))
+                # print(" Fit Status: False")
+                # print(" Force threshold: %0.2f" % force_thresh)
+                # print(" Lowest RMSE: %0.2f" % lowest_rmse)
+                # print(" Current RMSE: %0.2f" % rmse)
+                # print(" RMSE MAD: %0.2f" % rmse_mad)
+                # print(" RMSE STD: %0.2f" % rmse_std)
+                # print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
+                # print(" Accepted count: %d" % accepted_count)
+                # print(" Basinhop count: %d" % basinhop_count)
                 # print("\n")
-                # print(" tau:%s" % tau)
-                # print("\n")
+
                 return False 
                 
 
