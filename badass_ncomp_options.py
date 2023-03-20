@@ -94,19 +94,19 @@ user_lines = {
     
     "NA_H_BETA"      :{"center":4862.691,"amp":"free","disp":"NA_OIII_5007_DISP","voff":"free","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"H$\beta$","ncomp":1,},
     "NA_H_BETA_2"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_2_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_H_BETA"},
-    "NA_H_BETA_3"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_3_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_H_BETA"}, 
+    # "NA_H_BETA_3"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_3_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_H_BETA"}, 
     # "NA_H_BETA_4"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_4_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_H_BETA"}, 
     # "NA_H_BETA_5"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_5_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_H_BETA"}, 
 
     "NA_OIII_4960"   :{"center":4960.295,"amp":"(NA_OIII_5007_AMP/2.98)","disp":"NA_OIII_5007_DISP","voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"[O III]","ncomp":1,},
     "NA_OIII_4960_2" :{"center":4960.295,"amp":"(NA_OIII_5007_2_AMP/2.98)","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_OIII_4960"},
-    "NA_OIII_4960_3" :{"center":4960.295,"amp":"(NA_OIII_5007_3_AMP/2.98)","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_OIII_4960"},
+    # "NA_OIII_4960_3" :{"center":4960.295,"amp":"(NA_OIII_5007_3_AMP/2.98)","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_OIII_4960"},
     # "NA_OIII_4960_4" :{"center":4960.295,"amp":"(NA_OIII_5007_4_AMP/2.98)","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_OIII_4960"},
     # "NA_OIII_4960_5" :{"center":4960.295,"amp":"(NA_OIII_5007_5_AMP/2.98)","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_OIII_4960"},
 
     "NA_OIII_5007"   :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","label":r"[O III]","ncomp":1,},
     "NA_OIII_5007_2" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":2,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_3" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":3,"parent":"NA_OIII_5007"},
+    # "NA_OIII_5007_3" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":3,"parent":"NA_OIII_5007"},
     # "NA_OIII_5007_4" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":4,"parent":"NA_OIII_5007"},
     # "NA_OIII_5007_5" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":5,"parent":"NA_OIII_5007"},
     

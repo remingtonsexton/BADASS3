@@ -43,6 +43,8 @@ from astropy.cosmology import FlatLambdaCDM
 import re
 import natsort
 import copy
+import pickle
+from prettytable import PrettyTable
 # import StringIO
 import psutil
 import pathlib
@@ -4950,12 +4952,8 @@ def line_test(param_dict,
             if t==test:
                 for key in test_results:
                     res[key].append(test_results[key][i])
-    #     print("\n")
-    #     for r in res:
-    #         print(r,res[r])
+
         for i in range(len(res["TEST"])):
-            print(i,len(res["TEST"]))
-    #         print(res["NCOMP_A"][i],res["NCOMP_B"][i])
             current_metrics = {}
             target_metrics = {}
             for  m,metric in enumerate(test_options["metrics"]):
@@ -4964,20 +4962,11 @@ def line_test(param_dict,
                     target_metrics[metric] = test_options["thresholds"][m]
     
             checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics)
-            # print(test,i,len(res["TEST"])-1)
-            # print("\t",target_metrics)
-            # print("\t",current_metrics)
-            # print("\t",checked_metrics)
 
             if test_options["conv_mode"]=="any":
-                print("any")
                 if np.any(checked_metrics) and (i==0):
-                    print("any 1")
                     break
-
-
                 elif np.any(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
-                    print("any 2")
                     max_ncomp = res["NCOMP_B"][i]
     #               print(max_ncomp)
                     for line in line_list:
@@ -4987,22 +4976,14 @@ def line_test(param_dict,
                 # if reached the end and no convergence is met, use max number of components
                 elif (i==len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-                    print("max_ncomp: %s" % (res["NCOMP_B"][i]) )
-                    print(test)
                     for line in line_list:
-                        print(line)
-                        print(line_list[line]["ncomp"])
                         if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
                             new_line_list[line] = line_list[line]
                     break
             elif test_options["conv_mode"]=="all":
-                print("all")
                 if np.all(checked_metrics) and (i==0):
-                    print("all 1")
                     break
-            
                 elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
-                    print("all 2")
                     max_ncomp = res["NCOMP_B"][i]
     #               print(max_ncomp)
                     for line in line_list:
@@ -5012,29 +4993,18 @@ def line_test(param_dict,
                 # if reached the end and no convergence is met, use max number of components
                 elif (i==len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-                    print("max_ncomp: %s" % (res["NCOMP_B"][i]) )
-                    print(test)
                     for line in line_list:
-                        print(line)
-                        print(line_list[line]["ncomp"])
                         if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
                             new_line_list[line] = line_list[line]
                     break
-    # print("\n")
-    # print("New Line List:")
-    # for line in new_line_list:
-    #     print(line)
 
-    # print("\n")
+    print("\n Test Results:")
 
-    print("Test Results:")
-    # for t in test_results:
-    #     print(t)
-        # for res in test_results[t]:
-        #     print("\t",res)
+    ptbl = PrettyTable()
+    ptbl.field_names = ["TEST","NCOMP_A","NCOMP_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","AON"]
     for i in range(len(test_results["TEST"])):
-        print("\t",test_results["ANOVA"][i],",",test_results["AON"][i],",",test_results["BADASS"][i],",",test_results["CHI2_RATIO"][i],",",test_results["F_RATIO"][i],",",test_results["SSR_RATIO"][i])
-
+        ptbl.add_row(np.round([i+1,test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i]],3))
+    print(ptbl)
 
     # Now check AON if it is a test statistic
     remove_aon = []
@@ -5065,11 +5035,11 @@ def line_test(param_dict,
         print(line)
     print("\n")
     
+    # Save results to JSON files for all tests
+    write_line_test_results(fit_res_dict,test_results,run_dir,binnum,spaxelx,spaxely)
+
 
     sys.exit()
-
-    # Write results to FITS
-    write_line_test_results(mcpars_line,comp_dict_line,mcpars_no_line,comp_dict_no_line,fit_mask,run_dir,binnum,spaxelx,spaxely)
 
     return
 
@@ -5409,7 +5379,7 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     #
     fig.tight_layout()
     # Save the figure
-    test_plot_dir = run_dir.joinpath('line_test_plots')
+    test_plot_dir = run_dir.joinpath('line_test_results')
     test_plot_dir.mkdir(parents=True, exist_ok=True)
     plt.savefig(test_plot_dir.joinpath('test_%d_NCOMP_%d_vs_NCOMP_%d.png' % (n+1,ncomp_A,ncomp_B)), bbox_inches="tight",dpi=300)
     # Close figure
@@ -5418,125 +5388,37 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     return
 
 
-#### Write Outflow Test Results ##################################################
+#### Write Line Test Results ##################################################
 
-def write_line_test_results(result_dict_outflows,
-                               comp_dict_outflows,
-                               result_dict_no_outflows,
-                               comp_dict_no_outflows,
-                               fit_mask,
-                               run_dir,
-                               binnum=None,
-                               spaxelx=None,
-                               spaxely=None):
+def write_line_test_results(fit_res,
+                            test_res,
+                            run_dir,
+                            binnum=None,
+                            spaxelx=None,
+                            spaxely=None):
     """
-    Writes results of outflow testing.  Creates FITS tables for 
-    the best-fit parameters and best-fit components for each the outflow
-    and no-outflow test results.
+    Writes results of ALL line tests to pickle files.
+    Pickle files were preferred over FITS files for multiple line tests
+    and can be read as Python dictionaries.
     """
     #
-    #
-    # Write Outflow model FITS tables
-    # Extract elements from dictionaries
-    par_names = []
-    par_best  = []
-    sig	   = []
-    for key in result_dict_outflows:
-        par_names.append(key)
-        par_best.append(result_dict_outflows[key]['med'])
-        sig.append(result_dict_outflows[key]['std'])
-    if 0: 
-        for i in range(0,len(par_names),1):
-            print(par_names[i],par_best[i],sig[i])
-    # Write best-fit parameters to FITS table
-    col1 = fits.Column(name='parameter', format='30A', array=par_names)
-    col2 = fits.Column(name='best_fit' , format='E'  , array=par_best)
-    col3 = fits.Column(name='sigma'	, format='E'  , array=sig)
-    
-    cols = fits.ColDefs([col1,col2,col3])
-    hdu = fits.BinTableHDU.from_columns(cols)
-
-    hdr = fits.PrimaryHDU()
-    hdul = fits.HDUList([hdr, hdu])
+    test_plot_dir = run_dir.joinpath('line_test_results')
+    test_plot_dir.mkdir(parents=True, exist_ok=True)
+    # If IFU data, add BINNUM, spaxelx, spaxely to both dicts
     if binnum is not None:
-        hdr.header.append(('BINNUM', binnum, 'bin index of the spaxel (Voronoi)'), end=True)
-    if spaxelx is not None and spaxely is not None:
-        hdu2 = fits.BinTableHDU.from_columns(fits.ColDefs([
-            fits.Column(name='spaxelx', array=spaxelx, format='E'),
-            fits.Column(name='spaxely', array=spaxely, format='E')
-        ]))
-        hdul.append(hdu2)
+        test_res["BINNUM"]  = binnum
+        test_res["spaxelx"] = spaxelx
+        test_res["spaxely"] = spaxely
+        fit_res["BINNUM"]   = binnum
+        fit_res["spaxelx"]  = spaxelx
+        fit_res["spaxely"]  = spaxely
 
-    hdul.writeto(run_dir.joinpath('log/line_par_table.fits'),overwrite=True)
-
-    # Write best-fit components to FITS file
-    cols = []
-    # Construct a column for each parameter and chain
-    for key in comp_dict_outflows:
-        cols.append(fits.Column(name=key, format='E', array=comp_dict_outflows[key]))
-    # Add fit mask to cols
-    cols.append(fits.Column(name="MASK", format='E', array=fit_mask))
-    # Write to fits
-    cols = fits.ColDefs(cols)
-    hdu = fits.BinTableHDU.from_columns(cols)
-
-    hdr = fits.PrimaryHDU()
-    hdul = fits.HDUList([hdr, hdu])
-    if binnum is not None:
-        hdr.header.append(('BINNUM', binnum, 'bin index of the spaxel (Voronoi)'), end=True)
-    if spaxelx is not None and spaxely is not None:
-        hdu2 = fits.BinTableHDU.from_columns(fits.ColDefs([
-            fits.Column(name='spaxelx', array=spaxelx, format='E'),
-            fits.Column(name='spaxely', array=spaxely, format='E')
-        ]))
-        hdul.append(hdu2)
-
-    hdul.writeto(run_dir.joinpath('log/line_best_model_components.fits'),overwrite=True)
-    #
-    #
-    # Write No-outflow model FITS tables
-    par_names = []
-    par_best  = []
-    sig	   = []
-    for key in result_dict_no_outflows:
-        par_names.append(key)
-        par_best.append(result_dict_no_outflows[key]['med'])
-        sig.append(result_dict_no_outflows[key]['std'])
-    if 0: 
-        for i in range(0,len(par_names),1):
-            print(par_names[i],par_best[i],sig[i])
-    # Write best-fit parameters to FITS table
-    col1 = fits.Column(name='parameter', format='30A', array=par_names)
-    col2 = fits.Column(name='best_fit' , format='E'  , array=par_best)
-    col3 = fits.Column(name='sigma'	, format='E'  , array=sig)
-    
-    cols = fits.ColDefs([col1,col2,col3])
-    hdu = fits.BinTableHDU.from_columns(cols)
-
-    hdr = fits.PrimaryHDU()
-    hdul = fits.HDUList([hdr, hdu])
-    if binnum is not None:
-        hdr.header.append(('BINNUM', binnum, 'bin index of the spaxel (Voronoi)'), end=True)
-    if spaxelx is not None and spaxely is not None:
-        hdu2 = fits.BinTableHDU.from_columns(fits.ColDefs([
-            fits.Column(name='spaxelx', array=spaxelx, format='E'),
-            fits.Column(name='spaxely', array=spaxely, format='E')
-        ]))
-        hdul.append(hdu2)
-
-    hdul.writeto(run_dir.joinpath('log/no_line_par_table.fits'),overwrite=True)
-
-    # Write best-fit components to FITS file
-    cols = []
-    # Construct a column for each parameter and chain
-    for key in comp_dict_no_outflows:
-        cols.append(fits.Column(name=key, format='E', array=comp_dict_no_outflows[key]))
-    # Add fit mask to cols
-    cols.append(fits.Column(name="MASK", format='E', array=fit_mask))
-    # Write to fits
-    cols = fits.ColDefs(cols)
-    hdu = fits.BinTableHDU.from_columns(cols)
-    hdu.writeto(run_dir.joinpath('log', 'no_line_best_model_components.fits'),overwrite=True)
+    # Write fit results
+    with open(test_plot_dir.joinpath('fit_results.pkl'), 'wb') as f:
+        pickle.dump(fit_res, f)
+    # Write test results
+    with open(test_plot_dir.joinpath('test_results.pkl'), 'wb') as f:
+        pickle.dump(test_res, f)
     #
     return 
 
