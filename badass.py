@@ -811,58 +811,65 @@ def run_single_thread(fits_file,
 
 
 
-        line_test(param_dict,
-                  line_list,
-                  combined_line_list,
-                  soft_cons,
-                  ncomp_dict,
-                  lam_gal,
-                  galaxy,
-                  noise,
-                  z,
-                  cosmology,
-                  fit_reg,
-                  user_lines,
-                  user_constraints,
-                  combined_lines,
-                  test_options,
-                  comp_options,
-                  narrow_options,
-                  broad_options,
-                  absorp_options,
-                  losvd_options,
-                  host_options,
-                  power_options,
-                  poly_options,
-                  opt_feii_options,
-                  uv_iron_options,
-                  balmer_options,
-                  outflow_test_options,
-                  host_template,
-                  opt_feii_templates,
-                  uv_iron_template,
-                  balmer_template,
-                  stel_templates,
-                  blob_pars,
-                  disp_res,
-                  fit_mask,
-                  velscale,
-                  flux_norm,
-                  run_dir,
-                  fit_type='init',
-                  fit_stat=fit_stat,
-                  output_model=False,
-                  test_outflows=False,
-                  n_basinhop=n_basinhop,
-                  max_like_niter=max_like_niter,
-                  verbose=verbose,
-                  binnum=binnum,
-                  spaxelx=spaxelx,
-                  spaxely=spaxely)
+        user_lines = line_test(param_dict,
+                               line_list,
+                               combined_line_list,
+                               soft_cons,
+                               ncomp_dict,
+                               lam_gal,
+                               galaxy,
+                               noise,
+                               z,
+                               cosmology,
+                               fit_reg,
+                               user_lines,
+                               user_constraints,
+                               combined_lines,
+                               test_options,
+                               comp_options,
+                               narrow_options,
+                               broad_options,
+                               absorp_options,
+                               losvd_options,
+                               host_options,
+                               power_options,
+                               poly_options,
+                               opt_feii_options,
+                               uv_iron_options,
+                               balmer_options,
+                               outflow_test_options,
+                               host_template,
+                               opt_feii_templates,
+                               uv_iron_template,
+                               balmer_template,
+                               stel_templates,
+                               blob_pars,
+                               disp_res,
+                               fit_mask,
+                               velscale,
+                               flux_norm,
+                               run_dir,
+                               fit_type='init',
+                               fit_stat=fit_stat,
+                               output_model=False,
+                               test_outflows=False,
+                               n_basinhop=n_basinhop,
+                               max_like_niter=max_like_niter,
+                               verbose=verbose,
+                               binnum=binnum,
+                               spaxelx=spaxelx,
+                               spaxely=spaxely)
         # Exit BADASS
         print(' - Line testing complete for %s! \n' % fits_file.parent.name)
         print("----------------------------------------------------------------------------------------------------")
-        return
+
+        if test_options["continue_fit"]:
+            pass
+        else:
+            return
+
+    elif (test_lines==True) and (test_options["test_mode"]=="config"):
+        pass
 
 ####################################################################################################################################################################################
 
@@ -992,7 +999,7 @@ def run_single_thread(fits_file,
     if verbose:
         print('\n Initializing parameters for MCMC.')
         print('----------------------------------------------------------------------------------------------------')
-    param_dict, line_list, combined_line_list, soft_cons = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
+    param_dict, line_list, combined_line_list, soft_cons, ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                                                            comp_options,narrow_options,broad_options,absorp_options,
                                                            user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                                                            opt_feii_options,uv_iron_options,balmer_options,
@@ -2685,7 +2692,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # # Fit statistic: add noise_unexp if fit_stat = "RCHI2"
     if (fit_stat=="RCHI2"):
         if verbose: 
-            print('	 - Adding parameter for unexplained noise to fit reduced Chi-squared.')
+            print('	 - Adding parameter for unexplained variance for reduced Chi-squared.')
         par_input["NOISE_SCALE"] = ({'init':1.0,
                                      'plim':(0.0001,100.0),
                                      'prior':{"type":"jeffreys"},
@@ -4032,7 +4039,24 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             # If amplitude parameter limits are already set in (narrow,broad,absorp)_options, then use those, otherwise,
             # automatically generate them
             if "ncomp" in line_list[line]:
-                amp_factor = line_list[line]["ncomp"]
+                # Get number of components that are in the line list for this line
+                total_ncomp = [1]
+                # If line is a parent line
+                if line_list[line]["ncomp"]==1:
+                    for l in line_list:
+                        if "parent" in line_list[l]:
+                            if line_list[l]["parent"]==line:
+                                total_ncomp.append(line_list[l]["ncomp"])
+
+                # if line is a child line
+                if "parent" in line_list[line]:
+                    # Look in the line list for any other lines that have the same parent and append them
+                    for l in line_list:
+                        if "parent" in line_list[l]:
+                            if line_list[l]["parent"]==line_list[line]["parent"]:
+                                total_ncomp.append(line_list[l]["ncomp"])
+
+                amp_factor = np.max(total_ncomp)
             else:
                 amp_factor = 1
 
@@ -4630,20 +4654,20 @@ def line_test(param_dict,
                 # print("-------------------------------------------------------")
                 
                 # Plot for testing
-                fig = plt.figure(figsize=(10,6))
-                ax1 = fig.add_subplot(2,1,1)
-                ax2 = fig.add_subplot(2,1,2)
-                ax1.step(mccomps["WAVE"][0],mccomps["DATA"][0],color="xkcd:white",label="Data")
-                ax1.step(mccomps["WAVE"][0],mccomps["MODEL"][0],color="xkcd:bright red",label="Model")
-                ax2.step(mccomps["WAVE"][0],mccomps["RESID"][0],color="xkcd:radioactive green",label="Residuals")
-                ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
-                ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
-                for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
-                    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
-                ax1.legend()
-                ax2.legend()
-                plt.suptitle("%s test: NCOMP %d" % (line,fit_A_ncomp))
-                plt.tight_layout() 
+                # fig = plt.figure(figsize=(10,6))
+                # ax1 = fig.add_subplot(2,1,1)
+                # ax2 = fig.add_subplot(2,1,2)
+                # ax1.step(mccomps["WAVE"][0],mccomps["DATA"][0],color="xkcd:white",label="Data")
+                # ax1.step(mccomps["WAVE"][0],mccomps["MODEL"][0],color="xkcd:bright red",label="Model")
+                # ax2.step(mccomps["WAVE"][0],mccomps["RESID"][0],color="xkcd:radioactive green",label="Residuals")
+                # ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
+                # ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
+                # for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
+                #     ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+                # ax1.legend()
+                # ax2.legend()
+                # plt.suptitle("%s test: NCOMP %d" % (line,fit_A_ncomp))
+                # plt.tight_layout() 
                 # sys.exit()
                 #
 
@@ -4801,20 +4825,20 @@ def line_test(param_dict,
                 
 
                 # Plot for testing
-                fig = plt.figure(figsize=(10,6))
-                ax1 = fig.add_subplot(2,1,1)
-                ax2 = fig.add_subplot(2,1,2)
-                ax1.step(mccomps["WAVE"][0],mccomps["DATA"][0],color="xkcd:white",label="Data")
-                ax1.step(mccomps["WAVE"][0],mccomps["MODEL"][0],color="xkcd:bright red",label="Model")
-                ax2.step(mccomps["WAVE"][0],mccomps["RESID"][0],color="xkcd:radioactive green",label="Residuals")
-                ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
-                ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
-                for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
-                    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
-                ax1.legend()
-                ax2.legend()
-                plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
-                plt.tight_layout()
+                # fig = plt.figure(figsize=(10,6))
+                # ax1 = fig.add_subplot(2,1,1)
+                # ax2 = fig.add_subplot(2,1,2)
+                # ax1.step(mccomps["WAVE"][0],mccomps["DATA"][0],color="xkcd:white",label="Data")
+                # ax1.step(mccomps["WAVE"][0],mccomps["MODEL"][0],color="xkcd:bright red",label="Model")
+                # ax2.step(mccomps["WAVE"][0],mccomps["RESID"][0],color="xkcd:radioactive green",label="Residuals")
+                # ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
+                # ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
+                # for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
+                #     ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+                # ax1.legend()
+                # ax2.legend()
+                # plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
+                # plt.tight_layout()
                 #
                 # sys.exit(0)
                 #
@@ -4837,17 +4861,14 @@ def line_test(param_dict,
             resid_B = fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]['RESID'][0,:][test_fit_mask]
 
             # Plot for testing
-            fig = plt.figure(figsize=(10,3))
-            ax1 = fig.add_subplot(1,1,1)
-
-            ax1.step(mccomps["WAVE"][0],resid_A,label="Resid A: NCOMP %d" % fit_A_ncomp)
-            ax1.step(mccomps["WAVE"][0],resid_B,label="Resid B: NCOMP %d" % fit_B_ncomp)
-
-            ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
-            ax1.legend()
-            plt.suptitle("%s test: NCOMP %d versus NCOMP %d Residuals" % (line,fit_A_ncomp,fit_B_ncomp))
-            plt.tight_layout()
-
+            # fig = plt.figure(figsize=(10,3))
+            # ax1 = fig.add_subplot(1,1,1)
+            # ax1.step(mccomps["WAVE"][0],resid_A,label="Resid A: NCOMP %d" % fit_A_ncomp)
+            # ax1.step(mccomps["WAVE"][0],resid_B,label="Resid B: NCOMP %d" % fit_B_ncomp)
+            # ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
+            # ax1.legend()
+            # plt.suptitle("%s test: NCOMP %d versus NCOMP %d Residuals" % (line,fit_A_ncomp,fit_B_ncomp))
+            # plt.tight_layout()
             # sys.exit(0)
 
             # Begin adding statistics to test_results
@@ -4998,14 +5019,6 @@ def line_test(param_dict,
                             new_line_list[line] = line_list[line]
                     break
 
-    print("\n Test Results:")
-
-    ptbl = PrettyTable()
-    ptbl.field_names = ["TEST","NCOMP_A","NCOMP_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","AON"]
-    for i in range(len(test_results["TEST"])):
-        ptbl.add_row(np.round([i+1,test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i]],3))
-    print(ptbl)
-
     # Now check AON if it is a test statistic
     remove_aon = []
     if "AON" in test_options["metrics"]:
@@ -5034,14 +5047,23 @@ def line_test(param_dict,
     for line in new_line_list:
         print(line)
     print("\n")
+
+    # Print a table with the results and write it to the log
+    print("\n Test Results:")
+
+    ptbl = PrettyTable()
+    ptbl.field_names = ["TEST","NCOMP_A","NCOMP_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","AON"]
+    for i in range(len(test_results["TEST"])):
+        ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i]],3)))
+    print(ptbl)
     
+    # Write to log
+    write_log(ptbl,'line_test',run_dir)
+
     # Save results to JSON files for all tests
     write_line_test_results(fit_res_dict,test_results,run_dir,binnum,spaxelx,spaxely)
 
-
-    sys.exit()
-
-    return
+    return new_line_list
 
 ##################################################################################
 
@@ -9896,7 +9918,7 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
     ax1.plot(xs,kde	   ,linewidth=0.5,linestyle="-" ,color="xkcd:bright pink",alpha=1.00,zorder=15,label="KDE")
     ax1.plot(xs,kde	   ,linewidth=3.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.50,zorder=15)
     ax1.plot(xs,kde	   ,linewidth=6.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.20,zorder=15)
-    ax1.grid(b=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
+    ax1.grid(visible=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
     # ax1.plot(xvec,yvec,color='white')
     ax1.set_xlabel(r'%s' % key,fontsize=12)
     ax1.set_ylabel(r'$p$(%s)' % key,fontsize=12)
@@ -9931,7 +9953,7 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
     ax3.plot(range(np.shape(chain)[1]),c_med,color='xkcd:bright pink',alpha=1.,linewidth=2.0,label='Median',zorder=10)
     ax3.fill_between(range(np.shape(chain)[1]),c_med+c_madstd,c_med-c_madstd,color='#4200a6',alpha=0.5,linewidth=1.5,label='Median Absolute Dev.',zorder=5)
     ax3.axvline(burn_in,linestyle='--',linewidth=0.5,color='xkcd:bright aqua',label='burn-in = %d' % burn_in,zorder=20)
-    ax3.grid(b=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
+    ax3.grid(visible=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
     ax3.set_xlim(0,np.shape(chain)[1])
     ax3.set_xlabel('$N_\mathrm{iter}$',fontsize=12)
     ax3.set_ylabel(r'%s' % key,fontsize=12)
@@ -11927,103 +11949,16 @@ def write_log(output_val,output_type,run_dir):
             logfile.write("\n----------------------------------------------------------------------------------------------------------------------------------------")
         return None
 
-    if (output_type=='no_line_test'):
-        rdict = output_val
-        with log_file_path.open(mode='a') as logfile:
-            logfile.write('\n')
-            logfile.write('\n### No-Line Model Fitting Results ###')
-            logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-            logfile.write('\n{0:<30}{1:<30}{2:<30}{3:<30}'.format('Parameter','Best-fit Value','+/- 1-sigma','Flag'))
-            logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-            # Sort into arrays
-            pname = []
-            med   = []
-            std   = []
-            flag  = [] 
-            for key in rdict:
-                pname.append(key)
-                med.append(rdict[key]['med'])
-                std.append(rdict[key]['std'])
-                flag.append(rdict[key]['flag'])
-            i_sort = np.argsort(pname)
-            pname = np.array(pname)[i_sort] 
-            med   = np.array(med)[i_sort]   
-            std   = np.array(std)[i_sort]   
-            flag  = np.array(flag)[i_sort]  
-            for i in range(0,len(pname),1):
-                logfile.write('\n{0:<30}{1:<30.4f}{2:<30.4f}{3:<30}'.format(pname[i], med[i], std[i], flag[i]))
-            logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-        return None
 
     if (output_type=='line_test'):
-        rdict = output_val
-        with log_file_path.open(mode='a') as logfile:
-            logfile.write('\n')
-            logfile.write('\n### Line Model Fitting Results ###')
-            logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-            logfile.write('\n{0:<30}{1:<30}{2:<30}{3:<30}'.format('Parameter','Best-fit Value','+/- 1-sigma','Flag'))
-            logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-            # Sort into arrays
-            pname = []
-            med   = []
-            std   = []
-            flag  = [] 
-            for key in rdict:
-                pname.append(key)
-                med.append(rdict[key]['med'])
-                std.append(rdict[key]['std'])
-                flag.append(rdict[key]['flag'])
-            i_sort = np.argsort(pname)
-            pname = np.array(pname)[i_sort] 
-            med   = np.array(med)[i_sort]   
-            std   = np.array(std)[i_sort]   
-            flag  = np.array(flag)[i_sort]  
-            for i in range(0,len(pname),1):
-                logfile.write('\n{0:<30}{1:<30.4f}{2:<30.4f}{3:<30}'.format(pname[i], med[i], std[i], flag[i]))
-            logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
-        return None
-
-
-    if (output_type=='line_test_stats'):
-        (pval, pval_upp, pval_low, conf, conf_upp, conf_low, dist, disp, signif, overlap,
-        f_conf,f_conf_err,f_stat,f_stat_err,f_pval,f_pval_err,
-        chi2_ratio,chi2_ratio_err,chi2_no_line,chi2_no_line_err,chi2_line,chi2_line_err,
-        # amp_metric,disp_metric,voff_metric,voff_metric_err,
-        ssr_ratio,ssr_ratio_err,ssr_no_line,ssr_no_line_err,ssr_line,ssr_line_err,
-        median_noise, median_noise_err, 
-        total_resid_noise,total_resid_noise_err,resid_noise_no_line,resid_noise_no_line_err,resid_noise_line,resid_noise_line_err) = output_val
+        ptbl = output_val
         with log_file_path.open(mode='a') as logfile:
             logfile.write('\n')
             # logfile.write('-----------------------------------------------------------------------------------------------------')
-            logfile.write('\n Line Test Statistics:')
-            logfile.write('\n-----------------------------------------------------------------------------------------------------')
-            logfile.write('\n{0:<30}{1:<30}{2:<30}{3:<30}'.format('','Statistic','Value','Uncertainty') )
-            logfile.write('\n-----------------------------------------------------------------------------------------------------')
-            logfile.write('\n{0:<30}'.format('A/B Likelihood Test::'))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30}'.format('','Confidence:',conf,"(-%0.6f,+%0.6f)" % (conf_low,conf_upp )) )
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30}'.format('','p-value:',pval,"(-%0.6f,+%0.6f)" % (pval_low,pval_upp)))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}'.format('','Statistical Distance:',dist))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}'.format('','Disperson:',disp))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}'.format('','Significance (sigma):',signif))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}'.format('','Overlap (1-sigma):',overlap))
-            logfile.write('\n{0:<30}'.format('ANOVA (F-test):'))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.4f}{3:<30.4f}'.format('','Confidence:',f_conf, f_conf_err ) )
-            logfile.write('\n{0:<30}{1:<30}{2:<30.4f}{3:<30.4f}'.format('','F-statistic:',f_stat,f_stat_err))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.4e}{3:<30.4e}'.format('','p-value:',f_pval,f_pval_err))
-            logfile.write('\n{0:<30}'.format('Chi-Squared Metrics:'))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Chi-squared Ratio:',chi2_ratio, chi2_ratio_err ) )
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Chi-squared no-line:',chi2_no_line,chi2_no_line_err))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Chi-squared line:',chi2_line,chi2_line_err))
-            logfile.write('\n{0:<30}'.format('Sum-of-Squares of Residuals (SSR):'))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','SSR ratio:',ssr_ratio,ssr_ratio_err))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','SSR no-line:',ssr_no_line,ssr_no_line_err))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','SSR line:',ssr_line,ssr_line_err))
-            logfile.write('\n{0:<30}'.format('Residual Noise:'))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Median spec noise:',median_noise, median_noise_err))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','Total resid noise:',total_resid_noise,total_resid_noise_err)) 
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','no-line resid:',resid_noise_no_line,resid_noise_no_line_err))
-            logfile.write('\n{0:<30}{1:<30}{2:<30.6f}{3:<30.6f}'.format('','line resid:',resid_noise_line,resid_noise_line_err))
-            logfile.write('\n-----------------------------------------------------------------------------------------------------')
+            logfile.write('\n Line Test Results:\n')
+            logfile.write(ptbl.get_string())
+            logfile.write("\n")
+
         return None
 
 
