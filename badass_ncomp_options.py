@@ -25,7 +25,7 @@ mcmc_options={
 "auto_stop"   : True, # Automatic stop using autocorrelation analysis
 "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
 "min_samp"    : 1000,  # min number of iterations for sampling post-convergence
-"ncor_times"  : 1.0,  # number of autocorrelation times for convergence
+"ncor_times"  : 10.0,  # number of autocorrelation times for convergence
 "autocorr_tol": 10.0,  # percent tolerance between checking autocorr. times
 "write_iter"  : 100,   # write/check autocorrelation times interval
 "write_thresh": 100,   # iteration to start writing/checking parameters

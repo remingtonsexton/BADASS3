@@ -9689,11 +9689,11 @@ def autocorr_func(c_x):
     for p in range(0,np.shape(c_x)[1],1):
         x = c_x[:,p]
         # Subtract mean value
-        rms_x = np.median(x)
+        rms_x = np.nanmedian(x)
         x = x - rms_x
         cc = np.correlate(x,x,mode='full')
         cc = cc[cc.size // 2:]
-        cc = cc/np.max(cc)
+        cc = cc/np.nanmax(cc)
         acf.append(cc)
     # Flip the array 
     acf = np.swapaxes(acf,1,0)
@@ -10022,13 +10022,13 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             p95 = compute_HDI(subsampled,0.95)
 
             post_max  = xs[kde.argmax()] # posterior max estimated from KDE
-            post_mean = np.mean(flat)
-            post_med  = np.median(flat)
+            post_mean = np.nanmean(flat)
+            post_med  = np.nanmedian(flat)
             low_68    = post_max - p68[0]
             upp_68    = p68[1] - post_max
             low_95    = post_max - p95[0]
             upp_95    = p95[1] - post_max
-            post_std  = np.std(flat)
+            post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
@@ -10040,11 +10040,12 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            param_dict[key]['par_best']    = post_max # maximum of posterior distribution
+            param_dict[key]['par_best']    = post_med # maximum of posterior distribution
             param_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             param_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             param_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             param_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            param_dict[key]['post_max']    = post_max # maximum of posterior distribution
             param_dict[key]['mean']        = post_mean # mean of posterior distribution
             param_dict[key]['std_dev']     = post_std	# standard deviation
             param_dict[key]['median']      = post_med # median of posterior distribution
@@ -10063,6 +10064,7 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             param_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             param_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             param_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            param_dict[key]['post_max']    = post_max # maximum of posterior distribution
             param_dict[key]['mean']        = np.nan # mean of posterior distribution
             param_dict[key]['std_dev']     = np.nan	# standard deviation
             param_dict[key]['median']      = np.nan # median of posterior distribution
