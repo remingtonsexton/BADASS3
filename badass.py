@@ -71,13 +71,13 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning) 
 warnings.filterwarnings("ignore", category=UserWarning) 
 
-__author__	   = "Remington O. Sexton (GMU/USNO), Sara M. Doan (GMU), Michael A. Reefe (GMU), William Matzko (GMU), Nicholas Darden (UCR)"
+__author__	   = "Remington O. Sexton (USNO), Sara M. Doan (GMU), Michael A. Reefe (GMU), William Matzko (GMU), Nicholas Darden (UCR)"
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
 __version__	   = "9.4.0"
 __maintainer__ = "Remington O. Sexton"
-__email__	   = "rsexton2@gmu.edu"
+__email__	   = "remington.o.sexton.civ@us.navy.mil"
 __status__	   = "Release"
 
 ##########################################################################################################
@@ -4490,6 +4490,9 @@ def line_test(param_dict,
     # for opt in test_options:
     #     print(opt,test_options[opt])
 
+    # Make a copy of the original line list for reference
+    orig_line_list = copy.deepcopy(line_list)
+
      # dict to store test results of ALL tests
     test_results = {"TEST":[],
                     "RANGE":[],
@@ -4992,14 +4995,14 @@ def line_test(param_dict,
     #               print(max_ncomp)
                     for line in line_list:
                         if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
-                            new_line_list[line] = line_list[line]
+                            new_line_list[line] = orig_line_list[line]
                     break
                 # if reached the end and no convergence is met, use max number of components
                 elif (i==len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
                     for line in line_list:
                         if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
-                            new_line_list[line] = line_list[line]
+                            new_line_list[line] = orig_line_list[line]
                     break
             elif test_options["conv_mode"]=="all":
                 if np.all(checked_metrics) and (i==0):
@@ -5009,14 +5012,14 @@ def line_test(param_dict,
     #               print(max_ncomp)
                     for line in line_list:
                         if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
-                            new_line_list[line] = line_list[line]
+                            new_line_list[line] = orig_line_list[line]
                     break
                 # if reached the end and no convergence is met, use max number of components
                 elif (i==len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
                     for line in line_list:
                         if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
-                            new_line_list[line] = line_list[line]
+                            new_line_list[line] = orig_line_list[line]
                     break
 
     # Now check AON if it is a test statistic
@@ -5048,6 +5051,12 @@ def line_test(param_dict,
         print(line)
     print("\n")
 
+    for line in new_line_list:
+        print(line)
+        for hpar in new_line_list[line]:
+            print("\t",hpar,":",new_line_list[line][hpar])
+
+
     # Print a table with the results and write it to the log
     print("\n Test Results:")
 
@@ -5057,6 +5066,7 @@ def line_test(param_dict,
         ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i]],3)))
     print(ptbl)
     
+    # sys.exit()
     # Write to log
     write_log(ptbl,'line_test',run_dir)
 
@@ -9812,7 +9822,8 @@ def autocorr_convergence(emcee_chain,param_names,plot=False):
         
 
 
-    c_x = np.mean(sampler_chain[:,:,:],axis=0)
+    c_x = np.nanmean(sampler_chain[:,:,:],axis=0)
+    # c_x = np.nanmedian(sampler_chain[:,:,:],axis=0)
     
     acf = autocorr_func(c_x)
     tau_est = integrated_time(acf)

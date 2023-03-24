@@ -31,7 +31,7 @@ mcmc_options={
 "write_thresh": 100,   # iteration to start writing/checking parameters
 "burn_in"     : 1500, # burn-in if max_iter is reached
 "min_iter"    : 2500, # min number of iterations before stopping
-"max_iter"    : 50000, # max number of MCMC iterations
+"max_iter"    : 2500, # max number of MCMC iterations
 }
 ################################################################################
 
