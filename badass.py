@@ -9388,6 +9388,10 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
         if ((k+1) % write_iter == 0) and ((k+1)>=min_iter) and ((k+1)>=write_thresh) and (auto_stop==True):
             # Autocorrelation analysis of chain to determine convergence; the minimum autocorrelation time is 1.0, which results when a time cannot be accurately calculated.
             tau = autocorr_convergence(sampler.chain,param_names,plot=False) # Calculate autocorrelation times for each parameter
+
+            for t in range(len(tau)):
+                print(param_names[t],tau[t])
+
             autocorr_times_all.append(tau) # append tau to storage array
             # Calculate tolerances
             tol = (np.abs(tau-old_tau)/old_tau) * 100.0
