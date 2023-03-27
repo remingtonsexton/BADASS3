@@ -1743,9 +1743,6 @@ def check_plot_options(input,verbose=False):
 	if not input:
 		output={
 			"plot_param_hist"	 : True,# Plot MCMC histograms and chains for each parameter
-			"plot_flux_hist"	 : False,# Plot MCMC hist. and chains for component fluxes
-			"plot_lum_hist"	     : False,# Plot MCMC hist. and chains for component luminosities
-			"plot_eqwidth_hist"  : False, # Plot MCMC hist. and chains for equivalent widths 
 			"plot_HTML"          : False,# make interactive plotly HTML best-fit plot
             "plot_pca"           : False, # Plot PCA reconstructed spectrum. If doing PCA, you probably want this as True
             "plot_corner"        : False, # Plot corner (parameter covariance) plot
@@ -1760,24 +1757,6 @@ def check_plot_options(input,verbose=False):
 							],
 				  		"default": True,
 				  		"error_message": "\n plot_param_hist must be a bool.\n",
-				  },
-	"plot_flux_hist" : {"conds":[
-							lambda x: isinstance(x,(bool))
-							],
-				  		"default": False,
-				  		"error_message": "\n plot_flux_hist must be a bool.\n",
-				  },
-	"plot_lum_hist" : {"conds":[
-							lambda x: isinstance(x,(bool))
-							],
-				  		"default": False,
-				  		"error_message": "\n plot_lum_hist must be a bool.\n",
-				  },
-	"plot_eqwidth_hist" : {"conds":[
-							lambda x: isinstance(x,(bool))
-							],
-				  		"default": False,
-				  		"error_message": "\n plot_eqwidth_hist must be a bool.\n",
 				  },
 	"plot_HTML" : {"conds":[
 							lambda x: isinstance(x,(bool))

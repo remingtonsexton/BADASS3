@@ -564,9 +564,6 @@ def run_single_thread(fits_file,
     tie_line_voff		= comp_options["tie_line_voff"]
     # plot_options
     plot_param_hist		= plot_options["plot_param_hist"]
-    plot_flux_hist		= plot_options["plot_flux_hist"]
-    plot_lum_hist		= plot_options["plot_lum_hist"]
-    plot_eqwidth_hist   = plot_options["plot_eqwidth_hist"]
     plot_HTML			= plot_options["plot_HTML"]
     plot_pca            = plot_options["plot_pca"]
     plot_corner         = plot_options["plot_corner"]
@@ -1102,15 +1099,15 @@ def run_single_thread(fits_file,
     # Log Like Function values plots
     log_like_dict = log_like_plot(log_like_blob, burn_in, nwalkers, run_dir, plot_param_hist=plot_param_hist,verbose=verbose)
     # Flux values, uncertainties, and plots
-    flux_dict = flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=plot_flux_hist,verbose=verbose)
+    flux_dict = flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir,verbose=verbose)
     # Luminosity values, uncertainties, and plots
-    lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
+    lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],verbose=verbose)
     # Continuum luminosity 
-    cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_lum_hist=plot_lum_hist,verbose=verbose)
+    cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],verbose=verbose)
     # Equivalent widths, uncertainties, and plots
-    eqwidth_dict = eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=plot_eqwidth_hist, verbose=verbose)
+    eqwidth_dict = eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, verbose=verbose)
     # Auxiliary Line Dict (Combined FWHMs and Fluxes of MgII and CIV)
-    int_vel_disp_dict = int_vel_disp_plots(int_vel_disp_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],plot_param_hist=plot_param_hist,verbose=verbose)
+    int_vel_disp_dict = int_vel_disp_plots(int_vel_disp_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],verbose=verbose)
 
     # If stellar velocity is fit, estimate the systemic velocity of the galaxy;
     # SDSS redshifts are based on average emission line redshifts.
@@ -5468,7 +5465,12 @@ def calc_max_like_flux(comp_dict,flux_norm):
     flux_dict = {}
     for key in comp_dict: 
         if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
-            flux = np.log10(flux_norm*(np.trapz(comp_dict[key],comp_dict["WAVE"])))
+            # Compute flux
+            f = np.trapz(comp_dict[key],comp_dict["WAVE"])
+            if f>=0:
+                flux = np.log10(flux_norm*(f))
+            else:
+                flux = np.log10(flux_norm*np.abs(f))
             # Add to flux_dict
             flux_dict[key+"_FLUX"]  = flux
 
@@ -5635,16 +5637,16 @@ def calc_max_like_dispersions(lam_gal, comp_dict, line_list, combined_line_list,
     # Loop through lines
     for line in lines:
         # Calculate FWHM for all lines
-        fwhm = combined_fwhm(comp_dict["WAVE"],comp_dict[line],line_list[line]["disp_res_kms"],velscale)
+        fwhm = combined_fwhm(comp_dict["WAVE"],np.abs(comp_dict[line]),line_list[line]["disp_res_kms"],velscale)
         fwhm_dict[line+"_FWHM"] = fwhm
         # Calculate W80 for all lines
-        w80 = calculate_w80(comp_dict["WAVE"],comp_dict[line],line_list[line]["disp_res_kms"],velscale,line_list[line]["center"])
+        w80 = calculate_w80(comp_dict["WAVE"],np.abs(comp_dict[line]),line_list[line]["disp_res_kms"],velscale,line_list[line]["center"])
         w80_dict[line+"_W80"] = w80
 
         if line in combined_line_list:   
             # Calculate velocity scale centered on line
             vel = np.arange(len(lam_gal))*velscale - blob_pars[line+"_LINE_VEL"]
-            full_profile = comp_dict[line]
+            full_profile = np.abs(comp_dict[line])
             #
             # Normalized line profile
             norm_profile = full_profile/np.sum(full_profile)
@@ -5693,14 +5695,14 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     # this is done by calculating the maximum value of the line model 
     # above the MEAN value of the noise within the channels.
     for l in line_list:
-        eval_ind = np.where(comp_dict[l]>_noise)[0]
+        eval_ind = np.where(np.abs(comp_dict[l])>_noise)[0]
         npix = len(eval_ind)
         npix_dict[l+"_NPIX"] = int(npix)
         # if len(eval_ind)>0:
         #     snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
         # else: 
         #     snr = 0
-        snr = np.nanmax(comp_dict[l])/np.nanmean(_noise)
+        snr = np.nanmax(np.abs(comp_dict[l]))/np.nanmean(_noise)
         snr_dict[l+"_SNR"] = snr
     # compute for combined lines
     if len(combined_line_list)>0:
@@ -7871,7 +7873,7 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     fit_quality   = {}
     #
     for key in spec_comps:
-        flux = np.trapz(comp_dict[key],lam_gal)
+        flux = np.abs(np.trapz(comp_dict[key],lam_gal))
         # add key/value pair to dictionary
         fluxes[key+"_FLUX"] = flux
         #
@@ -7884,20 +7886,20 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
         # For lines AND combined lines, calculate the model FWHM and W80 (NOTE: THIS IS NOT GAUSSIAN FWHM, i.e. 2.3548*DISP)
         if (key in lines):
             # Calculate FWHM
-            comb_fwhm = combined_fwhm(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale)
+            comb_fwhm = combined_fwhm(lam_gal,np.abs(comp_dict[key]),line_list[key]["disp_res_kms"],velscale)
             int_vel_disp[key+"_FWHM"] = comb_fwhm
             # Calculate W80
-            w80 = calculate_w80(lam_gal,comp_dict[key],line_list[key]["disp_res_kms"],velscale,line_list[key]["center"])
+            w80 = calculate_w80(lam_gal,np.abs(comp_dict[key]),line_list[key]["disp_res_kms"],velscale,line_list[key]["center"])
             int_vel_disp[key+"_W80"] = w80
             # Calculate NPIX and SNR for all lines
-            eval_ind = np.where(comp_dict[key]>_noise)[0]
+            eval_ind = np.where(np.abs(comp_dict[key])>_noise)[0]
             npix = len(eval_ind)
             npix_dict[key+"_NPIX"] = int(npix)
             # if len(eval_ind)>0:
             #     snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(_noise[eval_ind])
             # else: 
             #     snr = 0
-            snr = np.nanmax(comp_dict[key])/np.nanmean(_noise)
+            snr = np.nanmax(np.abs(comp_dict[key]))/np.nanmean(_noise)
             snr_dict[key+"_SNR"] = snr
 
         # For combined lines ONLY, calculate integrated dispersions and velocity 
@@ -9774,7 +9776,7 @@ def gauss_kde(xs,data,h):
         return (1./np.sqrt(2.*np.pi)) * np.exp(-x**2/2)
 
     kde = np.sum((1./h) * gauss_kernel((xs.reshape(len(xs),1)-data)/h), axis=1)
-    kde = kde/simps(kde,xs)# normalize
+    kde = kde/np.trapz(kde,xs)# normalize
     return kde
 
 def kde_bandwidth(data):
@@ -9822,33 +9824,7 @@ def compute_HDI(trace, mass_frac) :
     # Return interval
     return np.array([d[min_int], d[min_int+n_samples]])
 
-
-# old HDI
-# def compute_HDI(posterior_samples, credible_mass):
-#     """
-#     Computes highest density interval from a sample of representative values,
-#     estimated as the shortest credible interval.
-#     Takes Arguments posterior_samples (samples from posterior) and credible mass (usually 0.95):
-#     https://www.sciencedirect.com/topics/mathematics/highest-density-interval
-#     BADASS uses the 0.68 interval.
-#     """
-#     sorted_points = sorted(posterior_samples)
-#     ciIdxInc = np.ceil(credible_mass * len(sorted_points)).astype('int')
-#     nCIs = len(sorted_points) - ciIdxInc
-#     # If the requested credible mass is equal to the number of posterior samples than the 
-#     # CI is simply the extent of the data.  This is typical of the 99.7% CI case for N<1000
-#     if nCIs==0:
-#         HDImin = np.min(posterior_samples)
-#         HDImax = np.max(posterior_samples)
-#     else:
-#         ciWidth = [0]*nCIs    
-#         for i in range(0, nCIs):
-#             ciWidth[i] = sorted_points[i + ciIdxInc] - sorted_points[i]
-#             HDImin = sorted_points[ciWidth.index(min(ciWidth))]
-#             HDImax = sorted_points[ciWidth.index(min(ciWidth))+ciIdxInc]
-#     return(HDImin, HDImax)
-
-def posterior_plots(key,flat,chain,burn_in,
+def posterior_plots(key,flat,chain,burn_in,xs,kde,
                     low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                     run_dir
                     ):
@@ -9869,11 +9845,15 @@ def posterior_plots(key,flat,chain,burn_in,
     # Plot 1: Histogram plots
     ax1.axvline(post_med	,linewidth=0.5,linestyle="-",color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$p(\theta|x)_{\rm{med}}$')
     #
-    ax1.axvline(post_med-low_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'68% conf.')
+    ax1.axvline(post_med-low_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$\textrm{68\% conf.}$')
     ax1.axvline(post_med+upp_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
     #
-    ax1.axvline(post_med-low_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'95% conf.')
+    ax1.axvline(post_med-low_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$\textrm{95\% conf.}$')
     ax1.axvline(post_med+upp_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
+    #
+    ax1.plot(xs,kde    ,linewidth=0.5,linestyle="-" ,color="xkcd:bright pink",alpha=1.00,zorder=15,label="KDE")
+    ax1.plot(xs,kde    ,linewidth=3.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.50,zorder=15)
+    ax1.plot(xs,kde    ,linewidth=6.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.20,zorder=15)
     #
     ax1.grid(visible=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
     # ax1.plot(xvec,yvec,color='white')
@@ -9952,29 +9932,28 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
         # flat = flat.flat
         flat = flat.flatten()
 
-        # Subsample the data into a manageable size for the kde and HDI
+        # 
         if len(flat) > 0:
-            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
             hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
             # Generate pseudo-data on the ends of the histogram; this prevents the KDE
             # from weird edge behavior.
-            # n_pseudo = 3 # number of pseudo-bins 
-            # bin_width=bin_edges[1]-bin_edges[0]
-            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+            n_pseudo = 3 # number of pseudo-bins 
+            bin_width=bin_edges[1]-bin_edges[0]
+            lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+            upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
             # Calculate bandwidth for KDE (Silverman method)
-            # h = kde_bandwidth(flat)
+            h = kde_bandwidth(flat)
 
             # Create a subsampled grid for the KDE based on the subsampled data; by
             # default, we subsample by a factor of 10.
-            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+            xs = np.linspace(np.min(flat),np.max(flat),10*len(hist))
 
             # Calculate KDE
-            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            kde = gauss_kde(xs,np.concatenate([flat,lower_pseudo_data,upper_pseudo_data]),h)
             p68 = compute_HDI(flat,0.68)
             p95 = compute_HDI(flat,0.95)
 
@@ -10011,7 +9990,7 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             param_dict[key]['flag']	       = flag 
 
             if (plot_param_hist==True):
-                posterior_plots(key,flat,chain,burn_in,#xs,kde,h,
+                posterior_plots(key,flat,chain,burn_in,xs,kde,
                                 low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir
                                 )
@@ -10057,29 +10036,28 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
     # low1   = p[1]-p[0]
     # upp1   = p[2]-p[1]
 
-    # Subsample the data into a manageable size for the kde and HDI
+    # 
     if len(flat[np.isfinite(flat)]) > 0:
-        # subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
         # Histogram; 'Doane' binning produces the best results from tests.
         hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
         # Generate pseudo-data on the ends of the histogram; this prevents the KDE
         # from weird edge behavior.
-        # n_pseudo = 3 # number of pseudo-bins 
-        # bin_width=bin_edges[1]-bin_edges[0]
-        # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-        # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+        n_pseudo = 3 # number of pseudo-bins 
+        bin_width=bin_edges[1]-bin_edges[0]
+        lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+        upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
         # Calculate bandwidth for KDE (Silverman method)
-        # h = kde_bandwidth(flat)
+        h = kde_bandwidth(flat)
 
         # Create a subsampled grid for the KDE based on the subsampled data; by
         # default, we subsample by a factor of 10.
-        # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+        xs = np.linspace(np.min(flat),np.max(flat),10*len(hist))
 
         # Calculate KDE
-        # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+        kde = gauss_kde(xs,np.concatenate([flat,lower_pseudo_data,upper_pseudo_data]),h)
         p68 = compute_HDI(flat,0.68)
         p95 = compute_HDI(flat,0.95)
 
@@ -10114,7 +10092,7 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
         }
 
         if (plot_param_hist==True):
-                posterior_plots("LOG_LIKE",flat,ll,burn_in,
+                posterior_plots("LOG_LIKE",flat,ll,burn_in,xs,kde,
                                 low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir)
     else:
@@ -10135,7 +10113,7 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
 
     return ll_dict
 
-def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=True,verbose=True):
+def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     component fluxes from MCMC sample chains.
@@ -10173,29 +10151,13 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=
         # flat = flat.flat
         flat = flat.flatten()
 
-        # Subsample the data into a manageable size for the kde and HDI
+        # 
         if len(flat) > 0:
-            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
             hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
-            # Generate pseudo-data on the ends of the histogram; this prevents the KDE
-            # from weird edge behavior.
-            # n_pseudo = 3 # number of pseudo-bins 
-            # bin_width=bin_edges[1]-bin_edges[0]
-            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
-
-            # Calculate bandwidth for KDE (Silverman method)
-            # h = kde_bandwidth(flat)
-
-            # Create a subsampled grid for the KDE based on the subsampled data; by
-            # default, we subsample by a factor of 10.
-            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
-
             # Calculate KDE
-            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
             p68 = compute_HDI(flat,0.68)
             p95 = compute_HDI(flat,0.95)
 
@@ -10229,11 +10191,6 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=
             flux_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
             flux_dict[key]['flag']	       = flag 
 
-
-            if (plot_flux_hist==True):
-                posterior_plots(key,flat,chain,burn_in,
-                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
-                                run_dir)
         else:
             flux_dict[key]['par_best']    = np.nan # maximum of posterior distribution
             flux_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
@@ -10250,7 +10207,7 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=
 
     return flux_dict
 
-def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_hist=True,verbose=True):
+def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     component luminosities from MCMC sample chains.
@@ -10290,26 +10247,11 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
         # flat = flat.flat
         flat = flat.flatten()
 
-        # Subsample the data into a manageable size for the kde and HDI
+        # 
         if len(flat) > 0:
-            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
             hist, bin_edges = np.histogram(flat, bins='doane', density=False)
-
-            # Generate pseudo-data on the ends of the histogram; this prevents the KDE
-            # from weird edge behavior.
-            # n_pseudo = 3 # number of pseudo-bins 
-            # bin_width=bin_edges[1]-bin_edges[0]
-            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
-
-            # Calculate bandwidth for KDE (Silverman method)
-            # h = kde_bandwidth(flat)
-
-            # Create a subsampled grid for the KDE based on the subsampled data; by
-            # default, we subsample by a factor of 10.
-            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
             # Calculate KDE
             # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
@@ -10346,10 +10288,6 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
             lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
             lum_dict[key]['flag']	     = flag
 
-            if (plot_lum_hist==True):
-                posterior_plots(key,flat,chain,burn_in,
-                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
-                                run_dir)
         else:
             lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
             lum_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
@@ -10366,7 +10304,7 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
 
     return lum_dict
 
-def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=True,verbose=True):
+def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir,verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     component fluxes from MCMC sample chains.
@@ -10403,29 +10341,13 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
         # flat = flat.flat
         flat = flat.flatten()
 
-        # Subsample the data into a manageable size for the kde and HDI
+        # 
         if len(flat) > 0:
-            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
             hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
-            # Generate pseudo-data on the ends of the histogram; this prevents the KDE
-            # from weird edge behavior.
-            # n_pseudo = 3 # number of pseudo-bins 
-            # bin_width=bin_edges[1]-bin_edges[0]
-            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
-
-            # Calculate bandwidth for KDE (Silverman method)
-            # h = kde_bandwidth(flat)
-
-            # Create a subsampled grid for the KDE based on the subsampled data; by
-            # default, we subsample by a factor of 10.
-            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
-
-            # Calculate KDE
-            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            # Calculate HDI
             p68 = compute_HDI(flat,0.68)
             p95 = compute_HDI(flat,0.95)
 
@@ -10459,10 +10381,6 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
             eqwidth_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
             eqwidth_dict[key]['flag']	       = flag
 
-            if (plot_eqwidth_hist==True):
-                posterior_plots(key,flat,chain,burn_in,
-                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
-                                run_dir)
         else:
             eqwidth_dict[key]['par_best']    = np.nan # maximum of posterior distribution
             eqwidth_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
@@ -10479,7 +10397,7 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
 
     return eqwidth_dict
 
-def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_hist=True,verbose=True):
+def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     component luminosities from MCMC sample chains.
@@ -10592,29 +10510,13 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
         # flat = flat.flat
         flat = flat.flatten()
 
-        # Subsample the data into a manageable size for the kde and HDI
+        # 
         if len(flat) > 0:
-            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
             hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
-            # Generate pseudo-data on the ends of the histogram; this prevents the KDE
-            # from weird edge behavior.
-            # n_pseudo = 3 # number of pseudo-bins 
-            # bin_width=bin_edges[1]-bin_edges[0]
-            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
-
-            # Calculate bandwidth for KDE (Silverman method)
-            # h = kde_bandwidth(flat)
-
-            # Create a subsampled grid for the KDE based on the subsampled data; by
-            # default, we subsample by a factor of 10.
-            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
-
-            # Calculate KDE
-            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            # Calculate HDI
             p68 = compute_HDI(flat,0.68)
             p95 = compute_HDI(flat,0.95)
 
@@ -10648,10 +10550,6 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
             cont_lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
             cont_lum_dict[key]['flag']	      = flag 
 
-            if (plot_lum_hist==True):
-                posterior_plots(key,flat,chain,burn_in,
-                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
-                                run_dir)
         else:
             cont_lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
             cont_lum_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
@@ -10668,7 +10566,7 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
 
     return cont_lum_dict
 
-def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_param_hist=True,verbose=True):
+def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     component luminosities from MCMC sample chains.
@@ -10707,29 +10605,13 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
         # flat = flat.flat
         flat = flat.flatten()
 
-        # Subsample the data into a manageable size for the kde and HDI
+        # 
         if len(flat) > 0:
-            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
             hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
-            # Generate pseudo-data on the ends of the histogram; this prevents the KDE
-            # from weird edge behavior.
-            # n_pseudo = 3 # number of pseudo-bins 
-            # bin_width=bin_edges[1]-bin_edges[0]
-            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
-
-            # Calculate bandwidth for KDE (Silverman method)
-            # h = kde_bandwidth(flat)
-
-            # Create a subsampled grid for the KDE based on the subsampled data; by
-            # default, we subsample by a factor of 10.
-            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
-
-            # Calculate KDE
-            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            # Calculate HDI
             p68 = compute_HDI(flat,0.68)
             p95 = compute_HDI(flat,0.95)
 
@@ -10763,10 +10645,6 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
             int_vel_disp_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
             int_vel_disp_dict[key]['flag']	      = flag 
 
-            if (plot_param_hist==True):
-                posterior_plots(key,flat,chain,burn_in,
-                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
-                                run_dir)
         else:
             int_vel_disp_dict[key]['par_best']    = np.nan # maximum of posterior distribution
             int_vel_disp_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
@@ -11840,9 +11718,6 @@ def write_log(output_val,output_type,run_dir):
             # Plotting options
             logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   plot_options:','',''))
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_param_hist',':',str(plot_options['plot_param_hist']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_flux_hist',':',str(plot_options['plot_flux_hist']) )) 
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_lum_hist',':',str(plot_options['plot_lum_hist']) ))
-            logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_eqwidth_hist',':',str(plot_options['plot_eqwidth_hist']) ))
             logfile.write('\n{0:>30}{1:<2}{2:<30}'.format('plot_pca',':',str(plot_options['plot_pca']) ))
             # Output options
             logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   output_options:','',''))

@@ -1,7 +1,7 @@
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={
-"fit_reg"    : (4400,5500),# Fitting region; Note: Indo-US Library=(3460,9464)
+"fit_reg"    : (5600,6300),# Fitting region; Note: Indo-US Library=(3460,9464)
 # "fit_reg"    : (2000,3000),# Fitting region; Note: Indo-US Library=(3460,9464)
 
 "good_thresh": 0.0, # percentage of "good" pixels required in fig_reg for fit.
@@ -9,9 +9,9 @@ fit_options={
 "mask_emline" : False, # automatically mask lines for continuum fitting.
 "mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 "fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares, RCHI2 = reduced chi2
-"n_basinhop": 15, # Number of consecutive basinhopping thresholds before solution achieved
-"test_lines": True,
-"max_like_niter": 25, # number of maximum likelihood iterations
+"n_basinhop": 10, # Number of consecutive basinhopping thresholds before solution achieved
+"test_lines": False,
+"max_like_niter": 10, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 "cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
 }
@@ -22,7 +22,7 @@ fit_options={
 mcmc_options={
 "mcmc_fit"    : True, # Perform robust fitting using emcee
 "nwalkers"    : 100,  # Number of emcee walkers; min = 2 x N_parameters
-"auto_stop"   : True, # Automatic stop using autocorrelation analysis
+"auto_stop"   : False, # Automatic stop using autocorrelation analysis
 "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
 "min_samp"    : 1000,  # min number of iterations for sampling post-convergence
 "ncor_times"  : 5.0,  # number of autocorrelation times for convergence
@@ -31,22 +31,22 @@ mcmc_options={
 "write_thresh": 100,   # iteration to start writing/checking parameters
 "burn_in"     : 1500, # burn-in if max_iter is reached
 "min_iter"    : 1000, # min number of iterations before stopping
-"max_iter"    : 25000, # max number of MCMC iterations
+"max_iter"    : 2500, # max number of MCMC iterations
 }
 ################################################################################
 
 ############################ Fit component op dtions #############################
 comp_options={
-"fit_opt_feii"     : True, # optical FeII
+"fit_opt_feii"     : False, # optical FeII
 "fit_uv_iron"      : False, # UV Iron 
 "fit_balmer"       : False, # Balmer continuum (<4000 A)
 "fit_losvd"        : False, # stellar LOSVD
-"fit_host"         : True, # host template
+"fit_host"         : False, # host template
 "fit_power"        : True, # AGN power-law
 "fit_poly"         : True, # Add polynomial continuum component
-"fit_narrow"       : True, # narrow lines
-"fit_broad"        : True, # broad lines
-"fit_absorp"       : False, # absorption lines
+"fit_narrow"       : False, # narrow lines
+"fit_broad"        : False, # broad lines
+"fit_absorp"       : True, # absorption lines
 "tie_line_disp"    : False, # tie line widths (dispersions)
 "tie_line_voff"    : False, # tie line velocity offsets
 }
@@ -54,7 +54,7 @@ comp_options={
 # Line options for each narrow, broad, and absorption.
 narrow_options = {
 #     "amp_plim": (0,1), # line amplitude parameter limits; default (0,)
-    "disp_plim": (0,300), # line dispersion parameter limits; default (0,)
+    "disp_plim": (0,1000), # line dispersion parameter limits; default (0,)
     "voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
     "line_profile": "gaussian", # line profile shape*
     "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
@@ -64,14 +64,14 @@ broad_options ={
 #     "amp_plim": (0,40), # line amplitude parameter limits; default (0,)
 #     "disp_plim": (300,3000), # line dispersion parameter limits; default (0,)
 #     "voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
-    "line_profile": "voigt", # line profile shape*
+    "line_profile": "gaussian", # line profile shape*
     "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
 }
 
 absorp_options = {
 #     "amp_plim": (-1,0), # line amplitude parameter limits; default (0,)
-#     "disp_plim": (0,10), # line dispersion parameter limits; default (0,)
-#     "voff_plim": (-2500,2500), # line velocity offset parameter limits; default (0,)
+    "disp_plim": (0,500), # line dispersion parameter limits; default (0,)
+    "voff_plim": (-100,100), # line velocity offset parameter limits; default (0,)
     "line_profile": "gaussian", # line profile shape*
     "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)        
 }
@@ -95,24 +95,24 @@ user_lines = {
     "NA_H_BETA"      :{"center":4862.691,"amp":"free","disp":"NA_OIII_5007_DISP","voff":"free","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"H$\beta$","ncomp":1,},
     "NA_H_BETA_2"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_2_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_H_BETA"},
     "NA_H_BETA_3"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_3_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_H_BETA"}, 
-    "NA_H_BETA_4"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_4_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_H_BETA"}, 
-    "NA_H_BETA_5"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_5_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_H_BETA"}, 
+    # "NA_H_BETA_4"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_4_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_H_BETA"}, 
+    # "NA_H_BETA_5"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_5_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_H_BETA"}, 
 
     "NA_OIII_4960"   :{"center":4960.295,"amp":"(NA_OIII_5007_AMP/2.98)","disp":"NA_OIII_5007_DISP","voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"[O III]","ncomp":1,},
     "NA_OIII_4960_2" :{"center":4960.295,"amp":"(NA_OIII_5007_2_AMP/2.98)","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_OIII_4960"},
     "NA_OIII_4960_3" :{"center":4960.295,"amp":"(NA_OIII_5007_3_AMP/2.98)","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_OIII_4960"},
-    "NA_OIII_4960_4" :{"center":4960.295,"amp":"(NA_OIII_5007_4_AMP/2.98)","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_OIII_4960"},
-    "NA_OIII_4960_5" :{"center":4960.295,"amp":"(NA_OIII_5007_5_AMP/2.98)","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_OIII_4960"},
+    # "NA_OIII_4960_4" :{"center":4960.295,"amp":"(NA_OIII_5007_4_AMP/2.98)","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_OIII_4960"},
+    # "NA_OIII_4960_5" :{"center":4960.295,"amp":"(NA_OIII_5007_5_AMP/2.98)","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_OIII_4960"},
 
     "NA_OIII_5007"   :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","label":r"[O III]","ncomp":1,},
     "NA_OIII_5007_2" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":2,"parent":"NA_OIII_5007"},
     "NA_OIII_5007_3" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":3,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_4" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":4,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_5" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":5,"parent":"NA_OIII_5007"},
+    # "NA_OIII_5007_4" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":4,"parent":"NA_OIII_5007"},
+    # "NA_OIII_5007_5" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":5,"parent":"NA_OIII_5007"},
     
     "BR_H_BETA"      :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":1,},
-    "BR_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":2,"parent":"BR_H_BETA"},
-    "BR_H_BETA_3"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":3,"parent":"BR_H_BETA"},
+    # "BR_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":2,"parent":"BR_H_BETA"},
+    # "BR_H_BETA_3"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":3,"parent":"BR_H_BETA"},
 
     "NA_UNK_1"       :{"center":5200,"line_type":"na"},
 
@@ -121,6 +121,8 @@ user_lines = {
     "NA_MGII_2799_2"   :{"center":2799.0,"line_type":"na","ncomp":2,"parent":"NA_MGII_2799"},
     "BR_MGII_2799"     :{"center":2799.0,"line_type":"br",},
     "BR_MGII_2799_2"   :{"center":2799.0,"line_type":"br","ncomp":2,"parent":"BR_MGII_2799"},
+
+    "ABS_NA_5895"      :{"center":5895.6,"line_type":"abs",}
 
 }
 
@@ -153,8 +155,8 @@ user_lines = {
 
 test_options = {
 "test_mode":"line",
-"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA","NA_UNK_1"], # The lines to test
-"ranges":[(4900,5050),(4700,4940),(5100,5200)], # The range over which the test is performed must include the tested line
+"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
+"ranges":[(4900,5050),(4700,4940),], # The range over which the test is performed must include the tested line
 "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 "thresholds": [0.95, 0.95, 0.10, 3.0],
 "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
@@ -186,7 +188,7 @@ user_mask = [
 ]
 
 combined_lines = {
-    # "H_BETA_COMP"   :["NA_H_BETA","NA_H_BETA_2","BR_H_BETA"],
+    "H_BETA_COMP"   :["NA_H_BETA","NA_H_BETA_2","BR_H_BETA"],
 }
 ########################## LOSVD Fitting & Options ##################
 # For direct fitting of the stellar kinematics (stellar LOSVD), one can 
@@ -287,14 +289,14 @@ balmer_options = {
 
 ############################### Plotting options ###############################
 plot_options={
-"plot_param_hist"    : False,# Plot MCMC histograms and chains for each parameter
+"plot_param_hist"    : True,# Plot MCMC histograms and chains for each parameter
 "plot_HTML"          : True,# make interactive plotly HTML best-fit plot
 }
 ################################################################################
 
 ################################ Output options ################################
 output_options={
-"write_chain"  : False, # Write MCMC chains for all paramters, fluxes, and
+"write_chain"  : True, # Write MCMC chains for all paramters, fluxes, and
                          # luminosities to a FITS table We set this to false 
                          # because MCMC_chains.FITS file can become very large, 
                          # especially  if you are running multiple objects.  
