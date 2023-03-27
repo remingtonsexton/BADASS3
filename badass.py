@@ -268,8 +268,6 @@ __status__	   = "Release"
 # - Bug fixes, and edits to default line list
 # - Add explicit flat prior 
 # - Add flux normalization option (default is SDSS normalization of 1.E-17)
-
-# Version 9.3.?
 # - Fixed output line SNR to be calculated even if NPIX <1
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
@@ -280,6 +278,8 @@ __status__	   = "Release"
 # - W80 now a standard line parameter
 # - New testing suite that incorporates testing for multiple components, lines, metrics, etc. with the 
 #   ability to continue fitting with the best model.
+# - Fixed autocorrelation time calculation; now always produces a time
+# - No longer calculate KDE for parameter plots; KDE calculation too time-intensive
 ##########################################################################################################
 
 
@@ -1285,51 +1285,52 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
 
     # Subsample the data into a manageable size for the kde and HDI
     if len(flat[np.isfinite(flat)]) > 0:
-        subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
+        # subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
         # Histogram; 'Doane' binning produces the best results from tests.
-        hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+        hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
         # Generate pseudo-data on the ends of the histogram; this prevents the KDE
         # from weird edge behavior.
-        n_pseudo = 3 # number of pseudo-bins 
-        bin_width=bin_edges[1]-bin_edges[0]
-        lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-        upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+        # n_pseudo = 3 # number of pseudo-bins 
+        # bin_width=bin_edges[1]-bin_edges[0]
+        # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+        # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
         # Calculate bandwidth for KDE (Silverman method)
-        h = kde_bandwidth(flat)
+        # h = kde_bandwidth(flat)
 
         # Create a subsampled grid for the KDE based on the subsampled data; by
         # default, we subsample by a factor of 10.
-        xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+        # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
         # Calculate KDE
-        kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-        p68 = compute_HDI(subsampled,0.68)
-        p95 = compute_HDI(subsampled,0.95)
+        # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+        p68 = compute_HDI(flat,0.68)
+        p95 = compute_HDI(flat,0.95)
 
-        post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+        post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
         post_mean = np.mean(flat)
         post_med  = np.median(flat)
-        low_68    = post_max - p68[0]
-        upp_68    = p68[1] - post_max
-        low_95    = post_max - p95[0]
-        upp_95    = p95[1] - post_max
+        low_68    = post_med - p68[0]
+        upp_68    = p68[1] - post_med
+        low_95    = post_med - p95[0]
+        upp_95    = p95[1] - post_med
         post_std  = np.std(flat)
         post_mad  = stats.median_abs_deviation(flat)
 
-        if ((post_max-(3.0*low_68))<0): 
+        if ((post_med-(3.0*low_68))<0): 
             flag = 1
         else: flag = 0
 
         z_dict = {}
         z_dict["z_sys"] = {}
-        z_dict["z_sys"]["par_best"]    = post_max
+        z_dict["z_sys"]["par_best"]    = post_med
         z_dict["z_sys"]["ci_68_low"]   = low_68
         z_dict["z_sys"]["ci_68_upp"]   = upp_68
         z_dict["z_sys"]["ci_95_low"]   = low_95
         z_dict["z_sys"]["ci_95_upp"]   = upp_95
+        z_dict["z_sys"]['post_max']    = post_max 
         z_dict["z_sys"]["mean"] 	   = post_mean
         z_dict["z_sys"]["std_dev"] 	   = post_std
         z_dict["z_sys"]["median"]	   = post_med
@@ -1344,6 +1345,7 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
         z_dict["z_sys"]["ci_68_upp"]   = np.nan
         z_dict["z_sys"]["ci_95_low"]   = np.nan
         z_dict["z_sys"]["ci_95_upp"]   = np.nan
+        z_dict["z_sys"]['post_max']    = np.nan 
         z_dict["z_sys"]["mean"] 	   = np.nan
         z_dict["z_sys"]["std_dev"] 	   = np.nan
         z_dict["z_sys"]["median"]	   = np.nan
@@ -2692,7 +2694,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # # Fit statistic: add noise_unexp if fit_stat = "RCHI2"
     if (fit_stat=="RCHI2"):
         if verbose: 
-            print('	 - Adding parameter for unexplained variance for reduced Chi-squared.')
+            print('\t- Adding parameter for unexplained variance for reduced Chi-squared.')
         par_input["NOISE_SCALE"] = ({'init':1.0,
                                      'plim':(0.0001,100.0),
                                      'prior':{"type":"jeffreys"},
@@ -2705,7 +2707,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # Galaxy template amplitude
     if (fit_host==True):
         if verbose:
-            print('	 - Fitting a SSP host-galaxy template.')
+            print('\t- Fitting a SSP host-galaxy template.')
         #
         if len(host_options["age"])==1:
             par_input['HOST_TEMP_AMP'] = ({'init':0.5*median_flux,
@@ -2728,7 +2730,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # Stellar LOSVD parameters (if fit_LOSVD = True)
     if (fit_losvd==True):
         if verbose:
-            print('	 - Fitting the stellar LOSVD.')
+            print('\t- Fitting the stellar LOSVD.')
         # Stellar velocity
         if losvd_options["vel_const"]["bool"]==False:
             #
@@ -2747,7 +2749,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_poly==True):
         if (poly_options["ppoly"]["bool"]==True) & (poly_options["ppoly"]["order"]>=0) :
             if verbose:
-                print('  - Fitting polynomial continuum component.')
+                print('\t- Fitting polynomial continuum component.')
             #
             for n in range(1,int(poly_options['ppoly']['order'])+1):
                 par_input["PPOLY_COEFF_%d" % n] = ({'init'  :0.0,
@@ -2755,7 +2757,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                              })
         if (poly_options["apoly"]["bool"]==True) & (poly_options["apoly"]["order"]>=0):
             if verbose:
-                print('  - Fitting additive legendre polynomial component.')
+                print('\t- Fitting additive legendre polynomial component.')
             #
             for n in range(1,int(poly_options['apoly']['order'])+1):
                 par_input["APOLY_COEFF_%d" % n] = ({'init'  :0.0,
@@ -2763,7 +2765,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                              })
         if (poly_options["mpoly"]["bool"]==True) & (poly_options["mpoly"]["order"]>=0):
             if verbose:
-                print('  - Fitting multiplicative legendre polynomial component.')
+                print('\t- Fitting multiplicative legendre polynomial component.')
             #
             for n in range(1,int(poly_options['mpoly']['order'])+1):
                 par_input["MPOLY_COEFF_%d" % n] = ({'init'  :0.0,
@@ -2775,7 +2777,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     #### Simple Power-Law (AGN continuum) ########################################
     if (fit_power==True) & (power_options['type']=='simple'):
         if verbose:
-            print('	 - Fitting Simple AGN power-law continuum.')
+            print('\t- Fitting Simple AGN power-law continuum.')
         # AGN simple power-law amplitude
         par_input['POWER_AMP'] = ({'init':(0.5*median_flux),
                                       'plim':(0,max_flux),
@@ -2788,7 +2790,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     #### Smoothly-Broken Power-Law (AGN continuum) ###############################
     if (fit_power==True) & (power_options['type']=='broken'):
         if verbose:
-            print('	 - Fitting Smoothly-Broken AGN power-law continuum.')
+            print('\t- Fitting Smoothly-Broken AGN power-law continuum.')
         # AGN simple power-law amplitude
         par_input['POWER_AMP'] = ({'init':(0.5*median_flux),
                                       'plim':(0,max_flux),
@@ -2816,7 +2818,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_opt_feii==True) & (opt_feii_options['opt_template']['type']=='VC04'):
         # Veron-Cerry et al. 2004 2-8 Parameter FeII template
         if verbose:
-            print('	 - Fitting broad and narrow optical FeII using Veron-Cetty et al. (2004) optical FeII templates')
+            print('\t- Fitting broad and narrow optical FeII using Veron-Cetty et al. (2004) optical FeII templates')
         if (opt_feii_options['opt_amp_const']['bool']==False):
             if verbose:
                 print('	 		* varying optical FeII amplitudes')
@@ -2852,7 +2854,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                              })
     elif (fit_opt_feii==True) & (opt_feii_options['opt_template']['type']=='K10'):
         if verbose:
-            print('	 - Fitting optical FeII template from Kovacevic et al. (2010)')
+            print('\t- Fitting optical FeII template from Kovacevic et al. (2010)')
 
         # Kovacevic et al. 2010 7-parameter FeII template (for NLS1s and BAL QSOs)
         # Consits of 7 free parameters
@@ -2896,7 +2898,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_uv_iron==True):
         # Veron-Cerry et al. 2004 2-8 Parameter FeII template
         if verbose:
-            print('	 - Fitting UV iron emission using Vestergaard & Wilkes (2001) UV iron template')
+            print('\t- Fitting UV iron emission using Vestergaard & Wilkes (2001) UV iron template')
         if (uv_iron_options['uv_amp_const']['bool']==False):
             if verbose:
                 print('	 		* varying UV iron amplitudes')
@@ -2930,7 +2932,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     if (fit_balmer==True):
         # Balmer continuum following Kovacevic et al. (2014) and Calderone et al. (2017; QSFit)
         if verbose:
-            print('	 - Fitting Balmer Continuum')
+            print('\t- Fitting Balmer Continuum')
 
         if (balmer_options['R_const']['bool']==False):
             if verbose:
@@ -9387,10 +9389,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
         # Checking autocorrelation times for convergence
         if ((k+1) % write_iter == 0) and ((k+1)>=min_iter) and ((k+1)>=write_thresh) and (auto_stop==True):
             # Autocorrelation analysis of chain to determine convergence; the minimum autocorrelation time is 1.0, which results when a time cannot be accurately calculated.
-            tau = autocorr_convergence(sampler.chain,param_names,plot=False) # Calculate autocorrelation times for each parameter
-
-            for t in range(len(tau)):
-                print(param_names[t],tau[t])
+            tau = autocorr_convergence(sampler.chain) # Calculate autocorrelation times for each parameter
 
             autocorr_times_all.append(tau) # append tau to storage array
             # Calculate tolerances
@@ -9697,156 +9696,69 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
 # Autocorrelation analysis 
 ##################################################################################
 
-def autocorr_func(c_x):
-    """"""
-    acf = []
-    for p in range(0,np.shape(c_x)[1],1):
-        x = c_x[:,p]
-        # Subtract mean value
-        rms_x = np.nanmedian(x)
-        x = x - rms_x
-        cc = np.correlate(x,x,mode='full')
-        cc = cc[cc.size // 2:]
-        cc = cc/np.nanmax(cc)
-        acf.append(cc)
-    # Flip the array 
-    acf = np.swapaxes(acf,1,0)
-    return acf
+def autocorr_convergence(sampler_chain, c=5.0):
+    """
+    Estimates the autocorrelation times using the 
+    methods outlined on the Autocorrelation page 
+    on the emcee website:
+    https://emcee.readthedocs.io/en/stable/tutorials/autocorr/
+    """
+    
+    nwalker = np.shape(sampler_chain)[0] # Number of walkers
+    niter   = np.shape(sampler_chain)[1] # Number of iterations
+    npar    = np.shape(sampler_chain)[2] # Number of parameters
         
+    tau_est = np.empty(npar)
+    # Iterate over all parameters
+    for p in range(npar):
+        
+        y = sampler_chain[:,:,p]
+        f = np.zeros(y.shape[1])
+        for yy in y:
+            f += autocorr_func_1d(yy)
+        f /= len(y)
+        taus = 2.0 * np.cumsum(f) - 1.0
+        window = auto_window(taus, c)
+        tau_est[p] = taus[window]
+    
+    
+    return tau_est
+
+
+def next_pow_two(n):
+    i = 1
+    while i < n:
+        i = i << 1
+    return i
+
+def autocorr_func_1d(x, norm=True):
+    """
+    Estimates the 1d autocorrelation function for a chain.
+    """
+    x = np.atleast_1d(x)
+    if len(x.shape) != 1:
+        raise ValueError("invalid dimensions for 1D autocorrelation function")
+    n = next_pow_two(len(x))
+
+    # Compute the FFT and then (from that) the auto-correlation function
+    f = np.fft.fft(x - np.mean(x), n=2 * n)
+    acf = np.fft.ifft(f * np.conjugate(f))[: len(x)].real
+    acf /= 4 * n
+
+    # Optionally normalize
+    if norm:
+        acf /= acf[0]
+
+    return acf
+
 def auto_window(taus, c):
     """
-    (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
+    Automated windowing procedure following Sokal (1989)
     """
     m = np.arange(len(taus)) < c * taus
     if np.any(m):
         return np.argmin(m)
     return len(taus) - 1
-
-def integrated_time(acf, c=5, tol=0):
-    """Estimate the integrated autocorrelation time of a time series.
-    This estimate uses the iterative procedure described on page 16 of
-    `Sokal's notes <http://www.stat.unc.edu/faculty/cji/Sokal.pdf>`_ to
-    determine a reasonable window size.
-    Args:
-        acf: The time series. If multidimensional, set the time axis using the
-            ``axis`` keyword argument and the function will be computed for
-            every other axis.
-        c (Optional[float]): The step size for the window search. (default:
-            ``5``)
-        tol (Optional[float]): The minimum number of autocorrelation times
-            needed to trust the estimate. (default: ``0``)
-    Returns:
-        float or array: An estimate of the integrated autocorrelation time of
-            the time series ``x`` computed along the axis ``axis``.
-    (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
-    """
-    tau_est = np.empty(np.shape(acf)[1])
-    windows = np.empty(np.shape(acf)[1], dtype=int)
-
-    # Loop over parameters
-    for p in range(0,np.shape(acf)[1],1):
-        taus = 2.0*np.cumsum(acf[:,p])-1.0
-        windows[p] = auto_window(taus, c)
-        tau_est[p] = taus[windows[p]]
-
-    return tau_est
-
-def autocorr_convergence(emcee_chain,param_names,plot=False):
-    """
-    My own recipe for convergence.
-    """
-    # Remove zeros from all chains
-    sampler_chain = []
-    for p in range(0,np.shape(emcee_chain)[2],1):
-        c = emcee_chain[:,:,p]
-        c_trimmed = [np.delete(c[i,:],np.argwhere(c[i,:]==0)) for i in range(np.shape(c)[0])] # delete any occurence of zero 
-        sampler_chain.append(c_trimmed)
-    sampler_chain = np.swapaxes(sampler_chain,1,0) 
-    sampler_chain = np.swapaxes(sampler_chain,2,1)
-
-    #####################################################################
-    # def autocorr_func(c_x):
-    #     """"""
-    #     acf = []
-    #     for p in range(0,np.shape(c_x)[1],1):
-    #         x = c_x[:,p]
-    #         # Subtract mean value
-    #         rms_x = np.median(x)
-    #         x = x - rms_x
-    #         cc = np.correlate(x,x,mode='full')
-    #         cc = cc[cc.size // 2:]
-    #         cc = cc/np.max(cc)
-    #         acf.append(cc)
-    #     # Flip the array 
-    #     acf = np.swapaxes(acf,1,0)
-    #     return acf
-            
-    # def auto_window(taus, c):
-    #     """
-    #     (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
-    #     """
-    #     m = np.arange(len(taus)) < c * taus
-    #     if np.any(m):
-    #         return np.argmin(m)
-    #     return len(taus) - 1
-    
-    # def integrated_time(acf, c=5, tol=0):
-    #     """Estimate the integrated autocorrelation time of a time series.
-    #     This estimate uses the iterative procedure described on page 16 of
-    #     `Sokal's notes <http://www.stat.unc.edu/faculty/cji/Sokal.pdf>`_ to
-    #     determine a reasonable window size.
-    #     Args:
-    #         acf: The time series. If multidimensional, set the time axis using the
-    #             ``axis`` keyword argument and the function will be computed for
-    #             every other axis.
-    #         c (Optional[float]): The step size for the window search. (default:
-    #             ``5``)
-    #         tol (Optional[float]): The minimum number of autocorrelation times
-    #             needed to trust the estimate. (default: ``0``)
-    #     Returns:
-    #         float or array: An estimate of the integrated autocorrelation time of
-    #             the time series ``x`` computed along the axis ``axis``.
-    #     (Adapted from https://github.com/dfm/emcee/blob/master/emcee/autocorr.py)
-    #     """
-    #     tau_est = np.empty(np.shape(acf)[1])
-    #     windows = np.empty(np.shape(acf)[1], dtype=int)
-
-    #     # Loop over parameters
-    #     for p in range(0,np.shape(acf)[1],1):
-    #         taus = 2.0*np.cumsum(acf[:,p])-1.0
-    #         windows[p] = auto_window(taus, c)
-    #         tau_est[p] = taus[windows[p]]
-
-    #     return tau_est
-    #####################################################################
-        
-    nwalker = np.shape(sampler_chain)[0] # Number of walkers
-    niter   = np.shape(sampler_chain)[1] # Number of iterations
-    npar	= np.shape(sampler_chain)[2] # Number of parameters
-        
-
-
-    c_x = np.nanmean(sampler_chain[:,:,:],axis=0)
-    # c_x = np.nanmedian(sampler_chain[:,:,:],axis=0)
-    
-    acf = autocorr_func(c_x)
-    tau_est = integrated_time(acf)
-        
-    if (plot==True):
-        fig = plt.figure(figsize=(14,4))
-        ax1 = fig.add_subplot(2,1,1)
-        ax2 = fig.add_subplot(2,1,2)
-        for c in range(0,np.shape(c_x)[1],1):
-            cn = (c_x[:,c])/(np.median(c_x[:,c]))
-            ax1.plot(cn,alpha=1.,linewidth=0.5)
-        ax1.axhline(1.0,alpha=1.,linewidth=0.5,color='black',linestyle='--')  
-        ax1.set_xlim(0,np.shape(c_x)[0])
-        ax2.plot(range(np.shape(acf)[0]),acf,alpha=1.,linewidth=0.5,label='ACF')
-        ax2.axhline(0.0,alpha=1.,linewidth=0.5)
-        ax2.set_xlim(np.min(range(np.shape(acf)[0])),np.max(range(np.shape(acf)[0])))
-        plt.tight_layout()
-    
-    return tau_est
 
 ##################################################################################
 
@@ -9871,32 +9783,73 @@ def kde_bandwidth(data):
     """
     return (4./(3.*len(data)))**(1./5.) * np.std(data)
 
-def compute_HDI(posterior_samples, credible_mass):
+def compute_HDI(trace, mass_frac) :
     """
-    Computes highest density interval from a sample of representative values,
-    estimated as the shortest credible interval.
-    Takes Arguments posterior_samples (samples from posterior) and credible mass (usually 0.95):
-    https://www.sciencedirect.com/topics/mathematics/highest-density-interval
-    BADASS uses the 0.68 interval.
+    Returns highest probability density region given by
+    a set of samples.
+    
+    Source: http://bebi103.caltech.edu.s3-website-us-east-1.amazonaws.com/2015/tutorials/l06_credible_regions.html
+    
+    Parameters
+    ----------
+    trace : array
+        1D array of MCMC samples for a single variable
+    mass_frac : float with 0 < mass_frac <= 1
+        The fraction of the probability to be included in
+        the HPD.  For example, `massfrac` = 0.95 gives a
+        95% HPD.
+        
+    Returns
+    -------
+    output : array, shape (2,)
+        The bounds of the HPD
     """
-    sorted_points = sorted(posterior_samples)
-    ciIdxInc = np.ceil(credible_mass * len(sorted_points)).astype('int')
-    nCIs = len(sorted_points) - ciIdxInc
-    # If the requested credible mass is equal to the number of posterior samples than the 
-    # CI is simply the extent of the data.  This is typical of the 99.7% CI case for N<1000
-    if nCIs==0:
-        HDImin = np.min(posterior_samples)
-        HDImax = np.max(posterior_samples)
-    else:
-        ciWidth = [0]*nCIs    
-        for i in range(0, nCIs):
-            ciWidth[i] = sorted_points[i + ciIdxInc] - sorted_points[i]
-            HDImin = sorted_points[ciWidth.index(min(ciWidth))]
-            HDImax = sorted_points[ciWidth.index(min(ciWidth))+ciIdxInc]
-    return(HDImin, HDImax)
+    # Get sorted list
+    d = np.sort(np.copy(trace))
 
-def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
-                    post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+    # Number of total samples taken
+    n = len(trace)
+    
+    # Get number of samples that should be included in HPD
+    n_samples = np.floor(mass_frac * n).astype(int)
+    
+    # Get width (in units of data) of all intervals with n_samples samples
+    int_width = d[n_samples:] - d[:n-n_samples]
+    
+    # Pick out minimal interval
+    min_int = np.argmin(int_width)
+    
+    # Return interval
+    return np.array([d[min_int], d[min_int+n_samples]])
+
+
+# old HDI
+# def compute_HDI(posterior_samples, credible_mass):
+#     """
+#     Computes highest density interval from a sample of representative values,
+#     estimated as the shortest credible interval.
+#     Takes Arguments posterior_samples (samples from posterior) and credible mass (usually 0.95):
+#     https://www.sciencedirect.com/topics/mathematics/highest-density-interval
+#     BADASS uses the 0.68 interval.
+#     """
+#     sorted_points = sorted(posterior_samples)
+#     ciIdxInc = np.ceil(credible_mass * len(sorted_points)).astype('int')
+#     nCIs = len(sorted_points) - ciIdxInc
+#     # If the requested credible mass is equal to the number of posterior samples than the 
+#     # CI is simply the extent of the data.  This is typical of the 99.7% CI case for N<1000
+#     if nCIs==0:
+#         HDImin = np.min(posterior_samples)
+#         HDImax = np.max(posterior_samples)
+#     else:
+#         ciWidth = [0]*nCIs    
+#         for i in range(0, nCIs):
+#             ciWidth[i] = sorted_points[i + ciIdxInc] - sorted_points[i]
+#             HDImin = sorted_points[ciWidth.index(min(ciWidth))]
+#             HDImax = sorted_points[ciWidth.index(min(ciWidth))+ciIdxInc]
+#     return(HDImin, HDImax)
+
+def posterior_plots(key,flat,chain,burn_in,
+                    low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                     run_dir
                     ):
     """
@@ -9914,25 +9867,14 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
     # Histogram; 'Doane' binning produces the best results from tests.
     n, bins, patches = ax1.hist(flat, bins='doane', histtype="bar" , density=True, facecolor="#4200a6", alpha=1,zorder=10)
     # Plot 1: Histogram plots
-    ax1.axvline(post_max	,linewidth=0.5,linestyle="-",color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$p(\theta|x)_{\rm{max}}$')
+    ax1.axvline(post_med	,linewidth=0.5,linestyle="-",color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$p(\theta|x)_{\rm{med}}$')
     #
-    ax1.axvline(post_max-low_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'68% conf.')
-    ax1.axvline(post_max+upp_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
+    ax1.axvline(post_med-low_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'68% conf.')
+    ax1.axvline(post_med+upp_68,linewidth=0.5,linestyle="--" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
     #
-    ax1.axvline(post_max-low_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'95% conf.')
-    ax1.axvline(post_max+upp_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
+    ax1.axvline(post_med-low_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'95% conf.')
+    ax1.axvline(post_med+upp_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
     #
-    # ax1.axvline(post_mean,linewidth=0.5,linestyle="--",color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'Mean')
-    # ax1.axvline(post_mean-post_std,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'Std. Dev.')
-    # ax1.axvline(post_mean+post_std,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
-    #
-    # ax1.axvline(post_med,linewidth=0.5,linestyle="--",color='xkcd:bright yellow',alpha=1.00,zorder=20,label=r'Median')
-    # ax1.axvline(post_med-post_mad,linewidth=0.5,linestyle=":" ,color='xkcd:bright yellow',alpha=1.00,zorder=20,label=r'Med. Abs. Dev.')
-    # ax1.axvline(post_med+post_mad,linewidth=0.5,linestyle=":" ,color='xkcd:bright yellow',alpha=1.00,zorder=20)
-    #
-    ax1.plot(xs,kde	   ,linewidth=0.5,linestyle="-" ,color="xkcd:bright pink",alpha=1.00,zorder=15,label="KDE")
-    ax1.plot(xs,kde	   ,linewidth=3.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.50,zorder=15)
-    ax1.plot(xs,kde	   ,linewidth=6.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.20,zorder=15)
     ax1.grid(visible=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
     # ax1.plot(xvec,yvec,color='white')
     ax1.set_xlabel(r'%s' % key,fontsize=12)
@@ -9940,8 +9882,8 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,h,
     ax1.legend(loc="best",fontsize=6)
     
     # Plot 2: best fit values
-    values = [post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad]
-    labels = [r"$p(\theta|x)_{\rm{max}}$",
+    values = [post_med,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad]
+    labels = [r"$p(\theta|x)_{\rm{med}}$",
         r"$\rm{CI\;68\%\;low}$",r"$\rm{CI\;68\%\;upp}$",
         r"$\rm{CI\;95\%\;low}$",r"$\rm{CI\;95\%\;upp}$",
         r"$\rm{Mean}$",r"$\rm{Std.\;Dev.}$",
@@ -10012,47 +9954,47 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
-            subsampled = np.random.choice(flat,size=10000)
+            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
-            hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+            hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
             # Generate pseudo-data on the ends of the histogram; this prevents the KDE
             # from weird edge behavior.
-            n_pseudo = 3 # number of pseudo-bins 
-            bin_width=bin_edges[1]-bin_edges[0]
-            lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+            # n_pseudo = 3 # number of pseudo-bins 
+            # bin_width=bin_edges[1]-bin_edges[0]
+            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
             # Calculate bandwidth for KDE (Silverman method)
-            h = kde_bandwidth(flat)
+            # h = kde_bandwidth(flat)
 
             # Create a subsampled grid for the KDE based on the subsampled data; by
             # default, we subsample by a factor of 10.
-            xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
             # Calculate KDE
-            kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-            p68 = compute_HDI(subsampled,0.68)
-            p95 = compute_HDI(subsampled,0.95)
+            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            p68 = compute_HDI(flat,0.68)
+            p95 = compute_HDI(flat,0.95)
 
-            post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+            post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.nanmean(flat)
             post_med  = np.nanmedian(flat)
-            low_68    = post_max - p68[0]
-            upp_68    = p68[1] - post_max
-            low_95    = post_max - p95[0]
-            upp_95    = p95[1] - post_max
+            low_68    = post_med - p68[0]
+            upp_68    = p68[1] - post_med
+            low_95    = post_med - p95[0]
+            upp_95    = p95[1] - post_med
             post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
             flag = 0  
-            if ( (post_max-1.5*low_68) <= (param_dict[key]['plim'][0]) ):
+            if ( (post_med-1.5*low_68) <= (param_dict[key]['plim'][0]) ):
                 flag+=1
-            if ( (post_max+1.5*upp_68) >= (param_dict[key]['plim'][1]) ):
+            if ( (post_med+1.5*upp_68) >= (param_dict[key]['plim'][1]) ):
                 flag+=1
-            if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+            if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
             param_dict[key]['par_best']    = post_med # maximum of posterior distribution
@@ -10069,8 +10011,8 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             param_dict[key]['flag']	       = flag 
 
             if (plot_param_hist==True):
-                posterior_plots(key,flat,chain,burn_in,xs,kde,h,
-                                post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+                posterior_plots(key,flat,chain,burn_in,#xs,kde,h,
+                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir
                                 )
         else:
@@ -10079,7 +10021,7 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             param_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             param_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             param_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
-            param_dict[key]['post_max']    = post_max # maximum of posterior distribution
+            param_dict[key]['post_max']    = np.nan # maximum of posterior distribution
             param_dict[key]['mean']        = np.nan # mean of posterior distribution
             param_dict[key]['std_dev']     = np.nan	# standard deviation
             param_dict[key]['median']      = np.nan # median of posterior distribution
@@ -10117,51 +10059,52 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
 
     # Subsample the data into a manageable size for the kde and HDI
     if len(flat[np.isfinite(flat)]) > 0:
-        subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
+        # subsampled = np.random.choice(flat[np.isfinite(flat)],size=10000)
 
         # Histogram; 'Doane' binning produces the best results from tests.
-        hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+        hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
         # Generate pseudo-data on the ends of the histogram; this prevents the KDE
         # from weird edge behavior.
-        n_pseudo = 3 # number of pseudo-bins 
-        bin_width=bin_edges[1]-bin_edges[0]
-        lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-        upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+        # n_pseudo = 3 # number of pseudo-bins 
+        # bin_width=bin_edges[1]-bin_edges[0]
+        # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+        # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
         # Calculate bandwidth for KDE (Silverman method)
-        h = kde_bandwidth(flat)
+        # h = kde_bandwidth(flat)
 
         # Create a subsampled grid for the KDE based on the subsampled data; by
         # default, we subsample by a factor of 10.
-        xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+        # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
         # Calculate KDE
-        kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-        p68 = compute_HDI(subsampled,0.68)
-        p95 = compute_HDI(subsampled,0.95)
+        # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+        p68 = compute_HDI(flat,0.68)
+        p95 = compute_HDI(flat,0.95)
 
-        post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+        post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
         post_mean = np.mean(flat)
         post_med  = np.median(flat)
-        low_68    = post_max - p68[0]
-        upp_68    = p68[1] - post_max
-        low_95    = post_max - p95[0]
-        upp_95    = p95[1] - post_max
+        low_68    = post_med - p68[0]
+        upp_68    = p68[1] - post_med
+        low_95    = post_med - p95[0]
+        upp_95    = p95[1] - post_med
         post_std  = np.std(flat)
         post_mad  = stats.median_abs_deviation(flat)
 
         # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
         flag = 0
-        if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+        if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
             flag += 1
 
         ll_dict = {
-                    'par_best'    : post_max, # maximum of posterior distribution
+                    'par_best'    : post_med, # maximum of posterior distribution
                     'ci_68_low'   : low_68,	# lower 68% confidence interval
                     'ci_68_upp'   : upp_68,	# upper 68% confidence interval
                     'ci_95_low'   : low_95,	# lower 95% confidence interval
                     'ci_95_upp'   : upp_95,	# upper 95% confidence interval
+                    'post_max'    : post_max,
                     'mean'        : post_mean, # mean of posterior distribution
                     'std_dev'     : post_std,	# standard deviation
                     'median'      : post_med, # median of posterior distribution
@@ -10171,8 +10114,8 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
         }
 
         if (plot_param_hist==True):
-                posterior_plots("LOG_LIKE",flat,ll,burn_in,xs,kde,h,
-                                post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+                posterior_plots("LOG_LIKE",flat,ll,burn_in,
+                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir)
     else:
         ll_dict = {
@@ -10181,6 +10124,7 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
                 'ci_68_upp'   : np.nan,	# upper 68% confidence interval
                 'ci_95_low'   : np.nan,	# lower 95% confidence interval
                 'ci_95_upp'   : np.nan,	# upper 95% confidence interval
+                'post_max'    : np.nan,
                 'mean'        : np.nan, # mean of posterior distribution
                 'std_dev'     : np.nan,	# standard deviation
                 'median'      : np.nan, # median of posterior distribution
@@ -10231,52 +10175,53 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
-            subsampled = np.random.choice(flat,size=10000)
+            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
-            hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+            hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
             # Generate pseudo-data on the ends of the histogram; this prevents the KDE
             # from weird edge behavior.
-            n_pseudo = 3 # number of pseudo-bins 
-            bin_width=bin_edges[1]-bin_edges[0]
-            lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+            # n_pseudo = 3 # number of pseudo-bins 
+            # bin_width=bin_edges[1]-bin_edges[0]
+            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
             # Calculate bandwidth for KDE (Silverman method)
-            h = kde_bandwidth(flat)
+            # h = kde_bandwidth(flat)
 
             # Create a subsampled grid for the KDE based on the subsampled data; by
             # default, we subsample by a factor of 10.
-            xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
             # Calculate KDE
-            kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-            p68 = compute_HDI(subsampled,0.68)
-            p95 = compute_HDI(subsampled,0.95)
+            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            p68 = compute_HDI(flat,0.68)
+            p95 = compute_HDI(flat,0.95)
 
-            post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+            post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.mean(flat)
             post_med  = np.median(flat)
-            low_68    = post_max - p68[0]
-            upp_68    = p68[1] - post_max
-            low_95    = post_max - p95[0]
-            upp_95    = p95[1] - post_max
+            low_68    = post_med - p68[0]
+            upp_68    = p68[1] - post_med
+            low_95    = post_med - p95[0]
+            upp_95    = p95[1] - post_med
             post_std  = np.std(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
             flag = 0  
-            if ( (post_max-1.5*low_68) <= -20 ):
+            if ( (post_med-1.5*low_68) <= -20 ):
                 flag+=1
-            if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+            if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            flux_dict[key]['par_best']    = post_max # maximum of posterior distribution
+            flux_dict[key]['par_best']    = post_med # maximum of posterior distribution
             flux_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             flux_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             flux_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             flux_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            flux_dict[key]['post_max']    = post_max
             flux_dict[key]['mean']        = post_mean # mean of posterior distribution
             flux_dict[key]['std_dev']     = post_std	# standard deviation
             flux_dict[key]['median']      = post_med # median of posterior distribution
@@ -10286,8 +10231,8 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=
 
 
             if (plot_flux_hist==True):
-                posterior_plots(key,flat,chain,burn_in,xs,kde,h,
-                                post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+                posterior_plots(key,flat,chain,burn_in,
+                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir)
         else:
             flux_dict[key]['par_best']    = np.nan # maximum of posterior distribution
@@ -10295,6 +10240,7 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, plot_flux_hist=
             flux_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             flux_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             flux_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            flux_dict[key]['post_max']    = np.nan
             flux_dict[key]['mean']        = np.nan # mean of posterior distribution
             flux_dict[key]['std_dev']     = np.nan	# standard deviation
             flux_dict[key]['median']      = np.nan # median of posterior distribution
@@ -10346,52 +10292,53 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
-            subsampled = np.random.choice(flat,size=10000)
+            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
-            hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+            hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
             # Generate pseudo-data on the ends of the histogram; this prevents the KDE
             # from weird edge behavior.
-            n_pseudo = 3 # number of pseudo-bins 
-            bin_width=bin_edges[1]-bin_edges[0]
-            lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+            # n_pseudo = 3 # number of pseudo-bins 
+            # bin_width=bin_edges[1]-bin_edges[0]
+            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
             # Calculate bandwidth for KDE (Silverman method)
-            h = kde_bandwidth(flat)
+            # h = kde_bandwidth(flat)
 
             # Create a subsampled grid for the KDE based on the subsampled data; by
             # default, we subsample by a factor of 10.
-            xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
             # Calculate KDE
-            kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-            p68 = compute_HDI(subsampled,0.68)
-            p95 = compute_HDI(subsampled,0.95)
+            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            p68 = compute_HDI(flat,0.68)
+            p95 = compute_HDI(flat,0.95)
 
-            post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+            post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.mean(flat)
             post_med  = np.median(flat)
-            low_68    = post_max - p68[0]
-            upp_68    = p68[1] - post_max
-            low_95    = post_max - p95[0]
-            upp_95    = p95[1] - post_max
+            low_68    = post_med - p68[0]
+            upp_68    = p68[1] - post_med
+            low_95    = post_med - p95[0]
+            upp_95    = p95[1] - post_med
             post_std  = np.std(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
             flag = 0  
-            if ( (post_max-1.5*low_68) <= 30 ):
+            if ( (post_med-1.5*low_68) <= 30 ):
                 flag+=1
-            if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+            if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            lum_dict[key]['par_best']    = post_max # maximum of posterior distribution
+            lum_dict[key]['par_best']    = post_med # maximum of posterior distribution
             lum_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             lum_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             lum_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             lum_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            lum_dict[key]['post_max']    = post_max
             lum_dict[key]['mean']        = post_mean # mean of posterior distribution
             lum_dict[key]['std_dev']     = post_std	# standard deviation
             lum_dict[key]['median']      = post_med # median of posterior distribution
@@ -10400,8 +10347,8 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
             lum_dict[key]['flag']	     = flag
 
             if (plot_lum_hist==True):
-                posterior_plots(key,flat,chain,burn_in,xs,kde,h,
-                                post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+                posterior_plots(key,flat,chain,burn_in,
+                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir)
         else:
             lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
@@ -10409,6 +10356,7 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,plot_lum_his
             lum_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             lum_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             lum_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            lum_dict[key]['post_max']    = np.nan
             lum_dict[key]['mean']        = np.nan # mean of posterior distribution
             lum_dict[key]['std_dev']     = np.nan	# standard deviation
             lum_dict[key]['median']      = np.nan # median of posterior distribution
@@ -10457,52 +10405,53 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
-            subsampled = np.random.choice(flat,size=10000)
+            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
-            hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+            hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
             # Generate pseudo-data on the ends of the histogram; this prevents the KDE
             # from weird edge behavior.
-            n_pseudo = 3 # number of pseudo-bins 
-            bin_width=bin_edges[1]-bin_edges[0]
-            lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+            # n_pseudo = 3 # number of pseudo-bins 
+            # bin_width=bin_edges[1]-bin_edges[0]
+            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
             # Calculate bandwidth for KDE (Silverman method)
-            h = kde_bandwidth(flat)
+            # h = kde_bandwidth(flat)
 
             # Create a subsampled grid for the KDE based on the subsampled data; by
             # default, we subsample by a factor of 10.
-            xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
             # Calculate KDE
-            kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-            p68 = compute_HDI(subsampled,0.68)
-            p95 = compute_HDI(subsampled,0.95)
+            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            p68 = compute_HDI(flat,0.68)
+            p95 = compute_HDI(flat,0.95)
 
-            post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+            post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.mean(flat)
             post_med  = np.median(flat)
-            low_68    = post_max - p68[0]
-            upp_68    = p68[1] - post_max
-            low_95    = post_max - p95[0]
-            upp_95    = p95[1] - post_max
+            low_68    = post_med - p68[0]
+            upp_68    = p68[1] - post_med
+            low_95    = post_med - p95[0]
+            upp_95    = p95[1] - post_med
             post_std  = np.std(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
             flag = 0  
-            if ( (post_max-1.5*low_68) <= 0 ):
+            if ( (post_med-1.5*low_68) <= 0 ):
                 flag+=1
-            if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+            if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            eqwidth_dict[key]['par_best']    = post_max # maximum of posterior distribution
+            eqwidth_dict[key]['par_best']    = post_med # maximum of posterior distribution
             eqwidth_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             eqwidth_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             eqwidth_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             eqwidth_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            eqwidth_dict[key]['post_max']    = post_max
             eqwidth_dict[key]['mean']        = post_mean # mean of posterior distribution
             eqwidth_dict[key]['std_dev']     = post_std	# standard deviation
             eqwidth_dict[key]['median']      = post_med # median of posterior distribution
@@ -10511,8 +10460,8 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
             eqwidth_dict[key]['flag']	       = flag
 
             if (plot_eqwidth_hist==True):
-                posterior_plots(key,flat,chain,burn_in,xs,kde,h,
-                                post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+                posterior_plots(key,flat,chain,burn_in,
+                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir)
         else:
             eqwidth_dict[key]['par_best']    = np.nan # maximum of posterior distribution
@@ -10520,6 +10469,7 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir, plot_eqwidth_hist=Tr
             eqwidth_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             eqwidth_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             eqwidth_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            eqwidth_dict[key]['post_max']    = np.nan
             eqwidth_dict[key]['mean']        = np.nan # mean of posterior distribution
             eqwidth_dict[key]['std_dev']     = np.nan	# standard deviation
             eqwidth_dict[key]['median']      = np.nan # median of posterior distribution
@@ -10644,52 +10594,53 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
-            subsampled = np.random.choice(flat,size=10000)
+            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
-            hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+            hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
             # Generate pseudo-data on the ends of the histogram; this prevents the KDE
             # from weird edge behavior.
-            n_pseudo = 3 # number of pseudo-bins 
-            bin_width=bin_edges[1]-bin_edges[0]
-            lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+            # n_pseudo = 3 # number of pseudo-bins 
+            # bin_width=bin_edges[1]-bin_edges[0]
+            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
             # Calculate bandwidth for KDE (Silverman method)
-            h = kde_bandwidth(flat)
+            # h = kde_bandwidth(flat)
 
             # Create a subsampled grid for the KDE based on the subsampled data; by
             # default, we subsample by a factor of 10.
-            xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
             # Calculate KDE
-            kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-            p68 = compute_HDI(subsampled,0.68)
-            p95 = compute_HDI(subsampled,0.95)
+            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            p68 = compute_HDI(flat,0.68)
+            p95 = compute_HDI(flat,0.95)
 
-            post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+            post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.mean(flat)
             post_med  = np.median(flat)
-            low_68    = post_max - p68[0]
-            upp_68    = p68[1] - post_max
-            low_95    = post_max - p95[0]
-            upp_95    = p95[1] - post_max
+            low_68    = post_med - p68[0]
+            upp_68    = p68[1] - post_med
+            low_95    = post_med - p95[0]
+            upp_95    = p95[1] - post_med
             post_std  = np.std(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
             flag = 0  
-            if ( (post_max-1.5*low_68) <= 0 ):
+            if ( (post_med-1.5*low_68) <= 0 ):
                 flag+=1
-            if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+            if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            cont_lum_dict[key]['par_best']    = post_max # maximum of posterior distribution
+            cont_lum_dict[key]['par_best']    = post_med # maximum of posterior distribution
             cont_lum_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             cont_lum_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             cont_lum_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             cont_lum_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            cont_lum_dict[key]['post_max']    = post_max
             cont_lum_dict[key]['mean']        = post_mean # mean of posterior distribution
             cont_lum_dict[key]['std_dev']     = post_std	# standard deviation
             cont_lum_dict[key]['median']      = post_med # median of posterior distribution
@@ -10698,8 +10649,8 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
             cont_lum_dict[key]['flag']	      = flag 
 
             if (plot_lum_hist==True):
-                posterior_plots(key,flat,chain,burn_in,xs,kde,h,
-                                post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+                posterior_plots(key,flat,chain,burn_in,
+                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir)
         else:
             cont_lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
@@ -10707,6 +10658,7 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,pl
             cont_lum_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             cont_lum_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             cont_lum_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            cont_lum_dict[key]['post_max']    = np.nan
             cont_lum_dict[key]['mean']        = np.nan # mean of posterior distribution
             cont_lum_dict[key]['std_dev']     = np.nan	# standard deviation
             cont_lum_dict[key]['median']      = np.nan # median of posterior distribution
@@ -10757,52 +10709,53 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
 
         # Subsample the data into a manageable size for the kde and HDI
         if len(flat) > 0:
-            subsampled = np.random.choice(flat,size=10000)
+            # subsampled = np.random.choice(flat,size=10000)
 
             # Histogram; 'Doane' binning produces the best results from tests.
-            hist, bin_edges = np.histogram(subsampled, bins='doane', density=False)
+            hist, bin_edges = np.histogram(flat, bins='doane', density=False)
 
             # Generate pseudo-data on the ends of the histogram; this prevents the KDE
             # from weird edge behavior.
-            n_pseudo = 3 # number of pseudo-bins 
-            bin_width=bin_edges[1]-bin_edges[0]
-            lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
-            upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
+            # n_pseudo = 3 # number of pseudo-bins 
+            # bin_width=bin_edges[1]-bin_edges[0]
+            # lower_pseudo_data = np.random.uniform(low=bin_edges[0]-bin_width*n_pseudo, high=bin_edges[0], size=hist[0]*n_pseudo)
+            # upper_pseudo_data = np.random.uniform(low=bin_edges[-1], high=bin_edges[-1]+bin_width*n_pseudo, size=hist[-1]*n_pseudo)
 
             # Calculate bandwidth for KDE (Silverman method)
-            h = kde_bandwidth(flat)
+            # h = kde_bandwidth(flat)
 
             # Create a subsampled grid for the KDE based on the subsampled data; by
             # default, we subsample by a factor of 10.
-            xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
+            # xs = np.linspace(np.min(subsampled),np.max(subsampled),10*len(hist))
 
             # Calculate KDE
-            kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
-            p68 = compute_HDI(subsampled,0.68)
-            p95 = compute_HDI(subsampled,0.95)
+            # kde = gauss_kde(xs,np.concatenate([subsampled,lower_pseudo_data,upper_pseudo_data]),h)
+            p68 = compute_HDI(flat,0.68)
+            p95 = compute_HDI(flat,0.95)
 
-            post_max  = xs[kde.argmax()] # posterior max estimated from KDE
+            post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.mean(flat)
             post_med  = np.median(flat)
-            low_68    = post_max - p68[0]
-            upp_68    = p68[1] - post_max
-            low_95    = post_max - p95[0]
-            upp_95    = p95[1] - post_max
+            low_68    = post_med - p68[0]
+            upp_68    = p68[1] - post_med
+            low_95    = post_med - p95[0]
+            upp_95    = p95[1] - post_med
             post_std  = np.std(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
             flag = 0  
-            if ( (post_max-1.5*low_68) <= 0 ):
+            if ( (post_med-1.5*low_68) <= 0 ):
                 flag+=1
-            if ~np.isfinite(post_max) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+            if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            int_vel_disp_dict[key]['par_best']    = post_max # maximum of posterior distribution
+            int_vel_disp_dict[key]['par_best']    = post_med # maximum of posterior distribution
             int_vel_disp_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             int_vel_disp_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             int_vel_disp_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             int_vel_disp_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
+            int_vel_disp_dict[key]['post_max']    = post_max
             int_vel_disp_dict[key]['mean']        = post_mean # mean of posterior distribution
             int_vel_disp_dict[key]['std_dev']     = post_std	# standard deviation
             int_vel_disp_dict[key]['median']      = post_med # median of posterior distribution
@@ -10811,8 +10764,8 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
             int_vel_disp_dict[key]['flag']	      = flag 
 
             if (plot_param_hist==True):
-                posterior_plots(key,flat,chain,burn_in,xs,kde,h,
-                                post_max,low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
+                posterior_plots(key,flat,chain,burn_in,
+                                low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir)
         else:
             int_vel_disp_dict[key]['par_best']    = np.nan # maximum of posterior distribution
@@ -10820,6 +10773,7 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
             int_vel_disp_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             int_vel_disp_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             int_vel_disp_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
+            int_vel_disp_dict[key]['post_max']    = np.nan
             int_vel_disp_dict[key]['mean']        = np.nan # mean of posterior distribution
             int_vel_disp_dict[key]['std_dev']     = np.nan	# standard deviation
             int_vel_disp_dict[key]['median']      = np.nan # median of posterior distribution

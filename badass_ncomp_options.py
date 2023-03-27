@@ -10,7 +10,7 @@ fit_options={
 "mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 "fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares, RCHI2 = reduced chi2
 "n_basinhop": 10, # Number of consecutive basinhopping thresholds before solution achieved
-"test_lines": True,
+"test_lines": False,
 "max_like_niter": 10, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 "cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
@@ -22,16 +22,16 @@ fit_options={
 mcmc_options={
 "mcmc_fit"    : True, # Perform robust fitting using emcee
 "nwalkers"    : 100,  # Number of emcee walkers; min = 2 x N_parameters
-"auto_stop"   : True, # Automatic stop using autocorrelation analysis
+"auto_stop"   : False, # Automatic stop using autocorrelation analysis
 "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
 "min_samp"    : 1000,  # min number of iterations for sampling post-convergence
-"ncor_times"  : 10.0,  # number of autocorrelation times for convergence
+"ncor_times"  : 5.0,  # number of autocorrelation times for convergence
 "autocorr_tol": 10.0,  # percent tolerance between checking autocorr. times
 "write_iter"  : 100,   # write/check autocorrelation times interval
 "write_thresh": 100,   # iteration to start writing/checking parameters
 "burn_in"     : 1500, # burn-in if max_iter is reached
-"min_iter"    : 2500, # min number of iterations before stopping
-"max_iter"    : 25000, # max number of MCMC iterations
+"min_iter"    : 1000, # min number of iterations before stopping
+"max_iter"    : 1000, # max number of MCMC iterations
 }
 ################################################################################
 
@@ -95,24 +95,24 @@ user_lines = {
     "NA_H_BETA"      :{"center":4862.691,"amp":"free","disp":"NA_OIII_5007_DISP","voff":"free","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"H$\beta$","ncomp":1,},
     "NA_H_BETA_2"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_2_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_H_BETA"},
     "NA_H_BETA_3"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_3_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_H_BETA"}, 
-    "NA_H_BETA_4"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_4_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_H_BETA"}, 
-    "NA_H_BETA_5"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_5_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_H_BETA"}, 
+    # "NA_H_BETA_4"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_4_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_H_BETA"}, 
+    # "NA_H_BETA_5"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*NA_OIII_5007_5_AMP/NA_OIII_5007_AMP","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_H_BETA"}, 
 
     "NA_OIII_4960"   :{"center":4960.295,"amp":"(NA_OIII_5007_AMP/2.98)","disp":"NA_OIII_5007_DISP","voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"[O III]","ncomp":1,},
     "NA_OIII_4960_2" :{"center":4960.295,"amp":"(NA_OIII_5007_2_AMP/2.98)","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_OIII_4960"},
     "NA_OIII_4960_3" :{"center":4960.295,"amp":"(NA_OIII_5007_3_AMP/2.98)","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","h3":"NA_OIII_5007_3_H3","h4":"NA_OIII_5007_3_H4","line_type":"na","ncomp":3,"parent":"NA_OIII_4960"},
-    "NA_OIII_4960_4" :{"center":4960.295,"amp":"(NA_OIII_5007_4_AMP/2.98)","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_OIII_4960"},
-    "NA_OIII_4960_5" :{"center":4960.295,"amp":"(NA_OIII_5007_5_AMP/2.98)","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_OIII_4960"},
+    # "NA_OIII_4960_4" :{"center":4960.295,"amp":"(NA_OIII_5007_4_AMP/2.98)","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","h3":"NA_OIII_5007_4_H3","h4":"NA_OIII_5007_4_H4","line_type":"na","ncomp":4,"parent":"NA_OIII_4960"},
+    # "NA_OIII_4960_5" :{"center":4960.295,"amp":"(NA_OIII_5007_5_AMP/2.98)","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","h3":"NA_OIII_5007_5_H3","h4":"NA_OIII_5007_5_H4","line_type":"na","ncomp":5,"parent":"NA_OIII_4960"},
 
     "NA_OIII_5007"   :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","label":r"[O III]","ncomp":1,},
     "NA_OIII_5007_2" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":2,"parent":"NA_OIII_5007"},
     "NA_OIII_5007_3" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":3,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_4" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":4,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_5" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":5,"parent":"NA_OIII_5007"},
+    # "NA_OIII_5007_4" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":4,"parent":"NA_OIII_5007"},
+    # "NA_OIII_5007_5" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","h3":"free","h4":"free","line_type":"na","ncomp":5,"parent":"NA_OIII_5007"},
     
     "BR_H_BETA"      :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":1,},
-    "BR_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":2,"parent":"BR_H_BETA"},
-    "BR_H_BETA_3"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":3,"parent":"BR_H_BETA"},
+    # "BR_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":2,"parent":"BR_H_BETA"},
+    # "BR_H_BETA_3"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":3,"parent":"BR_H_BETA"},
 
     "NA_UNK_1"       :{"center":5200,"line_type":"na"},
 
@@ -287,7 +287,7 @@ balmer_options = {
 
 ############################### Plotting options ###############################
 plot_options={
-"plot_param_hist"    : True,# Plot MCMC histograms and chains for each parameter
+"plot_param_hist"    : False,# Plot MCMC histograms and chains for each parameter
 "plot_flux_hist"     : False,# Plot MCMC hist. and chains for component fluxes
 "plot_lum_hist"      : False,# Plot MCMC hist. and chains for component luminosities
 "plot_eqwidth_hist"  : False, # Plot MCMC hist. and chains for equivalent widths 
@@ -297,7 +297,7 @@ plot_options={
 
 ################################ Output options ################################
 output_options={
-"write_chain"  : False, # Write MCMC chains for all paramters, fluxes, and
+"write_chain"  : True, # Write MCMC chains for all paramters, fluxes, and
                          # luminosities to a FITS table We set this to false 
                          # because MCMC_chains.FITS file can become very large, 
                          # especially  if you are running multiple objects.  
