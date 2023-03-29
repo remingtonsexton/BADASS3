@@ -1070,8 +1070,7 @@ def check_poly_options(input,verbose=False):
 	all keywords have valid values. 
 
 	poly_options = {
-					"ppoly" : {"bool": True,  "order": 3}, # positive definite additive polynomial 
-					"apoly" : {"bool": False, "order": 3}, # Legendre additive polynomial 
+					"apoly" : {"bool": True, "order": 3}, # Legendre additive polynomial 
 					"mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
 					}
 	"""
@@ -1080,8 +1079,7 @@ def check_poly_options(input,verbose=False):
 	# If feii_options not specified
 	if not input:
 		output = {
-				  "ppoly" : {"bool": True,  "order": 3}, # positive definite additive polynomial 
-				  "apoly" : {"bool": False, "order": 3}, # Legendre additive polynomial 
+				  "apoly" : {"bool": True, "order": 3}, # Legendre additive polynomial 
 				  "mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
 				  }
 		return output
@@ -1089,11 +1087,6 @@ def check_poly_options(input,verbose=False):
 	# for dictionaries within dictionaries, we check the outer-most level first to ensure
 	# they are correct dictionaries.
 	keyword_dict={
-	"ppoly" 		 : {"conds":[
-								lambda x: isinstance(x,(dict))
-								],
-		  				"default": {"bool":False, "order":3.0},
-		  				"error_message": "\n ppoly must be a dictionary.\n"},
 	"apoly" 		 : {"conds":[
 								lambda x: isinstance(x,(dict))
 								],
@@ -1109,18 +1102,6 @@ def check_poly_options(input,verbose=False):
 	# now we check to ensure the inner dictionaries are correct.  We do this by defining a sub-keyword dictionary for each 
 	# main keyword. 
 	#
-	# ppoly_dict
-	ppoly_dict = {
-	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],
-				"default": False,
-				"error_message": "\n ppoly bool must be True or False.\n",},
-	"order" :		{"conds":[	lambda x: isinstance(x,(int)),
-								lambda x: (x>=0) & (x<=99)
-								],
-				"default": 3.0,
-				"error_message": "\n ppoly order must be an integer of 0<=x<=99.\n",},
-		}
-	output["ppoly"] = check_dict(output["ppoly"],ppoly_dict)
 	# apoly_dict
 	apoly_dict = {
 	"bool" : 	{"conds":[	lambda x: isinstance(x,(bool))],

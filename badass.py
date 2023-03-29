@@ -54,11 +54,15 @@ import bifrost
 import spectres
 import corner
 # Import BADASS tools modules
-cwd = os.getcwd() # get current working directory
-sys.path.insert(1,cwd+'/badass_utils/') # utility functions
+# cwd = os.getcwd() # get current working directory
+# print(cwd)
+BADASS_DIR = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(BADASS_DIR))
+sys.path.insert(1,str(BADASS_DIR.joinpath('badass_utils'))) # utility functions
+sys.path.insert(1,str(BADASS_DIR.joinpath('badass_tools'))) # tool functions
+
 import badass_check_input as badass_check_input
 import badass_test_suite  as badass_test_suite
-sys.path.insert(1,cwd+'/badass_tools/') # tool functions
 import badass_tools as badass_tools
 import gh_alternative as gh_alt # Gauss-Hermite alternative line profiles
 from sklearn.decomposition import PCA
@@ -279,7 +283,9 @@ __status__	   = "Release"
 # - New testing suite that incorporates testing for multiple components, lines, metrics, etc. with the 
 #   ability to continue fitting with the best model.
 # - Fixed autocorrelation time calculation; now always produces a time
-# - No longer calculate KDE for parameter plots; KDE calculation too time-intensive
+# - PPOLY polynomial no longer an option pending bug fixes.
+# - To avoid an excessive number of plots, we now limit plotting of histograms to free fitted paramters.
+# - 
 ##########################################################################################################
 
 
@@ -2531,16 +2537,17 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, disp_res, fit_
     for which can be found here: https://www-astro.physics.ox.ac.uk/~mxc/.
     """
     # Stellar template directory
+    data_dir = BADASS_DIR.joinpath("badass_data")
     if (losvd_options["library"]=="IndoUS"):
-        temp_dir  = "badass_data/IndoUS/"
+        temp_dir  = data_dir.joinpath("IndoUS")
         fwhm_temp = 1.35 # Indo-US Template Library FWHM in Å (linear)
         disp_temp = fwhm_temp/2.3548
     if (losvd_options["library"]=="Vazdekis2010"):
-        temp_dir  = "badass_data/Vazdekis2010/"
+        temp_dir  = data_dir.joinpath("Vazdekis2010")
         fwhm_temp = 2.51 # Vazdekis+10 spectra have a constant resolution FWHM of 2.51A (linear)
         disp_temp = fwhm_temp/2.3548
     if (losvd_options["library"]=="eMILES"):
-        temp_dir  = "badass_data/eMILES/"
+        temp_dir  = data_dir.joinpath("eMILES")
         fwhm_temp = 2.51 # eMILES spectra have a constant resolution FWHM of 2.51A (linear)
         disp_temp = fwhm_temp/2.3548
 
@@ -2556,7 +2563,7 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, disp_res, fit_
     # library) depdending on the science goals.  BADASS only uses pPXF to measure stellar
     # kinematics (i.e, stellar velocity and dispersion), and does NOT compute stellar 
     # population ages. 
-    temp_list = natsort.natsorted(glob.glob(temp_dir + '/*.fits') )#
+    temp_list = natsort.natsorted(glob.glob(str(temp_dir.joinpath('*.fits'))))#
     # Extract the wavelength range and logarithmically rebin one spectrum
     # to the same velocity scale of the input galaxy spectrum, to determine
     # the size needed for the array which will contain the template spectra.
@@ -2744,14 +2751,6 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     ##############################################################################
 
     if (fit_poly==True):
-        if (poly_options["ppoly"]["bool"]==True) & (poly_options["ppoly"]["order"]>=0) :
-            if verbose:
-                print('\t- Fitting polynomial continuum component.')
-            #
-            for n in range(1,int(poly_options['ppoly']['order'])+1):
-                par_input["PPOLY_COEFF_%d" % n] = ({'init'  :0.0,
-                                             'plim'  :(-1.0e2,1.0e2),
-                                             })
         if (poly_options["apoly"]["bool"]==True) & (poly_options["apoly"]["order"]>=0):
             if verbose:
                 print('\t- Fitting additive legendre polynomial component.')
@@ -3799,23 +3798,29 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
 
     # Perform a continuous wavelet transform with a gaussian wavelet of widths from 1*velscale to 8*velscale
-    def gaussian_wavelet(loc,scale):
-        """
-        Gaussian wavelet used for peak detection.
-        """
-        return scipy.signal.gaussian(loc,scale, sym=True)
+    # def gaussian_wavelet(loc,scale):
+    #     """
+    #     Gaussian wavelet used for peak detection.
+    #     """
+    #     return scipy.signal.windows.gaussian(loc,scale, sym=True)
     #
     try:
         widths = np.arange(1,8)
-        peaks   = scipy.signal.find_peaks_cwt(galaxy_csub, widths =widths, wavelet=gaussian_wavelet)
-        troughs = scipy.signal.find_peaks_cwt(-galaxy_csub, widths =widths, wavelet=gaussian_wavelet)
+        # peaks   = scipy.signal.find_peaks_cwt(galaxy_csub, widths =widths,  wavelet=lambda loc, scale:scipy.signal.gaussian(loc,scale,sym=True))
+        # troughs = scipy.signal.find_peaks_cwt(-galaxy_csub, widths =widths, wavelet=lambda loc, scale:scipy.signal.gaussian(loc,scale,sym=True))
+        peaks,_   = scipy.signal.find_peaks( (galaxy_csub/np.median(galaxy_csub)/noise), height=2.0, width =3.0, prominence=1)
+        troughs,_ = scipy.signal.find_peaks(-(galaxy_csub/np.median(galaxy_csub)/noise), height=2.0, width =3.0, prominence=1)
         peak_wave   = lam_gal[peaks]
         trough_wave = lam_gal[troughs]
     except:
         if verbose:
             print("\n Warning! Peak finding algorithm used for initial guesses of amplitude and velocity failed! Defaulting to user-defined locations...")
-        peak_wave   = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["na","br"]]
-        trough_wave = [line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["abs"]]
+        peak_wave   = np.array([line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["na","br"]])
+        trough_wave = np.array([line_list[line]["center"] for line in line_list if line_list[line]["line_type"] in ["abs"]])
+        if len(peak_wave)==0:
+            peak_wave = np.array([0])
+        if len(trough_wave)==0:
+            trough_wave = np.array([0])
 
     def amp_hyperpars(line_type,line_center,voff_init,voff_plim,amp_factor):
         """
@@ -4492,6 +4497,14 @@ def line_test(param_dict,
     # Make a copy of the original line list for reference
     orig_line_list = copy.deepcopy(line_list)
 
+    # Make changes to some components specifically for line tests;
+    # Polynomial orders are typically chosen for the larger fit_region, but not for the smaller
+    # regions defined for the line test. We set a maximum order on the polynomial to 2 for any polynomial
+    # included in the fit
+    poly_temp = copy.deepcopy(poly_options)
+    poly_temp["apoly"]["order"] = 2
+    poly_temp["mpoly"]["order"] = 2
+    
      # dict to store test results of ALL tests
     test_results = {"TEST":[],
                     "RANGE":[],
@@ -4558,7 +4571,7 @@ def line_test(param_dict,
                 # Generate parameters without lines
                 _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal[test_idx],galaxy[test_idx],noise[test_idx],test_results["RANGE"][i],disp_res[test_idx],fit_mask,velscale,
                                      comp_options,narrow_options,broad_options,absorp_options,
-                                     user_line_list,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                     user_line_list,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_temp,
                                      opt_feii_options,uv_iron_options,balmer_options,
                                      run_dir,fit_type='init',fit_stat=fit_stat,
                                      fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
@@ -4583,7 +4596,7 @@ def line_test(param_dict,
                                                        losvd_options,
                                                        host_options,
                                                        power_options,
-                                                       poly_options,
+                                                       poly_temp,
                                                        opt_feii_options,
                                                        uv_iron_options,
                                                        balmer_options,
@@ -4715,7 +4728,7 @@ def line_test(param_dict,
                 # Generate parameters without lines
                 _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal[test_idx],galaxy[test_idx],noise[test_idx],test_results["RANGE"][i],disp_res[test_idx],fit_mask,velscale,
                                      comp_options,narrow_options,broad_options,absorp_options,
-                                     user_line_list,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                     user_line_list,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_temp,
                                      opt_feii_options,uv_iron_options,balmer_options,
                                      run_dir,fit_type='init',fit_stat=fit_stat,
                                      fit_opt_feii=comp_options["fit_opt_feii"],fit_uv_iron=comp_options["fit_uv_iron"],fit_balmer=comp_options["fit_balmer"],
@@ -4754,7 +4767,7 @@ def line_test(param_dict,
                                                        losvd_options,
                                                        host_options,
                                                        power_options,
-                                                       poly_options,
+                                                       poly_temp,
                                                        opt_feii_options,
                                                        uv_iron_options,
                                                        balmer_options,
@@ -5163,8 +5176,6 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     param_names_B = [p for p in params_B]
 
     def poly_label(kind):
-        if kind=="ppoly":
-            order = len([p for p in param_names_B if p.startswith("PPOLY_") ])-1
         if kind=="apoly":
             order = len([p for p in param_names_B if p.startswith("APOLY_")])-1
         if kind=="mpoly":
@@ -5208,8 +5219,6 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
         elif (key=='POWER'):
             ax1.plot(comp_dict_A['WAVE'], comp_dict_A['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
 
-        elif (key=='PPOLY'):
-            ax1.plot(comp_dict_A['WAVE'], comp_dict_A['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
         elif (key=='APOLY'):
             ax1.plot(comp_dict_A['WAVE'], comp_dict_A['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
         elif (key=='MPOLY'):
@@ -5314,8 +5323,6 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
         elif (key=='POWER'):
             ax3.plot(comp_dict_B['WAVE'], comp_dict_B['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
 
-        elif (key=='PPOLY'):
-            ax3.plot(comp_dict_B['WAVE'], comp_dict_B['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
         elif (key=='APOLY'):
             ax3.plot(comp_dict_B['WAVE'], comp_dict_B['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
         elif (key=='MPOLY'):
@@ -5464,7 +5471,7 @@ def calc_max_like_flux(comp_dict,flux_norm):
 
     flux_dict = {}
     for key in comp_dict: 
-        if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+        if key not in ['DATA', 'WAVE', 'MODEL', 'NOISE', 'RESID', "HOST_GALAXY", "POWER", "BALMER_CONT", "APOLY", "MPOLY"]:
             # Compute flux
             f = np.trapz(comp_dict[key],comp_dict["WAVE"])
             if f>=0:
@@ -5512,11 +5519,11 @@ def calc_max_like_eqwidth(comp_dict, line_list, velscale):
     # Create a single continuum component based on what was fit
     cont = np.zeros(len(comp_dict["WAVE"]))
     for key in comp_dict:
-        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "APOLY", "MPOLY"]:
             cont+=comp_dict[key]
 
     # Get all spectral components, not including data, model, resid, and noise
-    spec_comps= [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
+    spec_comps= [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "APOLY", "MPOLY"]]
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [i for i in line_list]
     if (spec_comps) and (lines) and (np.sum(cont)>0):
@@ -5548,11 +5555,11 @@ def calc_max_like_cont_lum(clum, comp_dict, z, blob_pars, flux_norm, H0=70.0, Om
     agn_cont   = np.zeros(len(comp_dict["WAVE"]))
     host_cont  = np.zeros(len(comp_dict["WAVE"]))
     for key in comp_dict:
-        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "APOLY", "MPOLY"]:
             total_cont+=comp_dict[key]
-        if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+        if key in ["POWER","BALMER_CONT", "APOLY", "MPOLY"]:
             agn_cont+=comp_dict[key]
-        if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
+        if key in ["HOST_GALAXY", "APOLY", "MPOLY"]:
             host_cont+=comp_dict[key]
     #
     # Calculate luminosity distance
@@ -6005,14 +6012,14 @@ def max_likelihood(param_dict,
     # Storage dictionaries for all calculated paramters at each iteration
     mcpars  = {k:np.empty(max_like_niter+1) for k in param_names}
     # flux_dict
-    flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
+    flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","MPOLY"]]
     mcflux     = {k:np.empty(max_like_niter+1) for k in flux_names}
     # lum dict
-    lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
+    lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","MPOLY"]]
     mclum     = {k:np.empty(max_like_niter+1) for k in lum_names}
     # eqwidth dict
     # line_names = [key+"_EW" for key in {**line_list, **combined_line_list}]
-    line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","PPOLY","MPOLY"]]
+    line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","MPOLY"]]
     mceqw      = {k:np.empty(max_like_niter+1) for k in line_names}
     # integrated dispersion & velocity dicts
     # Since dispersion is calculated for all lines, we only need to calculate the integrated
@@ -6608,8 +6615,6 @@ def add_tied_parameters(pdict,line_list):
 def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_dir):
 
         def poly_label(kind):
-            if kind=="ppoly":
-                order = len([p for p in param_names if p.startswith("PPOLY_") ])-1
             if kind=="apoly":
                 order = len([p for p in param_names if p.startswith("APOLY_")])-1
             if kind=="mpoly":
@@ -6648,8 +6653,6 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
             elif (key=='POWER'):
                 ax1.plot(comp_dict['WAVE'], comp_dict['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
 
-            elif (key=='PPOLY'):
-                ax1.plot(comp_dict['WAVE'], comp_dict['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
             elif (key=='APOLY'):
                 ax1.plot(comp_dict['WAVE'], comp_dict['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
             elif (key=='MPOLY'):
@@ -7542,19 +7545,6 @@ def fit_model(params,
 
     ############################# Polynomial Components ####################################################
 
-
-    if (comp_options["fit_poly"]==True) & (poly_options["ppoly"]["bool"]==True) & (poly_options["ppoly"]["order"]>=0):
-        #
-        nw = np.linspace(-1,1,len(lam_gal))
-        coeff = np.empty(poly_options['ppoly']['order']+1)
-        for n in range(1,poly_options['ppoly']['order']+1):
-            coeff[n] = p["PPOLY_COEFF_%d" % n]
-        ppoly = np.polynomial.polynomial.polyval(nw, coeff)
-        # if np.any(ppoly)<0:
-        #     ppoly += -np.nanmin(ppoly)
-        comp_dict["PPOLY"] = ppoly
-        host_model = host_model - ppoly
-        #
     if (comp_options["fit_poly"]==True) & (poly_options["apoly"]["bool"]==True) & (poly_options["apoly"]["order"]>=0):
         #
         nw = np.linspace(-1,1,len(lam_gal))
@@ -7852,16 +7842,16 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     agn_cont   = np.zeros(len(lam_gal))
     host_cont  = np.zeros(len(lam_gal))
     for key in comp_dict:
-        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+        if key in ["POWER","HOST_GALAXY","BALMER_CONT", "APOLY", "MPOLY"]:
             total_cont+=comp_dict[key]
-        if key in ["POWER","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]:
+        if key in ["POWER","BALMER_CONT", "APOLY", "MPOLY"]:
             agn_cont+=comp_dict[key]
-        if key in ["HOST_GALAXY", "PPOLY", "APOLY", "MPOLY"]:
+        if key in ["HOST_GALAXY", "APOLY", "MPOLY"]:
             host_cont+=comp_dict[key]
 
 
     # Get all spectral components, not including data, model, resid, and noise
-    spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "PPOLY", "APOLY", "MPOLY"]]
+    spec_comps = [i for i in comp_dict if i not in ["DATA","MODEL","WAVE","RESID","NOISE","POWER","HOST_GALAXY","BALMER_CONT", "APOLY", "MPOLY"]]
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [line for line in line_list] # list of all lines (individual lines and combined lines)
     # Storage dicts
@@ -7965,33 +7955,33 @@ def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbo
     """
     
     """
-
+    data_dir = BADASS_DIR.joinpath("badass_data","eMILES")
     ages = np.array([0.9, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 
             9.0, 10.0, 11.0, 12.0, 13.0, 14.0],dtype=float)
-    temp = ["badass_data/eMILES/Eku1.30Zp0.06T00.0900_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.1000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.2000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.3000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.4000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.5000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.6000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.7000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.8000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T00.9000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T01.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T02.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T03.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T04.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T05.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T06.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T07.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T08.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T09.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T10.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T11.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T12.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T13.0000_iTp0.00_baseFe_linear_FWHM_variable.fits",
-            "badass_data/eMILES/Eku1.30Zp0.06T14.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"
+    temp = [data_dir.joinpath("Eku1.30Zp0.06T00.0900_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.1000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.2000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.3000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.4000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.5000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.6000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.7000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.8000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T00.9000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T01.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T02.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T03.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T04.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T05.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T06.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T07.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T08.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T09.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T10.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T11.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T12.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T13.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
+            data_dir.joinpath("Eku1.30Zp0.06T14.0000_iTp0.00_baseFe_linear_FWHM_variable.fits"),
             ]
     #
     fwhm_temp = 2.51 # FWHM resolution of eMILES in Å
@@ -8105,8 +8095,9 @@ def initialize_opt_feii(lam_gal, opt_feii_options, disp_res, fit_mask, velscale)
              """
     if (opt_feii_options['opt_template']['type']=='VC04'):
         # Load the data into Pandas DataFrames
-        df_br = pd.read_csv("badass_data/feii_templates/veron-cetty_2004/VC04_br_feii_template.csv")
-        df_na = pd.read_csv("badass_data/feii_templates/veron-cetty_2004/VC04_na_feii_template.csv")
+        data_dir = BADASS_DIR.joinpath("badass_data","feii_templates","veron-cetty_2004")
+        df_br = pd.read_csv(str(data_dir.joinpath("VC04_br_feii_template.csv")))
+        df_na = pd.read_csv(str(data_dir.joinpath("VC04_na_feii_template.csv")))
         # Generate a new grid with the original resolution, but the size of the fitting region
         dlam_feii = df_br["angstrom"].to_numpy()[1]-df_br["angstrom"].to_numpy()[0] # angstroms
         npad = 100 # anstroms
@@ -8200,10 +8191,11 @@ def initialize_opt_feii(lam_gal, opt_feii_options, disp_res, fit_mask, velscale)
             return g
         #
         # Read in template data
-        F_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_F_transitions.csv')
-        S_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_S_transitions.csv')
-        G_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_G_transitions.csv')
-        Z_trans_df = pd.read_csv('badass_data/feii_templates/kovacevic_2010/K10_Z_transitions.csv')
+        data_dir = BADASS_DIR.joinpath("badass_data","feii_templates","kovacevic_2010")
+        F_trans_df = pd.read_csv(str(data_dir.joinpath('K10_F_transitions.csv')))
+        S_trans_df = pd.read_csv(str(data_dir.joinpath('K10_S_transitions.csv')))
+        G_trans_df = pd.read_csv(str(data_dir.joinpath('K10_G_transitions.csv')))
+        Z_trans_df = pd.read_csv(str(data_dir.joinpath('K10_Z_transitions.csv')))
         # Generate a high-resolution wavelength scale that is universal to all transitions
         fwhm = 1.0 # Angstroms
         disp = fwhm/2.3548
@@ -8366,8 +8358,9 @@ def initialize_uv_iron(lam_gal, feii_options, disp_res, fit_mask, velscale):
     """
 
     # Load the data into Pandas DataFrames
-    # df_uviron = pd.read_csv("badass_data/feii_templates/vestergaard-wilkes_2001/VW01_UV_B_47_191.csv") # UV B+47+191
-    df_uviron = pd.read_csv("badass_data/feii_templates/vestergaard-wilkes_2001/VW01_UV_B.csv") # UV B only
+    data_dir = BADASS_DIR.joinpath("badass_data","feii_templates","vestergaard-wilkes_2001")
+    # df_uviron = pd.read_csv(str(data_dir.joinpath("VW01_UV_B_47_191.csv"))) # UV B+47+191
+    df_uviron = pd.read_csv(str(data_dir.joinpath("VW01_UV_B.csv"))) # UV B only
 
     # Generate a new grid with the original resolution, but the size of the fitting region
     dlam_uviron = df_uviron["angstrom"].to_numpy()[1]-df_uviron["angstrom"].to_numpy()[0] # angstroms
@@ -8396,8 +8389,9 @@ def initialize_uv_iron(lam_gal, feii_options, disp_res, fit_mask, velscale):
 
 def initialize_balmer(lam_gal, balmer_options, disp_res,fit_mask, velscale):
     # Import the template for the higher-order balmer lines (7 <= n <= 500)
-    # df = pd.read_csv("badass_data/balmer_template/higher_order_balmer.csv")
-    df = pd.read_csv("badass_data/balmer_template/higher_order_balmer_n8_500.csv")
+    data_dir = BADASS_DIR.joinpath("badass_data","balmer_template")
+    # df = pd.read_csv(str(data_dir.joinpath("higher_order_balmer.csv")))
+    df = pd.read_csv(str(data_dir.joinpath("higher_order_balmer_n8_500.csv")))
     # Generate a new grid with the original resolution, but the size of the fitting region
     dlam_balmer = df["angstrom"].to_numpy()[1]-df["angstrom"].to_numpy()[0] # angstroms
     npad = 100 # angstroms
@@ -10845,8 +10839,6 @@ def plot_best_model(param_dict,
     par_best     = [param_dict[key]['par_best'] for key in param_dict ]
 
     def poly_label(kind):
-        if kind=="ppoly":
-            order = len([p for p in param_names if p.startswith("PPOLY_") ])-1
         if kind=="apoly":
             order = len([p for p in param_names if p.startswith("APOLY_")])-1
         if kind=="mpoly":
@@ -10919,8 +10911,6 @@ def plot_best_model(param_dict,
         elif (key=='POWER'):
             ax1.plot(comp_dict['WAVE'], comp_dict['POWER'], color='xkcd:red' , linewidth=0.5, linestyle='--', label='AGN Cont.')
 
-        elif (key=='PPOLY'):
-            ax1.plot(comp_dict['WAVE'], comp_dict['PPOLY'], color='xkcd:magenta' , linewidth=0.5, linestyle='-', label='%s-order Poly.' % (poly_label("ppoly")))
         elif (key=='APOLY'):
             ax1.plot(comp_dict['WAVE'], comp_dict['APOLY'], color='xkcd:bright purple' , linewidth=0.5, linestyle='-', label='%s-order Add. Poly.' % (poly_label("apoly")))
         elif (key=='MPOLY'):
@@ -11665,7 +11655,6 @@ def write_log(output_val,output_type,run_dir):
             # Polynomial continuum options
             if comp_options['fit_poly']==True:
                 logfile.write('\n{0:<30}{1:<30}{2:<30}'.format('   poly_options:','',''))
-                logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('ppoly',':','bool: %s, order: %s' % (str(poly_options['ppoly']['bool']),str(poly_options['ppoly']['order']) )))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('apoly',':','bool: %s, order: %s' % (str(poly_options['apoly']['bool']),str(poly_options['apoly']['order']),)))
                 logfile.write('\n{0:>30}{1:<2}{2:<100}'.format('mpoly',':','bool: %s, order: %s' % (str(poly_options['mpoly']['bool']),str(poly_options['mpoly']['order']),)))
                 logfile.write('\n')

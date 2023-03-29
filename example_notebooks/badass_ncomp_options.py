@@ -9,7 +9,7 @@ fit_options={
 "mask_emline" : False, # automatically mask lines for continuum fitting.
 "mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 "fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares, RCHI2 = reduced chi2
-"n_basinhop": 15, # Number of consecutive basinhopping thresholds before solution achieved
+"n_basinhop": 25, # Number of consecutive basinhopping thresholds before solution achieved
 "test_lines": True,
 "max_like_niter": 25, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
@@ -25,7 +25,7 @@ mcmc_options={
 "auto_stop"   : True, # Automatic stop using autocorrelation analysis
 "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
 "min_samp"    : 1000,  # min number of iterations for sampling post-convergence
-"ncor_times"  : 5.0,  # number of autocorrelation times for convergence
+"ncor_times"  : 10.0,  # number of autocorrelation times for convergence
 "autocorr_tol": 10.0,  # percent tolerance between checking autocorr. times
 "write_iter"  : 100,   # write/check autocorrelation times interval
 "write_thresh": 100,   # iteration to start writing/checking parameters
@@ -64,8 +64,8 @@ broad_options ={
 #     "amp_plim": (0,40), # line amplitude parameter limits; default (0,)
 #     "disp_plim": (300,3000), # line dispersion parameter limits; default (0,)
 #     "voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
-    "line_profile": "voigt", # line profile shape*
-    "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+    "line_profile": "gauss-hermite", # line profile shape*
+    "n_moments": 6, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
 }
 
 absorp_options = {
