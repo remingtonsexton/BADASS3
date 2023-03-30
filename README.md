@@ -1,6 +1,13 @@
 
 ![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS2_logo.gif)
 
+## New in Version 9.4.0
+* New line model and testing framework. See [Line Testing and Options](#line-testing-and-options).
+* Line component options.  See [Line Component Options](#line-component-options).
+* Improvements in autocorrelation calculations.
+* W80 now a standard output parameter for all lines.
+<hr>
+
 Ridiculous acronyms are a [long-running joke in astronomy](https://lweb.cfa.harvard.edu/~gpetitpas/Links/Astroacro.html), but here, spectral fitting ain't no joke!
 
 [BADASS](https://ui.adsabs.harvard.edu/abs/2021MNRAS.500.2871S/abstract) is an open-source spectral analysis tool designed for detailed decomposition of Sloan Digital Sky Survey (SDSS) spectra, and specifically designed for the fitting of Type 1 ("broad line") Active Galactic Nuclei (AGN) in the optical.  The fitting process utilizes the Bayesian affine-invariant Markov-Chain Monte Carlo sampler [emcee](https://ui.adsabs.harvard.edu/abs/2013PASP..125..306F/abstract) for robust parameter and uncertainty estimation, as well as autocorrelation analysis to access parameter chain convergence.  BADASS can fit the following spectral features:
@@ -15,7 +22,7 @@ A more-detailed summary of BADASS, as well as a case-study of ionized gas outflo
 
 All spectral components can be turned off and on via the [Jupyter Notebook](https://jupyter.org/) interface, from which all fitting options can be easily changed to fit non-AGN-host galaxies (or even stars!).  BADASS uses multiprocessing to fit multiple spectra simultaneously depending on your hardware configuration.  The code was originally written in Python 2.7 to fit Keck Low-Resolution Imaging Spectrometer (LRIS) data ([Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract)), but because BADASS is open-source and *not* written in an expensive proprietary language, one can easily contribute to or modify the code to fit data from other instruments.  Out of the box, BADASS fits SDSS spectra, MANGA IFU cube data, and examples are provided for fitting user-input spectra of any instrument.
 
-Before getting started you should [read the wiki](https://github.com/remingtonsexton/BADASS3/wiki) or the readme below.
+Before getting started you should read the readme below.
 
 ## Table of Contents
 - [Installation](#installation)
@@ -23,7 +30,8 @@ Before getting started you should [read the wiki](https://github.com/remingtonse
   * [Fitting Options](#fitting-options)
   * [MCMC Options](#mcmc-options)
   * [Model Component Options](#model-component-options)
-  * [Line Test Options](#line-test-options)
+  * [Multiple Line Components](#multiple-line-components)
+  * [Line Testing and Options](#line-testing-and-options)
   * [Line Component Options](#line-component-options)
   * [User Lines, Constraints, and Masks](#user-lines-constraints-and-masks)
   * [Combined Lines](#combined-lines)
@@ -145,7 +153,7 @@ Number of bootstrapping iterations to perform after the initial basinhopping fit
 **`output_pars`**: (*bool*; *Default: False*)  <br/>
 Convenience feature that prints out all free parameters so the user can check and then terminates without fitting.
 
-**`cosmology`**: (*Default*: `{"H0":70.0, "Om0": 0.30}`)<br/>  
+**`cosmology`**: (*Default*: `{"H0":70.0, "Om0": 0.30}`)<br/>
 The flat Lambda-CDM cosmology assumed for calculating luminosities from fluxes. 
 
 
@@ -270,9 +278,173 @@ Examples of the aforementioned spectral components can be seen in the example fi
 
 ![](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_model_options.png)
 
-## Line Test Options
+## Multiple Line Components
+
+Line testing of multiple components is the newest feature of BADASS, and completely changes how multitple line components (i.e., outflows) are treated.  Outflows are no longer a `line_type` (now only `narrow`, `broad`, and `absorp` are valid `line_types`), however, it is still possible to fit "outflow" components by adding *child* lines to corresponding *parent* lines.  The `parent` parameter keyword for lines ties an additional component of a line to its corresponding parent line.  
+
+Here is an example of defining 5 components for the [OIII]5007 emission line:
+
+```python
+"NA_OIII_5007"   :{"center":5008.240,
+                   "amp":"free",
+                   "disp":"free",
+                   "voff":"free",
+                   "line_type":"na",
+                   "ncomp":1,
+                  },
+
+"NA_OIII_5007_2" :{"center":5008.240,
+                   "amp":"free",
+                   "disp":"free",
+                   "voff":"free",
+                   "line_type":"na",
+                   "ncomp":2,
+                   "parent":"NA_OIII_5007"
+                  },
+
+"NA_OIII_5007_3" :{"center":5008.240,
+                   "amp":"free",
+                   "disp":"free",
+                   "voff":"free",
+                   "line_type":"na",
+                   "ncomp":3,
+                   "parent":"NA_OIII_5007"
+                  },
+
+"NA_OIII_5007_4" :{"center":5008.240,
+                   "amp":"free",
+                   "disp":"free",
+                   "voff":"free",
+                   "line_type":"na",
+                   "ncomp":4,
+                   "parent":"NA_OIII_5007"
+                  },
+
+"NA_OIII_5007_5" :{"center":5008.240,
+                   "amp":"free",
+                   "disp":"free",
+                   "voff":"free",
+                   "line_type":"na",
+                   "ncomp":5,
+                   "parent":"NA_OIII_5007"
+                  },
+
+```
+A few things to point out here:
+*  `"ncomp":1` defines the *parent* line; it is the first component
+* Additional components with `"ncomp"` > 1 must have a `parent` defined, which is the name of the *parent* line; these are the *child* components.
+* Each line component must be given a unique name; we recommend the above naming convention. 
+* Each additional component must have a different component number `ncomp`, with the *parent* defined as `"ncomp":1`, and each additional component with `"ncomp"`>1. 
+
+While it may seem tedius, this is the only way to tie parent lines to their corresponding child components, and subsequently test for them. 
+
+## Line Testing and Options
+
+Line testing (and outflow testing) has also changed to accomodate the new emission line framework for multiple components (see above section).  Line testing is intended for testing for multiple components in *individual* lines, preferably ones that can be resolved from others.  Testing for lines that are partially resolve from each other, for example broad and narrow lines, is more difficult to do, but can still be done.  We can test for multiple lines in the same fit, choose different significance metrics to "choose" the right number of components, and choose specfic parts of the fitting region (defined by `fit_reg`) to test line on.  The `test_lines` option must be set to `True` in the `fit_options` passed to BADASS.
+
+The way line testing works (and the only way to do it) is to perform a fit of a given set of lines, compute various statistics on the residuals of the fit, and compare each fit to each other to determine the appropriate number of components.  BADASS performs a fit of a "simple" model, followed by a "complex" model, and then computes statistics between them.  For example, a 1 component model (simple) and a 2 component model (complex), 2 and 3, 3 and 4, etc...  The calculated metric is how *confident* you are that adding an additional component *does not* significantly improve the fit.  That is, when the `metric` is *below* its corresponding `threshold`, you have added the appropriate number of components.
+
+Here is a simple example of specifying testing options for testing for narrow components of H-beta/[OIII]:
+```python
+test_options = {
+    "test_mode":"line",
+    "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], 
+    "ranges":[(4900,5100)], 
+    "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],
+    "thresholds": [0.95, 0.95, 0.10, 3.0],
+    "conv_mode": "any", 
+    "auto_stop":True, 
+    "plot_tests":True, 
+    "force_best":True, 
+    "continue_fit":True, 
+}
+```
+
+**`test_mode`**: (str; *Default="line"*)<br/>
+Future releases of BADASS will have different testing methods; the only option available now is `line`.
+
+**`lines`**: (list; *Default=[]*)<br/>
+The lines (or group of lines) to test.  BADASS will perform these tests in the order the are defined in the list.
+
+**`ranges`**: (list; *Default=[]*)<br/>
+A list of ranges within the fitting region to test corresponding to the defined lines above.
 
 
+**`metrics`**: (list; *Default=["BADASS", "CHI2_RATIO", "AON"]*)<br/>
+The testing metrics used to determine when the appropriate number of components is reached. Options are "BADASS", "ANOVA", "CHI2_RATIO", "SSR_RATIO", "F_RATIO", "AON".  We describe these below:
+* *BADASS*: this test generates a confidence between 0 and 1 of the Monte-Carlo resampled maximum likelihood values of the simple and complex models.  For example, if the confidence is 0.95, you can say that the difference between residuals is significant, and an additional component is justified with 95% confidence.
+* *ANOVA*: this test is anlogous to an analysis-of-variance (ANOVA) test.  It haves similarly to the BADASS test, but tends to prefer a more complex model, while the BADASS metric tends to prefer a simpler one.
+* *CHI2_RATIO*: the ratio of the reduced chi-squared values for each fitted model.  This tends to be a robust method with thresholds between 0.1 and 0.25.  Interpreted as the fraction of the difference in the residuals weighted by the noise.
+* *SSR_RATIO*: the ratio of the sum-of-squares of the residuals (SSR).  Values close to 1 indicate residuals that are very similar.  
+* *F_RATIO*: the ratio of variances betweent he two fitted models, behaving similarly to the SSR ratio.
+* *AON*: amplitude-over-noise (AON) of the final line.  This is not a test between models, but a final check to determine if the lines that comprise the best model have an amplitude-over-noise (otherwise known as signal-to-noise) above a certain threshold.  This metric is good to have to ensure you aren't fitting noise.
+
+**`thresholds`**: (list; *Default=[0.95, 0.10, 3.0]*)<br/>
+Thresholds for the above chosen metrics.  When a calculated metric goes *below* a threshold for a given metric, "convergence" is achieved.
+
+**`conv_mode`**: (str; *Default="any"*; options are "any" or "all")<br/>
+Whether "all" or "any" of the metrics must achieve convergence to determine the appropriate number of line components.  If "all" is chosen, then all metrics must go below the given threshold for convergence.  If "any" is chosen, any single metric must achive convergence.  
+
+**`auto_stop`**: (bool; *Default=True*)<br/>
+Automatically stop testing for a line when convergence is met.  For example, if we define five components for a line, but convergence is reached at three components, BADASS will not test that line further.
+
+**`full_verbose`**: (bool; *Default=False*)<br/>
+Print out the results of fitting each test (basinhopping callbacks, etc.) to screen.  This is `False` by default because it can be excessive (no exagerration, it will print *everything*).  This is useful to monitor the fit of each test as it is performed, but not recommended for the uninitiated.
+
+**`plot_tests`**: (bool; *Default=True*)<br/>
+Plot the results of each test and save them for visual comparison.
+
+**`force_best`**: (bool; *Default=True*)<br/>
+Forces the complex model to achieve a root-mean-squared-error (RMSE) comparable to or less than the simpler model.  This is highly recommended because of the caveats we give below.
+
+**`continue_fit`**: (bool; *Default=True*)<br/>
+Continue the fit (to max likelihood and/or MCMC) after the test is completed.  If False, BADASS terminates when line testing is completed.
+
+We also test for different lines in the same fit.  Here we specify we want to fit the three narrow lines from above, but now we also want to test the broad H-beta line (`BR_H_BETA`) and some unknown line at 5100 Å (`NA_UNK_1`) in a separate test region:
+
+```python
+test_options = {
+"test_mode":"line",
+"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA","NA_UNK_1"], # The lines to test
+"ranges":[(4900,5050),(4700,4940),(5100,5200)], # The range over which the test is performed must 
+"metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the 
+"thresholds": [0.95, 0.95, 0.10, 3.0],
+"auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter 
+"plot_tests":True,
+"force_best":True, # this forces the more-complex model to have a fit better than the previous.
+"continue_fit":True, # continue the fit with the best chosen model
+}
+```
+
+**A few caveats to line testing the user must be aware of!**
+
+The process of determining the "correct" number of components for a line is a naturally degenerate problem, especially if the individual components are not resolved.  A number of underlying gaussian processes can define the observed emission line shape, and the "best fit" to those processes can be achived multiple ways depending on the allowed widths, velocities, and number of components you include in the model.  Because of this, a local minimization technique usually fails (such as linear least squares or Levenberg-Marquardt) unless the user supplies very accurate apriori guesses for each component.  Determining these apriori values defeats the purpose of automated fitting.  
+Instead, BADASS implements a stochastic global minimizer (basinhopping) to ensure that the fit can achive a global minimum and not get stuck in local minima.  Basinhopping tends to be just as accurate as simulated or dual-annealing, but much faster than brute-force methods.  However, because it *is* stochastic, this can lead to inconsistent results between line components.  To this I say: it doesn't matter; if individual line components are not resolved, then only the total fit to the line profile shape matters, and is the greatest amount of information you can actually recover from your data.  
+There are cases in which decomposing partially resolved narrow "core" components from another more-broad "outflow" component can be done (i.e., a two-component fit), and one can make reasonable assumptions about the physical nature of those components, but this typically ends at two components.  With more than 2 components, the fit can become highly degenerate *between* components, that is, you can achieve the same fit multiple ways depending on the allowed withs, velocities, and even initial guesses.  Discerning the physical nature of individual components for `ncomp`>2 for a given line should be treated with many ceveats unless those underlying physical processes are understood apriori. 
+
+Now, if you're getting unexpected behavior from your multiple component tests, there are a number of things you can do:
+* plot out each test to visually confirm that the fit is doing what you expected (set `plot_tests` to `True` in `test_options`.
+* set higher `n_basinhop` threshold (15-25); this is the number of sucessive basinhopping thresholds before a solution is achieved. A low number means basinhopping gives up sooner (less time), and a higher threshold gives basinhopping a greater chance of finding the better fit (more time).  Often times, if `n_basinhop` is too low, the best fit is usually not achieved for a given test, which means that even if `force_best` is used, successive tests might not achieve their best fit either, because they just have to be better than the previous fit.
+* check parameter limits; if a paramter such as line dispersion or velocity hits its limit, it might mean that a better fit could not be achieved because a line was not allowed to go outside of its defined parameter space to achieve a better fit.  This will happen if `voff` or `disp` parameter limits are too restrictive.  You can control global line parameter limits using `narrow_options`, `broad_options`, or `absorp_options`, or set them individually for each line using `disp_plim` (for dispersion) or `voff_plim` (for velocity offset). 
+* check parameter constraints; if you have soft constraints (for example `["OIII_5007_2_DISP","OIII_5007_DISP"]`, which forces the second component dispersion to be greater than the first component dispersion), you may be over-constraining the model.  This can lead to `force_best` never reaching a good solution (or just taking a very long time).  The best fits are usually acheived when you don't use any soft constraints, especially when the number of components exceeds 2.
+* simplify the continuum.  Lots of continuum flexibility can lead to strange behavior.  For this reason, we already restrict the polynomial continuum in the test regions to be 2. Removing some continuum components (e.g., FeII) might help. 
+* check behavior of fit; if you really want to know what the testing is doing under the hood, set `"full_verbose":True` and BADASS will print every step of the testing process to screen.  Warning: its a lot of output, but its the only way to monitor how the fit is performing for each test.
+
+As an example, lets see what happens if your parameter limits are too small.  Let's say we want to test up to 5 components for the [OIII]4960,5007 doublet, and we specified `"disp_plim":(0,300)"` for our `narrow_options`.  This means the none of the components for the lines we are testing may exceed 300 km/s, so let's see how well they do.  Here are the five tests in order:
+
+![](https://github.com/remingtonsexton/BADASS3/blob/master/figures/test_bad_50.png)
+
+This is a pretty complicated line, and we can see that it needs at least three components.  However, you can tell that by the time you get to three components, you still don't have a good fit.  More importantly, you can see that all the components (for each line) have the same width.  If you were to check the dispersion values for each component, they all maxed out at 300 km/s, which was our parameter limit on dispersion for narrow lines.
+
+So now lets set `"disp_plim":(0,1000)"` for our `narrow_options`:
+
+![](https://github.com/remingtonsexton/BADASS3/blob/master/figures/test_good_50.png)
+
+Now we can see that by the time we test for three components the fit is pretty good, and doesn't get significantly better after that.  To check, let's look at the test results (printed to the log file and screen):
+
+![](https://github.com/remingtonsexton/BADASS3/blob/master/figures/test_results.png)
+
+We can see that covergence was reached at the test for 4 components (red box), which means that our confidence that 4 components significantly improves the fit is below our chosen thresholds, *thus* we choose the 3-component model.  Remember you can choose these thresholds to be as strict as you want. 
 
 ## Line Component Options
 
@@ -341,7 +513,7 @@ user_mask = [
 
 One might be interested in the combined sum of two individual line components, and want to calculate the combined FWHM, dispersions, or velocity offsets.  One can define combinations of individual line components, the parameters of which will be computed at every iteration of the fit to include uncertainties on the combined components, which would otherwise be non-trivial in a post-analysis step.
 
-Below we define a combined line for the narrow and broad components:
+Below we define a combined line for the narrow and broad components of H-beta:
 
 ```python
 combined_lines = {
@@ -657,13 +829,13 @@ Note: `auto_stop` must be `True` in order to perform any autocorrelation analysi
 
 ## Single SDSS Spectrum
 
-The [BADASS3_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_single_spectrum.ipynb) notebook shows the basics of setting up the fit of a single SDSS spectrum, from defining fit parameters to calling sequence.
+The [BADASS3_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_single_spectrum.ipynb) notebook shows the basics of setting up the fit of a single SDSS spectrum, from defining fit parameters to calling sequence.
 
 ![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/single_sdss_spectrum.png)
 
 ## Single Non-SDSS Spectrum
 
-The [BADASS3_nonSDSS_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_nonSDSS_single_spectrum.ipynb) notebook illustrates the use of BADASS for a non-SDSS spectrum.  The user is expected to provide some basic information such as redshift, FWHM resolution, wavelength scale, and some form of a noise vector.  The FWHM resolution is necessary to accurately correct for instrumental dispersion and estimate the stellar LOSVD.  The noise vector need not be exact, since BADASS will scale the noise appropriately to achieve a reduced chi-squared of 1.
+The [BADASS3_nonSDSS_single_spectrum.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_nonSDSS_single_spectrum.ipynb) notebook illustrates the use of BADASS for a non-SDSS spectrum.  The user is expected to provide some basic information such as redshift, FWHM resolution, wavelength scale, and some form of a noise vector.  The FWHM resolution is necessary to accurately correct for instrumental dispersion and estimate the stellar LOSVD.  The noise vector need not be exact, since BADASS will scale the noise appropriately to achieve a reduced chi-squared of 1.
 
 This example performs a fit on a Keck LRIS spectrum of a Seyfert 1 galaxy from [Sexton et al. (2019)](https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract):
 

@@ -210,8 +210,11 @@ def check_test_options(input,verbose=False):
 					"ranges":[], # The range over which the test is performed
 					"metrics": ["BADASS"],# Fitting metrics to use when determining the best model
 					"thresholds": [0.95],
-					"plot_tests":True,
+					"conv_mode": "any",
 					"auto_stop":True,
+					"full_verbose": False,
+					"plot_tests":True,
+					"force_best":True,
 					"continue_fit":True, # continue the fit with the best chosen model
 					}
 
@@ -254,13 +257,6 @@ def check_test_options(input,verbose=False):
 				 "default" : [0.95],
 				 "error_message" : "\n thresholds must be a list or tuple of test thresholds corresponding to metrics.\n",
 				},
-	"plot_tests" : {
-				 "conds" : [
-							 lambda x: isinstance(x,(bool)),
-						],
-				 "default" : True,
-				 "error_message" : "\n plot_tests must be either True or False.\n",
-				},
 	"conv_mode" : {
 					 "conds" : [
 								 lambda x: isinstance(x,(str)),
@@ -268,14 +264,28 @@ def check_test_options(input,verbose=False):
 							],
 					 "default" : "any",
 					 "error_message" : "\n conv_mode must be either 'any' or 'all'.\n",
-					},		
+					},	
 	"auto_stop" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(bool)),
 						],
 				 "default" : True,
 				 "error_message" : "\n auto_stop must be either True or False.\n",
-				},		
+				},	
+	"full_verbose" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(bool)),
+						],
+				 "default" : False,
+				 "error_message" : "\n full_verbose must be either True or False.\n",
+				},
+	"plot_tests" : {
+				 "conds" : [
+							 lambda x: isinstance(x,(bool)),
+						],
+				 "default" : True,
+				 "error_message" : "\n plot_tests must be either True or False.\n",
+				},
 	"force_best" : {
 				 "conds" : [
 							 lambda x: isinstance(x,(bool)),

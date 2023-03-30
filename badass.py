@@ -3792,17 +3792,9 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
     # First we remove the continuum 
     galaxy_csub = badass_tools.continuum_subtract(lam_gal,galaxy,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
-                   noise_scale=1.0,opt_rchi2=True,plot=False,
+                   noise_scale=1.0,opt_rchi2=True,plot=True,
                    fig_scale=8,fontsize=16,verbose=False)
     # smoothed = scipy.ndimage.median_filter(galaxy_csub,size=3,mode="mirror")
-
-
-    # Perform a continuous wavelet transform with a gaussian wavelet of widths from 1*velscale to 8*velscale
-    # def gaussian_wavelet(loc,scale):
-    #     """
-    #     Gaussian wavelet used for peak detection.
-    #     """
-    #     return scipy.signal.windows.gaussian(loc,scale, sym=True)
     #
     try:
         widths = np.arange(1,8)
@@ -4580,8 +4572,30 @@ def line_test(param_dict,
                                      tie_line_disp=comp_options["tie_line_disp"],tie_line_voff=comp_options["tie_line_voff"],remove_lines=False,verbose=False)
 
 
-                
-                
+                if test_options["full_verbose"]:
+                    print("-------------------------------------------------------")
+                    print("\n")
+                    # Print out fitted parameters
+                    for p in _param_dict:
+                        print(p)
+                        for hpar in _param_dict[p]:
+                            print("\t",hpar,"=",_param_dict[p][hpar])
+                    print("\n")
+                    # Print out line list
+                    for l in _line_list:
+                        print(l)
+                        for hpar in _line_list[l]:
+                            print("\t",hpar,"=",_line_list[l][hpar])
+                    print("\n")
+                    # Print out combined lines
+                    for l in _combined_line_list:
+                        print(l)
+                        for hpar in _combined_line_list[l]:
+                            print("\t",hpar,"=",_combined_line_list[l][hpar])
+                    print("\n")
+                    # Print out soft cons
+                    for s in _soft_cons:
+                        print(s)
 
                 mcpars, mccomps, mcLL = max_likelihood(_param_dict,
                                                        _line_list,
@@ -4618,55 +4632,35 @@ def line_test(param_dict,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
                                                        max_like_niter=0,
-                                                       verbose=False)
+                                                       full_verbose=test_options["full_verbose"],
+                                                       verbose=test_options["full_verbose"])
 
-                # print("-------------------------------------------------------")
-                # print("\n")
-                # Print out fitted parameters
-                # for p in _param_dict:
-                #     print(p)
-                #     for hpar in _param_dict[p]:
-                #         print("\t",hpar,"=",_param_dict[p][hpar])
-                # print("\n")
-                # Print out line list
-                # for l in _line_list:
-                #     print(l)
-                #     for hpar in _line_list[l]:
-                #         print("\t",hpar,"=",_line_list[l][hpar])
-                # print("\n")
-                # Print out combined lines
-                # for l in _combined_line_list:
-                #     print(l)
-                #     for hpar in _combined_line_list[l]:
-                #         print("\t",hpar,"=",_combined_line_list[l][hpar])
-                # print("\n")
-                # Print out soft cons
-                # for s in _soft_cons:
-                #     print(s)
-                # print("\n")
-                # Calculate R-Squared statistic of best fit
-                # r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                # print(" R-Squared = %0.4f" % r2)
+                if test_options["full_verbose"]:
+                    
+                    print("\n")
+                    # Calculate R-Squared statistic of best fit
+                    r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                    print(" R-Squared = %0.4f" % r2)
 
 
-                # print("\n")
-                # # Calculate rCHI2 statistic of best fit
-                # rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
-                # print(" reduced Chi-Squared = %0.4f" % rchi2)
+                    print("\n")
+                    # Calculate rCHI2 statistic of best fit
+                    rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
+                    print(" reduced Chi-Squared = %0.4f" % rchi2)
 
-                # print("\n")
-                # # Calculate RMSE statistic of best fit
-                # rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                # print(" Root Mean Squared Error = %0.4f" % rmse)
+                    print("\n")
+                    # Calculate RMSE statistic of best fit
+                    rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                    print(" Root Mean Squared Error = %0.4f" % rmse)
 
-                # print("\n")
-                # # Calculate MAE statistic of best fit
-                # mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                # print(" Mean Absolute Error = %0.4f" % mae)
+                    print("\n")
+                    # Calculate MAE statistic of best fit
+                    mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                    print(" Mean Absolute Error = %0.4f" % mae)
 
-                # print("\n")
+                    print("\n")
 
-                # print("-------------------------------------------------------")
+                    print("-------------------------------------------------------")
                 
                 # Plot for testing
                 # fig = plt.figure(figsize=(10,6))
@@ -4747,12 +4741,26 @@ def line_test(param_dict,
                 else: force_thresh=np.inf
 
 
-                # print("\n")
-                # for l in _line_list:
-                #     print(l)
-                #     for hpar in _line_list[l]:
-                #         print("\t",hpar,"=",_line_list[l][hpar])
-                # print("\n")
+                if test_options["full_verbose"]:
+                    print("-------------------------------------------------------")
+                    for p in _param_dict:
+                        print(p)
+                        for hpar in _param_dict[p]:
+                            print("\t",hpar,"=",_param_dict[p][hpar])
+                    print(len(_param_dict))
+                    print("\n")
+                    for l in _line_list:
+                        print(l)
+                        for hpar in _line_list[l]:
+                            print("\t",hpar,"=",_line_list[l][hpar])
+                    print("\n")
+                    for l in _combined_line_list:
+                        print(l)
+                        for hpar in _combined_line_list[l]:
+                            print("\t",hpar,"=",_combined_line_list[l][hpar])
+                    print("\n")
+                    for s in _soft_cons:
+                        print(s)
 
                 mcpars, mccomps, mcLL = max_likelihood(_param_dict,
                                                        _line_list,
@@ -4791,51 +4799,34 @@ def line_test(param_dict,
                                                        max_like_niter=0,
                                                        force_best=test_options["force_best"],
                                                        force_thresh=force_thresh,
-                                                       verbose=False)
+                                                       full_verbose=test_options["full_verbose"],
+                                                       verbose=test_options["full_verbose"])
 
-                # print("-------------------------------------------------------")
-                # for p in _param_dict:
-                #     print(p)
-                #     for hpar in _param_dict[p]:
-                #         print("\t",hpar,"=",_param_dict[p][hpar])
-                # print(len(_param_dict))
-                # print("\n")
-                # for l in _line_list:
-                #     print(l)
-                #     for hpar in _line_list[l]:
-                #         print("\t",hpar,"=",_line_list[l][hpar])
-                # print("\n")
-                # for l in _combined_line_list:
-                #     print(l)
-                #     for hpar in _combined_line_list[l]:
-                #         print("\t",hpar,"=",_combined_line_list[l][hpar])
-                # print("\n")
-                # for s in _soft_cons:
-                #     print(s)
-
-                # print("\n")
-                # Calculate R-Squared statistic of best fit
-                # r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                # print(" R-Squared = %0.4f" % r2)
+                if test_options["full_verbose"]:
+                    
+                    print("\n")
+                    # Calculate R-Squared statistic of best fit
+                    r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                    print(" R-Squared = %0.4f" % r2)
 
 
-                # print("\n")
-                # # Calculate rCHI2 statistic of best fit
-                # rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
-                # print(" reduced Chi-Squared = %0.4f" % rchi2)
+                    print("\n")
+                    # Calculate rCHI2 statistic of best fit
+                    rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
+                    print(" reduced Chi-Squared = %0.4f" % rchi2)
 
-                # print("\n")
-                # # Calculate RMSE statistic of best fit
-                # rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                # print(" Root Mean Squared Error = %0.4f" % rmse)
+                    print("\n")
+                    # Calculate RMSE statistic of best fit
+                    rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                    print(" Root Mean Squared Error = %0.4f" % rmse)
 
-                # print("\n")
-                # # Calculate MAE statistic of best fit
-                # mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
-                # print(" Mean Absolute Error = %0.4f" % mae)
+                    print("\n")
+                    # Calculate MAE statistic of best fit
+                    mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
+                    print(" Mean Absolute Error = %0.4f" % mae)
 
-                # print("\n")
-                # print("-------------------------------------------------------")
+                    print("\n")
+                    print("-------------------------------------------------------")
                 
                 
 
@@ -5784,6 +5775,7 @@ def max_likelihood(param_dict,
                    max_like_niter=10,
                    force_best=False,
                    force_thresh=np.inf,
+                   full_verbose=False,
                    verbose=True):
 
     """
@@ -5888,30 +5880,33 @@ def max_likelihood(param_dict,
             # median within the median abs. deviation, terminate.
             if (basinhop_count>=force_basinhop) and (((lowest_rmse-rmse_mad)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
 
-                # print(" Fit Status: True")
-                # print(" Force threshold: %0.2f" % force_thresh)
-                # print(" Lowest RMSE: %0.2f" % lowest_rmse)
-                # print(" Current RMSE: %0.2f" % rmse)
-                # print(" RMSE MAD: %0.2f" % rmse_mad)
-                # print(" RMSE STD: %0.2f" % rmse_std)
-                # print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
-                # print(" Accepted count: %d" % accepted_count)
-                # print(" Basinhop count: %d" % basinhop_count)
-                # print("\n")
+                if full_verbose:
+                    print(" Fit Status: True")
+                    print(" Force threshold: %0.2f" % force_thresh)
+                    print(" Lowest RMSE: %0.2f" % lowest_rmse)
+                    print(" Current RMSE: %0.2f" % rmse)
+                    print(" RMSE MAD: %0.2f" % rmse_mad)
+                    print(" RMSE STD: %0.2f" % rmse_std)
+                    print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
+                    print(" Accepted count: %d" % accepted_count)
+                    print(" Basinhop count: %d" % basinhop_count)
+                    print("\n")
 
                 return True 
                 
             else:
-                # print(" Fit Status: False")
-                # print(" Force threshold: %0.2f" % force_thresh)
-                # print(" Lowest RMSE: %0.2f" % lowest_rmse)
-                # print(" Current RMSE: %0.2f" % rmse)
-                # print(" RMSE MAD: %0.2f" % rmse_mad)
-                # print(" RMSE STD: %0.2f" % rmse_std)
-                # print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
-                # print(" Accepted count: %d" % accepted_count)
-                # print(" Basinhop count: %d" % basinhop_count)
-                # print("\n")
+
+                if full_verbose:
+                    print(" Fit Status: False")
+                    print(" Force threshold: %0.2f" % force_thresh)
+                    print(" Lowest RMSE: %0.2f" % lowest_rmse)
+                    print(" Current RMSE: %0.2f" % rmse)
+                    print(" RMSE MAD: %0.2f" % rmse_mad)
+                    print(" RMSE STD: %0.2f" % rmse_std)
+                    print(" RMSE Threshold: %0.2f" % (np.nanmedian(rmse_arr)+rmse_mad))
+                    print(" Accepted count: %d" % accepted_count)
+                    print(" Basinhop count: %d" % basinhop_count)
+                    print("\n")
 
                 return False 
                 
