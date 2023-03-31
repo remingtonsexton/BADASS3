@@ -50,7 +50,7 @@ import psutil
 import pathlib
 import importlib
 import multiprocessing as mp
-import bifrost
+# import bifrost
 import spectres
 import corner
 # Import BADASS tools modules
@@ -3792,7 +3792,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
     # First we remove the continuum 
     galaxy_csub = badass_tools.continuum_subtract(lam_gal,galaxy,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
-                   noise_scale=1.0,opt_rchi2=True,plot=True,
+                   noise_scale=1.0,opt_rchi2=True,plot=False,
                    fig_scale=8,fontsize=16,verbose=False)
     # smoothed = scipy.ndimage.median_filter(galaxy_csub,size=3,mode="mirror")
     #
@@ -3800,8 +3800,12 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         widths = np.arange(1,8)
         # peaks   = scipy.signal.find_peaks_cwt(galaxy_csub, widths =widths,  wavelet=lambda loc, scale:scipy.signal.gaussian(loc,scale,sym=True))
         # troughs = scipy.signal.find_peaks_cwt(-galaxy_csub, widths =widths, wavelet=lambda loc, scale:scipy.signal.gaussian(loc,scale,sym=True))
-        peaks,_   = scipy.signal.find_peaks( (galaxy_csub/np.median(galaxy_csub)/noise), height=2.0, width =3.0, prominence=1)
-        troughs,_ = scipy.signal.find_peaks(-(galaxy_csub/np.median(galaxy_csub)/noise), height=2.0, width =3.0, prominence=1)
+
+        # normalize by noise
+        norm_csub = galaxy_csub/noise
+
+        peaks,_   = scipy.signal.find_peaks( norm_csub, height=2.0, width =3.0, prominence=1)
+        troughs,_ = scipy.signal.find_peaks(-norm_csub, height=2.0, width =3.0, prominence=1)
         peak_wave   = lam_gal[peaks]
         trough_wave = lam_gal[troughs]
     except:
@@ -5861,11 +5865,11 @@ def max_likelihood(param_dict,
 
             # Define an acceptance threshold as the median abs. deviation of the current RMSE array,
             # and use a default value of 1.0 until it can be calculated reliably (len(rmse_arr)>5)
-            if len(rmse_arr)>=5:
-                accept_thresh = rmse_mad
-            else:
-                accept_thresh = 1.0
-            
+            # if len(rmse_arr)>=5:
+            #     accept_thresh = rmse_mad
+            # else:
+            #     accept_thresh = 1.0
+            accept_thresh = 1.0
             # Best/lowest achieved RMSE
             if (rmse<=lowest_rmse): #(rmse<=force_thresh) and  (accepted==1) and (accepted_count>1) and 
                 lowest_rmse = rmse
@@ -5878,7 +5882,7 @@ def max_likelihood(param_dict,
 
             # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
             # median within the median abs. deviation, terminate.
-            if (basinhop_count>=force_basinhop) and (((lowest_rmse-rmse_mad)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
+            if (basinhop_count>=force_basinhop) and (((lowest_rmse-accept_thresh)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
 
                 if full_verbose:
                     print(" Fit Status: True")
@@ -5920,7 +5924,7 @@ def max_likelihood(param_dict,
     result = op.basinhopping(func = nll, 
                              x0 = params,
                              # T = 0.0,
-                             stepsize=1.0,
+                             stepsize=10.0,
                              # interval=90,
                              niter = 1000, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
