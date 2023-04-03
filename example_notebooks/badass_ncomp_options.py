@@ -64,8 +64,8 @@ broad_options ={
 #     "amp_plim": (0,40), # line amplitude parameter limits; default (0,)
 #     "disp_plim": (300,3000), # line dispersion parameter limits; default (0,)
 #     "voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
-    "line_profile": "gauss-hermite", # line profile shape*
-    "n_moments": 6, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
+    "line_profile": "voigt", # line profile shape*
+    "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
 }
 
 absorp_options = {

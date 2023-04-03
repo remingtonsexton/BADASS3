@@ -2,4 +2,6 @@
 **/__pycache__
 **.pyc
 neuralnet_training_data/
+example_spectra/MANGA/manga-9485-12705-LOGCUBE.fits
+example_spectra/manga-9485-12705-LOGCUBE.fits.gz
 

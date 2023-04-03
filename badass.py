@@ -3799,7 +3799,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
     # First we remove the continuum 
     galaxy_csub = badass_tools.continuum_subtract(lam_gal,galaxy,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
-                   noise_scale=1.0,opt_rchi2=True,plot=True,
+                   noise_scale=1.0,opt_rchi2=True,plot=False,
                    fig_scale=8,fontsize=16,verbose=False)
     # smoothed = scipy.ndimage.median_filter(galaxy_csub,size=3,mode="mirror")
     #
