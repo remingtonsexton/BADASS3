@@ -11,7 +11,7 @@ fit_options={
 "fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares, RCHI2 = reduced chi2
 "n_basinhop": 25, # Number of consecutive basinhopping thresholds before solution achieved
 "test_lines": True,
-"max_like_niter": 0, # number of maximum likelihood iterations
+"max_like_niter": 25, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 "cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
 }
@@ -20,7 +20,7 @@ fit_options={
 
 ########################### MCMC algorithm parameters ##########################
 mcmc_options={
-"mcmc_fit"    : True, # Perform robust fitting using emcee
+"mcmc_fit"    : False, # Perform robust fitting using emcee
 "nwalkers"    : 100,  # Number of emcee walkers; min = 2 x N_parameters
 "auto_stop"   : True, # Automatic stop using autocorrelation analysis
 "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
@@ -84,6 +84,7 @@ absorp_options = {
 # If not specified, defaults to SDSS-QSO Emission Lines (http://classic.sdss.org/dr6/algorithms/linestable.html)
 ################################################################################
 # User lines overrides the default line list with a user-input line list!
+# user_lines={}
 user_lines = {
     "NA_H_BETA"      :{"center":4862.691,"amp":"free","disp":"free","voff":"free","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"H$\beta$","ncomp":1,},
     "NA_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_H_BETA"},
@@ -124,7 +125,7 @@ test_options = {
 "full_verbose":True, # prints out all test fitting to screen
 "plot_tests":True, # plot the fit of each model comparison
 "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-"continue_fit":False, # continue the fit with the best chosen model
+"continue_fit":True, # continue the fit with the best chosen model
 }
 
 # test_options = {

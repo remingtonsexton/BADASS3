@@ -20,9 +20,9 @@ fit_options={
 
 ########################### MCMC algorithm parameters ##########################
 mcmc_options={
-"mcmc_fit"    : True, # Perform robust fitting using emcee
+"mcmc_fit"    : False, # Perform robust fitting using emcee
 "nwalkers"    : 100,  # Number of emcee walkers; min = 2 x N_parameters
-"auto_stop"   : False, # Automatic stop using autocorrelation analysis
+"auto_stop"   : True, # Automatic stop using autocorrelation analysis
 "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
 "min_samp"    : 1000,  # min number of iterations for sampling post-convergence
 "ncor_times"  : 10.0,  # number of autocorrelation times for convergence
@@ -31,7 +31,7 @@ mcmc_options={
 "write_thresh": 100,   # iteration to start writing/checking parameters
 "burn_in"     : 1500, # burn-in if max_iter is reached
 "min_iter"    : 1000, # min number of iterations before stopping
-"max_iter"    : 3000, # max number of MCMC iterations
+"max_iter"    : 25000, # max number of MCMC iterations
 }
 ################################################################################
 
@@ -84,6 +84,7 @@ absorp_options = {
 # If not specified, defaults to SDSS-QSO Emission Lines (http://classic.sdss.org/dr6/algorithms/linestable.html)
 ################################################################################
 # User lines overrides the default line list with a user-input line list!
+# user_lines={}
 user_lines = {
     "NA_H_BETA"      :{"center":4862.691,"amp":"free","disp":"free","voff":"free","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4","line_type":"na","label":r"H$\beta$","ncomp":1,},
     "NA_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","h3":"NA_OIII_5007_2_H3","h4":"NA_OIII_5007_2_H4","line_type":"na","ncomp":2,"parent":"NA_H_BETA"},
@@ -115,7 +116,7 @@ user_lines = {
 test_options = {
 "test_mode":"line",
 "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], # The lines to test
-"ranges":[(4750,5100)], # The range over which the test is performed must include the tested line
+"ranges":[(4400,5500)], # The range over which the test is performed must include the tested line
 # "groups": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],["BR_H_BETA"]], # groups of line associated lines including the lines being tested
 "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],# Fitting metrics to use when determining the best model
 "thresholds": [0.95, 0.95, 0.10, 3.0],

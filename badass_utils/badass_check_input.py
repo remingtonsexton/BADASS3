@@ -893,17 +893,22 @@ def check_user_lines(input,verbose=False):
 		"type" : "simple" # alternatively, "broken" for smoothly-broken power-law
 	}
 	"""
-	if not input:
-		output={}
+
+	if input is None:
+		output=None
 		return output
 
-	output = {}
-	# Check user_lines dict to make sure each entry is a dictionary
-	for line in input:
-		if not isinstance(input[line],(dict)):
-			raise ValueError("\n Each user-input emission line must be a dictionary that includes the central wavelength (in Å) of the line to be fit.\n")
-		else: 
-			output[line] = input[line]
+	
+	if len(input)>0:
+		output = {}
+		# Check user_lines dict to make sure each entry is a dictionary
+		for line in input:
+			if not isinstance(input[line],(dict)):
+				raise ValueError("\n Each user-input emission line must be a dictionary that includes the central wavelength (in Å) of the line to be fit.\n")
+			else: 
+				output[line] = input[line]
+	else:
+		output = {}
 			
 	return output
 

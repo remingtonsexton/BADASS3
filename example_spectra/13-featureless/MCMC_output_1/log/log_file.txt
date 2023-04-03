@@ -1,0 +1,126 @@
+
+############################### BADASS 9.4.0 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spec-4534-55863-0352.fits     
+(RA, DEC):                    (1.409315,9.009046)           
+SDSS redshift:                2.17792                       
+fitting region:               (1500,3000) [A]               
+velocity scale:               68.97 [km/s/pixel]            
+Galactic E(B-V):              0.081                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (1500, 3000)                  
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 25                            
+                    test_lines: False                         
+                max_like_niter: 25                            
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: False                         
+                   fit_uv_iron: False                         
+                    fit_balmer: False                         
+                     fit_losvd: False                         
+                      fit_host: True                          
+                     fit_power: True                          
+                      fit_poly: True                          
+                    fit_narrow: True                          
+                     fit_broad: False                         
+                    fit_absorp: False                         
+                 tie_line_disp: False                         
+                 tie_line_voff: False                         
+
+   losvd_options:                                                                         
+                                Stellar LOSVD fitting is turned off.
+
+   host_options:                                                                          
+                           age: [1.0, 5.0, 10.0]              
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 150.0} 
+
+   power_options:                                                                         
+                          type: simple                        
+
+   poly_options:                                                                          
+                         apoly: bool: True, order: 7                                                                                
+                         mpoly: bool: False, order: 3                                                                               
+
+   opt_feii_options:                                                                      
+                                Optical FeII fitting is turned off.
+
+   uv_iron_options:                                                                       
+                                UV Iron fitting is turned off.
+
+   balmer_options:                                                                        
+                                Balmer pseudo-continuum fitting is turned off.
+
+   plot_options:                                                                          
+               plot_param_hist: False                         
+                      plot_pca: False                         
+   output_options:                                                                        
+                   write_chain: False                         
+                       verbose: True                          
+
+-----------------------------------------------------------------------------------------------------------------
+
+### PCA Options ###
+-----------------------------------------------------------------------------------------------------------------
+pca_options:                                                  
+
+                        do_pca: False                         
+
+-----------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------
+ Line List:
+----------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------
+ Soft Constraints:
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### Maximum Likelihood Fitting Results ###
+-----------------------------------------------------------------------------------------------------------------
+Parameter                     Max. Like. Value              +/- 1-sigma                   Flag                          
+-----------------------------------------------------------------------------------------------------------------
+APOLY_COEFF_1                 10.9347                       0.0784                        0                             
+APOLY_COEFF_2                 -9.5056                       0.0244                        0                             
+APOLY_COEFF_3                 2.8590                        0.0188                        0                             
+APOLY_COEFF_4                 -0.1147                       0.0172                        0                             
+APOLY_COEFF_5                 0.1961                        0.0217                        0                             
+APOLY_COEFF_6                 -0.6880                       0.0211                        0                             
+APOLY_COEFF_7                 -0.1696                       0.0253                        0                             
+HOST_TEMP_DISP                0.3187                        0.0640                        0                             
+HOST_TEMP_VEL                 92.4848                       16.2321                       0                             
+LOG_LIKE                      -3043.5003                    76.6034                       0                             
+L_CONT_AGN_3000               45.6337                       0.0116                        0                             
+L_CONT_HOST_3000              45.6311                       0.0069                        0                             
+L_CONT_TOT_3000               45.6858                       0.0061                        0                             
+NOISE_SCALE                   2.1645                        0.0497                        0                             
+POWER_AMP                     3.0130                        0.0088                        0                             
+POWER_SLOPE                   -6.0000                       0.0000                        2                             
+RCHI_SQUARED                  1.0052                        0.0006                        0                             
+R_SQUARED                     0.9901                        0.0000                        0                             
+NOISE_STD.                    0.3422                        
+RESID_STD                     0.8325                        
+-----------------------------------------------------------------------------------------------------------------

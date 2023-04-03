@@ -751,7 +751,9 @@ def run_single_thread(fits_file,
 
     if (test_lines==True) and (test_options["test_mode"]=="line"):
 
-        # 
+        #
+        if (user_lines is None) or (len(user_lines)==0):
+            raise ValueError("\n The input user line list is None or empty.  There are no lines to test.  You cannot use the default line list to test for lines, as they must be explicitly defined by user lines.  See examples for details...\n")
 
         # Initialize free parameters (all components, lines, etc.)
         param_dict, line_list, combined_line_list, soft_cons, ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
@@ -2982,7 +2984,12 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     
     # If user lines is defined, replace the default line list with the 
     # user-input line list
-    if ((user_lines is None) or (len(user_lines)==0)) & (remove_lines==False):
+    # if ((user_lines is None) or (len(user_lines)==0)) & (remove_lines==False):
+    #     line_list = line_list_default()
+    # else:
+    #     line_list = user_lines
+
+    if (user_lines is None):
         line_list = line_list_default()
     else:
         line_list = user_lines
@@ -3792,7 +3799,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
     # First we remove the continuum 
     galaxy_csub = badass_tools.continuum_subtract(lam_gal,galaxy,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
-                   noise_scale=1.0,opt_rchi2=True,plot=False,
+                   noise_scale=1.0,opt_rchi2=True,plot=True,
                    fig_scale=8,fontsize=16,verbose=False)
     # smoothed = scipy.ndimage.median_filter(galaxy_csub,size=3,mode="mirror")
     #
