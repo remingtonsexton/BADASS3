@@ -5058,27 +5058,28 @@ def line_test(param_dict,
         for line in remove_aon:
             new_line_list.pop(line,None)
     #
+    if verbose:
+        print("\n")
+        print("New Line List:")
+        for line in new_line_list:
+            print(line)
+        print("\n")
 
-    print("\n")
-    print("New Line List:")
-    for line in new_line_list:
-        print(line)
-    print("\n")
-
-    for line in new_line_list:
-        print(line)
-        for hpar in new_line_list[line]:
-            print("\t",hpar,":",new_line_list[line][hpar])
+    if verbose:
+        for line in new_line_list:
+            print(line)
+            for hpar in new_line_list[line]:
+                print("\t",hpar,":",new_line_list[line][hpar])
 
 
     # Print a table with the results and write it to the log
-    print("\n Test Results:")
-
     ptbl = PrettyTable()
     ptbl.field_names = ["TEST","NCOMP_A","NCOMP_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","AON"]
     for i in range(len(test_results["TEST"])):
         ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i]],3)))
-    print(ptbl)
+    if verbose:
+        print("\n Test Results:")
+        print(ptbl)
     
     # sys.exit()
     # Write to log

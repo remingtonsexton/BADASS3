@@ -762,16 +762,12 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
         most_recent_mcmc = most_recent_mcmc[0]
     par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
     best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
-    test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
+    # test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits'))) # line test statistics
     if len(par_table) < 1 or len(best_model_components) < 1:
         raise FileNotFoundError(
             f"The FITS files for {most_recent_mcmc} do not exist! Fit before calling reconstruct")
     par_table = par_table[0]
     best_model_components = best_model_components[0]
-
-    print(par_table)
-    sys.exit()
-    
     
     # Load in the FITS files
     with fits.open(par_table) as parhdu, fits.open(best_model_components) as bmchdu:
@@ -781,27 +777,51 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
         data2 = parhdu[2].data
         bdata = bmchdu[1].data
 
-    if len(test_stats) > 0:
-        test_stats = test_stats[0]
-        with fits.open(test_stats) as tshdu:
-            tdata = tshdu[1].data
-    else:
-        tdata = None
+    # 
+    # if len(test_stats) > 0:
+    #     test_stats = test_stats[0]
+    #     with fits.open(test_stats) as tshdu:
+    #         tdata = tshdu[1].data
+    # else:
+    #     tdata = None
 
     binnum = copy.deepcopy(hdr['binnum']) if voronoi else i
     xpixbin[binnum] = copy.deepcopy(data2['spaxelx'])
     ypixbin[binnum] = copy.deepcopy(data2['spaxely'])
 
     # if it's the first iteration, create the arrays based on the proper shape
-    parameters = data1['parameter']
-    if tdata is not None:
-        parameters = np.concatenate((parameters, tdata['parameter']))
+    # Define parameters here
+    # parameters = data1['parameter']
+    # To allow for different number of fitted paramters in each spaxel across the entire cube, 
+    # we need to determine ALL unique paramters for ALL spaxels that were fit
+    unique_pars = [] # list of appended unique pars
+    unique_bmc  = [] # list of appended unique best model components
+    all_mcmc = [sorted(glob.glob(i + os.sep + "MCMC_output_*"))[-1] for i in subdirs]
+
+    for m in all_mcmc:
+        ptbl = sorted(glob.glob(os.path.join(m, 'log', '*par_table.fits')))[0]
+        bmc = sorted(glob.glob(os.path.join(m, 'log', '*best_model_components.fits')))[0]
+        with fits.open(ptbl) as parhdu, fits.open(bmc) as bmchdu:
+            unique_pars+=([i for i in parhdu[1].data["parameter"]])
+            unique_bmc+=(bmchdu[1].data.columns.names)
+    unique_pars = np.unique(unique_pars)
+    parameters = unique_pars
+    unique_bmc = np.unique(unique_bmc)
+    ###
+    # If test stats exist, eventually append them to paramters
+    # if tdata is not None:
+    #     parameters = np.concatenate((parameters, tdata['parameter']))
     parvals = np.full(shape=(nbins,), fill_value=np.nan, dtype=[
         (param, float) for param in np.unique(parameters)
     ])
     parvals_low = copy.deepcopy(parvals)
     parvals_upp = copy.deepcopy(parvals)
-    bmcparams = np.array(bdata.columns.names, dtype=str)
+
+    # Define best model components (bmc) here
+    # bmcparams = np.array(bdata.columns.names, dtype=str)
+    bmcparams = np.array(unique_bmc, dtype=str)
+    # bmcvals = np.full(shape=(bdata.size, nbins), fill_value=np.nan, dtype=[
+    #     (param, float) for param in np.unique(bmcparams)
     bmcvals = np.full(shape=(bdata.size, nbins), fill_value=np.nan, dtype=[
         (param, float) for param in np.unique(bmcparams)
     ])
@@ -816,13 +836,18 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
             if mcmc:
                 parvals_low[param][binnum] = copy.deepcopy(data1['ci_68_low'][w])
                 parvals_upp[param][binnum] = copy.deepcopy(data1['ci_68_upp'][w])
-        elif tdata is not None:
-            w2 = np.where(tdata['parameter'] == param)[0]
-            if w2.size > 0:
-                parvals[param][binnum] = copy.deepcopy(tdata['best_fit'][w2])
-                if mcmc:
-                    parvals_low[param][binnum] = copy.deepcopy(tdata['ci_68_low'][w2])
-                    parvals_upp[param][binnum] = copy.deepcopy(tdata['ci_68_upp'][w2])
+        else:
+            parvals[param][binnum] = np.nan
+            if mcmc:
+                parvals_low[param][binnum] = np.nan
+                parvals_upp[param][binnum] = np.nan
+        # elif tdata is not None:
+        #     w2 = np.where(tdata['parameter'] == param)[0]
+        #     if w2.size > 0:
+        #         parvals[param][binnum] = copy.deepcopy(tdata['best_fit'][w2])
+        #         if mcmc:
+        #             parvals_low[param][binnum] = copy.deepcopy(tdata['ci_68_low'][w2])
+        #             parvals_upp[param][binnum] = copy.deepcopy(tdata['ci_68_upp'][w2])
 
 
     # Set the best model components
@@ -830,13 +855,13 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
         bmcvals[param][:, binnum] = copy.deepcopy(bdata[param])
 
     parsize = data1.size
-    if tdata is not None:
-        parsize += tdata.size
+    # if tdata is not None:
+    #     parsize += tdata.size
     bmcsize = bdata.size
 
     def append_spaxel(i, subdir):
         nonlocal parvals, parvals_low, parvals_upp, bmcvals, parameters, xpixbin, ypixbin, voronoi
-
+    
         # Find each MCMC output
         if mcmc_label is None:
             most_recent_mcmc = glob.glob(subdir + os.sep + 'MCMC_output_*')
@@ -854,7 +879,7 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
             most_recent_mcmc = most_recent_mcmc[0]
         par_table = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*par_table.fits')))
         best_model_components = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', '*best_model_components.fits')))
-        test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
+        # test_stats = sorted(glob.glob(os.path.join(most_recent_mcmc, 'log', 'test_stats.fits')))
         if len(par_table) < 1 or len(best_model_components) < 1:
             # raise FileNotFoundError(
             # f"The FITS files for {most_recent_mcmc} do not exist! Fit before calling reconstruct")
@@ -871,12 +896,12 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
             data2 = parhdu[2].data
             bdata = bmchdu[1].data
 
-        if len(test_stats) > 0:
-            test_stats = test_stats[0]
-            with fits.open(test_stats) as tshdu:
-                tdata = tshdu[1].data
-        else:
-            tdata = None
+        # if len(test_stats) > 0:
+        #     test_stats = test_stats[0]
+        #     with fits.open(test_stats) as tshdu:
+        #         tdata = tshdu[1].data
+        # else:
+        #     tdata = None
 
         binnum = copy.deepcopy(hdr['binnum']) if voronoi else i
         xpixbin[binnum] = copy.deepcopy(data2['spaxelx'])
@@ -892,17 +917,26 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
                 if mcmc:
                     parvals_low[param][binnum] = copy.deepcopy(data1['ci_68_low'][w])
                     parvals_upp[param][binnum] = copy.deepcopy(data1['ci_68_upp'][w])
-            elif tdata is not None:
-                w2 = np.where(tdata['parameter'] == param)[0]
-                if w2.size > 0:
-                    parvals[param][binnum] = copy.deepcopy(tdata['best_fit'][w2])
-                    if mcmc:
-                        parvals_low[param][binnum] = copy.deepcopy(tdata['ci_68_low'][w2])
-                        parvals_upp[param][binnum] = copy.deepcopy(tdata['ci_68_upp'][w2])
+            else:
+                parvals[param][binnum] = np.nan
+                if mcmc:
+                    parvals_low[param][binnum] = np.nan
+                    parvals_upp[param][binnum] = np.nan
+            # elif tdata is not None:
+            #     w2 = np.where(tdata['parameter'] == param)[0]
+            #     if w2.size > 0:
+            #         parvals[param][binnum] = copy.deepcopy(tdata['best_fit'][w2])
+            #         if mcmc:
+            #             parvals_low[param][binnum] = copy.deepcopy(tdata['ci_68_low'][w2])
+            #             parvals_upp[param][binnum] = copy.deepcopy(tdata['ci_68_upp'][w2])
 
         # Set the best model components
+        # print("cat")
         for param in bmcparams:
-            bmcvals[param][:, binnum] = copy.deepcopy(bdata[param])
+            if param in bdata.columns.names:
+                bmcvals[param][:, binnum] = copy.deepcopy(bdata[param])
+            else:
+                bmcvals[param][:, binnum] = np.full(shape=(bdata.size), fill_value=np.nan)
 
     iterable = enumerate(subdirs) if tqdm is None else tqdm.tqdm(enumerate(subdirs), total=len(subdirs))
     Parallel(n_jobs=-1, require='sharedmem')(delayed(append_spaxel)(i, subdir) for i, subdir in iterable)

@@ -1,0 +1,1996 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body {
+  max-width: 980px;
+  margin: 16px auto;
+}
+
+body .markdown-body
+{
+  padding: 45px;
+}
+
+@font-face {
+  font-family: fontawesome-mini;
+  src: url(data:font/woff;charset=utf-8;base64,d09GRgABAAAAABE0AA8AAAAAHWwAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABHU1VCAAABWAAAADsAAABUIIslek9TLzIAAAGUAAAAQwAAAFY3d1HZY21hcAAAAdgAAACqAAACOvWLi0FjdnQgAAAChAAAABMAAAAgBtX/BGZwZ20AAAKYAAAFkAAAC3CKkZBZZ2FzcAAACCgAAAAIAAAACAAAABBnbHlmAAAIMAAABdQAAAjkYT9TNWhlYWQAAA4EAAAAMwAAADYQ6WvNaGhlYQAADjgAAAAfAAAAJAc6A1pobXR4AAAOWAAAACAAAAA0Kmz/7mxvY2EAAA54AAAAHAAAABwQPBJubWF4cAAADpQAAAAgAAAAIAEHC/NuYW1lAAAOtAAAAYQAAALxhQT4h3Bvc3QAABA4AAAAfgAAAMS3SYh9cHJlcAAAELgAAAB6AAAAhuVBK7x4nGNgZGBg4GIwYLBjYHJx8wlh4MtJLMljkGJgYYAAkDwymzEnMz2RgQPGA8qxgGkOIGaDiAIAJjsFSAB4nGNgZHZmnMDAysDAVMW0h4GBoQdCMz5gMGRkAooysDIzYAUBaa4pDA4Pwz+yMwf9z2KIYg5imAYUZgTJAQDcoQvQAHic7ZHNDYJAFIRnBXf94cDRIiyCKkCpwFCPJ092RcKNDoYKcN4+EmMPvpdvk539zQyAPYBCXEUJhBcCrJ5SQ9YLnLJe4qF5rdb+uWPDngNHTkta101pNyWa8lMhn6xx2dqUnW4q9YOIhAOOeueMSgsR/6ry+P7O5s6xVNg4chBsHUuFnWNJ8uZYwrw7chrsHXkODo7cB0dHOYCTY8kv0VE2WJKD6gOlWjsxAAB4nGNgQAMSEMgc9D8LhAESbAPdAHicrVZpd9NGFB15SZyELCULLWphxMRpsEYmbMGACUGyYyBdnK2VoIsUO+m+8Ynf4F/zZNpz6Dd+Wu8bLySQtOdwmpOjd+fN1czbZRJaktgL65GUmy/F1NYmjew8CemGTctRfCg7eyFlisnfBVEQrZbatx2HREQiULWusEQQ+x5ZmmR86FFGy7akV03KLT3pLlvjQb1V334aOsqxO6GkZjN0aD2yJVUYVaJIpj1S0qZlqPorSSu8v8LMV81QwohOImm8GcbQSN4bZ7TKaDW24yiKbLLcKFIkmuFBFHmU1RLn5IoJDMoHzZDyyqcR5cP8iKzYo5xWsEu20/y+L3mndzk/sV9vUbbkQB/Ijuzg7HQlX4RbW2HctJPtKFQRdtd3QmzZ7FT/Zo/ymkYDtysyvdCMYKl8hRArP6HM/iFZLZxP+ZJHo1qykRNB62VO7Es+gdbjiClxzRhZ0N3RCRHU/ZIzDPaYPh788d4plgsTAngcy3pHJZwIEylhczRJ2jByYCVliyqp9a6YOOV1WsRbwn7t2tGXzmjjUHdiPFsPHVs5UcnxaFKnmUyd2knNoykNopR0JnjMrwMoP6JJXm1jNYmVR9M4ZsaERCICLdxLU0EsO7GkKQTNoxm9uRumuXYtWqTJA/Xco/f05la4udNT2g70s0Z/VqdiOtgL0+lp5C/xadrlIkXp+ukZfkziQdYCMpEtNsOUgwdv/Q7Sy9eWHIXXBtju7fMrqH3WRPCkAfsb0B5P1SkJTIWYVYhWQGKta1mWydWsFqnI1HdDmla+rNMEinIcF8e+jHH9XzMzlpgSvt+J07MjLj1z7UsI0xx8m3U9mtepxXIBcWZ5TqdZlu/rNMfyA53mWZ7X6QhLW6ejLD/UaYHlRzodY3lBC5p038GQizDkAg6QMISlA0NYXoIhLBUMYbkIQ1gWYQjLJRjC8mMYwnIZhrC8rGXV1FNJ49qZWAZsQmBijh65zEXlaiq5VEK7aFRqQ54SbpVUFM+qf2WgXjzyhjmwFkiXyJpfMc6Vj0bl+NYVLW8aO1fAsepvH472OfFS1ouFPwX/1dZUJb1izcOTq/Abhp5sJ6o2qXh0TZfPVT26/l9UVFgL9BtIhVgoyrJscGcihI86nYZqoJVDzGzMPLTrdcuan8P9NzFCFlD9+DcUGgvcg05ZSVnt4KzV19uy3DuDcjgTLEkxN/P6VvgiI7PSfpFZyp6PfB5wBYxKZdhqA60VvNknMQ+Z3iTPBHFbUTZI2tjOBIkNHPOAefOdBCZh6qoN5E7hhg34BWFuwXknXKJ6oyyH7kXs8yik/Fun4kT2qGiMwLPZG2Gv70LKb3EMJDT5pX4MVBWhqRg1FdA0Um6oBl/G2bptQsYO9CMqdsOyrOLDxxb3lZJtGYR8pIjVo6Of1l6iTqrcfmYUl++dvgXBIDUxf3vfdHGQyrtayTJHbQNTtxqVU9eaQ+NVh+rmUfW94+wTOWuabronHnpf06rbwcVcLLD2bQ7SUiYX1PVhhQ2iy8WlUOplNEnvuAcYFhjQ71CKjf+r+th8nitVhdFxJN9O1LfR52AM/A/Yf0f1A9D3Y+hyDS7P95oTn2704WyZrqIX66foNzBrrblZugbc0HQD4iFHrY64yg18pwZxeqS5HOkh4GPdFeIBwCaAxeAT3bWM5lMAo/mMOT7A58xh0GQOgy3mMNhmzhrADnMY7DKHwR5zGHzBnHWAL5nDIGQOg4g5DJ4wJwB4yhwGXzGHwdfMYfANc+4DfMscBjFzGCTMYbCv6dYwzC1e0F2gtkFVoANTT1jcw+JQU2XI/o4Xhv29Qcz+wSCm/qjp9pD6Ey8M9WeDmPqLQUz9VdOdIfU3Xhjq7wYx9Q+DmPpMvxjLZQa/jHyXCgeUXWw+5++J9w/bxUC5AAEAAf//AA94nIVVX2hbZRQ/5/t7893s5ja9f7ouzdZ0TTqz3bRJmogbWya6bG6Cq0VbSV2ddIJjFtfIQHEig80Hda8yUN/0YQz8AyriiyD+xQd92R4HCnaCb3samnpumrpsCsLlfPf7zvedc37nL3CAtc/5W/wQZGA3tOBSY/g+TMjHmwzEoM1Q8+ZjRZY4oJhmBw5/YB6Za0yC5AkhlwA1A1yCBIBOwCII0Cj0U8BAMdUCzq05sKwkP7SlUY6fcJk4Fb/RyE79/6P5hjM/F4aZiXBoeMgzcqQ4Xi1hPqfDLG5FT+lchCVU3lYMyvuwhl1mqndQL0RsuloLywHtthLXI06OblTrhfWVnpSJ5+mwu/JdbtuN3IAnkW0LLMcRwaC7ktrlzridM6kVdyf9uO1UNBByI7JhwtG2sEwab07ORBeilWhqavJCqV0qzZTOl/7ZXQ5TbTcdcFelyGhhRDAQpdqp1FEX3w3cFTc1k9pJQkmm4ySCbSikxRP2QOfN+0tHS5MrpQuTU1Mk5nw0E5Xa0WvrOwDyGax9yB9ma6DAg82wHc43SAGTI4GjBWebOePAERFE8/AHaQpZASSTy8A4WwZiLQMQ82mFKATO0ILicRAoDm9p5P99E5b/fXG+kQYY3TYUuqmERWYoT0u/GNYL2q/4WB3LaVS+VynXsVYIcWw6DkCh3nX1D+VzlYN4LClF5yexSQos8exqZ3KVP+wtrC54u4Nznq6cq+xpMpUUnZ8FUYzE86ud0g28NOIv3Gj5/rmA3ABs7S/ywzFuQ4qyd6QxfNtiQIaEgp3w/entQg4Vcbqa16M5FfpeUB8t1+qeg7mI7cUyOe79wOk86gSxkVec4KPTX69++5x68Yubn5/F+w52z7u08sJX7fZXv8ekT/d2mILJxq6sn+SC6qEJknzLJCxyZEKwWVqYmAPBxBE/9DLeZiWHu7lcr/VytrCRuHojncNuTt9h46tmacmYisnSamdN2bZptcsmSysdVsy1PrOvOzF3xN64Rb937t/og9KHxYdcjIUqFAmIAHGHNzlns+RTPgeUYAQm9DwpNxfxbhhBHPaw3/gfTcXO2L+eJVIx5nsyGkvm9X4/f+bGkH45G0PaSjcMXTjcZyTvi3UdHoCDjQd3IDUVsgwYmUoJK/gp4JJxeRI0MKHZIkgynyIBqBTOUs6rOVCojvjZ4mCQz49ZMlMcp8QoYk6NoBfsxnJtsBohpa8iGJS+ZH7gU7NxME6cmF+t7cO9vB8d3jTWSct0ycW9ranXmolNDwmVkNnxe+8JtoztwS5rKJ0xWS95tQ/1zMYzg69MzUZnNtl1ofNbsml/OJm6f9wjRjpnu2o4MzHzn77IQkRd+1DjwMQ2pqSjGMMhyjrgTbBAKksuUm0iU7hI0aN2wOKOq7WYBSH0HGihj/jkiPxAfmwsEbfYrjMG+j3ij932Db/LV7I/xruNrhnroxjR9HRMb2nTvO0ZXOoHPk8H2ZhDPx93qcE/53sH5np/dkIP7zzhTVKdR/BAY/9ElkkR+A6lJGsqpJ4oQcTxpvBT3Kn58VkaJjgHyPEIws57xkaHh9KuVpDEpJZeMbZ5w/zBHi5NMQ4r5VphsFqID7TyB9eR4pX216c3AHxpdAwoqU9qg0ZJ6yVLKmMSz1iG2z27ifx18NkY0LPx1W/wCc2l5LrznrIsiKsqbmB78A9wIGx4tI8rjihVHJyY9pgMirenVq0yWg7Iw7eogG7ZgYM3qR9959A/fZkg6MnD/exlkmc+jWV4SB15XUR+eqC6l6ZmgPtN9z5JMfik05OV8ljylunJ4J+wA/FUaQSSKotsYsCWqaPBidBLcxkWx7XKFRIb45TGaEhjlF9uUVPqXOtcIwsXbBvfoZXIyRYFdkfnqjExH98xpnPczqzjX/uNdO1Y17Wpi5+6Ts8BXtjVFasp9KZ1mOiNbH65c5w6HgmyF2jFCZywM8mWjRc7T5Pmt0lRy7Y71+jYbpGyvwG4sH0XeJxjYGRgYADiwBB/53h+m68M3MwvgCIM1z5N/g6j///9v5H5BbMnkMvBwAQSBQCIcA9gAHicY2BkYGAO+p8FJF/8//v/F/MLBqAICuAFALYQB5kAeJxjfsHAwLwAiCNB+P9fbJjJmoGBMRUo/wKCAfO2EnQAAAAAANoBXgGcAgICVALaA1IDvAPkBAYEPARyAAEAAAANAF0ABAAAAAAAAgAUACQAcwAAAG4LcAAAAAB4nHWRzWrCQBSFT+pPqUIXLXTTzayKUohGKIibCoLuhbrrYtTRxCYZmYyKyz5Fd32HvlDfoO/QkziIFJtw9bvnnpl7ZwLgBt/wcHieGAf2UGd24Atcou+4RH3kuEweO66QXx1XyaHjGh6ROa7jFp/cwStfMVvhy7GHO+/e8QWuvcBxifqz4zL5xXGF/Oa4Sn53XMPE+3Bcx4P3M9DrvYmWoRWNQVN02kFXTPdCU4pSGQu5saE2meiLhU6timPtz3SSs9ypTCdqrJabWJoT5QQnymSRTkXgt0/UkUqVkVbN807ZdtmxdiEWRidi6HqItdErNbN+aO2612qd9sYAGmvsYRBhyUu0EGhQbfK/gzYCdElTOgSdB1eEFBIxFYkNV4RFJWPeZyyYpVQVHTHZx4y/yVGX2LGWFZri51TccUOn5B7nPefVCSPvGhVVwUl9znveO2KkhV8Wk82PZ8qwZf8OVcu1+fSmWCMw/HMOwXvKaysqM+p+cVuWag8tvv+c+xdd+4+teJxtjUEOwiAURJla24KliQfhUA2g/Sl+CKXx+loNrpzVezOLEY34Ron/0WhwQoszOvQYIKFwwQiNSbSBeO2SZ0tBP4j3zVjKNng32ZmtD1VVXCuOiw/pJ8S3WOU6l+K5UOTaDC4+2TjKMtN9KQf1ezLx/Sg/00FCvABHhjDjAAB4nGPw3sFwIihiIyNjX+QGxp0cDBwMyQUbGVidNjEwMmiBGJu5mBg5ICw+BjCLzWkX0wGgNCeQze60i8EBwmZmcNmowtgRGLHBoSNiI3OKy0Y1EG8XRwMDI4tDR3JIBEhJJBBs5mFi5NHawfi/dQNL70YmBhcADHYj9AAA) format('woff');
+}
+
+.markdown-body {
+  font-family: sans-serif;
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  color: #333333;
+  overflow: hidden;
+  font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.markdown-body a {
+  background: transparent;
+}
+
+.markdown-body a:active,
+.markdown-body a:hover {
+  outline: 0;
+}
+
+.markdown-body b,
+.markdown-body strong {
+  font-weight: bold;
+}
+
+.markdown-body mark {
+  background: #ff0;
+  color: #000;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.markdown-body sub,
+.markdown-body sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+.markdown-body sup {
+  top: -0.5em;
+}
+.markdown-body sub {
+  bottom: -0.25em;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+  margin: 0.67em 0;
+}
+
+.markdown-body img {
+  border: 0;
+}
+
+.markdown-body hr {
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  height: 0;
+}
+
+.markdown-body pre {
+  overflow: auto;
+}
+
+.markdown-body code,
+.markdown-body kbd,
+.markdown-body pre,
+.markdown-body samp {
+  font-family: monospace, monospace;
+  font-size: 1em;
+}
+
+.markdown-body input {
+  color: inherit;
+  font: inherit;
+  margin: 0;
+}
+
+.markdown-body html input[disabled] {
+  cursor: default;
+}
+
+.markdown-body input {
+  line-height: normal;
+}
+
+.markdown-body input[type="checkbox"] {
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.markdown-body td,
+.markdown-body th {
+  padding: 0;
+}
+
+.markdown-body .codehilitetable,
+.markdown-body .highlighttable {
+  border: 0;
+  border-spacing: 0;
+}
+
+.markdown-body .codehilitetable tr,
+.markdown-body .highlighttable {
+  border: 0;
+}
+
+.markdown-body .codehilitetable pre,
+.markdown-body .codehilitetable div.codehilite,
+.markdown-body .highlighttable pre,
+.markdown-body .highlighttable div.highlight {
+  margin: 0;
+}
+
+.markdown-body .linenos,
+.markdown-body .code,
+.markdown-body .codehilitetable td,
+.markdown-body .highlighttable td {
+  border: 0;
+  padding: 0;
+}
+
+.markdown-body td:not(.linenos) .linenodiv {
+  padding: 0 !important;
+}
+
+.markdown-body .code {
+  width: 100%;
+}
+
+.markdown-body .linenos div pre,
+.markdown-body .linenodiv pre,
+.markdown-body .linenodiv {
+  border: 0;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-border-top-left-radius: 3px;
+  -webkit-border-bottom-left-radius: 3px;
+  -moz-border-radius-topleft: 3px;
+  -moz-border-radius-bottomleft: 3px;
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+
+.markdown-body .code div pre,
+.markdown-body .code div {
+  border: 0;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-border-top-right-radius: 3px;
+  -webkit-border-bottom-right-radius: 3px;
+  -moz-border-radius-topright: 3px;
+  -moz-border-radius-bottomright: 3px;
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+
+.markdown-body * {
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.markdown-body input {
+  font: 13px Helvetica, arial, freesans, clean, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.4;
+}
+
+.markdown-body a {
+  color: #4183c4;
+  text-decoration: none;
+}
+
+.markdown-body a:hover,
+.markdown-body a:focus,
+.markdown-body a:active {
+  text-decoration: underline;
+}
+
+.markdown-body hr {
+  height: 0;
+  margin: 15px 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.markdown-body hr:before,
+.markdown-body hr:after {
+  display: table;
+  content: " ";
+}
+
+.markdown-body hr:after {
+  clear: both;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  line-height: 1.1;
+}
+
+.markdown-body h1 {
+  font-size: 30px;
+}
+
+.markdown-body h2 {
+  font-size: 21px;
+}
+
+.markdown-body h3 {
+  font-size: 16px;
+}
+
+.markdown-body h4 {
+  font-size: 14px;
+}
+
+.markdown-body h5 {
+  font-size: 12px;
+}
+
+.markdown-body h6 {
+  font-size: 11px;
+}
+
+.markdown-body blockquote {
+  margin: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body ol ol,
+.markdown-body ul ol {
+  list-style-type: lower-roman;
+}
+
+.markdown-body ul ul ol,
+.markdown-body ul ol ol,
+.markdown-body ol ul ol,
+.markdown-body ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+.markdown-body dd {
+  margin-left: 0;
+}
+
+.markdown-body code,
+.markdown-body pre,
+.markdown-body samp {
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 12px;
+}
+
+.markdown-body pre {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body kbd {
+  background-color: #e7e7e7;
+  background-image: -moz-linear-gradient(#fefefe, #e7e7e7);
+  background-image: -webkit-linear-gradient(#fefefe, #e7e7e7);
+  background-image: linear-gradient(#fefefe, #e7e7e7);
+  background-repeat: repeat-x;
+  border-radius: 2px;
+  border: 1px solid #cfcfcf;
+  color: #000;
+  padding: 3px 5px;
+  line-height: 10px;
+  font: 11px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  display: inline-block;
+}
+
+.markdown-body>*:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body>*:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body .headerlink {
+  font: normal 400 16px fontawesome-mini;
+  vertical-align: middle;
+  margin-left: -16px;
+  float: left;
+  display: inline-block;
+  text-decoration: none;
+  opacity: 0;
+  color: #333;
+}
+
+.markdown-body .headerlink:focus {
+  outline: none;
+}
+
+.markdown-body h1 .headerlink {
+  margin-top: 0.8rem;
+}
+
+.markdown-body h2 .headerlink,
+.markdown-body h3 .headerlink {
+  margin-top: 0.6rem;
+}
+
+.markdown-body h4 .headerlink {
+  margin-top: 0.2rem;
+}
+
+.markdown-body h5 .headerlink,
+.markdown-body h6 .headerlink {
+  margin-top: 0;
+}
+
+.markdown-body .headerlink:hover,
+.markdown-body h1:hover .headerlink,
+.markdown-body h2:hover .headerlink,
+.markdown-body h3:hover .headerlink,
+.markdown-body h4:hover .headerlink,
+.markdown-body h5:hover .headerlink,
+.markdown-body h6:hover .headerlink {
+  opacity: 1;
+  text-decoration: none;
+}
+
+.markdown-body h1 {
+  padding-bottom: 0.3em;
+  font-size: 2.25em;
+  line-height: 1.2;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-body h2 {
+  padding-bottom: 0.3em;
+  font-size: 1.75em;
+  line-height: 1.225;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-body h3 {
+  font-size: 1.5em;
+  line-height: 1.43;
+}
+
+.markdown-body h4 {
+  font-size: 1.25em;
+}
+
+.markdown-body h5 {
+  font-size: 1em;
+}
+
+.markdown-body h6 {
+  font-size: 1em;
+  color: #777;
+}
+
+.markdown-body p,
+.markdown-body blockquote,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl,
+.markdown-body table,
+.markdown-body pre,
+.markdown-body .admonition {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body hr {
+  height: 4px;
+  padding: 0;
+  margin: 16px 0;
+  background-color: #e7e7e7;
+  border: 0 none;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+}
+
+.markdown-body ul ul,
+.markdown-body ul ol,
+.markdown-body ol ol,
+.markdown-body ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body li>p {
+  margin-top: 16px;
+}
+
+.markdown-body dl {
+  padding: 0;
+}
+
+.markdown-body dl dt {
+  padding: 0;
+  margin-top: 16px;
+  font-size: 1em;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.markdown-body dl dd {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.markdown-body blockquote {
+  padding: 0 15px;
+  color: #777;
+  border-left: 4px solid #ddd;
+}
+
+.markdown-body blockquote>:first-child {
+  margin-top: 0;
+}
+
+.markdown-body blockquote>:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body table {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  word-break: normal;
+  word-break: keep-all;
+}
+
+.markdown-body table th {
+  font-weight: bold;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid #ddd;
+}
+
+.markdown-body table tr {
+  background-color: #fff;
+  border-top: 1px solid #ccc;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.markdown-body code,
+.markdown-body samp {
+  padding: 0;
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(0,0,0,0.04);
+  border-radius: 3px;
+}
+
+.markdown-body code:before,
+.markdown-body code:after {
+  letter-spacing: -0.2em;
+  content: "\00a0";
+}
+
+.markdown-body pre>code {
+  padding: 0;
+  margin: 0;
+  font-size: 100%;
+  word-break: normal;
+  white-space: pre;
+  background: transparent;
+  border: 0;
+}
+
+.markdown-body .codehilite,
+.markdown-body .highlight {
+  margin-bottom: 16px;
+}
+
+.markdown-body .codehilite pre,
+.markdown-body .highlight pre,
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #f7f7f7;
+  border-radius: 3px;
+}
+
+.markdown-body .codehilite pre,
+.markdown-body .highlight pre {
+  margin-bottom: 0;
+  word-break: normal;
+}
+
+.markdown-body pre {
+  word-wrap: normal;
+}
+
+.markdown-body pre code {
+  display: inline;
+  max-width: initial;
+  padding: 0;
+  margin: 0;
+  overflow: initial;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+.markdown-body pre code:before,
+.markdown-body pre code:after {
+  content: normal;
+}
+
+/* Admonition */
+.markdown-body .admonition {
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  position: relative;
+  border-radius: 3px;
+  border: 1px solid #e0e0e0;
+  border-left: 6px solid #333;
+  padding: 10px 10px 10px 30px;
+}
+
+.markdown-body .admonition table {
+  color: #333;
+}
+
+.markdown-body .admonition p {
+  padding: 0;
+}
+
+.markdown-body .admonition-title {
+  font-weight: bold;
+  margin: 0;
+}
+
+.markdown-body .admonition>.admonition-title {
+  color: #333;
+}
+
+.markdown-body .attention>.admonition-title {
+  color: #a6d796;
+}
+
+.markdown-body .caution>.admonition-title {
+  color: #d7a796;
+}
+
+.markdown-body .hint>.admonition-title {
+  color: #96c6d7;
+}
+
+.markdown-body .danger>.admonition-title {
+  color: #c25f77;
+}
+
+.markdown-body .question>.admonition-title {
+  color: #96a6d7;
+}
+
+.markdown-body .note>.admonition-title {
+  color: #d7c896;
+}
+
+.markdown-body .admonition:before,
+.markdown-body .attention:before,
+.markdown-body .caution:before,
+.markdown-body .hint:before,
+.markdown-body .danger:before,
+.markdown-body .question:before,
+.markdown-body .note:before {
+  font: normal normal 16px fontawesome-mini;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  line-height: 1.5;
+  color: #333;
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding-top: 10px;
+  padding-left: 10px;
+}
+
+.markdown-body .admonition:before {
+  content: "\f056\00a0";
+  color: 333;
+}
+
+.markdown-body .attention:before {
+  content: "\f058\00a0";
+  color: #a6d796;
+}
+
+.markdown-body .caution:before {
+  content: "\f06a\00a0";
+  color: #d7a796;
+}
+
+.markdown-body .hint:before {
+  content: "\f05a\00a0";
+  color: #96c6d7;
+}
+
+.markdown-body .danger:before {
+  content: "\f057\00a0";
+  color: #c25f77;
+}
+
+.markdown-body .question:before {
+  content: "\f059\00a0";
+  color: #96a6d7;
+}
+
+.markdown-body .note:before {
+  content: "\f040\00a0";
+  color: #d7c896;
+}
+
+.markdown-body .admonition::after {
+  content: normal;
+}
+
+.markdown-body .attention {
+  border-left: 6px solid #a6d796;
+}
+
+.markdown-body .caution {
+  border-left: 6px solid #d7a796;
+}
+
+.markdown-body .hint {
+  border-left: 6px solid #96c6d7;
+}
+
+.markdown-body .danger {
+  border-left: 6px solid #c25f77;
+}
+
+.markdown-body .question {
+  border-left: 6px solid #96a6d7;
+}
+
+.markdown-body .note {
+  border-left: 6px solid #d7c896;
+}
+
+.markdown-body .admonition>*:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body .admonition>*:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* progress bar*/
+.markdown-body .progress {
+  display: block;
+  width: 300px;
+  margin: 10px 0;
+  height: 24px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background-color: #ededed;
+  position: relative;
+  box-shadow: inset -1px 1px 3px rgba(0, 0, 0, .1);
+}
+
+.markdown-body .progress-label {
+  position: absolute;
+  text-align: center;
+  font-weight: bold;
+  width: 100%; margin: 0;
+  line-height: 24px;
+  color: #333;
+  text-shadow: 1px 1px 0 #fefefe, -1px -1px 0 #fefefe, -1px 1px 0 #fefefe, 1px -1px 0 #fefefe, 0 1px 0 #fefefe, 0 -1px 0 #fefefe, 1px 0 0 #fefefe, -1px 0 0 #fefefe, 1px 1px 2px #000;
+  -webkit-font-smoothing: antialiased !important;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.markdown-body .progress-bar {
+  height: 24px;
+  float: left;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background-color: #96c6d7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(0, 0, 0, .1);
+  background-size: 30px 30px;
+  background-image: -webkit-linear-gradient(
+    135deg, rgba(255, 255, 255, .4) 27%,
+    transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%,
+    transparent 77%, transparent
+  );
+  background-image: -moz-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+  background-image: -ms-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+  background-image: -o-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, .4) 27%, transparent 27%,
+    transparent 52%, rgba(255, 255, 255, .4) 52%,
+    rgba(255, 255, 255, .4) 77%, transparent 77%,
+    transparent
+  );
+}
+
+.markdown-body .progress-100plus .progress-bar {
+  background-color: #a6d796;
+}
+
+.markdown-body .progress-80plus .progress-bar {
+  background-color: #c6d796;
+}
+
+.markdown-body .progress-60plus .progress-bar {
+  background-color: #d7c896;
+}
+
+.markdown-body .progress-40plus .progress-bar {
+  background-color: #d7a796;
+}
+
+.markdown-body .progress-20plus .progress-bar {
+  background-color: #d796a6;
+}
+
+.markdown-body .progress-0plus .progress-bar {
+  background-color: #c25f77;
+}
+
+.markdown-body .candystripe-animate .progress-bar{
+  -webkit-animation: animate-stripes 3s linear infinite;
+  -moz-animation: animate-stripes 3s linear infinite;
+  animation: animate-stripes 3s linear infinite;
+}
+
+@-webkit-keyframes animate-stripes {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 60px 0;
+  }
+}
+
+@-moz-keyframes animate-stripes {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 60px 0;
+  }
+}
+
+@keyframes animate-stripes {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 60px 0;
+  }
+}
+
+.markdown-body .gloss .progress-bar {
+  box-shadow:
+    inset 0 4px 12px rgba(255, 255, 255, .7),
+    inset 0 -12px 0 rgba(0, 0, 0, .05);
+}
+
+/* MultiMarkdown Critic Blocks */
+.markdown-body .critic_mark {
+  background: #ff0;
+}
+
+.markdown-body .critic_delete {
+  color: #c82829;
+  text-decoration: line-through;
+}
+
+.markdown-body .critic_insert {
+  color: #718c00 ;
+  text-decoration: underline;
+}
+
+.markdown-body .critic_comment {
+  color: #8e908c;
+  font-style: italic;
+}
+
+.markdown-body .headeranchor {
+  font: normal normal 16px fontawesome-mini;
+  line-height: 1;
+  display: inline-block;
+  text-decoration: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.headeranchor:before {
+  content: '\e157';
+}
+
+.markdown-body .task-list-item {
+  list-style-type: none;
+}
+
+.markdown-body .task-list-item+.task-list-item {
+  margin-top: 3px;
+}
+
+.markdown-body .task-list-item input {
+  margin: 0 4px 0.25em -20px;
+  vertical-align: middle;
+}
+
+.markdown-body diagram-div, .markdown-body div.uml-sequence-diagram, .markdown-body, div.uml-flowchart {
+  overflow: auto;
+}
+
+/* Media */
+@media only screen and (min-width: 480px) {
+  .markdown-body {
+    font-size:14px;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .markdown-body {
+    font-size:16px;
+  }
+}
+
+@media print {
+  .markdown-body * {
+    background: transparent !important;
+    color: black !important;
+    filter:none !important;
+    -ms-filter: none !important;
+  }
+
+  .markdown-body {
+    font-size:12pt;
+    max-width:100%;
+    outline:none;
+    border: 0;
+  }
+
+  .markdown-body a,
+  .markdown-body a:visited {
+    text-decoration: underline;
+  }
+
+  .markdown-body .headeranchor-link {
+    display: none;
+  }
+
+  .markdown-body a[href]:after {
+    content: " (" attr(href) ")";
+  }
+
+  .markdown-body abbr[title]:after {
+    content: " (" attr(title) ")";
+  }
+
+  .markdown-body .ir a:after,
+  .markdown-body a[href^="javascript:"]:after,
+  .markdown-body a[href^="#"]:after {
+    content: "";
+  }
+
+  .markdown-body pre {
+    white-space: pre;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .markdown-body pre,
+  .markdown-body blockquote {
+    border: 1px solid #999;
+    padding-right: 1em;
+    page-break-inside: avoid;
+  }
+
+  .markdown-body .progress,
+  .markdown-body .progress-bar {
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+  }
+
+  .markdown-body .progress {
+    border: 1px solid #ddd;
+  }
+
+  .markdown-body .progress-bar {
+    height: 22px;
+    border-right: 1px solid #ddd;
+  }
+
+  .markdown-body tr,
+  .markdown-body img {
+    page-break-inside: avoid;
+  }
+
+  .markdown-body img {
+    max-width: 100% !important;
+  }
+
+  .markdown-body p,
+  .markdown-body h2,
+  .markdown-body h3 {
+    orphans: 3;
+    widows: 3;
+  }
+
+  .markdown-body h2,
+  .markdown-body h3 {
+    page-break-after: avoid;
+  }
+}
+</style><style>/*GitHub*/
+.highlight {background-color:#fff;color:#333333;}
+.highlight .hll {background-color:#ffffcc;}
+.highlight .c{color:#999988;font-style:italic}
+.highlight .err{color:#a61717;background-color:#e3d2d2}
+.highlight .k{font-weight:bold}
+.highlight .o{font-weight:bold}
+.highlight .cm{color:#999988;font-style:italic}
+.highlight .cp{color:#999999;font-weight:bold}
+.highlight .c1{color:#999988;font-style:italic}
+.highlight .cs{color:#999999;font-weight:bold;font-style:italic}
+.highlight .gd{color:#000000;background-color:#ffdddd}
+.highlight .ge{font-style:italic}
+.highlight .gr{color:#aa0000}
+.highlight .gh{color:#999999}
+.highlight .gi{color:#000000;background-color:#ddffdd}
+.highlight .go{color:#888888}
+.highlight .gp{color:#555555}
+.highlight .gs{font-weight:bold}
+.highlight .gu{color:#800080;font-weight:bold}
+.highlight .gt{color:#aa0000}
+.highlight .kc{font-weight:bold}
+.highlight .kd{font-weight:bold}
+.highlight .kn{font-weight:bold}
+.highlight .kp{font-weight:bold}
+.highlight .kr{font-weight:bold}
+.highlight .kt{color:#445588;font-weight:bold}
+.highlight .m{color:#009999}
+.highlight .s{color:#dd1144}
+.highlight .n{color:#333333}
+.highlight .na{color:teal}
+.highlight .nb{color:#0086b3}
+.highlight .nc{color:#445588;font-weight:bold}
+.highlight .no{color:teal}
+.highlight .ni{color:purple}
+.highlight .ne{color:#990000;font-weight:bold}
+.highlight .nf{color:#990000;font-weight:bold}
+.highlight .nn{color:#555555}
+.highlight .nt{color:navy}
+.highlight .nv{color:teal}
+.highlight .ow{font-weight:bold}
+.highlight .w{color:#bbbbbb}
+.highlight .mf{color:#009999}
+.highlight .mh{color:#009999}
+.highlight .mi{color:#009999}
+.highlight .mo{color:#009999}
+.highlight .sb{color:#dd1144}
+.highlight .sc{color:#dd1144}
+.highlight .sd{color:#dd1144}
+.highlight .s2{color:#dd1144}
+.highlight .se{color:#dd1144}
+.highlight .sh{color:#dd1144}
+.highlight .si{color:#dd1144}
+.highlight .sx{color:#dd1144}
+.highlight .sr{color:#009926}
+.highlight .s1{color:#dd1144}
+.highlight .ss{color:#990073}
+.highlight .bp{color:#999999}
+.highlight .vc{color:teal}
+.highlight .vg{color:teal}
+.highlight .vi{color:teal}
+.highlight .il{color:#009999}
+.highlight .gc{color:#999;background-color:#EAF2F5}
+</style><title>README</title></head><body><article class="markdown-body"><p><img alt="BADASS logo" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS2_logo.gif" /></p>
+<h2 id="new-in-version-940">New in Version 9.4.0<a class="headerlink" href="#new-in-version-940" title="Permanent link"></a></h2>
+<ul>
+<li>New line model and testing framework. See <a href="#line-testing-and-options">Line Testing and Options</a>.</li>
+<li>Line component options.  See <a href="#line-component-options">Line Component Options</a>.</li>
+<li>Improvements in autocorrelation calculations.</li>
+<li>W80 now a standard output parameter for all lines.
+<hr></li>
+</ul>
+<p>Ridiculous acronyms are a <a href="https://lweb.cfa.harvard.edu/~gpetitpas/Links/Astroacro.html">long-running joke in astronomy</a>, but here, spectral fitting ain&rsquo;t no joke!</p>
+<p><a href="https://ui.adsabs.harvard.edu/abs/2021MNRAS.500.2871S/abstract">BADASS</a> is an open-source spectral analysis tool designed for detailed decomposition of Sloan Digital Sky Survey (SDSS) spectra, and specifically designed for the fitting of Type 1 (&ldquo;broad line&rdquo;) Active Galactic Nuclei (AGN) in the optical.  The fitting process utilizes the Bayesian affine-invariant Markov-Chain Monte Carlo sampler <a href="https://ui.adsabs.harvard.edu/abs/2013PASP..125..306F/abstract">emcee</a> for robust parameter and uncertainty estimation, as well as autocorrelation analysis to access parameter chain convergence.  BADASS can fit the following spectral features:
+- Stellar line-of-sight velocity distribution (LOSVD) using Penalized Pixel-Fitting (<a href="https://www-astro.physics.ox.ac.uk/~mxc/software/#ppxf">pPXF</a>, <a href="https://ui.adsabs.harvard.edu/abs/2017MNRAS.466..798C/abstract">Cappellari et al. (2017)</a>) using templates from the <a href="https://www.noao.edu/cflib/">Indo-U.S. Library of Coudé Feed Stellar Spectra</a> (<a href="https://ui.adsabs.harvard.edu/abs/2004ApJS..152..251V/abstract">Valdes et al. (2004)</a>) in the optical region 3460 Å - 9464 Å.
+- Broad and Narrow FeII emission features using the FeII templates from <a href="https://ui.adsabs.harvard.edu/abs/2004A%26A...417..515V/abstract">Véron-Cetty et al. (2004)</a> or <a href="https://ui.adsabs.harvard.edu/abs/2010MSAIS..15..176K/abstract">Kovačević et al. (2010)</a>.
+- UV iron template from <a href="https://ui.adsabs.harvard.edu/abs/2001ApJS..134....1V/abstract">Vestergaard and Wilkes (2001)</a>
+- Individual narrow, broad, and/or absorption line features.
+- AGN power-law continuum and Balmer pseudo-continuum.
+- &ldquo;Blue-wing&rdquo; outflow emission components found in narrow-line emission. </p>
+<p>A more-detailed summary of BADASS, as well as a case-study of ionized gas outflows, is given in <a href="https://ui.adsabs.harvard.edu/abs/2021MNRAS.500.2871S/abstract">Sexton et al. (2021)</a>. </p>
+<p>All spectral components can be turned off and on via the <a href="https://jupyter.org/">Jupyter Notebook</a> interface, from which all fitting options can be easily changed to fit non-AGN-host galaxies (or even stars!).  BADASS uses multiprocessing to fit multiple spectra simultaneously depending on your hardware configuration.  The code was originally written in Python 2.7 to fit Keck Low-Resolution Imaging Spectrometer (LRIS) data (<a href="https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract">Sexton et al. (2019)</a>), but because BADASS is open-source and <em>not</em> written in an expensive proprietary language, one can easily contribute to or modify the code to fit data from other instruments.  Out of the box, BADASS fits SDSS spectra, MANGA IFU cube data, and examples are provided for fitting user-input spectra of any instrument.</p>
+<p>Before getting started you should read the readme below.</p>
+<h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link"></a></h2>
+<ul>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#fitting-options">Fitting Options</a></li>
+<li><a href="#mcmc-options">MCMC Options</a></li>
+<li><a href="#model-component-options">Model Component Options</a></li>
+<li><a href="#multiple-line-components">Multiple Line Components</a></li>
+<li><a href="#line-testing-and-options">Line Testing and Options</a></li>
+<li><a href="#line-component-options">Line Component Options</a></li>
+<li><a href="#user-lines-constraints-and-masks">User Lines, Constraints, and Masks</a></li>
+<li><a href="#combined-lines">Combined Lines</a></li>
+<li><a href="#losvd-fitting-options-ppxf">LOSVD Fitting Options (pPXF)</a></li>
+<li><a href="#host-model-options">Host Model Options</a></li>
+<li><a href="#power-law-options">Power Law Options</a></li>
+<li><a href="#polynomial-options">Polynomial Options</a></li>
+<li><a href="#optical-feii-options">Optical FeII Options</a></li>
+<li><a href="#uv-iron-options">UV Iron Options</a></li>
+<li><a href="#balmer-psuedocontinuum-options">Balmer Pseudo-Continuum Options</a></li>
+<li><a href="#plotting-options">Plotting Options</a></li>
+<li><a href="#output-options">Output Options</a></li>
+<li><a href="#the-main-function-and-calling-sequence">The Main Function and Calling Sequence</a></li>
+<li><a href="#output">Output</a></li>
+<li><a href="#best-fit-model">Best-fit Model</a></li>
+<li><a href="#parameter-chains-histograms-best-fit-values-and-uncertainties">Parameter Chains, Histograms, Best-fit Values and Uncertainties</a></li>
+<li><a href="#log-file">Log File</a></li>
+<li><a href="#best-fit-model-components">Best-fit Model Components</a></li>
+<li><a href="#best-fit-parameters-and-uncertainties">Best-fit Parameters and Uncertainties</a></li>
+<li><a href="#autocorrelation-analysis">Autocorrelation Analysis</a></li>
+<li><a href="#examples">Examples &amp; Tutorials</a></li>
+<li><a href="#single-sdss-spectrum">Basic Example: A Single SDSS Spectrum</a></li>
+<li><a href="#single-non-sdss-spectrum">A Single Non-SDSS Spectrum</a></li>
+<li><a href="#multiple-spectra-with-multiprocessing">Multiple Spectra with Multiprocessing</a></li>
+<li><a href="#manga-ifu-cube-data">MANGA IFU Cube Data</a></li>
+<li><a href="#non-manga-ifu-cube-data">Non-MANGA IFU Cube Data</a></li>
+<li><a href="#how-to">How to&hellip;</a></li>
+<li><a href="#prior-distributions">Prior Distributions</a></li>
+<li><a href="#line-lists">Line Lists</a></li>
+<li><a href="#hard-constraints">Hard Constraints</a></li>
+<li><a href="#soft-constraints">Soft Constraints</a></li>
+<li><a href="#known-issues">Known Issues</a></li>
+<li><a href="#credits">Credits</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link"></a></h1>
+<p>The easiest way to get started is to simply clone the repository. </p>
+<p>As of the most recent version, the following packages are required (Python 3.8.12):</p>
+<ul>
+<li><a href="https://numpy.org/doc/stable/index.html"><code>numpy 1.22.3</code></a></li>
+<li><a href="https://pandas.pydata.org/"><code>pandas 1.4.2</code></a></li>
+<li><a href="https://scipy.org/"><code>scipy 1.7.3</code> </a></li>
+<li><a href="https://matplotlib.org/"><code>matplotlib 3.7.1</code></a></li>
+<li><a href="https://www.astropy.org/"><code>astropy 5.2.1</code></a></li>
+<li><a href="https://astroquery.readthedocs.io/en/latest/"><code>astroquery 0.4.6</code></a></li>
+<li><a href="https://emcee.readthedocs.io/en/stable/"><code>emcee 3.1.4</code></a></li>
+<li><a href="https://github.com/pydata/numexpr"><code>numexpr 2.8.4</code></a></li>
+<li><a href="https://natsort.readthedocs.io/en/master/"><code>natsort 8.3.1</code></a></li>
+<li><a href="https://psutil.readthedocs.io/en/latest/"><code>psutil 5.9.4</code></a></li>
+<li><a href="https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning"><code>vorbin 3.1.5</code></a></li>
+<li><a href="https://pypi.org/project/astro-bifrost/"><code>astro-bifrost 2.0.3</code></a></li>
+<li><a href="https://spectres.readthedocs.io/en/latest/"><code>spectres 2.2.0</code></a></li>
+<li><a href="https://corner.readthedocs.io/en/latest/"><code>corner 2.2.1</code></a></li>
+<li><a href="https://pypi.org/project/prettytable/"><code>prettytable 3.6.0</code></a></li>
+<li><strong>Note</strong>: <a href="https://www-astro.physics.ox.ac.uk/~cappellari/software/#ppxf"><code>ppxf</code></a> was integrated within the BADASS source code early on, and does not require installation.</li>
+<li><strong>Optional</strong>: <a href="https://plotly.com/python/getting-started/"><code>plotly 5.13.1</code></a> (for interactive HTML plots)</li>
+</ul>
+<p>The code is run entirely through the Jupyter Notebook interface, and is set up to run on the included spectrum files in the &ldquo;&hellip;/examples/&rdquo; folder.  If one wants to fit multiple spectra consecutively, simply add folders for each spectrum to the folder.  This is the recommended directory structure:</p>
+<p><img alt="directory structure" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_example_spectra.png" /></p>
+<p>Simply create a folder containing the SDSS FITS format spectrum, and BADASS will generate a working folder for each fit titled &ldquo;MCMC_output_#&rdquo; inside each spectrum folder.  BADASS automatically generates a new output folder if the same object is fit again (it does not delete previous fits).</p>
+<h1 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link"></a></h1>
+<h2 id="fitting-options">Fitting Options<a class="headerlink" href="#fitting-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="c1">################################## Fit Options #################################</span>
+<span class="c1"># Fitting Parameters</span>
+<span class="n">fit_options</span><span class="o">=</span><span class="p">{</span>
+<span class="n">fit_options</span><span class="o">=</span><span class="p">{</span>
+<span class="s">&quot;fit_reg&quot;</span>    <span class="p">:</span> <span class="p">(</span><span class="mi">4400</span><span class="p">,</span><span class="mi">5500</span><span class="p">),</span><span class="c1"># Fitting region; Note: Indo-US Library=(3460,9464)</span>
+<span class="s">&quot;good_thresh&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="c1"># percentage of &quot;good&quot; pixels required in fig_reg for fit.</span>
+<span class="s">&quot;mask_bad_pix&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># mask pixels SDSS flagged as &#39;bad&#39; (careful!)</span>
+<span class="s">&quot;mask_emline&quot;</span> <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># automatically mask lines for continuum fitting.</span>
+<span class="s">&quot;mask_metal&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># interpolate over metal absorption lines for high-z spectra</span>
+<span class="s">&quot;fit_stat&quot;</span><span class="p">:</span> <span class="s">&quot;RCHI2&quot;</span><span class="p">,</span> <span class="c1"># fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares, RCHI2 = reduced chi2</span>
+<span class="s">&quot;n_basinhop&quot;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span> <span class="c1"># Number of consecutive basinhopping thresholds before solution achieved</span>
+<span class="s">&quot;test_lines&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># Perform line/configuration testing for multiple components</span>
+<span class="s">&quot;max_like_niter&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="c1"># number of maximum likelihood iterations</span>
+<span class="s">&quot;output_pars&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># only output free parameters of fit and stop code (diagnostic)</span>
+<span class="s">&quot;cosmology&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;H0&quot;</span><span class="p">:</span><span class="mf">70.0</span><span class="p">,</span> <span class="s">&quot;Om0&quot;</span><span class="p">:</span> <span class="mf">0.30</span><span class="p">},</span> <span class="c1"># Flat Lam-CDM Cosmology</span>
+<span class="p">}</span>
+<span class="c1">################################################################################</span>
+</pre></div>
+
+<p><strong><code>fit_reg</code></strong>: (<em>tuple/list of length (2,)</em>; <em>Default: (4400,5500)</em>)<br/>
+the minimum and maximum desired fitting wavelength in angstroms, for example (4400,7000).  This is passed to the <code>determine_fit_reg()</code> function to check if this region is valid and and which emission lines to fit.</p>
+<p><strong><code>good_thresh</code></strong>: (<em>float [0.0,1.0]</em>; <em>Default: 0.0</em>)<br/>
+the cutoff for minimum fraction of &ldquo;good&rdquo; pixels (determined by SDSS) within the fitting range to allow for fitting of a given spectrum.  If the spectrum has fewer good pixels than this value, BADASS skips over it and moves onto the next spectrum.</p>
+<p><strong><code>mask_bad_pix</code></strong>: (<em>bool</em>; <em>Default: False</em>)<br/>
+Mask pixels which SDSS flagged as bad due to sky line subtraction or cosmic rays.  Warning: if large portions of the fitting region are marked as bad pixels, this can cause BADASS to crash.  One should only use this if only a few pixels are affected by contamination.  </p>
+<p><strong><code>mask_emline</code></strong>: (<em>bool</em>; <em>Default: False</em>)<br/>
+Mask any significant absorption and emission features relative to the continuum.  This uses an automated iterative moving median filter of various sizes to detect significant flux differences between window sizes.  Good for continuum fitting but tends to over mask lots of features near the edges of the spectrum.</p>
+<p><strong><code>mask_metal</code></strong>: (<em>bool</em>; <em>Default: False</em>)<br/>
+Performs the same moving median filter algorithm as <code>mask_emline</code> but only to absorption features.  Works well for metal absorption features seen typically in high-redshift spectra.</p>
+<p><strong><code>fit_stat</code></strong>: (<em>str</em>; <em>Default: : &ldquo;RCHI2&rdquo;</em>)<br/>
+The fit statistic used for the likelihood.  The default is &ldquo;RCHI2&rdquo; which converges on a reduced chi-squared of 1 by scaling the input noise by a <code>noise_scale</code> free parameter.  Other options include &ldquo;ML&rdquo; for standard maximum likelihood (pixels weighted by noise with no noise scaling), and &ldquo;LS&rdquo; for ordinary least-squares fitting (all pixels weighted by same amount).</p>
+<p><strong><code>n_basinhop</code></strong>: (<em>int</em>; <em>Default: 10</em>)<br/>
+Number of successive <code>niter_success</code> times the basinhopping algorithm needs to achieve a solution.  The fit becomes much better with more success times, however this can increase the time to a solution significantly  Recommended 5-10. </p>
+<p><strong><code>test_lines</code></strong>: (<code>bool</code>:<em>bool</em>; <em>Default: False</em>)<br/>
+Performs tests for lines with multiple components (parent-child pairs).  Options are specified in <code>test_options</code>.</p>
+<p><strong><code>max_like_niter</code></strong>: (<em>int</em>; <em>Default: 10</em>)<br/>
+Number of bootstrapping iterations to perform after the initial basinhopping fit.  This is a means to obtain uncertainties on parameters without performing MCMC fitting, however, do not produce as robust uncertainties as MCMC.</p>
+<p><strong><code>output_pars</code></strong>: (<em>bool</em>; <em>Default: False</em>)  <br/>
+Convenience feature that prints out all free parameters so the user can check and then terminates without fitting.</p>
+<p><strong><code>cosmology</code></strong>: (<em>Default</em>: <code>{"H0":70.0, "Om0": 0.30}</code>)<br/>
+The flat Lambda-CDM cosmology assumed for calculating luminosities from fluxes. </p>
+<h1 id="mcmc-options">MCMC Options<a class="headerlink" href="#mcmc-options" title="Permanent link"></a></h1>
+<div class="highlight"><pre><span class="c1">########################### MCMC algorithm parameters ##########################</span>
+<span class="n">mcmc_options</span><span class="o">=</span><span class="p">{</span>
+  <span class="s">&quot;mcmc_fit&quot;</span>    <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># Perform robust fitting using emcee</span>
+  <span class="s">&quot;nwalkers&quot;</span>    <span class="p">:</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># Number of emcee walkers; min = 2 x N_parameters</span>
+  <span class="s">&quot;auto_stop&quot;</span>   <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># Automatic stop using autocorrelation analysis</span>
+  <span class="s">&quot;conv_type&quot;</span>   <span class="p">:</span> <span class="s">&quot;all&quot;</span><span class="p">,</span> <span class="c1"># &quot;median&quot;, &quot;mean&quot;, &quot;all&quot;, or (tuple) of parameters</span>
+  <span class="s">&quot;min_samp&quot;</span>    <span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>  <span class="c1"># min number of iterations for sampling post-convergence</span>
+  <span class="s">&quot;ncor_times&quot;</span>  <span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># number of autocorrelation times for convergence</span>
+  <span class="s">&quot;autocorr_tol&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span>  <span class="c1"># percent tolerance between checking autocorr. times</span>
+  <span class="s">&quot;write_iter&quot;</span>  <span class="p">:</span> <span class="mi">100</span><span class="p">,</span>   <span class="c1"># write/check autocorrelation times interval</span>
+  <span class="s">&quot;write_thresh&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>   <span class="c1"># iteration to start writing/checking parameters</span>
+  <span class="s">&quot;burn_in&quot;</span>     <span class="p">:</span> <span class="mi">1500</span><span class="p">,</span> <span class="c1"># burn-in if max_iter is reached</span>
+  <span class="s">&quot;min_iter&quot;</span>    <span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="c1"># min number of iterations before stopping</span>
+  <span class="s">&quot;max_iter&quot;</span>    <span class="p">:</span> <span class="mi">2500</span><span class="p">,</span> <span class="c1"># max number of MCMC iterations</span>
+<span class="p">}</span>
+<span class="c1">################################################################################</span>
+</pre></div>
+
+<p><strong><code>mcmc_fit</code></strong>: (<em>bool</em>; <em>Default: False</em>) <br/>
+Perform fit with MCMC using the initial maximum likelihood fit as initial parameters for the fit.  It is <em>highly recommended</em> that one use MCMC to perform the fit, although sampling will require a significant amount of time compared to a maximum likelihood fit using <code>scipy.optimize.minimize()</code>.</p>
+<p><strong><code>nwalkers</code></strong>: (<em>int</em>; <em>Default: 100</em>) <br/> 
+number of &ldquo;walkers&rdquo; per parameter used by emcee to explore each parameter space.  The minimum number of walkers is 2 x ( # of free parameters), set by emcee.</p>
+<p><strong><code>auto_stop</code></strong>: (<em>bool</em>; <em>Default: True</em>) <br/> 
+if set to <em>True</em>, autocorrelation is used to automatically stop the fitting process when a convergence criteria (<code>conv_type</code>) is achieved. </p>
+<p><strong><code>conv_type</code></strong>: (<em>str</em>; <em>Default: &ldquo;median&rdquo;</em>; <em>options: &ldquo;all&rdquo;, &ldquo;median&rdquo;, &ldquo;mean&rdquo;, list of parameters</em>)<br />
+mode of convergence.  Convergence of &lsquo;all&rsquo; ensures all fitting parameters have achieved the desired <code>ncor_times</code> and <code>autocorr_tol</code> criteria, while &ldquo;median&rdquo; and &ldquo;mean&rdquo; only ensure that <code>ncor_times</code> and <code>autocorr_tol</code> criteria have been met for the median or mean of all parameters, respectively.  A list of valid parameters is also acceptable to ensure specific parameters have achieved convergence even if others have not.  In general &ldquo;median&rdquo; requires the fewest number of iterations and is not sensitive to poorly-constrained parameters, and &ldquo;all&rdquo; and &ldquo;mean&rdquo; require the most number of iterations and are much more sensitive to fluctuations in calculated autocorrelation times and tolerances.  A list of parameters is suitable in cases where one is only interested in certain spectral features.</p>
+<p><strong><code>min_samp</code></strong>: (<em>int</em>; <em>Default: 1000</em>)  <br/>
+if <code>auto_stop=True</code>, then the <code>burn_in</code> is the iteration at which convergence is achieved, and <code>min_samp</code> is the number of iterations <em>past convergence</em> used for posterior sampling (the samples used for histograms and estimating best-fit parameters and uncertainties.  If for some reason the parameters &ldquo;jump out&rdquo; of convergence, the <code>burn_in</code> will reset and BADASS will continue to sample until convergence is met again.  If emcee completes <code>min_samp</code> iterations after convergence is achieved without jumping out of convergence, this concludes the MCMC sampling.</p>
+<p><strong><code>ncor_times</code></strong>: (<em>int</em> or <em>float</em>; <em>Default=10</em>) <br/> 
+The number of integrated autocorrelation times (iterations) needed for convergence.  We recommend a minimum of <code>ncor_times=2.0</code>.  In general, it will require more than 2.0 autocorrelation times to calculate the autocorrelation time for a parameter chain.  Increasing <code>ncor_times</code> ensures that the parameter chain has stopped exploring the parameter space and is ready to begin sampling for the posterior distribution. </p>
+<p><strong><code>autocorr_tol</code></strong>: (<em>int</em> or <em>float</em>; <em>Default=10</em>) <br/>
+The percent change in the current integrated autocorrelation time and the previously calculated integrated autocorrelation time.  The <code>write_iter</code> determines how often BADASS checks a parameter&rsquo;s integrated autocorrelation time.  In general, we find that <code>autocorr_tol=5</code> (a 5% change) is acceptable for a converged parameter chain.  A parameter chain that diverges more than 10% in 100 iterations could still be exploring the parameter space for a stable solution.  A <code>autocorr_tol=1</code> (a 1% change) typically requires many more iterations than necessary for convergence. </p>
+<p><strong><code>write_iter</code></strong>: (<em>int</em>; <em>Default=100</em>)<br/>
+The frequency at which BADASS writes the current parameter values (median walker positions).  If <code>auto_stop=True</code>, then BADASS checks for convergence every <code>write_iter</code> iteration for convergence.</p>
+<p><strong><code>write_thresh</code></strong>: (<em>int</em>; <em>Default=100</em>) <br/> 
+The iteration at which writing (and checking for convergence if <code>auto_stop=True</code>) begins.  BADASS does not check for convergence before this value.</p>
+<p><strong><code>burn_in</code></strong>: (<em>int</em>; <em>Default=1500</em>)  <br/>
+If <code>auto_stop=False</code> then this serves as the burn-in for a maximum number of iterations.  If <code>auto_stop=True</code>, this value is ignored.</p>
+<p><strong><code>min_iter</code></strong>: (<em>int</em>; <em>Default=100</em>)  <br/>
+The minimum number of iterations BADASS performs before it is allowed to stop.  This is true regardless of the value of <code>auto_stop</code>.</p>
+<p><strong><code>max_iter</code></strong>: (<em>int</em>; <em>Default=2500</em>)  <br/>
+The maximum number of iterations BADASS performs before stopping.  This value is adhered to regardless of the value of <code>auto_stop</code> to set a limit on the number of iterations before BADASS should &ldquo;give up.&rdquo;</p>
+<h2 id="model-component-options">Model Component Options<a class="headerlink" href="#model-component-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="c1">############################ Fit component options #############################</span>
+<span class="n">comp_options</span><span class="o">=</span><span class="p">{</span>
+<span class="s">&quot;fit_opt_feii&quot;</span>     <span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="c1"># optical FeII</span>
+<span class="s">&quot;fit_uv_iron&quot;</span>      <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># UV Iron </span>
+<span class="s">&quot;fit_balmer&quot;</span>       <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># Balmer continuum (&lt;4000 A)</span>
+<span class="s">&quot;fit_losvd&quot;</span>        <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># stellar LOSVD</span>
+<span class="s">&quot;fit_host&quot;</span>         <span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="c1"># host template</span>
+<span class="s">&quot;fit_power&quot;</span>        <span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="c1"># AGN power-law</span>
+<span class="s">&quot;fit_poly&quot;</span>         <span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="c1"># Add polynomial continuum component</span>
+<span class="s">&quot;fit_narrow&quot;</span>       <span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="c1"># narrow lines</span>
+<span class="s">&quot;fit_broad&quot;</span>        <span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="c1"># broad lines</span>
+<span class="s">&quot;fit_absorp&quot;</span>       <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># absorption lines</span>
+<span class="s">&quot;tie_line_disp&quot;</span>    <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># tie line widths (dispersions)</span>
+<span class="s">&quot;tie_line_voff&quot;</span>    <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># tie line velocity offsets</span>
+<span class="p">}</span>
+<span class="c1">################################################################################</span>
+</pre></div>
+
+<p>These options are more-or-less self explanatory.  One can fit components appropriate (or not appropriate) for the types of objects they are fitting.  We summarize each component below:</p>
+<p><strong><code>fit_feii</code></strong>: (<em>Default=True</em>)<br/>
+Broad and narrow optical FeII templates are taken from <a href="https://ui.adsabs.harvard.edu/abs/2004A%26A...417..515V/abstract">Véron-Cetty et al. (2004)</a> with each line modeled using a Gaussian.  One can also optionally using the template from <a href="https://ui.adsabs.harvard.edu/abs/2010MSAIS..15..176K/abstract">Kovačević et al. (2010)</a>, however with limited coverage (4400 Å - 5500 Å). FeII emission can be very strong in some Type 1 (broad line) AGN, but is almost undetectable in Type 2 (narrow line) AGN.</p>
+<p><strong><code>fit_uv_iron</code></strong>: (<em>Default=False</em>)<br/>
+Fits the empirical UV iron template from <a href="https://ui.adsabs.harvard.edu/abs/2001ApJS..134....1V/abstract">Vestergaard and Wilkes (2001)</a>, for high-redshift spectra with coverage &lt; 3500 Å.</p>
+<p><strong><code>fit_balmer</code></strong>: (<em>Default=False</em>)<br/>
+Fits a series of higher-order Balmer lines and Balmer pseudo-continuum for high-redshift spectra with coverage &lt; 3500 Å.</p>
+<p><strong><code>fit_losvd</code></strong>: (<em>Default=True</em>)<br/>
+Stellar line-of-sight velocity distribution (LOSVD) using Penalized Pixel-Fitting (<a href="https://www-astro.physics.ox.ac.uk/~mxc/software/#ppxf">pPXF</a>, <a href="https://ui.adsabs.harvard.edu/abs/2017MNRAS.466..798C/abstract">Cappellari et al. (2017)</a>) using templates from the <a href="https://www.noao.edu/cflib/">Indo-U.S. Library of Coudé Feed Stellar Spectra</a> (<a href="https://ui.adsabs.harvard.edu/abs/2004ApJS..152..251V/abstract">Valdes et al. (2004)</a>) in the optical region 3460 Å - 9464 Å.  This is used to obtain stellar kinematics in spectra with resolvable absorption features, such as stellar velocity and dispersion. </p>
+<p><strong><code>fit_host</code></strong>: (<em>Default=False</em>)<br/>
+Fits a host galaxy template using single-stellar population templates from the EMILES library.  Note that this method does not estimate stellar LOSVD, but can shift in velocity and convolve to match the data as best as it can.</p>
+<p><strong><code>fit_power</code></strong>: (<em>Default=True</em>)<br/>
+this fits a power-law component to simulate the effect of the AGN &ldquo;blue-bump&rdquo; continuum. </p>
+<p><strong><code>fit_poly</code></strong>: (<em>Default=False</em>)<br/>
+Fit a polynomial continuum component of a specified order.  Polynomial options are specified by <code>poly_options</code> dictionary.  Options are additive Legendre polynomial or multiplicative Legendre polynomial.  The order must be within the range 0 &lt;= order &lt;= 99.  Note: caution should be used when using polynomial components, as these can be degenerate with other continuum components, and higher-order polynomials can lead to overfitting.</p>
+<p><strong><code>fit_narrow</code></strong>: (<em>Default=True</em>)<br/>
+Fit lines of the <code>line_type</code>:<code>na</code> in the line list.  Narrow forbidden emission lines are seen in both Type 1 and Type 2 AGNs, as well as starforming galaxies. </p>
+<p><strong><code>fit_broad</code></strong>: (<em>Default=True</em>)<br/>
+Fit lines of the <code>line_type</code>:<code>br</code> in the line list.  Broad permitted emission lines are commonly seen in Type 1 AGN.  </p>
+<p><strong><code>fit_absorp</code></strong>: (<em>Default=False</em>)<br/>
+Fit lines of the <code>line_type</code>:<code>abs</code> in the line list.  Occasionally one might need to fit a strong absorption feature that isn&rsquo;t described by stellar processes, such as a broad absorption line in a quasar.</p>
+<p><strong><code>tie_line_disp</code></strong>: (<em>Default=False</em>)<br/>
+Ties the widths of all respective line types (all narrow lines are tied, all broad lines are tied, etc.).  This can be done to significantly reduce the number of free parameters in the fit if fitting many lines, however it is not recommended. </p>
+<p><strong><code>tie_line_voff</code></strong>: (<em>Default=False</em>)<br/>
+Ties the velocity offsets of all respective line types (all narrow lines are tied, all broad lines are tied, etc.).  This can be done to significantly reduce the number of free parameters in the fit if fitting many lines, however it is not recommended. </p>
+<p>Examples of the aforementioned spectral components can be seen in the example fit below:</p>
+<p><img alt="" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_model_options.png" /></p>
+<h2 id="multiple-line-components">Multiple Line Components<a class="headerlink" href="#multiple-line-components" title="Permanent link"></a></h2>
+<p>Line testing of multiple components is the newest feature of BADASS, and completely changes how multitple line components (i.e., outflows) are treated.  Outflows are no longer a <code>line_type</code> (now only <code>narrow</code>, <code>broad</code>, and <code>absorp</code> are valid <code>line_types</code>), however, it is still possible to fit &ldquo;outflow&rdquo; components by adding <em>child</em> lines to corresponding <em>parent</em> lines.  The <code>parent</code> parameter keyword for lines ties an additional component of a line to its corresponding parent line.  </p>
+<p>Here is an example of defining 5 components for the [OIII]5007 emission line:</p>
+<p><div class="highlight"><pre><span class="s">&quot;NA_OIII_5007&quot;</span>   <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">5008.240</span><span class="p">,</span>
+                   <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;ncomp&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span>
+                  <span class="p">},</span>
+
+<span class="s">&quot;NA_OIII_5007_2&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">5008.240</span><span class="p">,</span>
+                   <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;ncomp&quot;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span>
+                   <span class="s">&quot;parent&quot;</span><span class="p">:</span><span class="s">&quot;NA_OIII_5007&quot;</span>
+                  <span class="p">},</span>
+
+<span class="s">&quot;NA_OIII_5007_3&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">5008.240</span><span class="p">,</span>
+                   <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;ncomp&quot;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span>
+                   <span class="s">&quot;parent&quot;</span><span class="p">:</span><span class="s">&quot;NA_OIII_5007&quot;</span>
+                  <span class="p">},</span>
+
+<span class="s">&quot;NA_OIII_5007_4&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">5008.240</span><span class="p">,</span>
+                   <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;ncomp&quot;</span><span class="p">:</span><span class="mi">4</span><span class="p">,</span>
+                   <span class="s">&quot;parent&quot;</span><span class="p">:</span><span class="s">&quot;NA_OIII_5007&quot;</span>
+                  <span class="p">},</span>
+
+<span class="s">&quot;NA_OIII_5007_5&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">5008.240</span><span class="p">,</span>
+                   <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;ncomp&quot;</span><span class="p">:</span><span class="mi">5</span><span class="p">,</span>
+                   <span class="s">&quot;parent&quot;</span><span class="p">:</span><span class="s">&quot;NA_OIII_5007&quot;</span>
+                  <span class="p">},</span>
+</pre></div>
+A few things to point out here:
+*  <code>"ncomp":1</code> defines the <em>parent</em> line; it is the first component
+* Additional components with <code>"ncomp"</code> &gt; 1 must have a <code>parent</code> defined, which is the name of the <em>parent</em> line; these are the <em>child</em> components.
+* Each line component must be given a unique name; we recommend the above naming convention. 
+* Each additional component must have a different component number <code>ncomp</code>, with the <em>parent</em> defined as <code>"ncomp":1</code>, and each additional component with <code>"ncomp"</code>&gt;1. </p>
+<p>While it may seem tedius, this is the only way to tie parent lines to their corresponding child components, and subsequently test for them. </p>
+<h2 id="line-testing-and-options">Line Testing and Options<a class="headerlink" href="#line-testing-and-options" title="Permanent link"></a></h2>
+<p>Line testing (and outflow testing) has also changed to accomodate the new emission line framework for multiple components (see above section).  Line testing is intended for testing for multiple components in <em>individual</em> lines, preferably ones that can be resolved from others.  Testing for lines that are partially resolve from each other, for example broad and narrow lines, is more difficult to do, but can still be done.  We can test for multiple lines in the same fit, choose different significance metrics to &ldquo;choose&rdquo; the right number of components, and choose specfic parts of the fitting region (defined by <code>fit_reg</code>) to test line on.  The <code>test_lines</code> option must be set to <code>True</code> in the <code>fit_options</code> passed to BADASS.</p>
+<p>The way line testing works (and the only way to do it) is to perform a fit of a given set of lines, compute various statistics on the residuals of the fit, and compare each fit to each other to determine the appropriate number of components.  BADASS performs a fit of a &ldquo;simple&rdquo; model, followed by a &ldquo;complex&rdquo; model, and then computes statistics between them.  For example, a 1 component model (simple) and a 2 component model (complex), 2 and 3, 3 and 4, etc&hellip;  The calculated metric is how <em>confident</em> you are that adding an additional component <em>does not</em> significantly improve the fit.  That is, when the <code>metric</code> is <em>below</em> its corresponding <code>threshold</code>, you have added the appropriate number of components.</p>
+<p>Here is a simple example of specifying testing options for testing for narrow components of H-beta/[OIII]:
+<div class="highlight"><pre><span class="n">test_options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&quot;test_mode&quot;</span><span class="p">:</span><span class="s">&quot;line&quot;</span><span class="p">,</span>
+    <span class="s">&quot;lines&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s">&quot;NA_OIII_5007&quot;</span><span class="p">,</span><span class="s">&quot;NA_OIII_4960&quot;</span><span class="p">,</span><span class="s">&quot;NA_H_BETA&quot;</span><span class="p">]],</span> 
+    <span class="s">&quot;ranges&quot;</span><span class="p">:[(</span><span class="mi">4900</span><span class="p">,</span><span class="mi">5100</span><span class="p">)],</span> 
+    <span class="s">&quot;metrics&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s">&quot;BADASS&quot;</span><span class="p">,</span> <span class="s">&quot;ANOVA&quot;</span><span class="p">,</span> <span class="s">&quot;CHI2_RATIO&quot;</span><span class="p">,</span> <span class="s">&quot;AON&quot;</span><span class="p">],</span>
+    <span class="s">&quot;thresholds&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
+    <span class="s">&quot;conv_mode&quot;</span><span class="p">:</span> <span class="s">&quot;any&quot;</span><span class="p">,</span> 
+    <span class="s">&quot;auto_stop&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span> 
+    <span class="s">&quot;plot_tests&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span> 
+    <span class="s">&quot;force_best&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span> 
+    <span class="s">&quot;continue_fit&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span> 
+<span class="p">}</span>
+</pre></div></p>
+<p><strong><code>test_mode</code></strong>: (str; <em>Default=&rdquo;line&rdquo;</em>)<br/>
+Future releases of BADASS will have different testing methods; the only option available now is <code>line</code>.</p>
+<p><strong><code>lines</code></strong>: (list; <em>Default=[]</em>)<br/>
+The lines (or group of lines) to test.  BADASS will perform these tests in the order the are defined in the list.</p>
+<p><strong><code>ranges</code></strong>: (list; <em>Default=[]</em>)<br/>
+A list of ranges within the fitting region to test corresponding to the defined lines above.</p>
+<p><strong><code>metrics</code></strong>: (list; <em>Default=[&ldquo;BADASS&rdquo;, &ldquo;CHI2_RATIO&rdquo;, &ldquo;AON&rdquo;]</em>)<br/>
+The testing metrics used to determine when the appropriate number of components is reached. Options are &ldquo;BADASS&rdquo;, &ldquo;ANOVA&rdquo;, &ldquo;CHI2_RATIO&rdquo;, &ldquo;SSR_RATIO&rdquo;, &ldquo;F_RATIO&rdquo;, &ldquo;AON&rdquo;.  We describe these below:
+* <em>BADASS</em>: this test generates a confidence between 0 and 1 of the Monte-Carlo resampled maximum likelihood values of the simple and complex models.  For example, if the confidence is 0.95, you can say that the difference between residuals is significant, and an additional component is justified with 95% confidence.
+* <em>ANOVA</em>: this test is anlogous to an analysis-of-variance (ANOVA) test.  It haves similarly to the BADASS test, but tends to prefer a more complex model, while the BADASS metric tends to prefer a simpler one.
+* <em>CHI2_RATIO</em>: the ratio of the reduced chi-squared values for each fitted model.  This tends to be a robust method with thresholds between 0.1 and 0.25.  Interpreted as the fraction of the difference in the residuals weighted by the noise.
+* <em>SSR_RATIO</em>: the ratio of the sum-of-squares of the residuals (SSR).  Values close to 1 indicate residuals that are very similar.<br />
+* <em>F_RATIO</em>: the ratio of variances betweent he two fitted models, behaving similarly to the SSR ratio.
+* <em>AON</em>: amplitude-over-noise (AON) of the final line.  This is not a test between models, but a final check to determine if the lines that comprise the best model have an amplitude-over-noise (otherwise known as signal-to-noise) above a certain threshold.  This metric is good to have to ensure you aren&rsquo;t fitting noise.</p>
+<p><strong><code>thresholds</code></strong>: (list; <em>Default=[0.95, 0.10, 3.0]</em>)<br/>
+Thresholds for the above chosen metrics.  When a calculated metric goes <em>below</em> a threshold for a given metric, &ldquo;convergence&rdquo; is achieved.</p>
+<p><strong><code>conv_mode</code></strong>: (str; <em>Default=&rdquo;any&rdquo;</em>; options are &ldquo;any&rdquo; or &ldquo;all&rdquo;)<br/>
+Whether &ldquo;all&rdquo; or &ldquo;any&rdquo; of the metrics must achieve convergence to determine the appropriate number of line components.  If &ldquo;all&rdquo; is chosen, then all metrics must go below the given threshold for convergence.  If &ldquo;any&rdquo; is chosen, any single metric must achive convergence.  </p>
+<p><strong><code>auto_stop</code></strong>: (bool; <em>Default=True</em>)<br/>
+Automatically stop testing for a line when convergence is met.  For example, if we define five components for a line, but convergence is reached at three components, BADASS will not test that line further.</p>
+<p><strong><code>full_verbose</code></strong>: (bool; <em>Default=False</em>)<br/>
+Print out the results of fitting each test (basinhopping callbacks, etc.) to screen.  This is <code>False</code> by default because it can be excessive (no exagerration, it will print <em>everything</em>).  This is useful to monitor the fit of each test as it is performed, but not recommended for the uninitiated.</p>
+<p><strong><code>plot_tests</code></strong>: (bool; <em>Default=True</em>)<br/>
+Plot the results of each test and save them for visual comparison.</p>
+<p><strong><code>force_best</code></strong>: (bool; <em>Default=True</em>)<br/>
+Forces the complex model to achieve a root-mean-squared-error (RMSE) comparable to or less than the simpler model.  This is highly recommended because of the caveats we give below.</p>
+<p><strong><code>continue_fit</code></strong>: (bool; <em>Default=True</em>)<br/>
+Continue the fit (to max likelihood and/or MCMC) after the test is completed.  If False, BADASS terminates when line testing is completed.</p>
+<p>We also test for different lines in the same fit.  Here we specify we want to fit the three narrow lines from above, but now we also want to test the broad H-beta line (<code>BR_H_BETA</code>) and some unknown line at 5100 Å (<code>NA_UNK_1</code>) in a separate test region:</p>
+<div class="highlight"><pre><span class="n">test_options</span> <span class="o">=</span> <span class="p">{</span>
+<span class="s">&quot;test_mode&quot;</span><span class="p">:</span><span class="s">&quot;line&quot;</span><span class="p">,</span>
+<span class="s">&quot;lines&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="s">&quot;NA_OIII_5007&quot;</span><span class="p">,</span><span class="s">&quot;NA_OIII_4960&quot;</span><span class="p">,</span><span class="s">&quot;NA_H_BETA&quot;</span><span class="p">],</span><span class="s">&quot;BR_H_BETA&quot;</span><span class="p">,</span><span class="s">&quot;NA_UNK_1&quot;</span><span class="p">],</span> <span class="c1"># The lines to test</span>
+<span class="s">&quot;ranges&quot;</span><span class="p">:[(</span><span class="mi">4900</span><span class="p">,</span><span class="mi">5050</span><span class="p">),(</span><span class="mi">4700</span><span class="p">,</span><span class="mi">4940</span><span class="p">),(</span><span class="mi">5100</span><span class="p">,</span><span class="mi">5200</span><span class="p">)],</span> <span class="c1"># The range over which the test is performed must </span>
+<span class="s">&quot;metrics&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s">&quot;BADASS&quot;</span><span class="p">,</span> <span class="s">&quot;ANOVA&quot;</span><span class="p">,</span> <span class="s">&quot;CHI2_RATIO&quot;</span><span class="p">,</span><span class="s">&quot;AON&quot;</span><span class="p">],</span><span class="c1"># Fitting metrics to use when determining the </span>
+<span class="s">&quot;thresholds&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
+<span class="s">&quot;auto_stop&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span> <span class="c1"># automatically stop testing once threshold is reached; False test all no matter </span>
+<span class="s">&quot;plot_tests&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>
+<span class="s">&quot;force_best&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span> <span class="c1"># this forces the more-complex model to have a fit better than the previous.</span>
+<span class="s">&quot;continue_fit&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span> <span class="c1"># continue the fit with the best chosen model</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><strong>A few caveats to line testing the user must be aware of!</strong></p>
+<p>The process of determining the &ldquo;correct&rdquo; number of components for a line is a naturally degenerate problem, especially if the individual components are not resolved.  A number of underlying gaussian processes can define the observed emission line shape, and the &ldquo;best fit&rdquo; to those processes can be achived multiple ways depending on the allowed widths, velocities, and number of components you include in the model.  Because of this, a local minimization technique usually fails (such as linear least squares or Levenberg-Marquardt) unless the user supplies very accurate apriori guesses for each component.  Determining these apriori values defeats the purpose of automated fitting.<br />
+Instead, BADASS implements a stochastic global minimizer (basinhopping) to ensure that the fit can achive a global minimum and not get stuck in local minima.  Basinhopping tends to be just as accurate as simulated or dual-annealing, but much faster than brute-force methods.  However, because it <em>is</em> stochastic, this can lead to inconsistent results between line components.  To this I say: it doesn&rsquo;t matter; if individual line components are not resolved, then only the total fit to the line profile shape matters, and is the greatest amount of information you can actually recover from your data.<br />
+There are cases in which decomposing partially resolved narrow &ldquo;core&rdquo; components from another more-broad &ldquo;outflow&rdquo; component can be done (i.e., a two-component fit), and one can make reasonable assumptions about the physical nature of those components, but this typically ends at two components.  With more than 2 components, the fit can become highly degenerate <em>between</em> components, that is, you can achieve the same fit multiple ways depending on the allowed withs, velocities, and even initial guesses.  Discerning the physical nature of individual components for <code>ncomp</code>&gt;2 for a given line should be treated with many ceveats unless those underlying physical processes are understood apriori. </p>
+<p>Now, if you&rsquo;re getting unexpected behavior from your multiple component tests, there are a number of things you can do:
+* plot out each test to visually confirm that the fit is doing what you expected (set <code>plot_tests</code> to <code>True</code> in <code>test_options</code>.
+* set higher <code>n_basinhop</code> threshold (15-25); this is the number of sucessive basinhopping thresholds before a solution is achieved. A low number means basinhopping gives up sooner (less time), and a higher threshold gives basinhopping a greater chance of finding the better fit (more time).  Often times, if <code>n_basinhop</code> is too low, the best fit is usually not achieved for a given test, which means that even if <code>force_best</code> is used, successive tests might not achieve their best fit either, because they just have to be better than the previous fit.
+* check parameter limits; if a paramter such as line dispersion or velocity hits its limit, it might mean that a better fit could not be achieved because a line was not allowed to go outside of its defined parameter space to achieve a better fit.  This will happen if <code>voff</code> or <code>disp</code> parameter limits are too restrictive.  You can control global line parameter limits using <code>narrow_options</code>, <code>broad_options</code>, or <code>absorp_options</code>, or set them individually for each line using <code>disp_plim</code> (for dispersion) or <code>voff_plim</code> (for velocity offset). 
+* check parameter constraints; if you have soft constraints (for example <code>["OIII_5007_2_DISP","OIII_5007_DISP"]</code>, which forces the second component dispersion to be greater than the first component dispersion), you may be over-constraining the model.  This can lead to <code>force_best</code> never reaching a good solution (or just taking a very long time).  The best fits are usually acheived when you don&rsquo;t use any soft constraints, especially when the number of components exceeds 2.
+* simplify the continuum.  Lots of continuum flexibility can lead to strange behavior.  For this reason, we already restrict the polynomial continuum in the test regions to be 2. Removing some continuum components (e.g., FeII) might help. 
+* check behavior of fit; if you really want to know what the testing is doing under the hood, set <code>"full_verbose":True</code> and BADASS will print every step of the testing process to screen.  Warning: its a lot of output, but its the only way to monitor how the fit is performing for each test.</p>
+<p>As an example, lets see what happens if your parameter limits are too small.  Let&rsquo;s say we want to test up to 5 components for the [OIII]4960,5007 doublet, and we specified <code>"disp_plim":(0,300)"</code> for our <code>narrow_options</code>.  This means the none of the components for the lines we are testing may exceed 300 km/s, so let&rsquo;s see how well they do.  Here are the five tests in order:</p>
+<p><img alt="" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/test_bad_50.png" /></p>
+<p>This is a pretty complicated line, and we can see that it needs at least three components.  However, you can tell that by the time you get to three components, you still don&rsquo;t have a good fit.  More importantly, you can see that all the components (for each line) have the same width.  If you were to check the dispersion values for each component, they all maxed out at 300 km/s, which was our parameter limit on dispersion for narrow lines.</p>
+<p>So now lets set <code>"disp_plim":(0,1000)"</code> for our <code>narrow_options</code>:</p>
+<p><img alt="" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/test_good_50.png" /></p>
+<p>Now we can see that by the time we test for three components the fit is pretty good, and doesn&rsquo;t get significantly better after that.  To check, let&rsquo;s look at the test results (printed to the log file and screen):</p>
+<p><img alt="" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/test_results.png" /></p>
+<p>We can see that covergence was reached at the test for 4 components (red box), which means that our confidence that 4 components significantly improves the fit is below our chosen thresholds, <em>thus</em> we choose the 3-component model.  Remember you can choose these thresholds to be as strict as you want. </p>
+<h2 id="line-component-options">Line Component Options<a class="headerlink" href="#line-component-options" title="Permanent link"></a></h2>
+<p>These options are new for BADASS.  Previously, controlling the range of allowed velocity offset (<code>voff</code>) or line dispersion (<code>disp</code>) required the user to delve into the code to adjust these paramters.  Now the user can explicitly set these options before passing them to BADASS.  When not specified, BADASS will assume reasonable defaults.  Here are some examples of this usage for the available three line types (<code>narrow</code>, <code>broad</code>, or <code>absorp</code>):</p>
+<div class="highlight"><pre><span class="n">narrow_options</span> <span class="o">=</span> <span class="p">{</span>
+<span class="c1">#     &quot;amp_plim&quot;: (0,1), # line amplitude parameter limits; default (0,); changing this not recommended </span>
+    <span class="s">&quot;disp_plim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">500</span><span class="p">),</span> <span class="c1"># line dispersion parameter limits; default (0,)</span>
+    <span class="s">&quot;voff_plim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">500</span><span class="p">,</span><span class="mi">500</span><span class="p">),</span> <span class="c1"># line velocity offset parameter limits; default (0,)</span>
+    <span class="s">&quot;line_profile&quot;</span><span class="p">:</span> <span class="s">&quot;gaussian&quot;</span><span class="p">,</span> <span class="c1"># line profile shape*</span>
+    <span class="s">&quot;n_moments&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="c1"># number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="highlight"><pre><span class="n">broad_options</span> <span class="o">=</span><span class="p">{</span>
+<span class="c1">#     &quot;amp_plim&quot;: (0,40), # line amplitude parameter limits; default (0,)</span>
+    <span class="s">&quot;disp_plim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">500</span><span class="p">,</span><span class="mi">3000</span><span class="p">),</span> <span class="c1"># line dispersion parameter limits; default (0,)</span>
+    <span class="s">&quot;voff_plim&quot;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1000</span><span class="p">),</span> <span class="c1"># line velocity offset parameter limits; default (0,)</span>
+    <span class="s">&quot;line_profile&quot;</span><span class="p">:</span> <span class="s">&quot;gauss-hermite&quot;</span><span class="p">,</span> <span class="c1"># line profile shape*</span>
+    <span class="s">&quot;n_moments&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="c1"># number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="highlight"><pre><span class="n">absorp_options</span> <span class="o">=</span> <span class="p">{</span>
+<span class="c1">#     &quot;amp_plim&quot;: (-1,0), # line amplitude parameter limits; default (0,)</span>
+<span class="c1">#     &quot;disp_plim&quot;: (0,10), # line dispersion parameter limits; default (0,)</span>
+<span class="c1">#     &quot;voff_plim&quot;: (-2500,2500), # line velocity offset parameter limits; default (0,)</span>
+    <span class="s">&quot;line_profile&quot;</span><span class="p">:</span> <span class="s">&quot;voigt&quot;</span><span class="p">,</span> <span class="c1"># line profile shape*</span>
+    <span class="s">&quot;n_moments&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="c1"># number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)        </span>
+<span class="p">}</span>
+</pre></div>
+
+<h2 id="user-lines-constraints-and-masks">User Lines, Constraints, and Masks<a class="headerlink" href="#user-lines-constraints-and-masks" title="Permanent link"></a></h2>
+<p>Additionally, the user can specify a non-default line list directly through the Notebook.  These override the default line list given in <code>line_list_default()</code>.</p>
+<div class="highlight"><pre><span class="n">user_lines</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s">&quot;NA_UNKNOWN_1&quot;</span><span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">6085.</span><span class="p">,</span> <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span><span class="p">,</span> <span class="s">&quot;line_profile&quot;</span><span class="p">:</span><span class="s">&quot;gaussian&quot;</span><span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Similarly, one can provided additional soft constraints.  For example, if we wanted to constrain the narrow component of MgII to be narrower in width than the broad component, we specify that inequality in terms of the free parameters of that line:</p>
+<div class="highlight"><pre><span class="n">user_constraints</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="p">(</span><span class="s">&quot;BR_MGII_2799_DISP&quot;</span><span class="p">,</span><span class="s">&quot;NA_MGII_2799_DISP&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+
+<p>Note that the format for soft constraints follows that of inequality constraints defined in <code>scipy.optimize.minimize()</code>, that is <code>(parameter_1 - parameter_2) &gt;= 0</code> or <code>parameter_1 &gt;= parameter_2</code>. </p>
+<p>Finally, we can also manually define masks in the fitting range using tuples specified as the lower and upper extent of the mask <code>(lower,upper)</code>:</p>
+<div class="highlight"><pre><span class="n">user_mask</span> <span class="o">=</span> <span class="p">[</span>
+     <span class="p">(</span><span class="mi">4840</span><span class="p">,</span><span class="mi">5015</span><span class="p">),</span>
+     <span class="p">(</span><span class="mi">6552</span><span class="p">,</span><span class="mi">6580</span><span class="p">),</span>
+     <span class="p">(</span><span class="mi">6674</span><span class="p">,</span><span class="mi">6685</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+
+<h2 id="combined-lines">Combined Lines<a class="headerlink" href="#combined-lines" title="Permanent link"></a></h2>
+<p>One might be interested in the combined sum of two individual line components, and want to calculate the combined FWHM, dispersions, or velocity offsets.  One can define combinations of individual line components, the parameters of which will be computed at every iteration of the fit to include uncertainties on the combined components, which would otherwise be non-trivial in a post-analysis step.</p>
+<p>Below we define a combined line for the narrow and broad components of H-beta:</p>
+<p><div class="highlight"><pre><span class="n">combined_lines</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s">&quot;H_BETA_COMP&quot;</span>   <span class="p">:[</span><span class="s">&quot;NA_H_BETA&quot;</span><span class="p">,</span><span class="s">&quot;BR_H_BETA&quot;</span><span class="p">],</span>
+<span class="p">}</span>
+</pre></div>
+<em>Note</em>: that combined lines are automatically generated for lines defined as multiple components (parent-child lines).  </p>
+<h2 id="losvd-fitting-options-ppxf">LOSVD Fitting Options (pPXF)<a class="headerlink" href="#losvd-fitting-options-ppxf" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="n">losvd_options</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s">&quot;library&quot;</span>   <span class="p">:</span> <span class="s">&quot;IndoUS&quot;</span><span class="p">,</span> <span class="c1"># Options: IndoUS, Vazdekis2010</span>
+  <span class="s">&quot;vel_const&quot;</span> <span class="p">:</span>  <span class="p">{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&quot;val&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">},</span> <span class="c1"># Hold velocity constant?</span>
+  <span class="s">&quot;disp_const&quot;</span><span class="p">:</span>  <span class="p">{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&quot;val&quot;</span><span class="p">:</span><span class="mf">250.0</span><span class="p">},</span> <span class="c1"># Hold dispersion constant?</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2 id="host-model-options">Host Model Options<a class="headerlink" href="#host-model-options" title="Permanent link"></a></h2>
+<p>The host model is used as a simplified placeholder in the event that the stellar continuum isn&rsquo;t of any interest.  These are single-stellar population templates from the EMILES library, and do not have a low enough resolution for reliable stellar LOSVD fitting.</p>
+<div class="highlight"><pre><span class="n">host_options</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s">&quot;age&quot;</span>       <span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">5.0</span><span class="p">,</span><span class="mf">10.0</span><span class="p">],</span> <span class="c1"># Ages to include in Gyr; [0.09 Gyr - 14 Gyr] </span>
+  <span class="s">&quot;vel_const&quot;</span> <span class="p">:</span> <span class="p">{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&quot;val&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">},</span> <span class="c1"># hold velocity constant?</span>
+  <span class="s">&quot;disp_const&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&quot;val&quot;</span><span class="p">:</span><span class="mf">150.0</span><span class="p">}</span> <span class="c1"># hold dispersion constant?</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2 id="power-law-options">Power Law Options<a class="headerlink" href="#power-law-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="n">power_options</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s">&quot;type&quot;</span> <span class="p">:</span> <span class="s">&quot;simple&quot;</span> <span class="c1"># alternatively, &quot;broken&quot; for smoothly-broken power-law</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2 id="polynomial-options">Polynomial Options<a class="headerlink" href="#polynomial-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="n">poly_options</span> <span class="o">=</span> <span class="p">{</span>
+<span class="s">&quot;apoly&quot;</span> <span class="p">:</span> <span class="p">{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span> <span class="bp">True</span> <span class="p">,</span> <span class="s">&quot;order&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span> <span class="c1"># Legendre additive polynomial </span>
+<span class="s">&quot;mpoly&quot;</span> <span class="p">:</span> <span class="p">{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="s">&quot;order&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span> <span class="c1"># Legendre multiplicative polynomial </span>
+<span class="p">}</span>
+</pre></div>
+
+<h2 id="optical-feii-options">Optical FeII Options<a class="headerlink" href="#optical-feii-options" title="Permanent link"></a></h2>
+<p>There are two FeII templates built into BADASS.  The default is the broad and narrow templates from <a href="https://ui.adsabs.harvard.edu/abs/2004A%26A...417..515V/abstract">Véron-Cetty et al. (2004)</a> (<code>VC04</code>).  This model allows the user to have amplitude, dispersion, and velocity offset as free-parameters, with options to constrain them to constant values during the fit.  BADASS can also use the temperature-dependent template from <a href="https://ui.adsabs.harvard.edu/abs/2010MSAIS..15..176K/abstract">Kovačević et al. (2010)</a> (<code>K10</code>), which allows for the fitting of individual F, S, G, and I Zw 1 atomic transitions, as well as temperature.  The K10 template is best suited for modeling FeII in NLS1 objects with strong FeII emission.</p>
+<div class="highlight"><pre><span class="c1">############################### FeII Fit options ###############################</span>
+<span class="c1"># Below are options for fitting FeII.  For most objects, you don&#39;t need to </span>
+<span class="c1"># perform detailed fitting on FeII (only fit for amplitudes) use the </span>
+<span class="c1"># Veron-Cetty 2004 template (&#39;VC04&#39;) (2-6 free parameters)</span>
+<span class="c1"># However in NLS1 objects, FeII is much stronger, and sometimes more detailed </span>
+<span class="c1"># fitting is necessary, use the Kovacevic 2010 template </span>
+<span class="c1"># (&#39;K10&#39;; 7 free parameters).</span>
+
+<span class="c1"># The options are:</span>
+<span class="c1"># template   : VC04 (Veron-Cetty 2004) or K10 (Kovacevic 2010)</span>
+<span class="c1"># amp_const  : constant amplitude (default False)</span>
+<span class="c1"># disp_const : constant disp (default True)</span>
+<span class="c1"># voff_const : constant velocity offset (default True)</span>
+<span class="c1"># temp_const : constant temp (&#39;K10&#39; only)</span>
+
+<span class="n">feii_options</span><span class="o">=</span><span class="p">{</span>
+  <span class="s">&#39;template&#39;</span>  <span class="p">:{</span><span class="s">&#39;type&#39;</span><span class="p">:</span><span class="s">&#39;VC04&#39;</span><span class="p">},</span> 
+  <span class="s">&#39;amp_const&#39;</span> <span class="p">:{</span><span class="s">&#39;bool&#39;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span><span class="s">&#39;br_feii_val&#39;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">,</span><span class="s">&#39;na_feii_val&#39;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">},</span>
+  <span class="s">&#39;disp_const&#39;</span><span class="p">:{</span><span class="s">&#39;bool&#39;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span><span class="s">&#39;br_feii_val&#39;</span><span class="p">:</span><span class="mf">3000.0</span><span class="p">,</span><span class="s">&#39;na_feii_val&#39;</span><span class="p">:</span><span class="mf">500.0</span><span class="p">},</span>
+  <span class="s">&#39;voff_const&#39;</span><span class="p">:{</span><span class="s">&#39;bool&#39;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span><span class="s">&#39;br_feii_val&#39;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span><span class="s">&#39;na_feii_val&#39;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">},</span>
+<span class="p">}</span>
+<span class="c1"># or</span>
+<span class="c1"># feii_options={</span>
+<span class="c1"># &#39;template&#39;  :{&#39;type&#39;:&#39;K10&#39;},</span>
+<span class="c1"># &#39;amp_const&#39; :{&#39;bool&#39;:False,&#39;f_feii_val&#39;:1.0,&#39;s_feii_val&#39;:1.0,&#39;g_feii_val&#39;:1.0,&#39;z_feii_val&#39;:1.0},</span>
+<span class="c1"># &#39;disp_const&#39;:{&#39;bool&#39;:False,&#39;val&#39;:1500.0},</span>
+<span class="c1"># &#39;voff_const&#39;:{&#39;bool&#39;:False,&#39;val&#39;:0.0},</span>
+<span class="c1"># &#39;temp_const&#39;:{&#39;bool&#39;:True,&#39;val&#39;:10000.0} </span>
+<span class="c1"># }</span>
+<span class="c1">################################################################################</span>
+</pre></div>
+
+<h2 id="uv-iron-options">UV Iron Options<a class="headerlink" href="#uv-iron-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="n">uv_iron_options</span><span class="o">=</span><span class="p">{</span>
+  <span class="s">&quot;uv_amp_const&quot;</span>  <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&quot;uv_iron_val&quot;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">},</span> <span class="c1"># hold amplitude constant?</span>
+  <span class="s">&quot;uv_disp_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&quot;uv_iron_val&quot;</span><span class="p">:</span><span class="mf">3000.0</span><span class="p">},</span>  <span class="c1"># hold dispersion constant?</span>
+  <span class="s">&quot;uv_voff_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&quot;uv_iron_val&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">},</span> <span class="c1"># hold velocity constant?</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2 id="balmer-pseudo-continuum-options">Balmer Pseudo-Continuum Options<a class="headerlink" href="#balmer-pseudo-continuum-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="n">balmer_options</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s">&quot;R_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&quot;R_val&quot;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">},</span> <span class="c1"># ratio between balmer continuum and higher-order lines</span>
+  <span class="s">&quot;balmer_amp_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&quot;balmer_amp_val&quot;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">},</span> <span class="c1"># hold amplitude constant?</span>
+  <span class="s">&quot;balmer_disp_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&quot;balmer_disp_val&quot;</span><span class="p">:</span><span class="mf">5000.0</span><span class="p">},</span> <span class="c1"># hold dispersion constant?</span>
+  <span class="s">&quot;balmer_voff_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&quot;balmer_voff_val&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">},</span> <span class="c1"># hold velocity constant?</span>
+  <span class="s">&quot;Teff_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&quot;Teff_val&quot;</span><span class="p">:</span><span class="mf">15000.0</span><span class="p">},</span> <span class="c1"># effective temperature</span>
+  <span class="s">&quot;tau_const&quot;</span> <span class="p">:{</span><span class="s">&quot;bool&quot;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&quot;tau_val&quot;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">},</span> <span class="c1"># optical depth</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2 id="plotting-options">Plotting Options<a class="headerlink" href="#plotting-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="c1">############################### Plotting options ###############################</span>
+<span class="n">plot_options</span><span class="o">=</span><span class="p">{</span>
+  <span class="s">&quot;plot_param_hist&quot;</span>    <span class="p">:</span> <span class="bp">True</span><span class="p">,</span><span class="c1"># Plot MCMC histograms and chains for each parameter</span>
+  <span class="s">&quot;plot_HTML&quot;</span>          <span class="p">:</span> <span class="bp">True</span><span class="p">,</span><span class="c1"># make interactive plotly HTML best-fit plot</span>
+<span class="p">}</span>
+<span class="c1">################################################################################</span>
+</pre></div>
+
+<p><strong><code>plot_param_hist</code></strong>: (<em>Default: True</em>)<br/>
+For each free parameter fit by emcee, BADASS outputs a figure that contains a histogram of the MCMC samples, the best-fit values and uncertainties, and a plot of the MCMC chain, as shown below:</p>
+<p><img alt="" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_output_chain.png" /></p>
+<p><strong><code>plot_HTML</code></strong>: (<em>Default: False</em>)<br/>
+This will produce a best fit plot using <a href="https://plotly.com/">plotly</a>  in an HTML format that can viewed interactively in a browser.  Note, plotly must be installed to use this function.</p>
+<h2 id="output-options">Output Options<a class="headerlink" href="#output-options" title="Permanent link"></a></h2>
+<div class="highlight"><pre><span class="c1">################################ Output options ################################</span>
+<span class="n">output_options</span><span class="o">=</span><span class="p">{</span>
+<span class="s">&#39;write_chain&#39;</span>   <span class="p">:</span> <span class="bp">False</span><span class="p">,</span> <span class="c1"># Write MCMC chains for all paramters, fluxes, and</span>
+                         <span class="c1"># luminosities to a FITS table We set this to false </span>
+                         <span class="c1"># because MCMC_chains.FITS file can become very large, </span>
+                         <span class="c1"># especially  if you are running multiple objects.  </span>
+                         <span class="c1"># You only need this if you want to reconstruct chains </span>
+                         <span class="c1"># and histograms. </span>
+<span class="s">&quot;write_options&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>  <span class="c1"># output restart file</span>
+<span class="s">&#39;verbose&#39;</span>  <span class="p">:</span> <span class="bp">True</span><span class="p">,</span>  <span class="c1"># prints steps of fitting process in Jupyter output</span>
+<span class="p">}</span>
+<span class="c1">################################################################################</span>
+</pre></div>
+
+<p><strong><code>write_chain</code></strong>: (<em>Default: False</em>)<br/>
+Write the full flattened MCMC chain (# parameters x # walkers x # iterations) to a FITS file.  We set this to <em>False</em>, because the file can get quite large, and takes up a lot of space if one is fitting many spectra.  One should only need this file if one wants to reconstruct chains and re-compute histograms. </p>
+<p><strong><code>verbise</code></strong>: (<em>Default: True</em>)<br/>
+Print output during the fit.  This is a good idea since it can tell you what BADASS is doing at that moment, and may help debug.  This should be disabled when fitting multiple spectra via multiprocessing.</p>
+<h2 id="the-main-function-and-calling-sequence">The Main Function and Calling Sequence<a class="headerlink" href="#the-main-function-and-calling-sequence" title="Permanent link"></a></h2>
+<p>All of the above options are fed into the <code>run_BADASS()</code> function as such:</p>
+<div class="highlight"><pre><span class="c1"># Call the main function in BADASS</span>
+<span class="n">badass</span><span class="o">.</span><span class="n">run_BADASS</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="nb">file</span><span class="p">),</span>
+<span class="c1">#                   options_file = &quot;BADASS_options&quot;,</span>
+<span class="c1">#                   restart_file         = restart_file,</span>
+                  <span class="n">fit_options</span>          <span class="o">=</span> <span class="n">fit_options</span><span class="p">,</span>
+                  <span class="n">mcmc_options</span>         <span class="o">=</span> <span class="n">mcmc_options</span><span class="p">,</span>
+                  <span class="n">comp_options</span>         <span class="o">=</span> <span class="n">comp_options</span><span class="p">,</span>
+                  <span class="c1"># New line options</span>
+                  <span class="n">narrow_options</span>       <span class="o">=</span> <span class="n">narrow_options</span><span class="p">,</span>
+                  <span class="n">broad_options</span>        <span class="o">=</span> <span class="n">broad_options</span><span class="p">,</span>
+                  <span class="n">absorp_options</span>       <span class="o">=</span> <span class="n">absorp_options</span><span class="p">,</span>
+                  <span class="c1">#</span>
+                  <span class="n">user_lines</span>           <span class="o">=</span> <span class="n">user_lines</span><span class="p">,</span>       <span class="c1"># User-lines</span>
+                  <span class="n">user_constraints</span>     <span class="o">=</span> <span class="n">user_constraints</span><span class="p">,</span> <span class="c1"># User-constraints</span>
+                  <span class="n">user_mask</span>            <span class="o">=</span> <span class="n">user_mask</span><span class="p">,</span>        <span class="c1"># User-mask</span>
+                  <span class="n">combined_lines</span>       <span class="o">=</span> <span class="n">combined_lines</span><span class="p">,</span>
+                  <span class="n">losvd_options</span>        <span class="o">=</span> <span class="n">losvd_options</span><span class="p">,</span>
+                  <span class="n">host_options</span>         <span class="o">=</span> <span class="n">host_options</span><span class="p">,</span>
+                  <span class="n">power_options</span>        <span class="o">=</span> <span class="n">power_options</span><span class="p">,</span>
+                  <span class="n">poly_options</span>         <span class="o">=</span> <span class="n">poly_options</span><span class="p">,</span>
+                  <span class="n">opt_feii_options</span>     <span class="o">=</span> <span class="n">opt_feii_options</span><span class="p">,</span>
+                  <span class="n">uv_iron_options</span>      <span class="o">=</span> <span class="n">uv_iron_options</span><span class="p">,</span>
+                  <span class="n">balmer_options</span>       <span class="o">=</span> <span class="n">balmer_options</span><span class="p">,</span>
+                  <span class="n">plot_options</span>         <span class="o">=</span> <span class="n">plot_options</span><span class="p">,</span>
+                  <span class="n">output_options</span>       <span class="o">=</span> <span class="n">output_options</span><span class="p">,</span>
+                 <span class="p">)</span>
+</pre></div>
+
+<h2 id="optionsconfiguration-files">Options/Configuration Files<a class="headerlink" href="#optionsconfiguration-files" title="Permanent link"></a></h2>
+<p>A relatively new feature in BADASS are options files.  A method for implementing a configuration file for BADASS isn&rsquo;t easy to maintain the Python syntax as in the Notebook interface.  As a compromise, one can place all the above options in a <code>.py</code> script, and call <code>run_BADASS()</code> with the options file, which will overwrite any and all defaults:</p>
+<div class="highlight"><pre><span class="n">options_file</span> <span class="o">=</span> <span class="s">&quot;BADASS_options&quot;</span>
+<span class="c1"># Call the main function in BADASS with an options file</span>
+<span class="n">badass</span><span class="o">.</span><span class="n">run_BADASS</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="nb">file</span><span class="p">),</span>
+                  <span class="n">options_file</span> <span class="o">=</span> <span class="n">options_file</span><span class="p">,</span>
+                 <span class="p">)</span>
+</pre></div>
+
+<p><strong>Warning</strong>: Because this file overwrites all defaults, one should specify all lines and soft constraints in the options file as well.</p>
+<h1 id="output">Output<a class="headerlink" href="#output" title="Permanent link"></a></h1>
+<p>BADASS produces a number of different outputs for the user at the end of the fitting process.  We summarize these below.</p>
+<h2 id="best-fit-model">Best-fit Model<a class="headerlink" href="#best-fit-model" title="Permanent link"></a></h2>
+<p>This is simply a figure that shows the data, model, residuals, and best-fit components, to visually ascertain the quality of the fit. </p>
+<p><img alt="_" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_output_bestfit.png" /></p>
+<h2 id="parameter-chains-histograms-best-fit-values-and-uncertainties">Parameter Chains, Histograms, Best-fit Values and Uncertainties<a class="headerlink" href="#parameter-chains-histograms-best-fit-values-and-uncertainties" title="Permanent link"></a></h2>
+<p>For every parameter that is fit, BADASS outputs a figure to visualize the full parameter chain and all walkers, the burn-in, and the final posterior histogram with the best-fit values and uncertainties.  The purpose of these is for visual inspection of the parameter chain to observe its behavior during the fitting process, to get a sense of how well initial parameters were fit, and how walkers behave as the fit progresses.</p>
+<p><img alt="" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_output_chain.png" /></p>
+<h2 id="log-file">Log File<a class="headerlink" href="#log-file" title="Permanent link"></a></h2>
+<p>The entire fitting process, including selected options, is recorded in a text file for reference purposes.  It provides:
+- File location
+- FITS Header information, such as (RA,DEC) coordinates, SDSS redshift, velocity scale (km/s/pixel), and <em>E(B-V)</em>, which is retrieved from NED online during the fitting process and used to correct for Galactic extinction.
+- Results from outflow or line testing
+- All best-fit values and/or uncertainties of all free and calculated model parameters.</p>
+<p><img alt="" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS_output_logfile.png" /></p>
+<p>The log file is meant as a summary of what occurred during the fit and the results, but it is not the easiest way to compile the results of fitting many objects&hellip;</p>
+<h2 id="best-fit-model-components">Best-fit Model Components<a class="headerlink" href="#best-fit-model-components" title="Permanent link"></a></h2>
+<p>Best-fit model components are stored as arrays in <code>best_model_components.fits</code> files to reproduce the best-fit model figures as shown above.  This can be accessed using the <a href="https://docs.astropy.org/en/stable/io/fits/"><code>astropy.io.fits</code></a> module, for example:
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+
+<span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s">&quot;best_model_components.fits&quot;</span><span class="p">)</span>
+<span class="n">tbdata</span> <span class="o">=</span> <span class="n">hdu</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>     <span class="c1"># FITS table data is stored on FITS extension 1</span>
+<span class="n">data</span>   <span class="o">=</span> <span class="n">tbdata</span><span class="p">[</span><span class="s">&#39;DATA&#39;</span><span class="p">]</span>  <span class="c1"># the SDSS spectrum </span>
+<span class="n">wave</span>   <span class="o">=</span> <span class="n">tbdata</span><span class="p">[</span><span class="s">&#39;WAVE&#39;</span><span class="p">]</span>  <span class="c1"># the rest-frame wavelength vector</span>
+<span class="n">model</span>  <span class="o">=</span> <span class="n">tbdata</span><span class="p">[</span><span class="s">&#39;MODEL&#39;</span><span class="p">]</span> <span class="c1"># the best-fit model</span>
+<span class="n">hdu</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div></p>
+<p>Below we show an example data model for the FITS-HDU of <code>best_model_components.fits</code>.  You can print out the columns using 
+<div class="highlight"><pre><span class="k">print</span><span class="p">(</span><span class="n">tbdata</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+</pre></div>
+which shows</p>
+<div class="highlight"><pre><span class="n">ColDefs</span><span class="p">(</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;POWER&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;NA_OPT_FEII_TEMPLATE&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;BR_OPT_FEII_TEMPLATE&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;NA_H_BETA&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;NA_OIII_4960&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;NA_OIII_5007&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;BR_H_BETA&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;OUT_H_BETA&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;OUT_OIII_4960&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;OUT_OIII_5007&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;HOST_GALAXY&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;DATA&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;WAVE&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;NOISE&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;MODEL&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;RESID&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&#39;MASK&#39;</span><span class="p">;</span> <span class="n">format</span> <span class="o">=</span> <span class="s">&#39;E&#39;</span>
+<span class="p">)</span>
+</pre></div>
+
+<h2 id="best-fit-parameters-and-uncertainties">Best-fit Parameters and Uncertainties<a class="headerlink" href="#best-fit-parameters-and-uncertainties" title="Permanent link"></a></h2>
+<p>All best-fit parameter values and their upper and lower 1-sigma uncertainties are stored in <code>par_table.fits</code> files so they can be more quickly accessed than from a text file.  These are most easily accessed using the (<code>astropy.table</code>](<a href="https://docs.astropy.org/en/stable/table/pandas.html">https://docs.astropy.org/en/stable/table/pandas.html</a>) module, which can convert a FITS table into a Pandas <a href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html">DataFrame</a>:</p>
+<p><div class="highlight"><pre>from astropy.table import Table  
+
+table = Table.read(&#39;par_table.fits&#39;)
+pandas_df = table.to_pandas()
+print pandas_df
+</pre></div>
+which shows</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>parameter</th>
+<th align="right">best_fit</th>
+<th align="right">sigma_low</th>
+<th align="right">sigma_upp</th>
+<th align="right"></th>
+<th align="right">flag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>HOST_GALAXY_FLUX</td>
+<td align="right">43179.789062</td>
+<td align="right">2146.635986</td>
+<td align="right">2523.700439</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>1</td>
+<td>HOST_GALAXY_LUM</td>
+<td align="right">2.993121</td>
+<td align="right">0.148800</td>
+<td align="right">0.174937</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>NA_HALPHA_AMP</td>
+<td align="right">458.180511</td>
+<td align="right">2.664992</td>
+<td align="right">2.122619</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>3</td>
+<td>NA_HALPHA_FLUX</td>
+<td align="right">2304.035889</td>
+<td align="right">13.468710</td>
+<td align="right">19.964769</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>.</td>
+<td>.</td>
+<td align="right">.</td>
+<td align="right">.</td>
+<td align="right">.</td>
+<td align="right">&hellip;</td>
+<td align="right">.</td>
+</tr>
+<tr>
+<td>.</td>
+<td>.</td>
+<td align="right">.</td>
+<td align="right">.</td>
+<td align="right">.</td>
+<td align="right">&hellip;</td>
+<td align="right">.</td>
+</tr>
+<tr>
+<td>.</td>
+<td>.</td>
+<td align="right">.</td>
+<td align="right">.</td>
+<td align="right">.</td>
+<td align="right">&hellip;</td>
+<td align="right">.</td>
+</tr>
+<tr>
+<td>57</td>
+<td>POWER_AMP</td>
+<td align="right">13.716220</td>
+<td align="right">0.670133</td>
+<td align="right">0.736425</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>58</td>
+<td>POWER_FLUX</td>
+<td align="right">47760.011719</td>
+<td align="right">2512.798340</td>
+<td align="right">2167.185303</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>59</td>
+<td>POWER_LUM</td>
+<td align="right">3.310611</td>
+<td align="right">0.174181</td>
+<td align="right">0.150224</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>60</td>
+<td>POWER_SLOPE</td>
+<td align="right">-0.705488</td>
+<td align="right">0.294422</td>
+<td align="right">0.352110</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>61</td>
+<td>STEL_DISP</td>
+<td align="right">99.216248</td>
+<td align="right">1.282358</td>
+<td align="right">0.785158</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+<tr>
+<td>62</td>
+<td>STEL_VEL</td>
+<td align="right">97.768555</td>
+<td align="right">3.329233</td>
+<td align="right">2.168582</td>
+<td align="right">&hellip;</td>
+<td align="right">0.0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="autocorrelation-analysis">Autocorrelation Analysis<a class="headerlink" href="#autocorrelation-analysis" title="Permanent link"></a></h2>
+<p>BADASS will output the full history of parameter autocorrelation times and tolerances for every <code>write_iter</code> iterations.  This is done for post-fit analysis to assess how individual parameters behave as MCMC walkers converge on a solution.   Parameter autocorrelation times and tolerances are stored as arrays in a dictionary, which is saved as a numpy <code>.npy</code> file named <code>autocorr_dict.npy</code>, which can be accessed using the <code>numpy.load()</code> function: </p>
+<p><div class="highlight"><pre><span class="n">autocorr_dict</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s">&#39;autocorr_dict.npy&#39;</span><span class="p">)</span>
+
+<span class="c1"># Display parameters in dictionary</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">autocorr_dict</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
+        <span class="k">print</span> <span class="n">key</span>
+
+<span class="c1"># Print the autocorrelation times and tolerances for the </span>
+<span class="c1"># &#39;NA_OIII5007_VOFF&#39; parameter and store them as </span>
+<span class="c1"># &quot;tau&quot; and &quot;tol&quot;, respectively:</span>
+<span class="n">tau</span> <span class="o">=</span> <span class="n">autocorr_dict</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;NA_OIII5007_VOFF&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;tau&#39;</span><span class="p">)</span>
+<span class="n">tol</span> <span class="o">=</span> <span class="n">autocorr_dict</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;NA_OIII5007_VOFF&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;tol&#39;</span><span class="p">)</span>
+</pre></div>
+Note: <code>auto_stop</code> must be <code>True</code> in order to perform any autocorrelation analysis and output the autocorrelation files.</p>
+<h1 id="examples-tutorials">Examples &amp; Tutorials<a class="headerlink" href="#examples-tutorials" title="Permanent link"></a></h1>
+<h2 id="single-sdss-spectrum">Single SDSS Spectrum<a class="headerlink" href="#single-sdss-spectrum" title="Permanent link"></a></h2>
+<p>The <a href="https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_single_spectrum.ipynb">BADASS3_single_spectrum.ipynb</a> notebook shows the basics of setting up the fit of a single SDSS spectrum, from defining fit parameters to calling sequence.</p>
+<p><img alt="_" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/single_sdss_spectrum.png" /></p>
+<h2 id="single-non-sdss-spectrum">Single Non-SDSS Spectrum<a class="headerlink" href="#single-non-sdss-spectrum" title="Permanent link"></a></h2>
+<p>The <a href="https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_nonSDSS_single_spectrum.ipynb">BADASS3_nonSDSS_single_spectrum.ipynb</a> notebook illustrates the use of BADASS for a non-SDSS spectrum.  The user is expected to provide some basic information such as redshift, FWHM resolution, wavelength scale, and some form of a noise vector.  The FWHM resolution is necessary to accurately correct for instrumental dispersion and estimate the stellar LOSVD.  The noise vector need not be exact, since BADASS will scale the noise appropriately to achieve a reduced chi-squared of 1.</p>
+<p>This example performs a fit on a Keck LRIS spectrum of a Seyfert 1 galaxy from <a href="https://ui.adsabs.harvard.edu/abs/2019ApJ...878..101S/abstract">Sexton et al. (2019)</a>:</p>
+<p><img alt="_" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/non_sdss_spectrum.png" /></p>
+<h2 id="multiple-spectra-with-multiprocessing">Multiple Spectra with Multiprocessing<a class="headerlink" href="#multiple-spectra-with-multiprocessing" title="Permanent link"></a></h2>
+<p>The <a href="https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_multi_spectra.ipynb">BADASS3_multi_spectra.ipynb</a> notebook shows how to set up BADASS to use Python&rsquo;s multiprocessing capabilities to fit any number of spectra simultaneously.  The number of spectra that can be <em>efficiently</em> fit simultaneously ultimately depends on the number of CPUs your machine has.  The number of simultaneous processes is the only parameter the user needs to specify, and BADASS assigns a process (a fit) to each core.</p>
+<h2 id="multiple-spectra-with-multiprocessing_1">Multiple Spectra with Multiprocessing<a class="headerlink" href="#multiple-spectra-with-multiprocessing_1" title="Permanent link"></a></h2>
+<p>The <a href="https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_multi_spectra_options.ipynb">BADASS3_multi_spectra_options.ipynb</a> notebook is identical to the multi-spectra example above, except with fitting options passed via an options file.</p>
+<h2 id="manga-ifu-cube-data">MANGA IFU Cube Data<a class="headerlink" href="#manga-ifu-cube-data" title="Permanent link"></a></h2>
+<p>Support for fitting IFU cubes is the newest feature of BADASS, spurred by the increasingly growing interest in studying outflows and AGN feedback using IFU data.  The <a href="https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_ifu_MANGA.ipynb">BADASS3_ifu_MANGA.ipynb</a> notebook shows how to fit the standardized cubes produced by MANGA.  BADASS can also utilize the voronoi binning <a href="https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning">VorBin</a> algorithm from <a href="https://ui.adsabs.harvard.edu/abs/2003MNRAS.342..345C/abstract">Cappellari &amp; Copin (2003, MNRAS, 342, 345)</a>, as well as multiprocessing to quickly (for Python at least) fit cubes.</p>
+<p><img alt="_" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/manga_cube_example.png" /></p>
+<h2 id="non-manga-ifu-cube-data">Non-MANGA IFU Cube Data<a class="headerlink" href="#non-manga-ifu-cube-data" title="Permanent link"></a></h2>
+<p>The <a href=""></a> notebook, similarly illustrates how to fit generic cube data, similar to how non-SDSS spectra are fit in BADASS.  The user must provide some basic information about the data, but BADASS handles the data as standard NumPy arrays. </p>
+<p>Here are some results of the Rodeo Cube (MUSE subcube of NGC 1386) from the <a href="https://www.stsci.edu/contents/events/stsci/2022/march/large-volume-spectroscopic-analyses-of-agn-and-star-forming-galaxies-in-the-era-of-jwst">Large-Volume Spectroscopic Analyses of AGN and Star Forming Galaxies in the Era of JWST</a> workshop, during which BADASS and its new features were showcased:
+<img alt="_" src="https://github.com/remingtonsexton/BADASS3/blob/master/figures/LVS_rodeo_example.png" /></p>
+<h1 id="how-to">How to<a class="headerlink" href="#how-to" title="Permanent link"></a></h1>
+<h2 id="prior-distributions">Prior Distributions<a class="headerlink" href="#prior-distributions" title="Permanent link"></a></h2>
+<p>The newest version of BADASS provides an easy way to implement some non-uniform priors, which can give the user more control over some parameters that may be poorly-constrained by a uniform prior or soft-constraints.</p>
+<p>By default, all parameters are subject to an (improper, i.e. unnormalized) uniform prior with values [0,1], or [-inf,0] in log.  The value of this prior is zero if its respective parameter violates bounds and/or any constraints, and 1 if it does not.  This log-prior value is added to the log-likelihood.  </p>
+<p>BADASS currently allows for three different non-uniform priors on any free parameter, all of which follow the <code>scipy.stats</code> standard:</p>
+<p><strong>Normal (<code>gaussian</code>) Prior</strong>: <code>stats.norm.logpdf(x,loc,scale)</code>; <code>loc</code>  and <code>scale</code> are the mean and standard deviation of the distribution, respectively.  If <code>loc</code> and/or <code>scale</code> are not provided, they will be calculated from the <code>init</code> (initial value) and <code>plim</code> (parameter limits) keywords that define each free parameter.  If not provided, the assumed <code>loc</code> is set equal to <code>init</code>, and <code>scale</code> is determined such that the difference between <code>init</code> and the absolute maximum <code>plim</code> is at 5 standard deviations, i.e., <code>scale = (|plim|-init)/5</code>. </p>
+<p><strong>Half-Norm (<code>halfnorm</code>) Prior</strong>: <code>stats.halfnorm.logpdf(x,loc,scale)</code>; <code>loc</code>  and <code>scale</code> are the mean and standard deviation of the  positively bounded [0,+inf] distribution, respectively.  If <code>loc</code> and/or <code>scale</code> are not provided, they will be calculated from the <code>init</code> (initial value) and <code>plim</code> (parameter limits) keywords that define each free parameter.  If not provided, the assumed <code>loc</code> is set equal to <code>init</code>, and <code>scale</code> is determined such that the difference between <code>init</code> and the absolute maximum <code>plim</code> is at 5 standard deviations, i.e., <code>scale = (|plim|-init)/5</code>. </p>
+<p><strong>Log-Uniform (<code>jeffreys</code>) Prior</strong>: <code>stats.loguniform.logpdf(x,a,b,loc)</code>; <code>loc</code> is the mean of the distribution, and <code>a</code> and <code>b</code> are shape parameters, where <code>0&lt;a&lt;b</code>.  The parameters <code>a</code> and <code>b</code> are determined from <code>plim</code> automatically, whereas <code>loc</code> can be specified by the user. </p>
+<p>By default, all model continuum priors (i.e., stellar kinematics, power law continuum, FeII emission) have uniform priors.  Changes to these priors can be made in the <code>initialize_pars()</code> function.  For line parameters, the only prior implemented across all lines is the velocity (<code>voff</code>) parameter, which is chosen to be <code>gaussian</code>, with a <code>loc=0</code> and <code>scale=100</code>.  This is done so that lines are biased to not stray too far way from where they are expected to be.   Gaussian priors are also put on any higher-order moments (<code>h3</code>, <code>h4</code>, &hellip;) of the gauss-hermite, laplace, or uniform line profiles. </p>
+<p>To specify a prior on a parameter, one must provide the <code>kind</code>  (<code>gaussian</code>, <code>halfnorm</code>, or <code>jeffreys</code>).  Other parameters such as <code>loc</code> or <code>scale</code> are optional because they can be inferred from the <code>init</code> and <code>plim</code> keywords for each free parameter.</p>
+<p>Here is an example of a 4-moment gauss-hermite line with a strict gaussian prior on <code>h3</code> and <code>h4</code>.  By doing this, it biases the moments to be very close to zero, and thus the gauss-hermite profile to be more gaussian, i.e., <code>h3~0</code> and <code>h4~0</code>.</p>
+<div class="highlight"><pre><span class="s">&quot;BR_H_BETA&quot;</span>   <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">4862.691</span><span class="p">,</span> 
+                    <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span> 
+                    <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span> 
+                    <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;h3&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;h3_prior&quot;</span><span class="p">:{</span><span class="s">&quot;type&quot;</span><span class="p">:</span><span class="s">&quot;gaussian&quot;</span><span class="p">,</span><span class="s">&quot;loc&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span><span class="s">&quot;scale&quot;</span><span class="p">:</span><span class="mf">0.01</span><span class="p">},</span>
+                    <span class="s">&quot;h4&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;h4_prior&quot;</span><span class="p">:{</span><span class="s">&quot;type&quot;</span><span class="p">:</span><span class="s">&quot;gaussian&quot;</span><span class="p">,</span><span class="s">&quot;loc&quot;</span><span class="p">:</span><span class="mf">0.0</span><span class="p">,</span><span class="s">&quot;scale&quot;</span><span class="p">:</span><span class="mf">0.01</span><span class="p">},</span>
+                    <span class="s">&quot;disp_plim&quot;</span><span class="p">:(</span><span class="mi">500</span><span class="p">,</span><span class="mi">5000</span><span class="p">),</span>
+                    <span class="s">&quot;disp_init&quot;</span><span class="p">:</span><span class="mf">1000.0</span><span class="p">,</span>
+                    <span class="s">&quot;line_profile&quot;</span><span class="p">:</span><span class="s">&quot;GH&quot;</span><span class="p">,</span>
+                    <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;br&quot;</span>
+                   <span class="p">},</span>
+</pre></div>
+
+<h2 id="line-lists">Line Lists<a class="headerlink" href="#line-lists" title="Permanent link"></a></h2>
+<p>The default line list built into BADASS references most of the <a href="http://classic.sdss.org/dr6/algorithms/linestable.html">standard SDSS lines</a>.  The actual reference list is inside the <code>line_list_default()</code> function in the <code>badass.py</code> script.   BADASS expects a line entry to be in the following form</p>
+<div class="highlight"><pre><span class="s">&quot;NA_OIII_5007&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span>   <span class="p">:</span><span class="mf">5008.240</span><span class="p">,</span> <span class="c1"># rest-frame wavelength of line</span>
+         <span class="s">&quot;amp&quot;</span>      <span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span> <span class="c1"># &quot;free&quot; parameter or tied to another valid parameter</span>
+         <span class="s">&quot;amp_init&quot;</span> <span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="c1"># initial guess value </span>
+         <span class="s">&quot;amp_plim&quot;</span> <span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="c1"># tuple of (lower,upper) bounds of parameter</span>
+
+         <span class="s">&quot;disp&quot;</span>     <span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span> <span class="c1"># &quot;free&quot; parameter or tied to another valid parameter</span>
+         <span class="s">&quot;disp_init&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="c1"># initial guess value </span>
+         <span class="s">&quot;disp_plim&quot;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="c1"># tuple of (lower,upper) bounds of parameter</span>
+
+         <span class="s">&quot;voff&quot;</span>     <span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span>  <span class="c1"># &quot;free&quot; parameter or tied to another valid parameter</span>
+         <span class="s">&quot;voff_init&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="c1"># initial guess value </span>
+         <span class="s">&quot;voff_plim&quot;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="c1"># tuple of (lower,upper) bounds of parameter</span>
+
+         <span class="s">&quot;line_type&quot;</span><span class="p">:</span> <span class="s">&quot;na&quot;</span><span class="p">,</span> <span class="c1"># line type [&quot;na&quot;,&quot;br&quot;,&quot;out&quot;,&quot;abs&quot;, or &quot;user]</span>
+         <span class="s">&quot;line_profile&quot;</span><span class="p">:</span> <span class="s">&quot;gaussian&quot;</span> <span class="c1"># gaussian, lorentzian, voigt, gauss-hermite, laplace, or uniform</span>
+         <span class="s">&quot;label&quot;</span>    <span class="p">:</span> <span class="n">string</span><span class="p">,</span> <span class="c1"># a name for the line for plotting purposes</span>
+         <span class="p">},</span>
+</pre></div>
+
+<p>If <code>_init</code> or <code>_plim</code> keys are not explicitly assigned, BADASS will assume some reasonable values based on the <code>line_type</code>.  There are additional keys available when <code>line_profile</code> is Voigt (a <code>shape</code> key) or Gauss-Hermite (higher orders <code>h3</code>, <code>h4</code>, etc.).  Keep in mind that BADASS will enforce line profiles defined in the <code>fit_options</code> for <code>line_types</code> <code>na</code>, <code>br</code>, <code>out</code>, and <code>abs</code>; if one wants to define a custom line that isn&rsquo;t the same line profile shape as those defined in <code>fit_options</code>, one should use the <code>user</code> <code>line_type</code>.</p>
+<p>For example:</p>
+<div class="highlight"><pre><span class="s">&quot;NA_OIII_5007&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span>   <span class="p">:</span> <span class="mf">5008.240</span><span class="p">,</span> 
+         <span class="s">&quot;amp&quot;</span>      <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+         <span class="s">&quot;disp&quot;</span>     <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+         <span class="s">&quot;voff&quot;</span>     <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+         <span class="s">&quot;line_type&quot;</span><span class="p">:</span> <span class="s">&quot;na&quot;</span><span class="p">,</span>
+         <span class="s">&quot;label&quot;</span>    <span class="p">:</span> <span class="s">r&quot;[O III]&quot;</span>
+         <span class="p">},</span>
+</pre></div>
+
+<p>or in a more general case</p>
+<div class="highlight"><pre><span class="s">&quot;RANDOM_USER_LINE&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span>      <span class="p">:</span> <span class="mf">3094.394</span><span class="p">,</span> <span class="c1"># some random wavelength </span>
+             <span class="s">&quot;amp&quot;</span>         <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+             <span class="s">&quot;disp&quot;</span>        <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+             <span class="s">&quot;voff&quot;</span>        <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+             <span class="s">&quot;h3&quot;</span>          <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+             <span class="s">&quot;h4&quot;</span>          <span class="p">:</span> <span class="s">&quot;free&quot;</span><span class="p">,</span>
+             <span class="s">&quot;line_type&quot;</span>   <span class="p">:</span> <span class="s">&quot;user&quot;</span><span class="p">,</span>
+             <span class="s">&quot;line_profile&quot;</span><span class="p">:</span> <span class="s">&quot;gauss-hermite&quot;</span>
+             <span class="s">&quot;label&quot;</span>       <span class="p">:</span> <span class="s">r&quot;User Line&quot;</span>
+         <span class="p">},</span>
+</pre></div>
+
+<h2 id="hard-constraints">Hard Constraints<a class="headerlink" href="#hard-constraints" title="Permanent link"></a></h2>
+<p>BADASS uses the <code>numexpr</code> module to allow for hard constraints on line parameters (i.e., &ldquo;tying&rdquo; one line&rsquo;s parameter&rsquo;s to another line&rsquo;s parameters).  To do this, the only requirement is that the constraint be a valid free parameter.  The most common case is tying the [OIII] doublet widths and velocity offsets:</p>
+<p><div class="highlight"><pre>    <span class="s">&quot;NA_OIII_4960&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">4960.295</span><span class="p">,</span>
+             <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;(NA_OIII_5007_AMP/2.98)&quot;</span><span class="p">,</span> 
+             <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;NA_OIII_5007_DISP&quot;</span><span class="p">,</span> 
+             <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;NA_OIII_5007_VOFF&quot;</span><span class="p">,</span> 
+             <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span> <span class="p">,</span>
+             <span class="s">&quot;label&quot;</span><span class="p">:</span><span class="s">r&quot;[O III]&quot;</span>
+             <span class="p">},</span>
+
+    <span class="s">&quot;NA_OIII_5007&quot;</span> <span class="p">:{</span><span class="s">&quot;center&quot;</span><span class="p">:</span><span class="mf">5008.240</span><span class="p">,</span> 
+             <span class="s">&quot;amp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span> 
+             <span class="s">&quot;disp&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span> 
+             <span class="s">&quot;voff&quot;</span><span class="p">:</span><span class="s">&quot;free&quot;</span><span class="p">,</span> 
+             <span class="s">&quot;line_type&quot;</span><span class="p">:</span><span class="s">&quot;na&quot;</span> <span class="p">,</span>
+             <span class="s">&quot;label&quot;</span><span class="p">:</span><span class="s">r&quot;[O III]&quot;</span>
+             <span class="p">},</span>
+</pre></div>
+This works because when we define <code>NA_OIII_5007</code>, free parameters are created for the amplitude (<code>NA_OIII_5007_AMP</code>), dispersion (<code>NA_OIII_5007_DISP</code>) and velocity offset (<code>NA_OIII_5007_VOFF</code>), because we specified that they are <em>free</em> parameters.  These free parameters are the actual parameters that are solved for.  We can then reference those free valid parameters for <code>NA_OIII_4960</code>.  The power of the <code>numexpr</code> module is that we can also perform mathematical operations on those parameters <em>during</em> the fit, for example we can fix the amplitude of [OIII]4960 to be the [OIII]5007 amplitude divided by 2.93.  This makes implementing hard constraints very easy and is a very powerful feature.  With that said, you can do some pretty wild and unrealistic stuff, so use it responsibly.</p>
+<h2 id="soft-constraints">Soft Constraints<a class="headerlink" href="#soft-constraints" title="Permanent link"></a></h2>
+<p>BADASS also uses the <code>numexpr</code> module to implement soft constrains on free parameters.  A soft constraint is defined here as a limit of a free parameter with respect to another free parameter, i.e., soft constraints are inequality constraints.  For example, if we want BADASS to enforce the requirement that broad H-beta has a greater dispersion than narrow [OIII]5007, we would say </p>
+<p><img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP})&space;>=&space;(\rm{narrow~[OIII]5007~DISP})&rdquo; title=&rdquo;<a href="https://latex.codecogs.com/png.image">https://latex.codecogs.com/png.image</a>?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP}) &gt;= (\rm{narrow~[OIII]5007~DISP})&rdquo; /&gt;</p>
+<p>or in the way the <code>scipy.optimize()</code> module requires it</p>
+<p><img src="https://latex.codecogs.com/png.image?\inline&space;\large&space;\dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP}&space;)-&space;&space;(\rm{narrow~[OIII]5007~DISP})&space;>=&space;0&rdquo; title=&rdquo;<a href="https://latex.codecogs.com/png.image">https://latex.codecogs.com/png.image</a>?\inline \large \dpi{110}\bg{black}(\rm{broad~H}\beta\rm{~DISP} )- (\rm{narrow~[OIII]5007~DISP}) &gt;= 0&rdquo; /&gt;</p>
+<p>In BADASS, this soft constraint would be implemented as a tuple of length 2: 
+<div class="highlight"><pre><span class="p">(</span><span class="s">&quot;BR_H_BETA_DISP&quot;</span><span class="p">,</span><span class="s">&quot;NA_OIII_5007_DISP&quot;</span><span class="p">)</span>
+</pre></div>
+By default BADASS includes the following list of soft constraints in the <code>initialize_pars()</code> function:
+<div class="highlight"><pre><span class="n">soft_cons</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="p">(</span><span class="s">&quot;BR_H_BETA_DISP&quot;</span><span class="p">,</span><span class="s">&quot;NA_OIII_5007_DISP&quot;</span><span class="p">),</span> <span class="c1"># broad H-beta width &gt; narrow [OIII] width</span>
+      <span class="p">(</span><span class="s">&quot;BR_H_BETA_DISP&quot;</span><span class="p">,</span><span class="s">&quot;OUT_OIII_5007_DISP&quot;</span><span class="p">),</span> <span class="c1"># broad H-beta width &gt; outflow width</span>
+      <span class="p">(</span><span class="s">&quot;OUT_OIII_5007_DISP&quot;</span><span class="p">,</span><span class="s">&quot;NA_OIII_5007_DISP&quot;</span><span class="p">),</span> <span class="c1"># outflow width &gt; narrow [OIII] width</span>
+      <span class="p">]</span>
+</pre></div></p>
+<h1 id="known-issues">Known Issues<a class="headerlink" href="#known-issues" title="Permanent link"></a></h1>
+<p>We&rsquo;ve done our best to find any bugs or issues.  BADASS is under constant development for this reason.  Please let us know if there are any features you&rsquo;d like us to implement, or bugs that need to be fixed.</p>
+<h1 id="credits">Credits<a class="headerlink" href="#credits" title="Permanent link"></a></h1>
+<ul>
+<li><a href="https://r-magnitude.com/">Dr. Remington Oliver Sexton (USNO/GMU)</a> </li>
+<li><a href="https://mason.gmu.edu/~sdoan2/">Sara M. Doan (GMU)</a></li>
+<li><a href="https://github.com/Michael-Reefe">Michael Reefe (GMU</a></li>
+<li>William Matzko (GMU)</li>
+</ul>
+<h1 id="license">License<a class="headerlink" href="#license" title="Permanent link"></a></h1>
+<p>MIT License</p>
+<p>Copyright (c) 2022 Remington Oliver Sexton</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &ldquo;Software&rdquo;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED &ldquo;AS IS&rdquo;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</p>
+<blockquote>
+<p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p>
+</blockquote></article></body></html>
