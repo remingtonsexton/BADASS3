@@ -768,6 +768,8 @@ def run_single_thread(fits_file,
 
         blob_pars = get_blob_pars(lam_gal, line_list, combined_line_list, velscale)
 
+        print(test_options["ranges"])
+        sys.exit()
 
         # If test_options["lines"] is a single string
         parent_lines = ncomp_dict["NCOMP_1"]
@@ -4572,7 +4574,7 @@ def line_test(param_dict,
                 #         print("\t",hpar,"=",user_line_list[u][hpar])
 
                 # Generate parameters without lines
-                _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal[test_idx],galaxy[test_idx],noise[test_idx],test_results["RANGE"][i],disp_res[test_idx],fit_mask,velscale,
+                _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
                                      comp_options,narrow_options,broad_options,absorp_options,
                                      user_line_list,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_temp,
                                      opt_feii_options,uv_iron_options,balmer_options,
@@ -4612,9 +4614,9 @@ def line_test(param_dict,
                                                        _line_list,
                                                        {},
                                                        _soft_cons,
-                                                       lam_gal[test_idx],
-                                                       galaxy[test_idx],
-                                                       noise[test_idx],
+                                                       lam_gal,
+                                                       galaxy,
+                                                       noise,
                                                        z,
                                                        cosmology,
                                                        comp_options,
@@ -4632,7 +4634,7 @@ def line_test(param_dict,
                                                        balmer_template,
                                                        stel_templates,
                                                        blob_pars,
-                                                       disp_res[test_idx],
+                                                       disp_res,
                                                        test_fit_mask,
                                                        velscale,
                                                        flux_norm,
@@ -4642,7 +4644,7 @@ def line_test(param_dict,
                                                        output_model=False,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
-                                                       max_like_niter=0,
+                                                       max_like_niter=max_like_niter,
                                                        full_verbose=test_options["full_verbose"],
                                                        verbose=test_options["full_verbose"])
 
@@ -4672,6 +4674,8 @@ def line_test(param_dict,
                     print("\n")
 
                     print("-------------------------------------------------------")
+
+                    sys.exit()
                 
                 # Plot for testing
                 # fig = plt.figure(figsize=(10,6))
@@ -5934,7 +5938,7 @@ def max_likelihood(param_dict,
                              # T = 0.0,
                              stepsize=10.0,
                              # interval=90,
-                             niter = 1000, # Max # of iterations before stopping
+                             niter = 2500, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
                                                          prior_dict,

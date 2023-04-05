@@ -56,7 +56,7 @@ def root_mean_squared_error(data,model):
 	data_med = np.nanmedian(data)
 	data  /= data_med
 	model /= data_med
-	return np.sqrt(len(data) * np.nansum((data-model)**2))
+	return np.sqrt(1.0/len(data) * np.nansum((data-model)**2))
 
 ##################################################################################
 
@@ -69,7 +69,7 @@ def mean_abs_error(data,model):
 	data_med = np.nanmedian(data)
 	data  /= data_med
 	model /= data_med
-	return len(data) * np.nansum(np.abs(data-model))
+	return 1.0/len(data) * np.nansum(np.abs(data-model))
 
 ##################################################################################
 

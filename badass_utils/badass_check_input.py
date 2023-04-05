@@ -207,7 +207,7 @@ def check_test_options(input,verbose=False):
 	if not input:
 		output = {	"test_mode":"line",
 					"lines": [], # The lines to test
-					"ranges":[], # The range over which the test is performed
+					"ranges":None, # The range over which the test is performed
 					"metrics": ["BADASS"],# Fitting metrics to use when determining the best model
 					"thresholds": [0.95],
 					"conv_mode": "any",
@@ -238,9 +238,9 @@ def check_test_options(input,verbose=False):
 					},
 	"ranges" : {
 				 "conds" : [
-							 lambda x: isinstance(x,(list,tuple)),
+							 lambda x: isinstance(x,(list,tuple,None)),
 						],
-				 "default" : [],
+				 "default" : None,
 				 "error_message" : "\n ranges must be a list or tuple of valid fitting ranges for each line (list of size 2 lists/tuples).\n",
 				},
 	"metrics" : {
