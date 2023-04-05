@@ -843,25 +843,33 @@ This example performs a fit on a Keck LRIS spectrum of a Seyfert 1 galaxy from [
 
 ## Multiple Spectra with Multiprocessing
 
-The [BADASS3_multi_spectra.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_multi_spectra.ipynb) notebook shows how to set up BADASS to use Python's multiprocessing capabilities to fit any number of spectra simultaneously.  The number of spectra that can be *efficiently* fit simultaneously ultimately depends on the number of CPUs your machine has.  The number of simultaneous processes is the only parameter the user needs to specify, and BADASS assigns a process (a fit) to each core.
+The [BADASS3_multi_spectra.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_multi_spectra.ipynb) notebook shows how to set up BADASS to use Python's multiprocessing capabilities to fit any number of spectra simultaneously.  The number of spectra that can be *efficiently* fit simultaneously ultimately depends on the number of CPUs your machine has.  The number of simultaneous processes is the only parameter the user needs to specify, and BADASS assigns a process (a fit) to each core.
 
 ## Multiple Spectra with Multiprocessing
 
-The [BADASS3_multi_spectra_options.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_multi_spectra_options.ipynb) notebook is identical to the multi-spectra example above, except with fitting options passed via an options file.
+The [BADASS3_multi_spectra_options.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_multi_spectra_options.ipynb) notebook is identical to the multi-spectra example above, except with fitting options passed via an options file.
 
 
 ## MANGA IFU Cube Data
 
-Support for fitting IFU cubes is the newest feature of BADASS, spurred by the increasingly growing interest in studying outflows and AGN feedback using IFU data.  The [BADASS3_ifu_MANGA.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/BADASS3_ifu_MANGA.ipynb) notebook shows how to fit the standardized cubes produced by MANGA.  BADASS can also utilize the voronoi binning [VorBin](https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning) algorithm from [Cappellari & Copin (2003, MNRAS, 342, 345)](https://ui.adsabs.harvard.edu/abs/2003MNRAS.342..345C/abstract), as well as multiprocessing to quickly (for Python at least) fit cubes.
+Support for fitting IFU cubes is the newest feature of BADASS, spurred by the increasingly growing interest in studying outflows and AGN feedback using IFU data.  The [BADASS3_ifu_MANGA.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_ifu_MANGA.ipynb) notebook shows how to fit the standardized cubes produced by MANGA.  BADASS can also utilize the voronoi binning [VorBin](https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning) algorithm from [Cappellari & Copin (2003, MNRAS, 342, 345)](https://ui.adsabs.harvard.edu/abs/2003MNRAS.342..345C/abstract), as well as multiprocessing to quickly (for Python at least) fit cubes.
 
 ![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/manga_cube_example.png)
 
-## Non-MANGA IFU Cube Data
 
-The []() notebook, similarly illustrates how to fit generic cube data, similar to how non-SDSS spectra are fit in BADASS.  The user must provide some basic information about the data, but BADASS handles the data as standard NumPy arrays. 
+## MUSE IFU Cube Data
+
+By popular demand, we've included an additional example using a MUSE subcube in [BADASS3_ifu_MUSE.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_ifu_MUSE.ipynb).  This is different from the Generic Cube example, which also fits a MUSE subcube, in that this example is an actual MUSE subcube, and not converted into NumPy arrays for the generic case.
+
+
+## Generic IFU Cube Data
+
+The [BADASS3_ifu_LVS_Rodeo_Cube.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_ifu_LVS_Rodeo_Cube.ipynb) notebook, similarly illustrates how to fit generic cube data, similar to how non-SDSS spectra are fit in BADASS.  The user must provide some basic information about the data, but BADASS handles the data as standard NumPy arrays.
 
 Here are some results of the Rodeo Cube (MUSE subcube of NGC 1386) from the [Large-Volume Spectroscopic Analyses of AGN and Star Forming Galaxies in the Era of JWST](https://www.stsci.edu/contents/events/stsci/2022/march/large-volume-spectroscopic-analyses-of-agn-and-star-forming-galaxies-in-the-era-of-jwst) workshop, during which BADASS and its new features were showcased:
 ![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/LVS_rodeo_example.png)
+
+
 
 
 # How to
