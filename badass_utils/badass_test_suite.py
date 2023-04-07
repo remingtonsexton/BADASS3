@@ -22,11 +22,16 @@ from scipy.ndimage import generic_filter,gaussian_filter1d
 
 ##################################################################################
 
-def r_squared(data,model):
+def r_squared(data,model,test_idx=None):
 	"""
 	Simple calculation of R-squared
 	statistic for a single fit.
 	"""
+
+	if test_idx is not None:
+		data  = data[test_idx]
+		model = model[test_idx]
+
 	# Calculate residual sum-of-squares (RSS)
 	rss = np.nansum((data-model)**2)
 	# Calculate total sum-of-squares (TSS)
@@ -35,11 +40,17 @@ def r_squared(data,model):
 
 ##################################################################################
 
-def r_chi_squared(data,model,noise,npar):
+def r_chi_squared(data,model,noise,npar,test_idx=None):
 	"""
 	Simple calculation of reduced Chi-squared
 	statistic for a single fit.
 	"""
+
+	if test_idx is not None:
+		data  = data[test_idx]
+		model = model[test_idx]
+		noise = noise[test_idx]
+
 	# Degrees of freedon (number of data minus free fitted parameters0)
 	nu = len(data)-npar
 	rchi2 = np.nansum((data-model)**2/noise**2)/nu
@@ -47,11 +58,16 @@ def r_chi_squared(data,model,noise,npar):
 
 ##################################################################################
 
-def root_mean_squared_error(data,model):
+def root_mean_squared_error(data,model,test_idx=None):
 	"""
 	Simple calculation of root mean squared error (RMSE)
 	statistic for a single fit.
 	"""
+
+	if test_idx is not None:
+		data  = data[test_idx]
+		model = model[test_idx]
+
 	# Normalize by subtracting by the median of the data
 	data_med = np.nanmedian(data)
 	data  /= data_med
@@ -60,11 +76,16 @@ def root_mean_squared_error(data,model):
 
 ##################################################################################
 
-def mean_abs_error(data,model):
+def mean_abs_error(data,model,test_idx=None):
 	"""
 	Simple calculation of mean absolute error (MAE)
 	statistic for a single fit.
 	"""
+
+	if test_idx is not None:
+		data  = data[test_idx]
+		model = model[test_idx]
+
 	# Normalize by subtracting by the median of the data
 	data_med = np.nanmedian(data)
 	data  /= data_med
