@@ -130,7 +130,7 @@ user_lines = {
 # "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],# Fitting metrics to use when determining the best model
 # "thresholds": [0.95, 0.95, 0.10, 3.0],
 # "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
-# "auto_stop":False, # automatically stop testing once threshold is reached; False test all no matter what
+# "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
 # "full_verbose":True, # prints out all test fitting to screen
 # "plot_tests":True, # plot the fit of each model comparison
 # "force_best":True, # this forces the more-complex model to have a fit better than the previous.

@@ -819,7 +819,7 @@ def run_single_thread(fits_file,
 
 
 
-        user_lines = line_test(param_dict,
+        user_lines, force_thresh = line_test(param_dict,
                                line_list,
                                combined_line_list,
                                soft_cons,
@@ -942,6 +942,16 @@ def run_single_thread(fits_file,
 
     ####################################################################################################################################################################################
 
+    if (test_lines==True) & (force_thresh/force_thresh==1):
+        force_best=True
+    else:
+        force_best=False 
+        force_thresh=np.inf
+
+    if verbose and force_best:
+        print("\n Required Maximum Likelihood RMSE threshold: %0.4f \n" % (force_thresh))
+
+
     # Peform the initial maximum likelihood fit (used for initial guesses for MCMC)
     result_dict, comp_dict     = max_likelihood(param_dict,
                                                 line_list,
@@ -978,6 +988,9 @@ def run_single_thread(fits_file,
                                                 test_outflows=False,
                                                 n_basinhop=n_basinhop,
                                                 max_like_niter=max_like_niter,
+                                                force_best=force_best,
+                                                force_thresh=force_thresh,
+                                                full_verbose=force_best,
                                                 verbose=verbose)
     
     if (mcmc_fit==False):
@@ -4525,6 +4538,7 @@ def line_test(param_dict,
                     "F_RATIO":[],
                     # "R_SQUARED_RATIO":[],
                     "SSR_RATIO":[],
+                    "TARGET_RMSE":[],
                     }
 
     # Determine ALL fits that will need to take place
@@ -4644,7 +4658,7 @@ def line_test(param_dict,
                                                        output_model=False,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
-                                                       max_like_niter=max_like_niter,
+                                                       max_like_niter=0,
                                                        full_verbose=test_options["full_verbose"],
                                                        verbose=test_options["full_verbose"])
 
@@ -4889,6 +4903,10 @@ def line_test(param_dict,
 
             # Begin adding statistics to test_results
 
+            # Record the target threshold (RMSE) of the complex fit; this will be used to ensure the final maximum likelihood fit 
+            # is at least as good as this
+            targ_thresh = badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+            test_results["TARGET_RMSE"].append(targ_thresh)
             # Perform Bayesian A/B test
             # delta degrees of freedom between the two models A and B (dof A > dof B)
             ddof = np.abs(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["dof"] - fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["dof"])
@@ -4970,15 +4988,20 @@ def line_test(param_dict,
                     if verbose:
                         print("\n Reached end of testing for %s and have not reached thresholds.\n" % (line))
 
-        # Testing should've concluded at this stage; so now we need to check the results and determine the best line list
+    # Testing should've concluded at this stage; so now we need to check the results and determine the best line list
     new_line_list = {}
+    rmse_thresholds = []
+    # for line in line_list:
+    #     print(line)
+    # sys.exit()
+
     # Get lines that are not being tested and are not associated and add them to the new line list.
     all_tested_lines = np.unique([line for group in test_options["lines"] for line in group])
-    for line in line_list:
-        if (line in all_tested_lines) or (("parent" in line_list[line]) and (line_list[line]["parent"] in all_tested_lines)):
+    for line in orig_line_list:
+        if (line in all_tested_lines) or (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in all_tested_lines)):
             pass
         else:
-            new_line_list[line] = line_list[line]
+            new_line_list[line] = orig_line_list[line]
     # Now we check the test_results
     for test in test_options["lines"]:
         res = {} # results by tested line
@@ -5001,37 +5024,43 @@ def line_test(param_dict,
 
             if test_options["conv_mode"]=="any":
                 if np.any(checked_metrics) and (i==0):
+                    rmse_thresholds.append(np.inf)
                     break
                 elif np.any(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
     #               print(max_ncomp)
-                    for line in line_list:
-                        if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                    for line in orig_line_list:
+                        if (line in test) or ((orig_line_list[line]["ncomp"]<max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
+                            rmse_thresholds.append(res["TARGET_RMSE"][i-1])
                     break
                 # if reached the end and no convergence is met, use max number of components
                 elif (i==len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-                    for line in line_list:
-                        if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                    for line in orig_line_list:
+                        if (line in test) or ((orig_line_list[line]["ncomp"]<=max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
+                            rmse_thresholds.append(res["TARGET_RMSE"][i])
                     break
             elif test_options["conv_mode"]=="all":
                 if np.all(checked_metrics) and (i==0):
+                    rmse_thresholds.append(np.inf)
                     break
                 elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
     #               print(max_ncomp)
-                    for line in line_list:
-                        if (line in test) or ((line_list[line]["ncomp"]<max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                    for line in orig_line_list:
+                        if (line in test) or ((orig_line_list[line]["ncomp"]<max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
+                            rmse_thresholds.append(res["TARGET_RMSE"][i-1])
                     break
                 # if reached the end and no convergence is met, use max number of components
                 elif (i==len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-                    for line in line_list:
-                        if (line in test) or ((line_list[line]["ncomp"]<=max_ncomp) and (("parent" in line_list[line]) and (line_list[line]["parent"] in test))):
+                    for line in orig_line_list:
+                        if (line in test) or ((orig_line_list[line]["ncomp"]<=max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
+                            rmse_thresholds.append(res["TARGET_RMSE"][i])
                     break
 
     # Now check AON if it is a test statistic
@@ -5072,9 +5101,9 @@ def line_test(param_dict,
 
     # Print a table with the results and write it to the log
     ptbl = PrettyTable()
-    ptbl.field_names = ["TEST","NCOMP_A","NCOMP_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","AON"]
+    ptbl.field_names = ["TEST","NCOMP_A","NCOMP_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","AON","TARGET_RMSE"]
     for i in range(len(test_results["TEST"])):
-        ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i]],3)))
+        ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i],test_results["TARGET_RMSE"][i]],3)))
     if verbose:
         print("\n Test Results:")
         print(ptbl)
@@ -5082,6 +5111,8 @@ def line_test(param_dict,
     # import pickle
     # with open("fit_res_dict.pickle","wb") as handle:
     #     pickle.dump(fit_res_dict,handle)
+    # with open("test_results.pickle","wb") as handle:
+    #     pickle.dump(test_results,handle)
 
     # sys.exit()
     # Write to log
@@ -5090,7 +5121,11 @@ def line_test(param_dict,
     # Save results to JSON files for all tests
     write_line_test_results(fit_res_dict,test_results,run_dir,binnum,spaxelx,spaxely)
 
-    return new_line_list
+    # print(rmse_thresholds)
+    # print(np.min(rmse_thresholds))
+    # sys.exit()
+
+    return new_line_list, np.nanmin(rmse_thresholds)
 
 ##################################################################################
 
