@@ -50,7 +50,7 @@ import psutil
 import pathlib
 import importlib
 import multiprocessing as mp
-# import bifrost
+import bifrost
 import spectres
 import corner
 # Import BADASS tools modules
@@ -575,6 +575,7 @@ def run_single_thread(fits_file,
     plot_corner         = plot_options["plot_corner"]
     corner_options      = plot_options["corner_options"]
 
+
     # Set up run ('MCMC_output_#') directory
     work_dir = os.path.dirname(fits_file)+"/"
     run_dir,prev_dir = setup_dirs(work_dir,output_options['verbose'])
@@ -742,6 +743,10 @@ def run_single_thread(fits_file,
         write_log((),'update_balmer',run_dir)
     elif (fit_balmer==False):
         balmer_template = None
+
+    # Set force_thresh to np.inf.  This will get overridden if 
+    # the user does the line test
+    force_thresh= badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.full_like(galaxy,np.nanmedian(galaxy)) )
 
 
     #### Line Testing ################################################################################################################################################################################
@@ -942,7 +947,7 @@ def run_single_thread(fits_file,
 
     ####################################################################################################################################################################################
 
-    if (test_lines==True) & (force_thresh/force_thresh==1):
+    if (force_thresh/force_thresh==1):
         force_best=True
     else:
         force_best=False 
@@ -990,7 +995,7 @@ def run_single_thread(fits_file,
                                                 max_like_niter=max_like_niter,
                                                 force_best=force_best,
                                                 force_thresh=force_thresh,
-                                                full_verbose=force_best,
+                                                full_verbose=verbose,
                                                 verbose=verbose)
     
     if (mcmc_fit==False):
@@ -3810,6 +3815,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
     in terms of velocity.
 
     """
+
     # Constants
     c = 299792.458 # speed of light (km/s)
 
@@ -4083,8 +4089,21 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
             else:
                 amp_factor = 1
 
-            amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],
-                                                               line_par_input[line+"_VOFF"]["init"],line_par_input[line+"_VOFF"]["plim"],
+            # Amplitude is dependent on velocity offset from expected location, which we determined above.  If the amplitude is free but voff 
+            # is tied to another line, we must extract whatever tied voff is 
+
+            if (("voff" in line_list[line]) and (line_list[line]["voff"]=="free")):
+
+                amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],
+                                                                   line_par_input[line+"_VOFF"]["init"],line_par_input[line+"_VOFF"]["plim"],
+                                                                   amp_factor
+                                                                  )
+
+            else:
+
+                amp_default_init, amp_default_plim = amp_hyperpars(line_list[line]["line_type"],line_list[line]["center"],
+                                                               0.0,
+                                                               (-500,500),
                                                                amp_factor
                                                               )
 
@@ -5927,16 +5946,13 @@ def max_likelihood(param_dict,
 
             # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
             # median within the median abs. deviation, terminate.
-            if (basinhop_count>=force_basinhop) and (((lowest_rmse-accept_thresh)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
+            if (accepted_count>1) and (basinhop_count>=force_basinhop) and (((lowest_rmse-accept_thresh)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
 
                 if full_verbose:
                     print(" Fit Status: True")
                     print(" Force threshold: %0.4f" % force_thresh)
                     print(" Lowest RMSE: %0.4f" % lowest_rmse)
                     print(" Current RMSE: %0.4f" % rmse)
-                    # print(" RMSE MAD: %0.4f" % rmse_mad)
-                    # print(" RMSE STD: %0.4f" % rmse_std)
-                    # print(" RMSE Threshold: %0.4f" % (np.nanmedian(rmse_arr)+rmse_mad))
                     print(" Accepted count: %d" % accepted_count)
                     print(" Basinhop count: %d" % basinhop_count)
                     print("\n")
@@ -5950,9 +5966,6 @@ def max_likelihood(param_dict,
                     print(" Force threshold: %0.4f" % force_thresh)
                     print(" Lowest RMSE: %0.4f" % lowest_rmse)
                     print(" Current RMSE: %0.4f" % rmse)
-                    # print(" RMSE MAD: %0.4f" % rmse_mad)
-                    # print(" RMSE STD: %0.4f" % rmse_std)
-                    # print(" RMSE Threshold: %0.4f" % (np.nanmedian(rmse_arr)+rmse_mad))
                     print(" Accepted count: %d" % accepted_count)
                     print(" Basinhop count: %d" % basinhop_count)
                     print("\n")
@@ -6005,8 +6018,8 @@ def max_likelihood(param_dict,
                                                          output_model,
                                                          run_dir
                                                         ),
-                              # 'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
-                              "method":"Nelder-Mead","bounds":param_bounds,
+                              'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
+                              # "method":"Nelder-Mead","bounds":param_bounds,
                               "options":{"disp":False,}},# "adaptive":True, }},
                                disp=verbose,
                                niter_success=n_basinhop, # Max # of successive search iterations
@@ -6220,11 +6233,11 @@ def max_likelihood(param_dict,
                                              output_model,
                                              run_dir
                                              ),
-                                       # method='SLSQP', 
-                                       method='Nelder-Mead',
+                                       method='SLSQP', 
+                                       # method='Nelder-Mead',
                                        # method="Powell",
                                        bounds = param_bounds, 
-                                       # constraints=cons,
+                                       constraints=cons,
                                        options={'maxiter':1000,'disp': False})
             mcLL[n] = resultmc["fun"] # add best fit function values to mcLL
 
@@ -10812,6 +10825,13 @@ def corner_plot(free_dict,param_dict,corner_options,run_dir):
     """
     Calls the corner.py package to create a corner plot of all or selected parameters.
     """
+
+    # with open("free_dict.pickle","wb") as handle:
+    #     pickle.dump(free_dict,handle)
+    # with open("param_dict.pickle","wb") as handle:
+    #     pickle.dump(param_dict,handle)
+    # with open("corner_options.pickle","wb") as handle:
+    #     pickle.dump(corner_options,handle)
 
     # Extract the flattened chained from the dicts
     free_dict  = {i:free_dict[i]["flat_chain"] for i in free_dict}
