@@ -79,7 +79,7 @@ __author__	   = "Remington O. Sexton (USNO), Sara M. Doan (GMU), Michael A. Reef
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
-__version__	   = "10.0.0"
+__version__	   = "10.1.0"
 __maintainer__ = "Remington O. Sexton"
 __email__	   = "remington.o.sexton.civ@us.navy.mil"
 __status__	   = "Release"
@@ -276,7 +276,7 @@ __status__	   = "Release"
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
 
-# Version 10.0.0
+# Version 10.0.0 - 10.1.0
 # - New generalized line component option for easily adding n number of line components; deprecates 'outflow'
 #   components. 
 # - W80 now a standard line parameter
@@ -285,6 +285,7 @@ __status__	   = "Release"
 # - Fixed autocorrelation time calculation; now always produces a time
 # - PPOLY polynomial no longer an option pending bug fixes.
 # - To avoid an excessive number of plots, we now limit plotting of histograms to free fitted parameters.
+# - Configuration testing 
 ##########################################################################################################
 
 
@@ -881,7 +882,131 @@ def run_single_thread(fits_file,
             return
 
     elif (test_lines==True) and (test_options["test_mode"]=="config"):
-        pass
+        
+        #
+        if (user_lines is None) or (len(user_lines)==0):
+            raise ValueError("\n The input user line list is None or empty.  There are no lines to test.  You cannot use the default line list to test for lines, as they must be explicitly defined by user lines.  See examples for details...\n")
+
+        # Initialize free parameters (all components, lines, etc.)
+        param_dict, line_list, combined_line_list, soft_cons, ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
+                                     comp_options,narrow_options,broad_options,absorp_options,
+                                     user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
+                                     opt_feii_options,uv_iron_options,balmer_options,
+                                     run_dir,fit_type='init',fit_stat=fit_stat,
+                                     fit_opt_feii=fit_opt_feii,fit_uv_iron=fit_uv_iron,fit_balmer=fit_balmer,
+                                     fit_losvd=fit_losvd,fit_host=fit_host,fit_power=fit_power,fit_poly=fit_poly,
+                                     fit_narrow=fit_narrow,fit_broad=fit_broad,fit_absorp=fit_absorp,
+                                     tie_line_disp=tie_line_disp,tie_line_voff=tie_line_voff,verbose=verbose)
+
+        blob_pars = get_blob_pars(lam_gal, line_list, combined_line_list, velscale)
+
+        # If ranges not specified, then use the whole fitting region by default
+        if (test_options["ranges"] is None):
+            test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
+
+        # If test_options["lines"] is a single string
+        parent_lines = ncomp_dict["NCOMP_1"]
+        if isinstance(test_options["lines"],str):
+            if (test_options["lines"] in parent_lines) and ((line_list[test_options["lines"]]["center"]>=test_options["ranges"][0]) & (line_list[test_options["lines"]]["center"]<=test_options["ranges"][1])):
+                test_options["lines"] = [test_options["lines"]]
+                test_options["ranges"] = [test_options["ranges"]]
+
+            else:
+                raise ValueError("\n The line to be tested is not a parent line in the line list or is not within the input test range!\n")
+
+        # If test_options["lines"] is a list; iterate through the list; items in list can be lists or strings
+        if isinstance(test_options["lines"],(list,tuple)):
+            valid_lines  = []
+            valid_ranges = []
+            
+            for i,line in enumerate(test_options["lines"]):
+                if isinstance(line,str):
+                    if (line in parent_lines) and ((line_list[line]["center"]>=test_options["ranges"][i][0]) & (line_list[line]["center"]<=test_options["ranges"][i][1])):
+                        valid_lines.append([line])
+                        valid_ranges.append(test_options["ranges"][i])
+                    else:
+                        if verbose:
+                            print("\n The %s to be tested is not a parent line in the line list or is not within the input test range!\n" % (line))
+
+                if isinstance(line,(list,tuple)): # for groups of lines being tested together
+                    # 
+                    if (np.all([True if l in parent_lines else False for l in line])) & (np.any([True if ((line_list[l]["center"]>=test_options["ranges"][i][0]) & (line_list[l]["center"]<=test_options["ranges"][i][1])) else False for l in line])):
+                        valid_lines.append(line)
+                        valid_ranges.append(test_options["ranges"][i])
+                    else:
+                        if verbose:
+                            print("\n The %s to be tested is not a parent line in the line list or is not within the input test range!\n" % (line))
+
+
+            if len(valid_ranges)>=1:
+                test_options["lines"] = valid_lines
+                test_options["ranges"] = valid_ranges
+            else:
+                raise ValueError("\n There are no valid lines or ranges to be tested!\n")
+
+        if verbose:
+            print("\n Performing configuration testing for %d configurations..." % len(test_options["lines"]))
+            print("----------------------------------------------------------------------------------------------------")
+
+
+
+
+        user_lines, force_thresh = config_test(param_dict,
+                               line_list,
+                               combined_line_list,
+                               soft_cons,
+                               ncomp_dict,
+                               lam_gal,
+                               galaxy,
+                               noise,
+                               z,
+                               cosmology,
+                               fit_reg,
+                               user_lines,
+                               user_constraints,
+                               combined_lines,
+                               test_options,
+                               comp_options,
+                               narrow_options,
+                               broad_options,
+                               absorp_options,
+                               losvd_options,
+                               host_options,
+                               power_options,
+                               poly_options,
+                               opt_feii_options,
+                               uv_iron_options,
+                               balmer_options,
+                               outflow_test_options,
+                               host_template,
+                               opt_feii_templates,
+                               uv_iron_template,
+                               balmer_template,
+                               stel_templates,
+                               blob_pars,
+                               disp_res,
+                               fit_mask,
+                               velscale,
+                               flux_norm,
+                               run_dir,
+                               fit_type='init',
+                               fit_stat=fit_stat,
+                               output_model=False,
+                               test_outflows=False,
+                               n_basinhop=n_basinhop,
+                               max_like_niter=max_like_niter,
+                               verbose=verbose,
+                               binnum=binnum,
+                               spaxelx=spaxelx,
+                               spaxely=spaxely)
+        # Exit BADASS
+        print(' - Configuration testing complete for %s! \n' % fits_file.parent.name)
+        print("----------------------------------------------------------------------------------------------------")
+
+        if test_options["continue_fit"]:
+            pass
+        else:
+            return
 
 ####################################################################################################################################################################################
 
