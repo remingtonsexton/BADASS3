@@ -79,7 +79,7 @@ __author__	   = "Remington O. Sexton (USNO), Sara M. Doan (GMU), Michael A. Reef
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
-__version__	   = "9.4.0"
+__version__	   = "10.0.0"
 __maintainer__ = "Remington O. Sexton"
 __email__	   = "remington.o.sexton.civ@us.navy.mil"
 __status__	   = "Release"
@@ -276,7 +276,7 @@ __status__	   = "Release"
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
 
-# Version 9.4.0
+# Version 10.0.0
 # - New generalized line component option for easily adding n number of line components; deprecates 'outflow'
 #   components. 
 # - W80 now a standard line parameter
