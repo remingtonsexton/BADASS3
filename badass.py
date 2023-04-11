@@ -284,8 +284,7 @@ __status__	   = "Release"
 #   ability to continue fitting with the best model.
 # - Fixed autocorrelation time calculation; now always produces a time
 # - PPOLY polynomial no longer an option pending bug fixes.
-# - To avoid an excessive number of plots, we now limit plotting of histograms to free fitted paramters.
-# - 
+# - To avoid an excessive number of plots, we now limit plotting of histograms to free fitted parameters.
 ##########################################################################################################
 
 
