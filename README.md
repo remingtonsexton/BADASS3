@@ -1,7 +1,7 @@
 
 ![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS2_logo.gif)
 
-## New in Version 9.4.0
+## New in Version 10.0.0
 * New line model and testing framework. See [Line Testing and Options](#line-testing-and-options).
 * Line component options.  See [Line Component Options](#line-component-options).
 * Improvements in autocorrelation calculations.
