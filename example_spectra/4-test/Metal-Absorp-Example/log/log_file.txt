@@ -1,0 +1,381 @@
+
+############################### BADASS 9.4.0 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spec-7721-57360-0412.fits     
+(RA, DEC):                    (14.340921,30.133079)         
+SDSS redshift:                1.83798                       
+fitting region:               (1256,3500) [A]               
+velocity scale:               69.11 [km/s/pixel]            
+Galactic E(B-V):              0.064                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (1000, 3500)                  
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 25                            
+                    test_lines: False                         
+                max_like_niter: 0                             
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: True                          
+                   fit_uv_iron: True                          
+                    fit_balmer: True                          
+                     fit_losvd: False                         
+                      fit_host: True                          
+                     fit_power: True                          
+                      fit_poly: True                          
+                    fit_narrow: False                         
+                     fit_broad: True                          
+                    fit_absorp: False                         
+                 tie_line_disp: False                         
+                 tie_line_voff: False                         
+
+   losvd_options:                                                                         
+                                Stellar LOSVD fitting is turned off.
+
+   host_options:                                                                          
+                           age: [1.0, 5.0, 10.0]              
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 150.0} 
+
+   power_options:                                                                         
+                          type: simple                        
+
+   poly_options:                                                                          
+                         apoly: bool: True, order: 13                                                                               
+                         mpoly: bool: False, order: 3                                                                               
+
+   opt_feii_options:                                                                      
+                 opt_template:: type: VC04                                                                                          
+                 opt_amp_const: bool: False, br_opt_feii_val: 1.0, na_opt_feii_val: 1.0                                             
+                opt_disp_const: bool: False, br_opt_feii_val: 3000.0, na_opt_feii_val: 500.0                                        
+                opt_voff_const: bool: False, br_opt_feii_val: 0.0, na_opt_feii_val: 0.0                                             
+   uv_iron_options:                                                                       
+                  uv_amp_const: bool: False, uv_iron_val: 1.0                                                                       
+                 uv_disp_const: bool: False, uv_iron_val: 3000.0                                                                    
+                 uv_voff_const: bool: True, uv_iron_val: 0.0                                                                        
+   balmer_options:                                                                        
+                       R_const: bool: False, R_val: 1.0                                                                             
+              balmer_amp_const: bool: False, balmer_amp_val: 1.0                                                                    
+             balmer_disp_const: bool: True, balmer_disp_val: 5000.0                                                                 
+             balmer_voff_const: bool: True, balmer_voff_val: 0.0                                                                    
+                    Teff_const: bool: True, Teff_val: 15000.0                                                                       
+                     tau_const: bool: True, tau_val: 1.0                                                                            
+   plot_options:                                                                          
+               plot_param_hist: False                         
+                      plot_pca: False                         
+   output_options:                                                                        
+                   write_chain: False                         
+                       verbose: True                          
+
+-----------------------------------------------------------------------------------------------------------------
+
+### PCA Options ###
+-----------------------------------------------------------------------------------------------------------------
+pca_options:                                                  
+
+                        do_pca: False                         
+
+-----------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------
+ Line List:
+----------------------------------------------------------------------------------------------------------------------------------------
+BR_CIII_1908                                                                              
+                              amp                           free                          
+                              center                        1908.734                      
+                              center_pix                    1816.5472547274749            
+                              disp                          free                          
+                              disp_res_ang                  0.41147766271000386           
+                              disp_res_kms                  64.62812519498631             
+                              label                         C III]                        
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_CII_1335                                                                               
+                              amp                           free                          
+                              center                        1335.31                       
+                              center_pix                    264.91475357710635            
+                              disp                          free                          
+                              disp_res_ang                  0.35292060891632915           
+                              disp_res_kms                  79.23473712162945             
+                              label                         C II                          
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_CII_2326                                                                               
+                              amp                           free                          
+                              center                        2326.0                        
+                              center_pix                    2675.1893248175184            
+                              disp                          free                          
+                              disp_res_ang                  0.508842541244781             
+                              disp_res_kms                  65.58347213015446             
+                              label                         C II]                         
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_CIV_1549                                                                               
+                              amp                           free                          
+                              center                        1549.48                       
+                              center_pix                    910.9534635149024             
+                              disp                          free                          
+                              disp_res_ang                  0.37508937962843575           
+                              disp_res_kms                  72.5720674603763              
+                              label                         C IV                          
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_FEIII_UV47                                                                             
+                              amp                           free                          
+                              center                        2418.0                        
+                              center_pix                    2843.656277436348             
+                              disp                          free                          
+                              disp_res_ang                  0.511914229555023             
+                              disp_res_kms                  63.468993037004374            
+                              label                         Fe III                        
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_HEII_1640                                                                              
+                              amp                           free                          
+                              center                        1640.4                        
+                              center_pix                    1158.5903591070853            
+                              disp                          free                          
+                              disp_res_ang                  0.3850604050586092            
+                              disp_res_kms                  70.37198568092909             
+                              label                         He II                         
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_MGII_2799                                                                              
+                              amp                           free                          
+                              center                        2799.117                      
+                              center_pix                    3479.302704588548             
+                              disp                          free                          
+                              disp_res_ang                  0.516744822408248             
+                              disp_res_kms                  55.34466778935719             
+                              label                         Mg II                         
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_OI_1305                                                                                
+                              amp                           free                          
+                              center                        1305.53                       
+                              center_pix                    166.96169105691047            
+                              disp                          free                          
+                              disp_res_ang                  0.35018203670709797           
+                              disp_res_kms                  80.41326781603419             
+                              label                         O I                           
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_SIIV+OIV                                                                               
+                              amp                           free                          
+                              center                        1399.8                        
+                              center_pix                    469.7521180030256             
+                              disp                          free                          
+                              disp_res_ang                  0.3592105858056593            
+                              disp_res_kms                  76.9314362468199              
+                              label                         Si IV + O IV                  
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+BR_SIIV_1398                                                                              
+                              amp                           free                          
+                              center                        1397.61                       
+                              center_pix                    462.9519211822657             
+                              disp                          free                          
+                              disp_res_ang                  0.3589892412577814            
+                              disp_res_kms                  77.00450557181568             
+                              label                         Si IV + O IV                  
+                              line_profile                  gaussian                      
+                              line_type                     br                            
+                              ncomp                         1                             
+                              voff                          free                          
+----------------------------------------------------------------------------------------------------------------------------------------
+ Soft Constraints:
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### Maximum Likelihood Fitting Results ###
+-----------------------------------------------------------------------------------------------------------------
+Parameter                     Max. Like. Value              +/- 1-sigma                   Flag                          
+-----------------------------------------------------------------------------------------------------------------
+APOLY_COEFF_1                 -73.8429                      0.0000                        1                             
+APOLY_COEFF_10                -3.8439                       0.0000                        1                             
+APOLY_COEFF_11                -0.3061                       0.0000                        1                             
+APOLY_COEFF_12                4.0331                        0.0000                        1                             
+APOLY_COEFF_13                -1.7068                       0.0000                        1                             
+APOLY_COEFF_2                 11.9562                       0.0000                        1                             
+APOLY_COEFF_3                 -8.3215                       0.0000                        1                             
+APOLY_COEFF_4                 10.4817                       0.0000                        1                             
+APOLY_COEFF_5                 -8.0296                       0.0000                        1                             
+APOLY_COEFF_6                 8.3931                        0.0000                        1                             
+APOLY_COEFF_7                 -12.5506                      0.0000                        1                             
+APOLY_COEFF_8                 7.1338                        0.0000                        1                             
+APOLY_COEFF_9                 2.3643                        0.0000                        1                             
+BALMER_AMP                    32.0494                       0.0000                        1                             
+BALMER_RATIO                  57.0195                       0.0000                        1                             
+BR_CIII_1908_AMP              23.5642                       0.0000                        1                             
+BR_CIII_1908_DISP             2731.5007                     0.0000                        1                             
+BR_CIII_1908_EW               15.2027                       0.0000                        0                             
+BR_CIII_1908_FLUX             -13.9896                      0.0000                        0                             
+BR_CIII_1908_FWHM             6432.4124                     0.0000                        0                             
+BR_CIII_1908_LUM              44.3813                       0.0000                        0                             
+BR_CIII_1908_NPIX             178.0000                      0.0000                        0                             
+BR_CIII_1908_SNR              11.2084                       0.0000                        0                             
+BR_CIII_1908_VOFF             -610.8933                     0.0000                        1                             
+BR_CIII_1908_W80              7141.7162                     0.0000                        0                             
+BR_CII_1335_AMP               15.7023                       0.0000                        1                             
+BR_CII_1335_DISP              850.7507                      0.0000                        1                             
+BR_CII_1335_EW                1.2563                        0.0000                        0                             
+BR_CII_1335_FLUX              -14.8244                      0.0000                        0                             
+BR_CII_1335_FWHM              2004.3710                     0.0000                        0                             
+BR_CII_1335_LUM               43.5465                       0.0000                        0                             
+BR_CII_1335_NPIX              41.0000                       0.0000                        0                             
+BR_CII_1335_SNR               7.4646                        0.0000                        0                             
+BR_CII_1335_VOFF              390.7929                      0.0000                        1                             
+BR_CII_1335_W80               2232.4125                     0.0000                        0                             
+BR_CII_2326_AMP               0.0000                        0.0000                        2                             
+BR_CII_2326_DISP              582.8329                      0.0000                        1                             
+BR_CII_2326_EW                0.0000                        0.0000                        1                             
+BR_CII_2326_FLUX              0.0000                        0.0000                        0                             
+BR_CII_2326_FWHM              0.0000                        0.0000                        0                             
+BR_CII_2326_LUM               0.0000                        0.0000                        1                             
+BR_CII_2326_NPIX              0.0000                        0.0000                        0                             
+BR_CII_2326_SNR               0.0000                        0.0000                        0                             
+BR_CII_2326_VOFF              -485.6421                     0.0000                        1                             
+BR_CII_2326_W80               0.0000                        0.0000                        0                             
+BR_CIV_1549_AMP               102.6333                      0.0000                        1                             
+BR_CIV_1549_DISP              2403.2631                     0.0000                        1                             
+BR_CIV_1549_EW                31.9592                       0.0000                        0                             
+BR_CIV_1549_FLUX              -13.4964                      0.0000                        0                             
+BR_CIV_1549_FWHM              5659.2901                     0.0000                        0                             
+BR_CIV_1549_LUM               44.8745                       0.0000                        0                             
+BR_CIV_1549_NPIX              186.0000                      0.0000                        0                             
+BR_CIV_1549_SNR               48.8193                       0.0000                        0                             
+BR_CIV_1549_VOFF              -484.4053                     0.0000                        1                             
+BR_CIV_1549_W80               6285.6825                     0.0000                        0                             
+BR_FEIII_UV47_AMP             2.2964                        0.0000                        1                             
+BR_FEIII_UV47_DISP            892.7376                      0.0000                        1                             
+BR_FEIII_UV47_EW              0.8479                        0.0000                        0                             
+BR_FEIII_UV47_FLUX            -15.3820                      0.0000                        0                             
+BR_FEIII_UV47_FWHM            2102.7014                     0.0000                        0                             
+BR_FEIII_UV47_LUM             42.9889                       0.0000                        0                             
+BR_FEIII_UV47_NPIX            28.0000                       0.0000                        0                             
+BR_FEIII_UV47_SNR             1.0922                        0.0000                        0                             
+BR_FEIII_UV47_VOFF            -99.5098                      0.0000                        1                             
+BR_FEIII_UV47_W80             2337.8361                     0.0000                        0                             
+BR_HEII_1640_AMP              7.9719                        0.0000                        1                             
+BR_HEII_1640_DISP             1549.5348                     0.0000                        1                             
+BR_HEII_1640_EW               1.8374                        0.0000                        0                             
+BR_HEII_1640_FLUX             -14.7713                      0.0000                        0                             
+BR_HEII_1640_FWHM             3649.2150                     0.0000                        0                             
+BR_HEII_1640_LUM              43.5997                       0.0000                        0                             
+BR_HEII_1640_NPIX             69.0000                       0.0000                        0                             
+BR_HEII_1640_SNR              3.7917                        0.0000                        0                             
+BR_HEII_1640_VOFF             -126.3502                     0.0000                        1                             
+BR_HEII_1640_W80              4057.9669                     0.0000                        0                             
+BR_MGII_2799_AMP              18.3843                       0.0000                        1                             
+BR_MGII_2799_DISP             1984.3617                     0.0000                        1                             
+BR_MGII_2799_EW               23.5211                       0.0000                        0                             
+BR_MGII_2799_FLUX             -14.0694                      0.0000                        0                             
+BR_MGII_2799_FWHM             4673.0084                     0.0000                        0                             
+BR_MGII_2799_LUM              44.3015                       0.0000                        0                             
+BR_MGII_2799_NPIX             135.0000                      0.0000                        0                             
+BR_MGII_2799_SNR              8.7446                        0.0000                        0                             
+BR_MGII_2799_VOFF             -311.7889                     0.0000                        1                             
+BR_MGII_2799_W80              5193.0748                     0.0000                        0                             
+BR_OI_1305_AMP                13.1896                       0.0000                        1                             
+BR_OI_1305_DISP               1087.2044                     0.0000                        1                             
+BR_OI_1305_EW                 1.1656                        0.0000                        0                             
+BR_OI_1305_FLUX               -14.8047                      0.0000                        0                             
+BR_OI_1305_FWHM               2560.6451                     0.0000                        0                             
+BR_OI_1305_LUM                43.5662                       0.0000                        0                             
+BR_OI_1305_NPIX               42.0000                       0.0000                        0                             
+BR_OI_1305_SNR                6.2732                        0.0000                        0                             
+BR_OI_1305_VOFF               -13.4395                      0.0000                        1                             
+BR_OI_1305_W80                2848.2760                     0.0000                        0                             
+BR_OPT_FEII_AMP               11.7612                       0.0000                        1                             
+BR_OPT_FEII_DISP              502.1920                      0.0000                        1                             
+BR_OPT_FEII_TEMPLATE_EW       -0.0000                       0.0000                        1                             
+BR_OPT_FEII_TEMPLATE_FLUX     -32.8902                      0.0000                        1                             
+BR_OPT_FEII_TEMPLATE_LUM      25.4808                       0.0000                        1                             
+BR_OPT_FEII_VOFF              6.0257                        0.0000                        1                             
+BR_SIIV+OIV_AMP               27.5859                       0.0000                        1                             
+BR_SIIV+OIV_DISP              3000.0000                     0.0000                        1                             
+BR_SIIV+OIV_EW                9.2328                        0.0000                        0                             
+BR_SIIV+OIV_FLUX              -14.0148                      0.0000                        0                             
+BR_SIIV+OIV_FWHM              7064.5400                     0.0000                        0                             
+BR_SIIV+OIV_LUM               44.3562                       0.0000                        0                             
+BR_SIIV+OIV_NPIX              179.0000                      0.0000                        0                             
+BR_SIIV+OIV_SNR               13.1217                       0.0000                        0                             
+BR_SIIV+OIV_VOFF              -388.0254                     0.0000                        1                             
+BR_SIIV+OIV_W80               7849.3915                     0.0000                        0                             
+BR_SIIV_1398_AMP              0.0000                        0.0000                        2                             
+BR_SIIV_1398_DISP             980.7743                      0.0000                        1                             
+BR_SIIV_1398_EW               0.0000                        0.0000                        1                             
+BR_SIIV_1398_FLUX             0.0000                        0.0000                        0                             
+BR_SIIV_1398_FWHM             0.0000                        0.0000                        0                             
+BR_SIIV_1398_LUM              0.0000                        0.0000                        1                             
+BR_SIIV_1398_NPIX             0.0000                        0.0000                        0                             
+BR_SIIV_1398_SNR              0.0000                        0.0000                        0                             
+BR_SIIV_1398_VOFF             -286.9751                     0.0000                        1                             
+BR_SIIV_1398_W80              0.0000                        0.0000                        0                             
+HOST_TEMP_DISP                117.8532                      0.0000                        1                             
+HOST_TEMP_VEL                 -11.8460                      0.0000                        1                             
+LOG_LIKE                      -8022.3916                    0.0000                        0                             
+L_CONT_AGN_1350               46.5615                       0.0000                        1                             
+L_CONT_AGN_3000               46.3617                       0.0000                        1                             
+L_CONT_HOST_1350              46.2976                       0.0000                        1                             
+L_CONT_HOST_3000              0.0000                        0.0000                        1                             
+L_CONT_TOT_1350               46.5615                       0.0000                        1                             
+L_CONT_TOT_3000               46.3617                       0.0000                        1                             
+NA_OPT_FEII_AMP               15.3271                       0.0000                        1                             
+NA_OPT_FEII_DISP              5.6087                        0.0000                        1                             
+NA_OPT_FEII_TEMPLATE_EW       -0.0000                       0.0000                        1                             
+NA_OPT_FEII_TEMPLATE_FLUX     -23.5114                      0.0000                        1                             
+NA_OPT_FEII_TEMPLATE_LUM      34.8595                       0.0000                        1                             
+NA_OPT_FEII_VOFF              -22.3301                      0.0000                        1                             
+NOISE_SCALE                   1.7197                        0.0000                        1                             
+POWER_AMP                     38.8603                       0.0000                        1                             
+POWER_SLOPE                   1.1082                        0.0000                        1                             
+RCHI_SQUARED                  1.3765                        0.0000                        0                             
+R_SQUARED                     0.9979                        0.0000                        0                             
+UV_IRON_AMP                   4.1899                        0.0000                        1                             
+UV_IRON_DISP                  861.6204                      0.0000                        1                             
+UV_IRON_TEMPLATE_EW           59.3961                       0.0000                        1                             
+UV_IRON_TEMPLATE_FLUX         -13.5302                      0.0000                        1                             
+UV_IRON_TEMPLATE_LUM          44.8408                       0.0000                        1                             
+NOISE_STD.                    0.9160                        
+RESID_STD                     3.7134                        
+-----------------------------------------------------------------------------------------------------------------
