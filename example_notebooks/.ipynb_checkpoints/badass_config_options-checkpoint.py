@@ -1,7 +1,7 @@
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={
-"fit_reg"    : (6250,7000),# Fitting region; Note: Indo-US Library=(3460,9464)
+"fit_reg"    : (4400,5500),#(6250,7000),# Fitting region; Note: Indo-US Library=(3460,9464)
 "good_thresh": 0.0, # percentage of "good" pixels required in fig_reg for fit.
 "mask_bad_pix": False, # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False, # automatically mask lines for continuum fitting.
@@ -120,14 +120,17 @@ user_lines = {
 }
 
 configs = [
-    [],
-    [],
-    [],
-    [],
-    [],
-    [],
-    [],
-    
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007"], # Type 2 Case, single component
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","BR_H_BETA"], # Type 1 case, single component
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2"], # Type 2 Case, double component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","BR_H_BETA"], # Type 1 Case, double component,
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","BR_H_BETA","BR_H_BETA_2"], # Type 1 Case, double component,
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3"], # Type 2 Case, triple component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA"], # Type 1 Case, triple component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA","BR_H_BETA_2"], # Type 1 Case, triple component,
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA","BR_H_BETA_2","BR_H_BETA_3"], # Type 1 Case, triple component,
+    # [],
+    # [],
 ]
 
 
@@ -142,7 +145,7 @@ test_options = {
 "full_verbose":True, # prints out all test fitting to screen
 "plot_tests":True, # plot the fit of each model comparison
 "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-"continue_fit":True, # continue the fit with the best chosen model
+"continue_fit":False, # continue the fit with the best chosen model
 }
 
 
@@ -200,7 +203,7 @@ power_options = {
 ################################################################################
 
 poly_options = {
-"apoly" : {"bool": True , "order": 7}, # Legendre additive polynomial 
+"apoly" : {"bool": True , "order": 3}, # Legendre additive polynomial 
 "mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
 }
 
