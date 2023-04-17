@@ -17,7 +17,7 @@ import copy
 from astropy.io import fits
 import scipy.optimize as op
 from scipy import stats
-from scipy.stats import f, chisquare
+from scipy.stats import f, chisquare, median_abs_deviation
 from scipy.ndimage import generic_filter,gaussian_filter1d
 
 ##################################################################################
@@ -94,7 +94,46 @@ def mean_abs_error(data,model,test_idx=None):
 
 ##################################################################################
 
+def stddev(data,model,test_idx=None):
+	"""
+	Simple calculation of standard deviation (Std. Dev.)
+	statistic for a single fit.
+	"""
+	if test_idx is not None:
+		data  = data[test_idx]
+		model = model[test_idx]
 
+	return np.nanstd(data-model)
+
+##################################################################################
+
+def med_abs_dev(data,model,test_idx=None):
+	"""
+	Simple calculation of median absolute deviation (MAD)
+	statistic for a single fit.
+	"""
+	if test_idx is not None:
+		data  = data[test_idx]
+		model = model[test_idx]
+
+	return median_abs_deviation(data-model)
+
+
+##################################################################################
+
+def ssr(data,model,test_idx=None):
+	"""
+	Simple calculation of median absolute deviation (MAD)
+	statistic for a single fit.
+	"""
+	if test_idx is not None:
+		data  = data[test_idx]
+		model = model[test_idx]
+
+	return np.sum((data-model)**2)
+
+
+##################################################################################
 
 
 def ssr_test(resid_B,

@@ -1,9 +1,7 @@
 ################################## Fit Options #################################
 # Fitting Parameters
 fit_options={
-"fit_reg"    : (4400,5500),# Fitting region; Note: Indo-US Library=(3460,9464)
-# "fit_reg"    : (2000,3000),# Fitting region; Note: Indo-US Library=(3460,9464)
-
+"fit_reg"    : (4400,5500),#(6250,7000),# Fitting region; Note: Indo-US Library=(3460,9464)
 "good_thresh": 0.0, # percentage of "good" pixels required in fig_reg for fit.
 "mask_bad_pix": False, # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False, # automatically mask lines for continuum fitting.
@@ -11,7 +9,7 @@ fit_options={
 "fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares, RCHI2 = reduced chi2
 "n_basinhop": 25, # Number of consecutive basinhopping thresholds before solution achieved
 "test_lines": True,
-"max_like_niter": 10, # number of maximum likelihood iterations
+"max_like_niter": 0, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 "cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
 }
@@ -121,39 +119,24 @@ user_lines = {
 
 }
 
+configs = [
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007"], # Type 2 Case, single component
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","BR_H_BETA"], # Type 1 case, single component
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2"], # Type 2 Case, double component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","BR_H_BETA"], # Type 1 Case, double component,
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","BR_H_BETA","BR_H_BETA_2"], # Type 1 Case, double component,
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3"], # Type 2 Case, triple component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA"], # Type 1 Case, triple component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA","BR_H_BETA_2"], # Type 1 Case, triple component,
+    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA","BR_H_BETA_2","BR_H_BETA_3"], # Type 1 Case, triple component,
+    # [],
+    # [],
+]
 
-# test_options = {
-# "test_mode":"line",
-# "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], # The lines to test
-# # "ranges":[(4900,5200)], # The range over which the test is performed must include the tested line
-# # "groups": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],["BR_H_BETA"]], # groups of line associated lines including the lines being tested
-# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.10, 3.0],
-# "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
-# "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
-# "full_verbose":True, # prints out all test fitting to screen
-# "plot_tests":True, # plot the fit of each model comparison
-# "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-# "continue_fit":True, # continue the fit with the best chosen model
-# }
-
-# test_options = {
-# "test_mode":"line",
-# "lines": "BR_H_BETA", # The lines to test
-# "ranges":(4700,4940), # The range over which the test is performed must include the tested line
-# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.25, 3.0],
-# "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
-# "auto_stop":False, # automatically stop testing once threshold is reached; False test all no matter what
-# "full_verbose":True, # prints out all test fitting to screen
-# "plot_tests":True, # plot the fit of each model comparison
-# "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-# "continue_fit":True, # continue the fit with the best chosen model
-# }
 
 test_options = {
-"test_mode":"line",
-"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
+"test_mode":"config",
+"lines": configs, # The lines to test
 # "ranges":[(4900,5050),(4700,4940),(5100,5200)], # The range over which the test is performed must include the tested line
 "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 "thresholds": [0.95, 0.95, 0.10, 3.0],
@@ -164,20 +147,6 @@ test_options = {
 "force_best":True, # this forces the more-complex model to have a fit better than the previous.
 "continue_fit":False, # continue the fit with the best chosen model
 }
-
-# test_options = {
-# "test_mode":"line",
-# "lines":["BR_MGII_2799","NA_MGII_2799"], # The lines to test
-# "ranges":[(2600,3000),(2600,3000)], # The range over which the test is performed must include the tested line
-# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.25, 5.0],
-# "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
-# "auto_stop":False, # automatically stop testing once threshold is reached; False test all no matter what
-# "full_verbose":True, # prints out all test fitting to screen
-# "plot_tests":True, # plot the fit of each model comparison
-# "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-# "continue_fit":True, # continue the fit with the best chosen model
-# }
 
 
 user_constraints = [
@@ -234,7 +203,7 @@ power_options = {
 ################################################################################
 
 poly_options = {
-"apoly" : {"bool": True , "order": 7}, # Legendre additive polynomial 
+"apoly" : {"bool": True , "order": 3}, # Legendre additive polynomial 
 "mpoly" : {"bool": False, "order": 3}, # Legendre multiplicative polynomial 
 }
 
