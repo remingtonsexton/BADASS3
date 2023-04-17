@@ -5207,7 +5207,7 @@ def line_test(param_dict,
     ptbl = PrettyTable()
     ptbl.field_names = ["TEST","NCOMP_A","NCOMP_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","AON","TARGET_RMSE"]
     for i in range(len(test_results["TEST"])):
-        ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i],test_results["TARGET_RMSE"][i]],3)))
+        ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["NCOMP_A"][i],test_results["NCOMP_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["AON"][i],test_results["TARGET_RMSE"][i]],4)))
     if verbose:
         print("\n Test Results:")
         print(ptbl)
@@ -5709,17 +5709,17 @@ def config_test(param_dict,
                     print("\n Reached end of testing for %s and have not reached thresholds.\n" % (line))
 
     
-    import pickle
-    with open("fit_res_dict.pickle","wb") as handle:
-        pickle.dump(fit_res_dict,handle)
-    with open("test_results.pickle","wb") as handle:
-        pickle.dump(test_results,handle)
-    with open("orig_line_list.pickle","wb") as handle:
-        pickle.dump(orig_line_list,handle)
+    # import pickle
+    # with open("fit_res_dict.pickle","wb") as handle:
+    #     pickle.dump(fit_res_dict,handle)
+    # with open("test_results.pickle","wb") as handle:
+    #     pickle.dump(test_results,handle)
+    # with open("orig_line_list.pickle","wb") as handle:
+    #     pickle.dump(orig_line_list,handle)
 
-    print(test_results)
+    # print(test_results)
 
-    sys.exit()
+    # sys.exit()
 
     # Testing should've concluded at this stage; so now we need to check the results and determine the best line list
     new_line_list = {}
@@ -5796,47 +5796,111 @@ def config_test(param_dict,
                             rmse_thresholds.append(res["TARGET_RMSE"][i])
                     break
 
-    # Now check AON if it is a test statistic
+    ###
+
+    new_line_list = {}
+    rmse_thresholds = []
+    # Get lines that are not being tested and are not associated and add them to the new line list.
+    all_tested_lines = np.unique([line for group in test_options["lines"] for line in group])
+    for line in orig_line_list:
+        if (line in all_tested_lines) or (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in all_tested_lines)):
+            pass
+        else:
+            new_line_list[line] = orig_line_list[line]
+    
+    # Now we check the test_results
+    for i in range(len(test_results["TEST"])):
+        current_metrics = {}
+        target_metrics = {}
+        for  m,metric in enumerate(test_options["metrics"]):
+            if metric not in ["AON"]:
+                current_metrics[metric] = test_results[metric][i]
+                target_metrics[metric]  = test_options["thresholds"][m]
+    
+        checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics)
+        print(checked_metrics)
+        
+        if test_options["conv_mode"]=="any":
+            if np.any(checked_metrics):
+                for line in test_options["lines"][i]:
+                    new_line_list[line] = orig_line_list[line]
+                rmse_thresholds.append(test_results["TARGET_RMSE"][i-1])
+                config_final = i+1
+                break
+            # if reached the end and no convergence is met, use max number of components
+            elif (i==len(test_results["TEST"])-1):
+                for line in test_options["lines"][i+1]:
+                    new_line_list[line] = orig_line_list[line]
+                rmse_thresholds.append(test_results["TARGET_RMSE"][i])
+                config_final = i+2
+                break
+                
+        elif test_options["conv_mode"]=="all":
+            if np.all(checked_metrics):
+                for line in test_options["lines"][i]:
+                    new_line_list[line] = orig_line_list[line]
+                rmse_thresholds.append(test_results["TARGET_RMSE"][i-1])
+                config_final = i+1
+                break
+            # if reached the end and no convergence is met, use max number of components
+            elif (i==len(test_results["TEST"])-1):
+                for line in test_options["lines"][i+1]:
+                    new_line_list[line] = orig_line_list[line]
+                rmse_thresholds.append(test_results["TARGET_RMSE"][i])
+                config_final = i+2
+                break
+    
+    # print("\n")
+    # for line in new_line_list:
+    #     print(line)
+    #     for hpar in new_line_list[line]:
+    #         print("\t",hpar,":",new_line_list[line][hpar])            
+                
+    # check SNR (AON) level and prune any lines that don't satisfy the requirement
     remove_aon = []
     if "AON" in test_options["metrics"]:
         aon_thresh = test_options["thresholds"][test_options["metrics"].index("AON")]
-        # print(aon_thresh)
-        for test in test_options["lines"]:
-            # Get the NCOMP_0 vs. NCOMP_1 AON
-            aon = [test_results["AON"][i] for i,t in enumerate(test_results["TEST"]) if t==test][0]
-            # print(aon)
-            if aon>=aon_thresh:
-                break
-            else:
-                if verbose:
-                    print("\n %s line(s) does not meet amplitude-over-noise (AON) threshold.  Removing from line list." % (test))
-                for line in new_line_list:
-                    if (line in test) or (("parent" in new_line_list[line]) and (new_line_list[line]["parent"] in test)):
-                        #new_line_list.pop(line,None)
-                        remove_aon.append(line)
+        for line in test_options["lines"][config_final-1]:
+            # Construct line familys (groups of parent and child lines)
+            line_family = []
+            if ("ncomp" in new_line_list[line]) and (new_line_list[line]["ncomp"]==1):
+                line_family.append(line)
+                for child in new_line_list:
+                    if ("parent" in new_line_list[child]) and (new_line_list[child]["parent"]==line):
+                        line_family.append(child)
+            
+            avg_noise = np.nanmean(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["NOISE"][0])
+            if len(line_family)>0:
+                # print(line_family)
+                comb_line = np.zeros(len(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["DATA"][0]))
+                for l in line_family:
+                    comb_line+=fit_res_dict["CONFIG_%d" % config_final]["mccomps"][l][0]
+                aon = np.nanmax(comb_line)/avg_noise
+                # print(aon)
+                if aon<aon_thresh:
+                    if verbose:
+                        print("\n %s line(s) does not meet amplitude-over-noise (AON) threshold.  Removing from lines list." % (line_family))
+                    for l in line_family:
+                        remove_aon.append(l)
     if len(remove_aon)>0:
-        for line in remove_aon:
-            new_line_list.pop(line,None)
+            for line in remove_aon:
+                new_line_list.pop(line,None)
     #
-    if verbose:
-        print("\n")
-        print("New Line List:")
-        for line in new_line_list:
-            print(line)
-        print("\n")
+    # print("\n")
+    # for line in new_line_list:
+    #     print(line)
+    #     for hpar in new_line_list[line]:
+    #         print("\t",hpar,":",new_line_list[line][hpar])
 
-    if verbose:
-        for line in new_line_list:
-            print(line)
-            for hpar in new_line_list[line]:
-                print("\t",hpar,":",new_line_list[line][hpar])
+
+    ###
 
 
     # Print a table with the results and write it to the log
     ptbl = PrettyTable()
     ptbl.field_names = ["TEST","CONFIG_A","CONFIG_B","ANOVA","BADASS","CHI2_RATIO","F_RATIO","SSR_RATIO","TARGET_RMSE"]
     for i in range(len(test_results["TEST"])):
-        ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["CONFIG_A"][i],test_results["CONFIG_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["TARGET_RMSE"][i]],3)))
+        ptbl.add_row([test_results["TEST"][i]]+list(np.round([test_results["CONFIG_A"][i],test_results["CONFIG_B"][i],test_results["ANOVA"][i],test_results["BADASS"][i],test_results["CHI2_RATIO"][i],test_results["F_RATIO"][i],test_results["SSR_RATIO"][i],test_results["TARGET_RMSE"][i]],4)))
     if verbose:
         print("\n Test Results:")
         print(ptbl)

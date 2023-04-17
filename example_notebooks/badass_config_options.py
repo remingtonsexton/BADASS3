@@ -9,7 +9,7 @@ fit_options={
 "fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares, RCHI2 = reduced chi2
 "n_basinhop": 25, # Number of consecutive basinhopping thresholds before solution achieved
 "test_lines": True,
-"max_like_niter": 0, # number of maximum likelihood iterations
+"max_like_niter": 25, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 "cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
 }
@@ -20,7 +20,7 @@ fit_options={
 mcmc_options={
 "mcmc_fit"    : False, # Perform robust fitting using emcee
 "nwalkers"    : 100,  # Number of emcee walkers; min = 2 x N_parameters
-"auto_stop"   : True, # Automatic stop using autocorrelation analysis
+"auto_stop"   : False, # Automatic stop using autocorrelation analysis
 "conv_type"   : "all", # "median", "mean", "all", or (tuple) of parameters
 "min_samp"    : 1000,  # min number of iterations for sampling post-convergence
 "ncor_times"  : 10.0,  # number of autocorrelation times for convergence
@@ -29,7 +29,7 @@ mcmc_options={
 "write_thresh": 100,   # iteration to start writing/checking parameters
 "burn_in"     : 1500, # burn-in if max_iter is reached
 "min_iter"    : 1000, # min number of iterations before stopping
-"max_iter"    : 25000, # max number of MCMC iterations
+"max_iter"    : 2500, # max number of MCMC iterations
 }
 ################################################################################
 
@@ -122,15 +122,9 @@ user_lines = {
 configs = [
     ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007"], # Type 2 Case, single component
     ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","BR_H_BETA"], # Type 1 case, single component
-    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2"], # Type 2 Case, double component,
     ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","BR_H_BETA"], # Type 1 Case, double component,
-    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","BR_H_BETA","BR_H_BETA_2"], # Type 1 Case, double component,
-    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3"], # Type 2 Case, triple component,
     ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA"], # Type 1 Case, triple component,
     ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA","BR_H_BETA_2"], # Type 1 Case, triple component,
-    # ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA","BR_H_BETA_2","BR_H_BETA_3"], # Type 1 Case, triple component,
-    # [],
-    # [],
 ]
 
 
@@ -145,7 +139,7 @@ test_options = {
 "full_verbose":True, # prints out all test fitting to screen
 "plot_tests":True, # plot the fit of each model comparison
 "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-"continue_fit":False, # continue the fit with the best chosen model
+"continue_fit":True, # continue the fit with the best chosen model
 }
 
 

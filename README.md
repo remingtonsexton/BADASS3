@@ -1,8 +1,8 @@
 
 ![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS2_logo.gif)
 
-## New in Version 10.0.0
-* New line model and testing framework. See [Line Testing and Options](#line-testing-and-options).
+## New in Version 10.1.0
+* New line and configuration testing framework. See [Line Testing and Options](#line-testing-and-options).
 * Line component options.  See [Line Component Options](#line-component-options).
 * Improvements in autocorrelation calculations.
 * W80 now a standard output parameter for all lines.
@@ -445,6 +445,39 @@ Now we can see that by the time we test for three components the fit is pretty g
 ![](https://github.com/remingtonsexton/BADASS3/blob/master/figures/test_results.png)
 
 We can see that covergence was reached at the test for 4 components (red box), which means that our confidence that 4 components significantly improves the fit is below our chosen thresholds, *thus* we choose the 3-component model.  Remember you can choose these thresholds to be as strict as you want. 
+
+
+## Configuration Testing
+
+Configuration testing is similar to line testing with the exception that the user explicitly provides the combinations of lines to be used in each test.  During line testing, BADASS controls the increasing complexity of the fit by adding line components, but in configuration testing BADASS has no such control.  Therefore, it is up to the user to explicitly provide the *order* of the configurations in increasing complexity if one desires to use the *force_best* option (each subsequent fit must be at least as good as the one before it).  To use configuration testing instead of line testing, set the `test_mode` to `config`
+in the `test_options` dictionary passed to BADASS.  Be sure to pass the configurations you want to test to the `lines` in test options, like so:
+
+
+
+```python
+
+configs = [
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007"], # Type 2 Case, single component
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","BR_H_BETA"], # Type 1 case, single component
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","BR_H_BETA"], # Type 1 Case, double component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA"], # Type 1 Case, triple component,
+    ["NA_H_BETA","NA_OIII_4960","NA_OIII_5007","NA_H_BETA_2","NA_OIII_4960_2","NA_OIII_5007_2","NA_H_BETA_3","NA_OIII_4960_3","NA_OIII_5007_3","BR_H_BETA","BR_H_BETA_2"], # Type 1 Case, triple component,
+]
+
+test_options = {
+"test_mode":"config",
+"lines": configs, # The lines to test
+"metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the 
+"thresholds": [0.95, 0.95, 0.10, 3.0],
+"auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter 
+"plot_tests":True,
+"force_best":True, # this forces the more-complex model to have a fit better than the previous.
+"continue_fit":True, # continue the fit with the best chosen model
+}
+```
+
+In the above `configs` list of line configurations, one can see that they are in *increasing* level of complexity.  This is required if you want the expected behavior from the `force_best` options.  If one mistakenly place a more-complex configuration before a simpler configuration (for instance, a configuration with fewer lines), BADASS will keep on attempting to achieve a better fit even though it can't, and BADASS will max-out the attemps at 1000 basinhopping iterations without finding a better fit.
+
 
 ## Line Component Options
 
