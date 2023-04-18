@@ -32,6 +32,7 @@ Before getting started you should read the readme below.
   * [Model Component Options](#model-component-options)
   * [Multiple Line Components](#multiple-line-components)
   * [Line Testing and Options](#line-testing-and-options)
+  * [Configuration Testing](#configuration-testing)
   * [Line Component Options](#line-component-options)
   * [User Lines, Constraints, and Masks](#user-lines-constraints-and-masks)
   * [Combined Lines](#combined-lines)
@@ -86,7 +87,7 @@ As of the most recent version, the following packages are required (Python 3.8.1
 - [`natsort 8.3.1`](https://natsort.readthedocs.io/en/master/)
 - [`psutil 5.9.4`](https://psutil.readthedocs.io/en/latest/)
 - [`vorbin 3.1.5`](https://www-astro.physics.ox.ac.uk/~cappellari/software/#binning)
-- [`astro-bifrost 2.0.3`](https://pypi.org/project/astro-bifrost/)
+<!-- - [`astro-bifrost 2.0.3`](https://pypi.org/project/astro-bifrost/) -->
 - [`spectres 2.2.0`](https://spectres.readthedocs.io/en/latest/)
 - [`corner 2.2.1`](https://corner.readthedocs.io/en/latest/)
 - [`prettytable 3.6.0`](https://pypi.org/project/prettytable/)

@@ -1928,13 +1928,13 @@ def emline_masker(wave,spec,noise):
     continuum fitting.
     """
     # First we remove the continuum 
-    galaxy_csub = badass_tools.continuum_subtract(wave,spec,noise,sigma_clip=2.0,clip_iter=25,filter_size=[100,150,200,250,500],
+    galaxy_csub = badass_tools.continuum_subtract(wave,spec,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
                    noise_scale=1.0,opt_rchi2=True,plot=False,
                    fig_scale=8,fontsize=16,verbose=False)
     #
-    signif = 2.0
+    signif = 3.0
     pad    = 3 # pixels on each side 
-    mask_bad = np.unique(np.where(((galaxy_csub)>(signif*np.nanmean(noise))) | ((galaxy_csub)<(-signif*np.nanmean(noise)))))
+    mask_bad = np.unique(np.where(((galaxy_csub)>(signif*(noise))) | ((galaxy_csub)<(-signif*(noise)))))
     # Pad masked bad by pad pixels on each side
     padded_mask_bad = np.array([])
     for b in mask_bad:
@@ -1945,6 +1945,9 @@ def emline_masker(wave,spec,noise):
 
 
     mask_bad = np.array(np.unique(np.ravel(padded_mask_bad)),dtype=int)
+    #
+    edge_ignore = 25 # ignore this many pixels on the edges of the spectrum
+    mask_bad  = [m for m in mask_bad if m not in np.concatenate([np.arange(0,edge_ignore),np.arange(len(wave)-edge_ignore,len(wave))])]
     #
     return mask_bad
 
@@ -1954,11 +1957,11 @@ def metal_masker(wave,spec,noise):
     Performs masking on metal absorption features.
     """
     # First we remove the continuum 
-    galaxy_csub = badass_tools.continuum_subtract(wave,spec,noise,sigma_clip=2.0,clip_iter=25,filter_size=[3,5,8,10,15,25,50],#[25,50,100,150,200,250,500],
+    galaxy_csub = badass_tools.continuum_subtract(wave,spec,noise,sigma_clip=2.0,clip_iter=25,filter_size=[3,5,8],#[25,50,100,150,200,250,500],
                    noise_scale=1.0,opt_rchi2=True,plot=False,
                    fig_scale=8,fontsize=16,verbose=False)
     #
-    signif = 2.0
+    signif = 3.0
     pad    = 3 # pixels on each side 
     mask_bad = np.unique(np.where(((galaxy_csub)>(signif*np.nanmean(noise))) | ((galaxy_csub)<(-signif*np.nanmean(noise)))))
     # Pad masked bad by pad pixels on each side
@@ -1972,58 +1975,61 @@ def metal_masker(wave,spec,noise):
 
     mask_bad = np.array(np.unique(np.ravel(padded_mask_bad)),dtype=int)
     #
+    edge_ignore = 25 # ignore this many pixels on the edges of the spectrum
+    mask_bad  = [m for m in mask_bad if m not in np.concatenate([np.arange(0,edge_ignore),np.arange(len(wave)-edge_ignore,len(wave))])]
+    #
     return mask_bad
 
 
-def metal_masker_nn(wave,spec,noise,fits_file):
-    """
-    Runs a neural network using BIFROST
-    to determine location of emission lines
-    to generate an emission line mask for 
-    continuum fitting.
-    """    
-    # Initialize the neural network
-    line_name = ['metal_abs', 'generic_line']
-    neuralnet = bifrost.NeuralNet()
+# def metal_masker_nn(wave,spec,noise,fits_file):
+#     """
+#     Runs a neural network using BIFROST
+#     to determine location of emission lines
+#     to generate an emission line mask for 
+#     continuum fitting.
+#     """    
+#     # Initialize the neural network
+#     line_name = ['metal_abs', 'generic_line']
+#     neuralnet = bifrost.NeuralNet()
 
-    # Set up file paths
-    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data', 'neural_network')
-    if not os.path.exists(path):
-        os.mkdir(path)
-    _file = os.path.join(path, "metal.absorption.network.h5")
-    _plot = os.path.join(os.path.abspath(os.path.dirname(fits_file)), "metal.nn.convolve.html")
+#     # Set up file paths
+#     path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data', 'neural_network')
+#     if not os.path.exists(path):
+#         os.mkdir(path)
+#     _file = os.path.join(path, "metal.absorption.network.h5")
+#     _plot = os.path.join(os.path.abspath(os.path.dirname(fits_file)), "metal.nn.convolve.html")
 
-    # If not already trained, it must be trained
-    if not os.path.exists(_file):
-        print("Training neural network to mask metal absorption...")
-        neuralnet.train(line_name, target_line=0, size=100_000, epochs=11, save_path=_file)
-    # Otherwise, just load in the already-trained neural network
-    else:
-        neuralnet.load(_file, line_name, target_line=0)
+#     # If not already trained, it must be trained
+#     if not os.path.exists(_file):
+#         print("Training neural network to mask metal absorption...")
+#         neuralnet.train(line_name, target_line=0, size=100_000, epochs=11, save_path=_file)
+#     # Otherwise, just load in the already-trained neural network
+#     else:
+#         neuralnet.load(_file, line_name, target_line=0)
     
-    # Convert arrays to the native byte order
-    l_wave = wave if wave.dtype.byteorder == '=' else wave.byteswap().newbyteorder('=')
-    l_spec = spec if spec.dtype.byteorder == '=' else spec.byteswap().newbyteorder('=')
-    l_noise = noise if noise.dtype.byteorder == '=' else noise.byteswap().newbyteorder('=')
-    # (the noise isn't actually used)
+#     # Convert arrays to the native byte order
+#     l_wave = wave if wave.dtype.byteorder == '=' else wave.byteswap().newbyteorder('=')
+#     l_spec = spec if spec.dtype.byteorder == '=' else spec.byteswap().newbyteorder('=')
+#     l_noise = noise if noise.dtype.byteorder == '=' else noise.byteswap().newbyteorder('=')
+#     # (the noise isn't actually used)
 
-    # Smooth and subtract spectrum to leave only narrow features
-    l_spec = (l_spec - gaussian_filter1d(l_spec, 20)) / np.nanmedian(l_spec)
-    l_noise = l_noise / np.nanmedian(l_spec)
+#     # Smooth and subtract spectrum to leave only narrow features
+#     l_spec = (l_spec - gaussian_filter1d(l_spec, 20)) / np.nanmedian(l_spec)
+#     l_noise = l_noise / np.nanmedian(l_spec)
     
-    # Now the fun part, do a "convolution" (not really) of the neural network with a 100-angstrom wide window
-    # to get the confidence that a metal absorption line exists at each wavelength
-    cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
-    # Additional challenge -- re-mapping cwave back onto the original wave array
-    remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
-    # Convolve the remap by a small kernel such that neighboring pixels are also masked
-    conf = gaussian_filter1d(conf,3)
-    # Normalize to 1
-    conf = (conf-np.nanmin(conf))/(np.nanmax(conf)-np.nanmin(conf))
-    # Mask all pixels where the confidence is over 50%
-    mask_bad = remap[conf > 0.5]
+#     # Now the fun part, do a "convolution" (not really) of the neural network with a 100-angstrom wide window
+#     # to get the confidence that a metal absorption line exists at each wavelength
+#     cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
+#     # Additional challenge -- re-mapping cwave back onto the original wave array
+#     remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
+#     # Convolve the remap by a small kernel such that neighboring pixels are also masked
+#     conf = gaussian_filter1d(conf,3)
+#     # Normalize to 1
+#     conf = (conf-np.nanmin(conf))/(np.nanmax(conf)-np.nanmin(conf))
+#     # Mask all pixels where the confidence is over 50%
+#     mask_bad = remap[conf > 0.5]
 
-    return mask_bad
+#     return mask_bad
 
 
 def window_filter(spec,size):
@@ -8017,8 +8023,6 @@ def lnlike(params,
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
-            # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
-            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
             sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
@@ -8072,8 +8076,6 @@ def lnlike(params,
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
-            # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
-            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
             sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
