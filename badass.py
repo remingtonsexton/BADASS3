@@ -79,7 +79,7 @@ __author__	   = "Remington O. Sexton (USNO), Sara M. Doan (GMU), Michael A. Reef
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
-__version__	   = "10.1.0"
+__version__	   = "10.1.1"
 __maintainer__ = "Remington O. Sexton"
 __email__	   = "remington.o.sexton.civ@us.navy.mil"
 __status__	   = "Release"
@@ -276,7 +276,7 @@ __status__	   = "Release"
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
 
-# Version 10.0.0 - 10.1.0
+# Version 10.0.0 - 10.1.1
 # - New generalized line component option for easily adding n number of line components; deprecates 'outflow'
 #   components. 
 # - W80 now a standard line parameter
@@ -286,6 +286,8 @@ __status__	   = "Release"
 # - PPOLY polynomial no longer an option pending bug fixes.
 # - To avoid an excessive number of plots, we now limit plotting of histograms to free fitted parameters.
 # - Configuration testing 
+# - Removed astro-bifrost due to grpcio dependency problems; using old metal masking algorithm until fixed.
+# - Bug fixes and minor changes
 ##########################################################################################################
 
 
@@ -1925,68 +1927,109 @@ def emline_masker(wave,spec,noise):
     to generate an emission line mask for 
     continuum fitting.
     """
-    # Do a series of median filters with window sizes up to 20 
-    window_sizes = [2,5,10,50,100,250,500]#np.arange(10,510,10,dtype=int)
-    med_spec = np.empty((len(wave),len(window_sizes)))
-    # 
-    for i in range(len(window_sizes)):
-        med_spec[:,i] = window_filter(spec,window_sizes[i])
+    # First we remove the continuum 
+    galaxy_csub = badass_tools.continuum_subtract(wave,spec,noise,sigma_clip=2.0,clip_iter=25,filter_size=[25,50,100,150,200,250,500],
+                   noise_scale=1.0,opt_rchi2=True,plot=False,
+                   fig_scale=8,fontsize=16,verbose=False)
     #
-    mask_bad = np.unique(np.where((np.std(med_spec,axis=1)>noise) | (np.std(med_spec,axis=1)>np.nanmedian(noise)))[0])
-    # mask_good = np.unique(np.where((np.std(med_spec,axis=1)<noise) & (np.std(med_spec,axis=1)<np.nanmedian(noise)))[0])
+    signif = 3.0
+    pad    = 3 # pixels on each side 
+    mask_bad = np.unique(np.where(((galaxy_csub)>(signif*(noise))) | ((galaxy_csub)<(-signif*(noise)))))
+    # Pad masked bad by pad pixels on each side
+    padded_mask_bad = np.array([])
+    for b in mask_bad:
+        # backwards pix
+        # forwards pix
+        pix = np.unique(np.abs(np.arange(b-pad,b+pad+1,1)))
+        padded_mask_bad = np.concatenate([padded_mask_bad,pix],axis=0)
+
+
+    mask_bad = np.array(np.unique(np.ravel(padded_mask_bad)),dtype=int)
     #
-    return mask_bad#,mask_good
-
-
-def metal_masker(wave,spec,noise,fits_file):
-    """
-    Runs a neural network using BIFROST
-    to determine location of emission lines
-    to generate an emission line mask for 
-    continuum fitting.
-    """    
-    # Initialize the neural network
-    line_name = ['metal_abs', 'generic_line']
-    neuralnet = bifrost.NeuralNet()
-
-    # Set up file paths
-    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data', 'neural_network')
-    if not os.path.exists(path):
-        os.mkdir(path)
-    _file = os.path.join(path, "metal.absorption.network.h5")
-    _plot = os.path.join(os.path.abspath(os.path.dirname(fits_file)), "metal.nn.convolve.html")
-
-    # If not already trained, it must be trained
-    if not os.path.exists(_file):
-        print("Training neural network to mask metal absorption...")
-        neuralnet.train(line_name, target_line=0, size=100_000, epochs=11, save_path=_file)
-    # Otherwise, just load in the already-trained neural network
-    else:
-        neuralnet.load(_file, line_name, target_line=0)
-    
-    # Convert arrays to the native byte order
-    l_wave = wave if wave.dtype.byteorder == '=' else wave.byteswap().newbyteorder('=')
-    l_spec = spec if spec.dtype.byteorder == '=' else spec.byteswap().newbyteorder('=')
-    l_noise = noise if noise.dtype.byteorder == '=' else noise.byteswap().newbyteorder('=')
-    # (the noise isn't actually used)
-
-    # Smooth and subtract spectrum to leave only narrow features
-    l_spec = (l_spec - gaussian_filter1d(l_spec, 20)) / np.nanmedian(l_spec)
-    l_noise = l_noise / np.nanmedian(l_spec)
-    
-    # Now the fun part, do a "convolution" (not really) of the neural network with a 100-angstrom wide window
-    # to get the confidence that a metal absorption line exists at each wavelength
-    cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
-    # Additional challenge -- re-mapping cwave back onto the original wave array
-    remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
-    # Convolve the remap by a small kernel such that neighboring pixels are also masked
-    conf = gaussian_filter1d(conf,3)
-    # Normalize to 1
-    conf = (conf-np.nanmin(conf))/(np.nanmax(conf)-np.nanmin(conf))
-    # Mask all pixels where the confidence is over 50%
-    mask_bad = remap[conf > 0.5]
-
+    edge_ignore = 25 # ignore this many pixels on the edges of the spectrum
+    mask_bad  = [m for m in mask_bad if m not in np.concatenate([np.arange(0,edge_ignore),np.arange(len(wave)-edge_ignore,len(wave))])]
+    #
     return mask_bad
+
+
+def metal_masker(wave,spec,noise):
+    """
+    Performs masking on metal absorption features.
+    """
+    # First we remove the continuum 
+    galaxy_csub = badass_tools.continuum_subtract(wave,spec,noise,sigma_clip=2.0,clip_iter=25,filter_size=[3,5,8],#[25,50,100,150,200,250,500],
+                   noise_scale=1.0,opt_rchi2=True,plot=False,
+                   fig_scale=8,fontsize=16,verbose=False)
+    #
+    signif = 3.0
+    pad    = 3 # pixels on each side 
+    mask_bad = np.unique(np.where(((galaxy_csub)>(signif*np.nanmean(noise))) | ((galaxy_csub)<(-signif*np.nanmean(noise)))))
+    # Pad masked bad by pad pixels on each side
+    padded_mask_bad = np.array([])
+    for b in mask_bad:
+        # backwards pix
+        # forwards pix
+        pix = np.unique(np.abs(np.arange(b-pad,b+pad+1,1)))
+        padded_mask_bad = np.concatenate([padded_mask_bad,pix],axis=0)
+
+
+    mask_bad = np.array(np.unique(np.ravel(padded_mask_bad)),dtype=int)
+    #
+    edge_ignore = 25 # ignore this many pixels on the edges of the spectrum
+    mask_bad  = [m for m in mask_bad if m not in np.concatenate([np.arange(0,edge_ignore),np.arange(len(wave)-edge_ignore,len(wave))])]
+    #
+    return mask_bad
+
+
+# def metal_masker_nn(wave,spec,noise,fits_file):
+#     """
+#     Runs a neural network using BIFROST
+#     to determine location of emission lines
+#     to generate an emission line mask for 
+#     continuum fitting.
+#     """    
+#     # Initialize the neural network
+#     line_name = ['metal_abs', 'generic_line']
+#     neuralnet = bifrost.NeuralNet()
+
+#     # Set up file paths
+#     path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data', 'neural_network')
+#     if not os.path.exists(path):
+#         os.mkdir(path)
+#     _file = os.path.join(path, "metal.absorption.network.h5")
+#     _plot = os.path.join(os.path.abspath(os.path.dirname(fits_file)), "metal.nn.convolve.html")
+
+#     # If not already trained, it must be trained
+#     if not os.path.exists(_file):
+#         print("Training neural network to mask metal absorption...")
+#         neuralnet.train(line_name, target_line=0, size=100_000, epochs=11, save_path=_file)
+#     # Otherwise, just load in the already-trained neural network
+#     else:
+#         neuralnet.load(_file, line_name, target_line=0)
+    
+#     # Convert arrays to the native byte order
+#     l_wave = wave if wave.dtype.byteorder == '=' else wave.byteswap().newbyteorder('=')
+#     l_spec = spec if spec.dtype.byteorder == '=' else spec.byteswap().newbyteorder('=')
+#     l_noise = noise if noise.dtype.byteorder == '=' else noise.byteswap().newbyteorder('=')
+#     # (the noise isn't actually used)
+
+#     # Smooth and subtract spectrum to leave only narrow features
+#     l_spec = (l_spec - gaussian_filter1d(l_spec, 20)) / np.nanmedian(l_spec)
+#     l_noise = l_noise / np.nanmedian(l_spec)
+    
+#     # Now the fun part, do a "convolution" (not really) of the neural network with a 100-angstrom wide window
+#     # to get the confidence that a metal absorption line exists at each wavelength
+#     cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
+#     # Additional challenge -- re-mapping cwave back onto the original wave array
+#     remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
+#     # Convolve the remap by a small kernel such that neighboring pixels are also masked
+#     conf = gaussian_filter1d(conf,3)
+#     # Normalize to 1
+#     conf = (conf-np.nanmin(conf))/(np.nanmax(conf)-np.nanmin(conf))
+#     # Mask all pixels where the confidence is over 50%
+#     mask_bad = remap[conf > 0.5]
+
+#     return mask_bad
 
 
 def window_filter(spec,size):
@@ -2142,7 +2185,9 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
     
     if mask_metal:
         # galaxy = interpolate_metal(galaxy,noise)
-        metal_mask_bad = metal_masker(lam_gal,galaxy,noise,fits_file)
+        # metal_mask_bad = metal_masker_nn(lam_gal,galaxy,noise,fits_file)
+        metal_mask_bad = metal_masker(lam_gal,galaxy,noise)
+
         for b in metal_mask_bad:
             fit_mask_bad.append(b)
 
@@ -2346,7 +2391,8 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
     
     if mask_metal:
         # galaxy = interpolate_metal(galaxy,noise)
-        metal_mask_bad = metal_masker(lam_gal,galaxy,noise,fits_file)
+        # metal_mask_bad = metal_masker_nn(lam_gal,galaxy,noise,fits_file)
+        metal_mask_bad = metal_masker(lam_gal,galaxy,noise)
         for b in metal_mask_bad:
             fit_mask_bad.append(b)
 
@@ -2572,7 +2618,8 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
 
     if mask_metal:
         # galaxy = interpolate_metal(galaxy,noise)
-        metal_mask_bad = metal_masker(lam_gal, galaxy, noise, fits_file)
+        # metal_mask_bad = metal_masker_nn(lam_gal, galaxy, noise, fits_file)
+        metal_mask_bad = metal_masker(lam_gal,galaxy,noise)
         for b in metal_mask_bad:
             fit_mask_bad.append(b)
 
@@ -7390,7 +7437,7 @@ def max_likelihood(param_dict,
     # Add parameter names to pdict
     for i,key in enumerate(param_names):
         param_flags = 0
-        mc_med = np.nanmedian(mcpars[key])
+        mc_med = mcpars[key][0]#np.nanmedian(mcpars[key])
         mc_std = np.nanstd(mcpars[key])
         # if ~np.isfinite(mc_med): mc_med = 0
         # if ~np.isfinite(mc_std): mc_std = 0
@@ -7405,8 +7452,8 @@ def max_likelihood(param_dict,
     # Add fluxes to pdict
     for key in mcflux:
         param_flags = 0
-        mc_med = np.median(mcflux[key])
-        mc_std = np.std(mcflux[key])
+        mc_med = mcflux[key][0]#np.nanmedian(mcflux[key])
+        mc_std = np.nanstd(mcflux[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         if (key[:-5] in line_list):
@@ -7420,8 +7467,8 @@ def max_likelihood(param_dict,
     # Add luminosities to pdict
     for key in mclum:
         param_flags = 0
-        mc_med = np.median(mclum[key])
-        mc_std = np.std(mclum[key])
+        mc_med = mclum[key][0]#np.nanmedian(mclum[key])
+        mc_std = np.nanstd(mclum[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         if (key[:-4] in line_list):
@@ -7436,8 +7483,8 @@ def max_likelihood(param_dict,
     if eqwidth_dict is not None:
         for key in mceqw:
             param_flags = 0
-            mc_med = np.median(mceqw[key])
-            mc_std = np.std(mceqw[key])
+            mc_med = mceqw[key][0]#np.nanmedian(mceqw[key])
+            mc_std = np.nanstd(mceqw[key])
             if ~np.isfinite(mc_med): mc_med = 0
             if ~np.isfinite(mc_std): mc_std = 0
             if (key[:-3] in line_list):
@@ -7451,66 +7498,66 @@ def max_likelihood(param_dict,
     # Add dispersions to pdict
     for key in mcdisp:
         param_flags = 0
-        mc_med = np.median(mcdisp[key])
-        mc_std = np.std(mcdisp[key])
+        mc_med = mcdisp[key][0]#np.nanmedian(mcdisp[key])
+        mc_std = np.nanstd(mcdisp[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add FWHMs to pdict
     for key in mcfwhm:
         param_flags = 0
-        mc_med = np.median(mcfwhm[key])
-        mc_std = np.std(mcfwhm[key])
+        mc_med = mcfwhm[key][0]#np.nanmedian(mcfwhm[key])
+        mc_std = np.nanstd(mcfwhm[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add velocities to pdict
     for key in mcvint:
         param_flags = 0
-        mc_med = np.median(mcvint[key])
-        mc_std = np.std(mcvint[key])
+        mc_med = mcvint[key][0]#np.nanmedian(mcvint[key])
+        mc_std = np.nanstd(mcvint[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add W80 to pdict
     for key in mcw80:
         param_flags = 0
-        mc_med = np.median(mcw80[key])
-        mc_std = np.std(mcw80[key])
+        mc_med = mcw80[key][0]#np.nanmedian(mcw80[key])
+        mc_std = np.nanstd(mcw80[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add NPIX to pdict
     for key in mcnpix:
         param_flags = 0
-        mc_med = np.median(mcnpix[key])
-        mc_std = np.std(mcnpix[key])
+        mc_med = mcnpix[key][0]#np.nanmedian(mcnpix[key])
+        mc_std = np.nanstd(mcnpix[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
     # Add SNR to pdict
     for key in mcsnr:
         param_flags = 0
-        mc_med = np.median(mcsnr[key])
-        mc_std = np.std(mcsnr[key])
+        mc_med = mcsnr[key][0]#np.nanmedian(mcsnr[key])
+        mc_std = np.nanstd(mcsnr[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         pdict[key] = {'med':mc_med,'std':mc_std,'flag':param_flags}
 
     # Add R-squared values to pdict
-    mc_med = np.median(mcR2)
-    mc_std = np.std(mcR2)
+    mc_med = mcR2[0]#np.nanmedian(mcR2)
+    mc_std = np.nanstd(mcR2)
     pdict["R_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
 #    Add RCHI2 values to pdict
-    mc_med = np.median(mcRCHI2)
+    mc_med = mcRCHI2[0]#np.nanmedian(mcRCHI2)
     mc_std = np.std(mcRCHI2)
     pdict["RCHI_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
 
     # Add continuum luminosities to pdict
     for key in mccont:
         param_flags = 0
-        mc_med = np.median(mccont[key])
-        mc_std = np.std(mccont[key])
+        mc_med = mccont[key][0]#np.nanmedian(mccont[key])
+        mc_std = np.nanstd(mccont[key])
         if ~np.isfinite(mc_med): mc_med = 0
         if ~np.isfinite(mc_std): mc_std = 0
         if (mc_med-mc_std <= 0.0) or (mc_std==0):
@@ -7519,8 +7566,8 @@ def max_likelihood(param_dict,
 
 
     # Add log-likelihood function values
-    mc_med = np.median(mcLL)
-    mc_std = np.std(mcLL)
+    mc_med = mcLL[0]#np.nanmedian(mcLL)
+    mc_std = np.nanstd(mcLL)
     pdict["LOG_LIKE"] = {'med':mc_med,'std':mc_std,'flag':0}
 
     #
@@ -7976,8 +8023,6 @@ def lnlike(params,
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
-            # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
-            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
             sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
@@ -8031,8 +8076,6 @@ def lnlike(params,
             pdict = {p:params[i] for i,p in enumerate(param_names)}
             noise_scale = pdict["NOISE_SCALE"]
             # Calculate log-likelihood
-            # sn2 = ((noise_scale*model[fit_mask]/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # if we want to scale the noise by the model
-            # sn2 = ((noise_scale/norm_factor)**2) + (noise[fit_mask]/norm_factor)**2 # additive noise factor is thus an constant intrinsic noise
             sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
             l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
