@@ -79,7 +79,7 @@ __author__	   = "Remington O. Sexton (USNO), Sara M. Doan (GMU), Michael A. Reef
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
-__version__	   = "10.1.1"
+__version__	   = "10.1.2"
 __maintainer__ = "Remington O. Sexton"
 __email__	   = "remington.o.sexton.civ@us.navy.mil"
 __status__	   = "Release"
@@ -276,7 +276,7 @@ __status__	   = "Release"
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
 
-# Version 10.0.0 - 10.1.1
+# Version 10.0.0 - 10.1.2
 # - New generalized line component option for easily adding n number of line components; deprecates 'outflow'
 #   components. 
 # - W80 now a standard line parameter
@@ -4775,7 +4775,7 @@ def line_test(param_dict,
                     for s in _soft_cons:
                         print(s)
 
-                mcpars, mccomps, mcLL = max_likelihood(_param_dict,
+                mcpars, mccomps, mcLL, lowest_rmse = max_likelihood(_param_dict,
                                                        _line_list,
                                                        _combined_line_list,
                                                        _soft_cons,
@@ -4828,7 +4828,7 @@ def line_test(param_dict,
 
                     print("\n")
                     # Calculate RMSE statistic of best fit
-                    rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
                     print(" Root Mean Squared Error = %0.4f" % rmse)
 
                     print("\n")
@@ -4914,7 +4914,7 @@ def line_test(param_dict,
                     # for the complex model if force_best=True.  For now, the threshold is the RMSE of 
                     # the previous fit, and the complex model must achieive an RMSE lower than that of 
                     # the simpler model
-                    force_thresh = badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+                    force_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
                     # print(force_thresh)
                 else: force_thresh=np.inf
 
@@ -4939,7 +4939,7 @@ def line_test(param_dict,
                     for s in _soft_cons:
                         print(s)
 
-                mcpars, mccomps, mcLL = max_likelihood(_param_dict,
+                mcpars, mccomps, mcLL, lowest_rmse = max_likelihood(_param_dict,
                                                        _line_list,
                                                        _combined_line_list,
                                                        _soft_cons,
@@ -4994,7 +4994,7 @@ def line_test(param_dict,
 
                     print("\n")
                     # Calculate RMSE statistic of best fit
-                    rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
                     print(" Root Mean Squared Error = %0.4f" % rmse)
 
                     print("\n")
@@ -5056,7 +5056,7 @@ def line_test(param_dict,
 
             # Record the target threshold (RMSE) of the complex fit; this will be used to ensure the final maximum likelihood fit 
             # is at least as good as this
-            targ_thresh = badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+            targ_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
             test_results["TARGET_RMSE"].append(targ_thresh)
             # Perform Bayesian A/B test
             # delta degrees of freedom between the two models A and B (dof A > dof B)
@@ -5418,7 +5418,7 @@ def config_test(param_dict,
                 for s in _soft_cons:
                     print(s)
 
-            mcpars, mccomps, mcLL = max_likelihood(_param_dict,
+            mcpars, mccomps, mcLL, lowest_rmse = max_likelihood(_param_dict,
                                                    _line_list,
                                                    _combined_line_list,
                                                    _soft_cons,
@@ -5471,7 +5471,7 @@ def config_test(param_dict,
 
                 print("\n")
                 # Calculate RMSE statistic of best fit
-                rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                rmse = lowest_rmse #badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
                 print(" Root Mean Squared Error = %0.4f" % rmse)
 
                 print("\n")
@@ -5538,7 +5538,7 @@ def config_test(param_dict,
                 # for the complex model if force_best=True.  For now, the threshold is the RMSE of 
                 # the previous fit, and the complex model must achieive an RMSE lower than that of 
                 # the simpler model
-                force_thresh = badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+                force_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
                 # print(force_thresh)
             else: force_thresh=np.inf
 
@@ -5563,7 +5563,7 @@ def config_test(param_dict,
                 for s in _soft_cons:
                     print(s)
 
-            mcpars, mccomps, mcLL = max_likelihood(_param_dict,
+            mcpars, mccomps, mcLL, lowest_rmse = max_likelihood(_param_dict,
                                                    _line_list,
                                                    _combined_line_list,
                                                    _soft_cons,
@@ -5618,7 +5618,7 @@ def config_test(param_dict,
 
                 print("\n")
                 # Calculate RMSE statistic of best fit
-                rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
                 print(" Root Mean Squared Error = %0.4f" % rmse)
 
                 print("\n")
@@ -5680,7 +5680,7 @@ def config_test(param_dict,
 
         # Record the target threshold (RMSE) of the complex fit; this will be used to ensure the final maximum likelihood fit 
         # is at least as good as this
-        targ_thresh = badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+        targ_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
         test_results["TARGET_RMSE"].append(targ_thresh)
         # Perform Bayesian A/B test
         # delta degrees of freedom between the two models A and B (dof A > dof B)
@@ -5865,7 +5865,6 @@ def config_test(param_dict,
                 target_metrics[metric]  = test_options["thresholds"][m]
     
         checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics)
-        print(checked_metrics)
         
         if test_options["conv_mode"]=="any":
             if np.any(checked_metrics):
@@ -5933,14 +5932,18 @@ def config_test(param_dict,
             for line in remove_aon:
                 new_line_list.pop(line,None)
     #
-    # print("\n")
-    # for line in new_line_list:
-    #     print(line)
-    #     for hpar in new_line_list[line]:
-    #         print("\t",hpar,":",new_line_list[line][hpar])
+    if verbose:
+        print("\n")
+        print("New Line List:")
+        for line in new_line_list:
+            print(line)
+        print("\n")
 
-
-    ###
+    if verbose:
+        for line in new_line_list:
+            print(line)
+            for hpar in new_line_list[line]:
+                print("\t",hpar,":",new_line_list[line][hpar])
 
 
     # Print a table with the results and write it to the log
@@ -6619,7 +6622,7 @@ def write_line_test_results(fit_res,
 def calc_max_like_flux(comp_dict,flux_norm):
     """
     Calculates component fluxes for maximum likelihood fitting.
-    Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood().
+    Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood.
 
     """
 
@@ -6643,7 +6646,7 @@ def calc_max_like_flux(comp_dict,flux_norm):
 def calc_max_like_lum(flux_dict, z, H0=70.0,Om0=0.30):
     """
     Calculates component luminosities for maximum likelihood fitting.
-    Adds luminosities to exiting parameter dictionary "pdict" in max_likelihood().
+    Adds luminosities to exiting parameter dictionary "pdict" in max_likelihood.
 
     """
     # Compute luminosity distance (in cm) using FlatLambdaCDM cosmology
@@ -6667,7 +6670,7 @@ def calc_max_like_lum(flux_dict, z, H0=70.0,Om0=0.30):
 def calc_max_like_eqwidth(comp_dict, line_list, velscale):
     """
     Calculates component fluxes for maximum likelihood fitting.
-    Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood().
+    Adds fluxes to exiting parameter dictionary "pdict" in max_likelihood.
 
     """
     # Create a single continuum component based on what was fit
@@ -6978,7 +6981,7 @@ def max_likelihood(param_dict,
 
     # basinhop_count = 0
     # basinhop_value = np.inf
-
+    lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
     if force_best:
         force_basinhop = copy.deepcopy(n_basinhop)
         n_basinhop = 1000
@@ -6989,7 +6992,6 @@ def max_likelihood(param_dict,
         basinhop_count = 0
         accepted_count = 0
         basinhop_value = np.inf
-        lowest_rmse  = np.inf
         rmse_arr = []
 
         # Define a callback function for forcing a better fit to the B model 
@@ -7585,7 +7587,7 @@ def max_likelihood(param_dict,
     # pdict = {**pdict,**fit_quality_dict}
 
     if (test_outflows==True):
-        return pdict, mccomps, mcLL
+        return pdict, mccomps, mcLL, lowest_rmse
 
     # Get best-fit components for maximum likelihood plot
     output_model = True

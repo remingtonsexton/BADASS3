@@ -162,7 +162,7 @@ test_options = {
 "full_verbose":True, # prints out all test fitting to screen
 "plot_tests":True, # plot the fit of each model comparison
 "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-"continue_fit":False, # continue the fit with the best chosen model
+"continue_fit":True, # continue the fit with the best chosen model
 }
 
 # test_options = {
