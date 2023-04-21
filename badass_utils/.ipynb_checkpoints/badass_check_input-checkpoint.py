@@ -207,7 +207,7 @@ def check_test_options(input,verbose=False):
 	if not input:
 		output = {	"test_mode":"line",
 					"lines": [], # The lines to test
-					"ranges":[], # The range over which the test is performed
+					"ranges":None, # The range over which the test is performed
 					"metrics": ["BADASS"],# Fitting metrics to use when determining the best model
 					"thresholds": [0.95],
 					"conv_mode": "any",
@@ -238,9 +238,9 @@ def check_test_options(input,verbose=False):
 					},
 	"ranges" : {
 				 "conds" : [
-							 lambda x: isinstance(x,(list,tuple)),
+							 lambda x: isinstance(x,(list,tuple,None)),
 						],
-				 "default" : [],
+				 "default" : None,
 				 "error_message" : "\n ranges must be a list or tuple of valid fitting ranges for each line (list of size 2 lists/tuples).\n",
 				},
 	"metrics" : {
@@ -1806,30 +1806,43 @@ def check_output_options(input,verbose=False):
 	all keywords have valid values. 
 
 	output_options={
-			"write_chain"   : False, # Write MCMC chains for all paramters, fluxes, and
-									 # luminosities to a FITS table We set this to false 
-									 # because MCMC_chains.FITS file can become very large, 
-									 # especially  if you are running multiple objects.  
-									 # You only need this if you want to reconstruct chains 
-									 # and histograms. 
-			"verbose"  : True,  # prints steps of fitting process in Notebook
-	}
+    "res_correct"  : True,  # Correct final emission line widths for the intrinsic 
+                            # resolution of the spectrum; 
+                            # WARNING: make sure your resolution is well-determined!
+    "write_chain"  : False, # Write MCMC chains for all paramters, fluxes, and
+                             # luminosities to a FITS table We set this to false 
+                             # because MCMC_chains.FITS file can become very large, 
+                             # especially  if you are running multiple objects.  
+                             # You only need this if you want to reconstruct full chains 
+                             # and histograms. 
+    "write_options": True,  # output restart file
+    "verbose"      : True,   # print out all steps of fitting process
+    }
 	"""
 	output={} # output dictionary
 
 	if not input:
 		output={
+            "res_correct"   : True,  # Correct final line dispersions for the 
+                                     # instrinc resolution of the spectrum.
+            "write_options" : False, # Write options file to restart fit
 			"write_chain"   : False, # Write MCMC chains for all paramters, fluxes, and
 									 # luminosities to a FITS table We set this to false 
 									 # because MCMC_chains.FITS file can become very large, 
 									 # especially  if you are running multiple objects.  
 									 # You only need this if you want to reconstruct chains 
 									 # and histograms. 
-			"verbose"  : True,  # prints steps of fitting process in Notebook
+			"verbose"       : True,  # prints steps of fitting process in Notebook
 		}
 		return output
 
 	keyword_dict ={
+	"res_correct" : {"conds":[
+							lambda x: isinstance(x,(bool))
+							],
+				  		"default": True,
+				  		"error_message": "\n res_correct must be a bool.\n",
+				  },       
 	"write_chain" : {"conds":[
 							lambda x: isinstance(x,(bool))
 							],

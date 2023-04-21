@@ -583,6 +583,10 @@ def run_single_thread(fits_file,
     run_dir,prev_dir = setup_dirs(work_dir,output_options['verbose'])
     run_dir = pathlib.Path(run_dir)
 
+    # Do some sanity checks
+    if (not sdss_spec) and (fwhm_res==0.0) and (output_options["res_correct"]==True):
+        print("\n WARNING: User-input FWHM resolution (in Angstroms) is zero or not provided, but you also asked BADASS to correct for resolution effects.  No correction will be applied...\n")
+
     # Check to make sure plotly is installed for HTML interactive plots:
     if plot_HTML==True:
         if importlib.util.find_spec('plotly'):
@@ -1244,16 +1248,48 @@ def run_single_thread(fits_file,
         z_dict = systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist)
         extra_dict = {**extra_dict, **z_dict}
 
+
+    # Combine all the dictionaries
+    combined_pdict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
+
+    # Add the dispersion resolutions and corrected dispersion and widths for all lines
+    all_lines = {**line_list,**combined_line_list}
+    for line in all_lines:
+        disp_res = all_lines[line]["disp_res_kms"]
+        combined_pdict[line+"_DISP_RES"] = {'par_best'    : disp_res, # maximum of posterior distribution
+                                            'ci_68_low'   : np.nan, # lower 68% confidence interval
+                                            'ci_68_upp'   : np.nan, # upper 68% confidence interval
+                                            'ci_95_low'   : np.nan, # lower 95% confidence interval
+                                            'ci_95_upp'   : np.nan, # upper 95% confidence interval
+                                            'post_max'    : np.nan,
+                                            'mean'        : np.nan, # mean of posterior distribution
+                                            'std_dev'     : np.nan,   # standard deviation
+                                            'median'      : np.nan, # median of posterior distribution
+                                            'med_abs_dev' : np.nan,   # median absolute deviation
+                                            'flat_chain'  : np.nan,   # flattened samples used for histogram.
+                                            'flag'        : np.nan, 
+                                            }
+        disp_corr = np.nanmax([0.0,np.sqrt(combined_pdict[line+"_DISP"]["par_best"]**2-(disp_res)**2)])
+        # print(combined_pdict[line+"_DISP"]["par_best"])
+        # print(disp_res)
+        # print(disp_corr)
+        fwhm_corr = np.nanmax([0.0,np.sqrt(combined_pdict[line+"_FWHM"]["par_best"]**2-(disp_res*2.3548)**2)]) 
+        # Add entires for these corrected lines (uncertainties are the same)
+        combined_pdict[line+"_DISP_CORR"] = copy.deepcopy(combined_pdict[line+"_DISP"])
+        combined_pdict[line+"_DISP_CORR"]["par_best"] = disp_corr
+        combined_pdict[line+"_FWHM_CORR"] = copy.deepcopy(combined_pdict[line+"_FWHM"])
+        combined_pdict[line+"_FWHM_CORR"]["par_best"] = fwhm_corr
+
     if verbose:
         print('\n > Saving Data...')
 
     # Write all chains to a fits table
     if (write_chain==True):
-        write_chains({**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},run_dir)
+        write_chains(combined_pdict,run_dir)
 
     # corner plot
     if (plot_corner==True):
-        corner_plot(param_dict,{**param_dict,**flux_dict,**lum_dict,**cont_lum_dict,**eqwidth_dict,**int_vel_disp_dict},corner_options,run_dir)
+        corner_plot(param_dict,combined_pdict,corner_options,run_dir)
 
 
 
@@ -1297,8 +1333,8 @@ def run_single_thread(fits_file,
     header_dict["MED_NOISE"] = np.median(noise)
     header_dict["VELSCALE"]  = velscale
     #
-    param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
-    write_params(param_dict,header_dict,bounds,run_dir,binnum,spaxelx,spaxely)
+    # param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
+    write_params(combined_pdict,header_dict,bounds,run_dir,binnum,spaxelx,spaxely)
 
     # Make interactive HTML plot 
     if plot_HTML:
@@ -2826,7 +2862,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                     comp_options,narrow_options,broad_options,absorp_options,
                     user_lines,user_constraints,combined_lines,losvd_options,host_options,power_options,poly_options,
                     opt_feii_options,uv_iron_options,balmer_options,
-                    run_dir,fit_type='init',fit_stat="RCHI2",
+                    run_dir,fit_type='init',fit_stat="ML",
                     fit_opt_feii=True,fit_uv_iron=True,fit_balmer=True,
                     fit_losvd=False,fit_host=True,fit_power=True,fit_poly=False,
                     fit_narrow=True,fit_broad=True,fit_absorp=True,
@@ -4655,7 +4691,7 @@ def line_test(param_dict,
               flux_norm,
               run_dir,
               fit_type='init',
-              fit_stat="RCHI2",
+              fit_stat="ML",
               output_model=False,
               test_outflows=False,
               n_basinhop=5,
@@ -5319,7 +5355,7 @@ def config_test(param_dict,
               flux_norm,
               run_dir,
               fit_type='init',
-              fit_stat="RCHI2",
+              fit_stat="ML",
               output_model=False,
               test_outflows=False,
               n_basinhop=5,
@@ -6934,7 +6970,7 @@ def max_likelihood(param_dict,
                    flux_norm,
                    run_dir,
                    fit_type='init',
-                   fit_stat="RCHI2",
+                   fit_stat="ML",
                    output_model=False,
                    test_outflows=False,
                    n_basinhop=5,
@@ -7576,8 +7612,21 @@ def max_likelihood(param_dict,
     # Add tied parameters explicitly to final parameter dictionary
     pdict = max_like_add_tied_parameters(pdict,line_list)
 
-    # for p in pdict:
-        # print(p,pdict[p])
+    # Add dispersion resolution (in km/s) for each line to pdict
+    all_lines = {**line_list,**combined_line_list}
+    for line in all_lines:
+        disp_res = all_lines[line]["disp_res_kms"]
+        pdict[line+"_DISP_RES"]  = {"med":disp_res,"std":np.nan,"flag":np.nan}
+        disp_corr = np.nanmax([0.0,np.sqrt(pdict[line+"_DISP"]["med"]**2-(disp_res)**2)])
+        fwhm_corr = np.nanmax([0.0,np.sqrt(pdict[line+"_FWHM"]["med"]**2-(disp_res*2.3548)**2)]) 
+        pdict[line+"_DISP_CORR"] = {"med":disp_corr,
+                                    "std":pdict[line+"_DISP"]["std"],
+                                    "flag":pdict[line+"_DISP"]["flag"]
+                                    }
+        pdict[line+"_FWHM_CORR"] = {"med":fwhm_corr,
+                                    "std":pdict[line+"_FWHM"]["std"],
+                                    "flag":pdict[line+"_FWHM"]["flag"]
+                                    }
 
     #
     # Calculate some fit quality parameters which will be added to the dictionary
@@ -8021,12 +8070,12 @@ def lnlike(params,
             # we multiply by negative.
             l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
             l = -np.sum(l,axis=0)
-        elif (fit_stat=="RCHI2"):
-            pdict = {p:params[i] for i,p in enumerate(param_names)}
-            noise_scale = pdict["NOISE_SCALE"]
-            # Calculate log-likelihood
-            sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
+        # elif (fit_stat=="RCHI2"):
+        #     pdict = {p:params[i] for i,p in enumerate(param_names)}
+        #     noise_scale = pdict["NOISE_SCALE"]
+        #     # Calculate log-likelihood
+        #     sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
+        #     l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
@@ -8074,12 +8123,12 @@ def lnlike(params,
         elif fit_stat=="OLS":
             l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
             l = -np.sum(l,axis=0)
-        elif (fit_stat=="RCHI2"):
-            pdict = {p:params[i] for i,p in enumerate(param_names)}
-            noise_scale = pdict["NOISE_SCALE"]
-            # Calculate log-likelihood
-            sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
-            l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
+        # elif (fit_stat=="RCHI2"):
+        #     pdict = {p:params[i] for i,p in enumerate(param_names)}
+        #     noise_scale = pdict["NOISE_SCALE"]
+        #     # Calculate log-likelihood
+        #     sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
+        #     l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
         return l 
 
@@ -8319,7 +8368,7 @@ def lnprob(params,
                 run_dir,
                 )
 
-        if fit_stat in ["ML","RCHI2"]:
+        if fit_stat in ["ML"]:
             lp = lnprior(params,param_names,bounds,soft_cons,comp_options,prior_dict,fit_type)
 
             if ~np.isfinite(lp):
@@ -9980,7 +10029,7 @@ def gaussian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms,v
     x with the specified parameters.
     """
     # Take into account instrumental dispersion (FWHM resolution)
-    disp = np.sqrt(disp**2+disp_res_kms**2)
+    # disp = np.sqrt(disp**2+disp_res_kms**2)
     sigma = disp # Gaussian dispersion in km/s
     sigma_pix = sigma/(velscale) # dispersion in pixels (velscale = km/s/pixel)
     if sigma_pix<=0.01: sigma_pix = 0.01
@@ -10008,7 +10057,7 @@ def lorentzian_line_profile(lam_gal,center,amp,disp,voff,center_pix,disp_res_kms
     """
     
     # Take into account instrumental dispersion (dispersion resolution)
-    disp = np.sqrt(disp**2+disp_res_kms**2)
+    # disp = np.sqrt(disp**2+disp_res_kms**2)
     fwhm  = disp*2.3548
     fwhm_pix = fwhm/velscale # fwhm in pixels (velscale = km/s/pixel)
     if fwhm_pix<=0.01: fwhm_pix = 0.01
@@ -10036,7 +10085,7 @@ def gauss_hermite_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,
     """
     
     # Take into account instrumental dispersion (FWHM resolution)
-    disp = np.sqrt(disp**2+disp_res_kms**2)
+    # disp = np.sqrt(disp**2+disp_res_kms**2)
     sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
     if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix = voff/velscale # velocity offset in pixels
@@ -10086,7 +10135,7 @@ def laplace_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_r
     """
 
     # Take into account instrumental dispersion (FWHM resolution)
-    disp = np.sqrt(disp**2+disp_res_kms**2)
+    # disp = np.sqrt(disp**2+disp_res_kms**2)
     sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
     if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix = voff/velscale # velocity offset in pixels
@@ -10120,7 +10169,7 @@ def uniform_line_profile(lam_gal,center,amp,disp,voff,hmoments,center_pix,disp_r
     """
     
     # Take into account instrumental dispersion (FWHM resolution)
-    disp = np.sqrt(disp**2+disp_res_kms**2)
+    # disp = np.sqrt(disp**2+disp_res_kms**2)
     sigma_pix = disp/velscale # dispersion in pixels (velscale = km/s/pixel)
     if sigma_pix<=0.01: sigma_pix = 0.01
     voff_pix = voff/velscale # velocity offset in pixels
@@ -10151,7 +10200,7 @@ def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_km
     https://docs.mantidproject.org/nightly/fitting/fitfunctions/PseudoVoigt.html
     """
     # Take into account instrumental dispersion (FWHM resolution)
-    disp	   = np.sqrt(disp**2+disp_res_kms**2)
+    # disp	   = np.sqrt(disp**2+disp_res_kms**2)
     fwhm_pix   = (disp*2.3548)/velscale # fwhm in pixels (velscale = km/s/pixel)
     if fwhm_pix<=0.01: fwhm_pix = 0.01
     sigma_pix  = fwhm_pix/2.3548
