@@ -64,7 +64,7 @@ def check_fit_options(input,comp_options,verbose=False):
 				"mask_bad_pix": False, # mask pixels SDSS flagged as 'bad' (careful!)
 				"mask_emline" : False, # automatically mask lines for continuum fitting.
 				"mask_metal": False, # interpolate over metal absorption lines for high-z spectra
-				"fit_stat": "RCHI2", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
+				"fit_stat": "ML", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
 				"n_basinhop": 10, # Number of consecutive basinhopping thresholds before solution achieved
 				"test_lines": False, # only test for outflows; "fit_outflows" must be set to True!
 				"max_like_niter": 10, # number of maximum likelihood iterations
@@ -117,10 +117,10 @@ def check_fit_options(input,comp_options,verbose=False):
 	"fit_stat" : {
 					 "conds" : [
 								lambda x: isinstance(x,(str)),
-								lambda x: x in ["ML","OLS","RCHI2","RMSE"]
+								lambda x: x in ["ML","OLS"]
 							   ],
 					 "default" : "ML",
-					 "error_message" : "\n Fit statistic can be either ML (Maximum Likelihood), OLS (Ordinary Least Squares) , or RCHI2 (Reduced Chi-Squared).\n",
+					 "error_message" : "\n Fit statistic can be either ML (Maximum Likelihood) or OLS (Ordinary Least Squares).\n",
 					},
 	"n_basinhop" : {
 					 "conds" : [
@@ -1806,30 +1806,43 @@ def check_output_options(input,verbose=False):
 	all keywords have valid values. 
 
 	output_options={
-			"write_chain"   : False, # Write MCMC chains for all paramters, fluxes, and
-									 # luminosities to a FITS table We set this to false 
-									 # because MCMC_chains.FITS file can become very large, 
-									 # especially  if you are running multiple objects.  
-									 # You only need this if you want to reconstruct chains 
-									 # and histograms. 
-			"verbose"  : True,  # prints steps of fitting process in Notebook
-	}
+    "res_correct"  : True,  # Correct final emission line widths for the intrinsic 
+                            # resolution of the spectrum; 
+                            # WARNING: make sure your resolution is well-determined!
+    "write_chain"  : False, # Write MCMC chains for all paramters, fluxes, and
+                             # luminosities to a FITS table We set this to false 
+                             # because MCMC_chains.FITS file can become very large, 
+                             # especially  if you are running multiple objects.  
+                             # You only need this if you want to reconstruct full chains 
+                             # and histograms. 
+    "write_options": True,  # output restart file
+    "verbose"      : True,   # print out all steps of fitting process
+    }
 	"""
 	output={} # output dictionary
 
 	if not input:
 		output={
+            "res_correct"   : True,  # Correct final line dispersions for the 
+                                     # instrinc resolution of the spectrum.
+            "write_options" : False, # Write options file to restart fit
 			"write_chain"   : False, # Write MCMC chains for all paramters, fluxes, and
 									 # luminosities to a FITS table We set this to false 
 									 # because MCMC_chains.FITS file can become very large, 
 									 # especially  if you are running multiple objects.  
 									 # You only need this if you want to reconstruct chains 
 									 # and histograms. 
-			"verbose"  : True,  # prints steps of fitting process in Notebook
+			"verbose"       : True,  # prints steps of fitting process in Notebook
 		}
 		return output
 
 	keyword_dict ={
+	"res_correct" : {"conds":[
+							lambda x: isinstance(x,(bool))
+							],
+				  		"default": True,
+				  		"error_message": "\n res_correct must be a bool.\n",
+				  },       
 	"write_chain" : {"conds":[
 							lambda x: isinstance(x,(bool))
 							],

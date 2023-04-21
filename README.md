@@ -1,11 +1,13 @@
 
 ![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS2_logo.gif)
 
-## New in Version 10.1.0
+## New in Version 10.1.2
 * New line and configuration testing framework. See [Line Testing and Options](#line-testing-and-options).
 * Line component options.  See [Line Component Options](#line-component-options).
 * Improvements in autocorrelation calculations.
 * W80 now a standard output parameter for all lines.
+* Outputs line widths that are both corrected and uncorrected for input resolution
+* **Note**: The algorithm used for scaling the noise to achieve a $\Chi_\nu^2=1$ was found to be numerically unstable and users should use `fit_stat='ML'` instead.
 <hr>
 
 Ridiculous acronyms are a [long-running joke in astronomy](https://lweb.cfa.harvard.edu/~gpetitpas/Links/Astroacro.html), but here, spectral fitting ain't no joke!
