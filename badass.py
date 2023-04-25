@@ -339,7 +339,7 @@ def run_BADASS(data,
         # nprocesses = int(np.ceil(mp.cpu_count()/2))
         nprocesses = 1
 
-    if (nprocesses>1) or (nobj is not None):
+    if (nprocesses>1) and (nobj is not None) and ((nobj[1]-nobj[0])>1):
         if output_options:
             output_options["verbose"] = False
         else:
@@ -1104,7 +1104,7 @@ def run_single_thread(fits_file,
         # Header information
         header_dict = {}
         header_dict["z_sdss"] = z
-        header_dict["med_noise"] = np.median(noise)
+        header_dict["med_noise"] = np.nanmedian(noise)
         header_dict["velscale"]  = velscale
         #
         write_max_like_results(result_dict,comp_dict,header_dict,fit_mask,run_dir,binnum,spaxelx,spaxely)
@@ -1330,7 +1330,7 @@ def run_single_thread(fits_file,
     # Header information
     header_dict = {}
     header_dict["Z_SDSS"]	= z
-    header_dict["MED_NOISE"] = np.median(noise)
+    header_dict["MED_NOISE"] = np.nanmedian(noise)
     header_dict["VELSCALE"]  = velscale
     #
     # param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
@@ -1467,13 +1467,13 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
         p95 = compute_HDI(flat,0.95)
 
         post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
-        post_mean = np.mean(flat)
-        post_med  = np.median(flat)
+        post_mean = np.nanmean(flat)
+        post_med  = np.nanmedian(flat)
         low_68    = post_med - p68[0]
         upp_68    = p68[1] - post_med
         low_95    = post_med - p95[0]
         upp_95    = p95[1] - post_med
-        post_std  = np.std(flat)
+        post_std  = np.nanstd(flat)
         post_mad  = stats.median_abs_deviation(flat)
 
         if ((post_med-(3.0*low_68))<0): 
@@ -2080,7 +2080,7 @@ def window_filter(spec,size):
         # Calculate distance from i to each pixel
         i_sort =np.argsort(np.abs(i-pix))
         idx = pix[i_sort][:size] # indices we estimate from
-        med = np.median(spec[idx])
+        med = np.nanmedian(spec[idx])
         med_spec[i] = med
     #
     return med_spec
@@ -2097,10 +2097,10 @@ def interpolate_metal(spec,noise):
     med_spec = window_filter(spec,bandwidth)
     count = 0 
     new_spec = np.copy(spec)
-    while (count<=nclip) and ((np.std(new_spec-med_spec)*sig_clip)>np.median(noise)):
+    while (count<=nclip) and ((np.nanstd(new_spec-med_spec)*sig_clip)>np.nanmedian(noise)):
         count+=1
         # Get locations of nan or -inf pixels
-        nan_spec = np.where((np.abs(new_spec-med_spec)>(np.std(new_spec-med_spec)*sig_clip)) & (new_spec < (med_spec-sig_clip*noise)) )[0]
+        nan_spec = np.where((np.abs(new_spec-med_spec)>(np.nanstd(new_spec-med_spec)*sig_clip)) & (new_spec < (med_spec-sig_clip*noise)) )[0]
         if len(nan_spec)>0:
             inan = np.unique(np.concatenate([nan_spec]))
             buffer = 0
@@ -2503,7 +2503,11 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
         print('-----------------------------------------------------------')
     ################################################################################
     #
-    # fit_mask_good = np.arange(0,len(lam_gal),1,dtype=int)
+    # Fit normalization
+    # The input spectrum needs to be normalized such that 
+    fit_norm = np.max(galaxy)
+    galaxy = galaxy/fit_norm
+    noise  = noise/fit_norm
     #
     return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good
 
@@ -2527,7 +2531,7 @@ def prepare_user_plot(lam_gal,galaxy,noise,ibad,flux_norm,run_dir):
     fontsize = 14
     ax1.set_title(r'Fitting Region',fontsize=fontsize)
     ax1.set_xlabel(r'$\lambda_{\rm{rest}}$ ($\mathrm{\AA}$)',fontsize=fontsize)
-    ax1.set_ylabel(r'$f_\lambda$ ($%0.0e$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (flux_norm),fontsize=fontsize)
+    ax1.set_ylabel(r'$f_\lambda$ ($%0.0E$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (flux_norm),fontsize=fontsize)
     ax1.set_xlim(np.min(lam_gal),np.max(lam_gal))
     ax1.legend(loc='best')
     plt.tight_layout()
@@ -2813,7 +2817,7 @@ def prepare_stellar_templates(galaxy, lam_gal, fit_reg, velscale, disp_res, fit_
         ssp = ssp[mask_temp]
         ssp = gaussian_filter1d(ssp, sigma)  # perform convolution with variable sigma
         sspNew,loglam_temp,velscale_temp = log_rebin(lamRange_temp, ssp, velscale=velscale)#[0]
-        templates[:, j] = sspNew/np.median(sspNew) # Normalizes templates
+        templates[:, j] = sspNew/np.nanmedian(sspNew) # Normalizes templates
         hdu.close()
     
     # The galaxy and the template spectra do not have the same starting wavelength.
@@ -6177,11 +6181,11 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
 
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(comp_dict_A['WAVE'])-10,np.max(comp_dict_A['WAVE'])+10)
-    # ax1.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
+    # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
     ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_A['DATA']-comp_dict_A['MODEL'])
-    sigma_noise = np.median(comp_dict_A['NOISE'])
+    sigma_noise = np.nanmedian(comp_dict_A['NOISE'])
     ax2.plot(comp_dict_A['WAVE'],(comp_dict_A['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
     ax2.plot(comp_dict_A['WAVE'],(comp_dict_A['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
     ax2.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
@@ -6281,11 +6285,11 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
 
     ax3.set_xticklabels([])
     ax3.set_xlim(np.min(comp_dict_B['WAVE'])-10,np.max(comp_dict_B['WAVE'])+10)
-    # ax3.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
+    # ax3.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
     ax3.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_B['DATA']-comp_dict_B['MODEL'])
-    sigma_noise = np.median(comp_dict_B['NOISE'])
+    sigma_noise = np.nanmedian(comp_dict_B['NOISE'])
     ax4.plot(comp_dict_B['WAVE'],(comp_dict_B['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
     ax4.plot(comp_dict_B['WAVE'],(comp_dict_B['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
     ax4.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
@@ -6446,11 +6450,11 @@ def config_test_plot(n,ncomp_A,ncomp_B,
 
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(comp_dict_A['WAVE'])-10,np.max(comp_dict_A['WAVE'])+10)
-    # ax1.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
+    # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
     ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_A['DATA']-comp_dict_A['MODEL'])
-    sigma_noise = np.median(comp_dict_A['NOISE'])
+    sigma_noise = np.nanmedian(comp_dict_A['NOISE'])
     ax2.plot(comp_dict_A['WAVE'],(comp_dict_A['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
     ax2.plot(comp_dict_A['WAVE'],(comp_dict_A['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
     ax2.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
@@ -6550,11 +6554,11 @@ def config_test_plot(n,ncomp_A,ncomp_B,
 
     ax3.set_xticklabels([])
     ax3.set_xlim(np.min(comp_dict_B['WAVE'])-10,np.max(comp_dict_B['WAVE'])+10)
-    # ax3.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
+    # ax3.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
     ax3.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_B['DATA']-comp_dict_B['MODEL'])
-    sigma_noise = np.median(comp_dict_B['NOISE'])
+    sigma_noise = np.nanmedian(comp_dict_B['NOISE'])
     ax4.plot(comp_dict_B['WAVE'],(comp_dict_B['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
     ax4.plot(comp_dict_B['WAVE'],(comp_dict_B['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
     ax4.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
@@ -7046,6 +7050,9 @@ def max_likelihood(param_dict,
             if (accepted==1):
                 accepted_count+=1
 
+            if basinhop_count>n_basinhop:
+                raise SystemExit(f"\n The global maximizer could not converge on a viable solution in {n_basinhop} steps.  Manually change the basinhopping step size to something reasonable.\n")
+
             current_comps = fit_model(x,param_names,line_list,combined_line_list,lam_gal,galaxy,noise,
                                       comp_options,losvd_options,host_options,power_options,poly_options,
                                       opt_feii_options,uv_iron_options,balmer_options,outflow_test_options,
@@ -7053,7 +7060,6 @@ def max_likelihood(param_dict,
                                       stel_templates,blob_pars,disp_res,fit_mask,velscale,run_dir,"init",
                                       fit_stat,True)
             rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(current_comps["DATA"]),copy.deepcopy(current_comps["MODEL"]))
-
             # if accepted (lowest_f), update accepted_rmse:
             # also update number of accepted solututions (accepted count) to ensure
             # that a viable solution was actually found.
@@ -7115,7 +7121,7 @@ def max_likelihood(param_dict,
     result = op.basinhopping(func = nll, 
                              x0 = params,
                              # T = 0.0,
-                             stepsize=10.0,
+                             stepsize=1.0,
                              # interval=90,
                              niter = 2500, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
@@ -7323,7 +7329,7 @@ def max_likelihood(param_dict,
             # Generate a simulated galaxy spectrum with noise added at each pixel
             mcgal  = np.random.normal(galaxy,mcnoise)
             # Get rid of any infs or nan if there are none; this will cause scipy.optimize to fail
-            mcgal[~np.isfinite(mcgal)] = np.median(mcgal)
+            mcgal[~np.isfinite(mcgal)] = np.nanmedian(mcgal)
             fit_type	 = 'init'
             output_model = False
 
@@ -7588,7 +7594,7 @@ def max_likelihood(param_dict,
     pdict["R_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
 #    Add RCHI2 values to pdict
     mc_med = mcRCHI2[0]#np.nanmedian(mcRCHI2)
-    mc_std = np.std(mcRCHI2)
+    mc_std = np.nanstd(mcRCHI2)
     pdict["RCHI_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
 
     # Add continuum luminosities to pdict
@@ -7901,11 +7907,11 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,run_di
 
         ax1.set_xticklabels([])
         ax1.set_xlim(np.min(lam_gal)-10,np.max(lam_gal)+10)
-        # ax1.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
+        # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
         ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
         # Residuals
         sigma_resid = np.nanstd(comp_dict['DATA'][fit_mask]-comp_dict['MODEL'][fit_mask])
-        sigma_noise = np.median(comp_dict['NOISE'][fit_mask])
+        sigma_noise = np.nanmedian(comp_dict['NOISE'][fit_mask])
         ax2.plot(lam_gal,(comp_dict['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
         ax2.plot(lam_gal,(comp_dict['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
         ax1.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
@@ -8059,16 +8065,16 @@ def lnlike(params,
                                                                                   fit_stat,
                                                                                   output_model)
         # Normalization factor
-        norm_factor = np.nanmedian(galaxy[fit_mask])
+        # norm_factor = np.nanmedian(galaxy[fit_mask])
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            l = -0.5*(galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise[fit_mask]/norm_factor)**2)
+            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2 + np.log(2*np.pi*(noise[fit_mask])**2)
             l = np.sum(l,axis=0)
         elif fit_stat=="OLS":
             # Since emcee looks for the maximum, but Least Squares requires a minimum
             # we multiply by negative.
-            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
+            l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
         # elif (fit_stat=="RCHI2"):
         #     pdict = {p:params[i] for i,p in enumerate(param_names)}
@@ -8113,15 +8119,17 @@ def lnlike(params,
                                      fit_stat,
                                      output_model)
         # Normalization factor
-        norm_factor = np.nanmedian(galaxy[fit_mask])
+        # norm_factor = np.nanmedian(galaxy[fit_mask])
+        # norm_factor = np.nanmax(galaxy[fit_mask])
+        # norm_factor = 1
 
         if fit_stat=="ML":
             # Calculate log-likelihood
-            l = -0.5*(galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(noise[fit_mask]/norm_factor)**2 + np.log(2*np.pi*(noise[fit_mask]/norm_factor)**2)
+            l = -0.5*(galaxy[fit_mask]-model[fit_mask])**2/(noise[fit_mask])**2 + np.log(2*np.pi*(noise[fit_mask])**2)
             l = np.sum(l,axis=0)
             # print("Log-Likelihood = %0.4f" % (l))
         elif fit_stat=="OLS":
-            l = (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2
+            l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
         # elif (fit_stat=="RCHI2"):
         #     pdict = {p:params[i] for i,p in enumerate(param_names)}
@@ -8644,7 +8652,7 @@ def combined_fwhm(lam_gal, full_profile, disp_res, velscale ):
 
     hmx = half_max_x(range(len(lam_gal)),full_profile)
     fwhm = np.abs(hmx[1]-hmx[0])
-    fwhm = np.sqrt((fwhm*velscale)**2 - (disp_res*2.3548)**2)
+    # fwhm = np.sqrt((fwhm*velscale)**2 - (disp_res*2.3548)**2)
     if ~np.isfinite(fwhm):
         fwhm = 0.0
     #
@@ -8663,7 +8671,7 @@ def calculate_w80(lam_gal, full_profile, disp_res, velscale, center ):
     w80 = np.interp(0.91,cdf,v) - np.interp(0.10,cdf,v)
     # Correct for intrinsic W80.  
     # The formula for a Gaussian W80 = 1.09*FWHM = 2.567*disp_res (Harrison et al. 2014; Manzano-King et al. 2019)
-    w80 = np.sqrt((w80)**2-(2.567*disp_res)**2)
+    # w80 = np.sqrt((w80)**2-(2.567*disp_res)**2)
     if ~np.isfinite(w80):
         w80 = 0.0
     #
@@ -8865,13 +8873,13 @@ def fit_model(params,
             conv_host = host_template
             #
             if np.shape(conv_host)[1]==1:
-                # conv_host = conv_host/np.median(conv_host) * p["HOST_TEMP_AMP"]
+                # conv_host = conv_host/np.nanmedian(conv_host) * p["HOST_TEMP_AMP"]
                 conv_host = conv_host * p["HOST_TEMP_AMP"]
                 host_galaxy = conv_host.reshape(-1)
             elif np.shape(conv_host)[1]>1:
                 host_model[~np.isfinite(host_model)] = 0
                 conv_host[~np.isfinite(conv_host)]	= 0
-                # host_norm = np.median(host_model)
+                # host_norm = np.nanmedian(host_model)
                 # if (host_norm/host_norm!=1):
                 # 	host_norm = 1
                 weights	 = nnls(conv_host,host_model)#/host_norm) # scipy.optimize Non-negative Least Squares
@@ -8896,13 +8904,13 @@ def fit_model(params,
                            [host_vel, host_disp],np.shape(lam_gal)[0],velscale_ratio=1,sigma_diff=0,vsyst=vsyst)
             #
             if np.shape(conv_host)[1]==1:
-                # conv_host = conv_host/np.median(conv_host) * p["HOST_TEMP_AMP"]
+                # conv_host = conv_host/np.nanmedian(conv_host) * p["HOST_TEMP_AMP"]
                 conv_host = conv_host * p["HOST_TEMP_AMP"]
                 host_galaxy = conv_host.reshape(-1)
             # elif np.shape(conv_host)[1]>1:
             host_model[~np.isfinite(host_model)] = 0
             conv_host[~np.isfinite(conv_host)]	= 0
-                # host_norm = np.median(host_model)
+                # host_norm = np.nanmedian(host_model)
                 # if (host_norm/host_norm!=1):
                 # 	host_norm = 1
             weights	 = nnls(conv_host,host_model)#/host_norm) # scipy.optimize Non-negative Least Squares
@@ -8926,7 +8934,7 @@ def fit_model(params,
             #
             host_model[~np.isfinite(host_model)] = 0
             conv_temp[~np.isfinite(conv_temp)]	= 0
-            # host_norm = np.median(host_model)
+            # host_norm = np.nanmedian(host_model)
             # if (host_norm/host_norm!=1) or (host_norm<1):
                 # host_norm = 1
             weights	 = nnls(conv_temp,host_model)#/host_norm) # scipy.optimize Non-negative Least Squares
@@ -8957,7 +8965,7 @@ def fit_model(params,
 
             host_model[~np.isfinite(host_model)] = 0
             conv_temp[~np.isfinite(conv_temp)]	= 0
-            # host_norm = np.median(host_model)
+            # host_norm = np.nanmedian(host_model)
             # if (host_norm/host_norm!=1) or (host_norm<1):
             # 	host_norm = 1
             weights	 = nnls(conv_temp,host_model)#/host_norm) # scipy.optimize Non-negative Least Squares
@@ -9231,7 +9239,7 @@ def generate_host_template(lam_gal,host_options,disp_res,fit_mask,velscale,verbo
         ssp = ssp[mask]
         ssp = gaussian_filter1d(ssp, sigma)  # perform convolution with variable sigma
         sspNew,loglam_temp,velscale_temp = log_rebin(lamRange_temp, ssp, velscale=velscale)#[0]
-        templates[:, j] = sspNew/np.median(sspNew) # Normalizes templates
+        templates[:, j] = sspNew/np.nanmedian(sspNew) # Normalizes templates
         hdu.close()
     #
     # Calculate npad and vsyst
@@ -10222,8 +10230,8 @@ def voigt_line_profile(lam_gal,center,amp,disp,voff,shape,center_pix,disp_res_km
     # Normalize and multiply by amplitude
     pv = pv/np.max(pv)*amp
     # Truncate wings below noise level
-    # pv[pv<=np.median(noise)] = 0.0
-    # pv[pv>np.median(noise)] -= np.median(noise)
+    # pv[pv<=np.nanmedian(noise)] = 0.0
+    # pv[pv>np.nanmedian(noise)] -= np.nanmedian(noise)
     # Replace the ends with the same value 
     pv[(pv>-1e-6) & (pv<1e-6)] = 0.0
     pv[0]  = pv[1]
@@ -10575,7 +10583,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
             # best = []
             for pp in range(0,npar,1):
                 data = new_sampler_chain[pp][-int(nwalkers*write_iter):]
-                med = np.median(data)
+                med = np.nanmedian(data)
                 best.append(med)
             # write to file
             with run_dir.joinpath('log', 'MCMC_chain.csv').open(mode='a') as f:
@@ -10607,7 +10615,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                         print('\nIteration = %d' % (k+1))
                         print('-------------------------------------------------------------------------------')
                         print('- Not enough iterations for any autocorrelation times!')
-                elif ( (par_conv.size > 0) and (k+1)>(np.mean(tau[par_conv]) * ncor_times) and (np.mean(tol[par_conv])<autocorr_tol) and (stop_iter == max_iter) ):
+                elif ( (par_conv.size > 0) and (k+1)>(np.nanmean(tau[par_conv]) * ncor_times) and (np.nanmean(tol[par_conv])<autocorr_tol) and (stop_iter == max_iter) ):
                     if verbose:
                         print('\n ---------------------------------------------')
                         print(' | Converged at %d iterations.			  | ' % (k+1))
@@ -10618,7 +10626,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                     stop_iter = (k+1)+min_samp
                     conv_tau = tau
                     converged = True
-                elif ((par_conv.size == 0) or ( (k+1)<(np.mean(tau[par_conv]) * ncor_times)) or (np.mean(tol[par_conv])>autocorr_tol)) and (stop_iter < orig_max_iter):
+                elif ((par_conv.size == 0) or ( (k+1)<(np.nanmean(tau[par_conv]) * ncor_times)) or (np.nanmean(tol[par_conv])>autocorr_tol)) and (stop_iter < orig_max_iter):
                     if verbose:
                         print('\nIteration = %d' % (k+1))
                         print('-------------------------------------------------------------------------------')
@@ -10636,7 +10644,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                     tol_sorted	= tol[i_sort]
                     best_sorted   = np.array(best)[i_sort]
                     if verbose:
-                        print('{0:<30}{1:<40}{2:<30}'.format('\nIteration = %d' % (k+1),'%d x Mean Autocorr. Time = %0.2f' % (ncor_times,np.mean(tau[par_conv]) * ncor_times),'Mean Tolerance = %0.2f' % np.mean(tol[par_conv])))
+                        print('{0:<30}{1:<40}{2:<30}'.format('\nIteration = %d' % (k+1),'%d x Mean Autocorr. Time = %0.2f' % (ncor_times,np.nanmean(tau[par_conv]) * ncor_times),'Mean Tolerance = %0.2f' % np.nanmean(tol[par_conv])))
                         print('--------------------------------------------------------------------------------------------------------')
                         print('{0:<30}{1:<20}{2:<20}{3:<20}{4:<20}'.format('Parameter','Current Value','Autocorr. Time','Tolerance','Converged?'))
                         print('--------------------------------------------------------------------------------------------------------')
@@ -10667,7 +10675,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                         print('\nIteration = %d' % (k+1))
                         print('-------------------------------------------------------------------------------')
                         print('- Not enough iterations for any autocorrelation times!')
-                elif ( (par_conv.size > 0) and (k+1)>(np.median(tau[par_conv]) * ncor_times) and (np.median(tol[par_conv])<autocorr_tol) and (stop_iter == max_iter) ):
+                elif ( (par_conv.size > 0) and (k+1)>(np.nanmedian(tau[par_conv]) * ncor_times) and (np.nanmedian(tol[par_conv])<autocorr_tol) and (stop_iter == max_iter) ):
                     if verbose:
                         print('\n ---------------------------------------------')
                         print(' | Converged at %d iterations.			  |' % (k+1))
@@ -10678,7 +10686,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                     stop_iter = (k+1)+min_samp
                     conv_tau = tau
                     converged = True
-                elif ((par_conv.size == 0) or ( (k+1)<(np.median(tau[par_conv]) * ncor_times)) or (np.median(tol[par_conv])>autocorr_tol)) and (stop_iter < orig_max_iter):
+                elif ((par_conv.size == 0) or ( (k+1)<(np.nanmedian(tau[par_conv]) * ncor_times)) or (np.nanmedian(tol[par_conv])>autocorr_tol)) and (stop_iter < orig_max_iter):
                     if verbose:
                         print('\nIteration = %d' % (k+1))
                         print('-------------------------------------------------------------------------------')
@@ -10696,7 +10704,7 @@ def run_emcee(pos,ndim,nwalkers,run_dir,lnprob_args,init_params,param_names,
                     tol_sorted	= tol[i_sort]
                     best_sorted   = np.array(best)[i_sort]
                     if verbose:
-                        print('{0:<30}{1:<40}{2:<30}'.format('\nIteration = %d' % (k+1),'%d x Median Autocorr. Time = %0.2f' % (ncor_times,np.median(tau[par_conv]) * ncor_times),'Med. Tolerance = %0.2f' % np.median(tol[par_conv])))
+                        print('{0:<30}{1:<40}{2:<30}'.format('\nIteration = %d' % (k+1),'%d x Median Autocorr. Time = %0.2f' % (ncor_times,np.nanmedian(tau[par_conv]) * ncor_times),'Med. Tolerance = %0.2f' % np.nanmedian(tol[par_conv])))
                         print('--------------------------------------------------------------------------------------------------------')
                         print('{0:<30}{1:<20}{2:<20}{3:<20}{4:<20}'.format('Parameter','Current Value','Autocorr. Time','Tolerance','Converged?'))
                         print('--------------------------------------------------------------------------------------------------------')
@@ -10936,7 +10944,7 @@ def autocorr_func_1d(x, norm=True):
     n = next_pow_two(len(x))
 
     # Compute the FFT and then (from that) the auto-correlation function
-    f = np.fft.fft(x - np.mean(x), n=2 * n)
+    f = np.fft.fft(x - np.nanmean(x), n=2 * n)
     acf = np.fft.ifft(f * np.conjugate(f))[: len(x)].real
     acf /= 4 * n
 
@@ -10976,7 +10984,7 @@ def kde_bandwidth(data):
     """
     Silverman bandwidth estimation for kernel density estimation.
     """
-    return (4./(3.*len(data)))**(1./5.) * np.std(data)
+    return (4./(3.*len(data)))**(1./5.) * np.nanstd(data)
 
 def compute_HDI(trace, mass_frac) :
     """
@@ -11078,7 +11086,7 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,
     # Calculate median and median absolute deviation of walkers at each iteration; we have depreciated
     # the average and standard deviation because they do not behave well for outlier walkers, which
     # also don't agree with histograms.
-    c_med = np.median(chain,axis=0)
+    c_med = np.nanmedian(chain,axis=0)
     c_madstd = mad_std(chain)
     ax3.plot(range(np.shape(chain)[1]),c_med,color='xkcd:bright pink',alpha=1.,linewidth=2.0,label='Median',zorder=10)
     ax3.fill_between(range(np.shape(chain)[1]),c_med+c_madstd,c_med-c_madstd,color='#4200a6',alpha=0.5,linewidth=1.5,label='Median Absolute Dev.',zorder=5)
@@ -11255,13 +11263,13 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
         p95 = compute_HDI(flat,0.95)
 
         post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
-        post_mean = np.mean(flat)
-        post_med  = np.median(flat)
+        post_mean = np.nanmean(flat)
+        post_med  = np.nanmedian(flat)
         low_68    = post_med - p68[0]
         upp_68    = p68[1] - post_med
         low_95    = post_med - p95[0]
         upp_95    = p95[1] - post_med
-        post_std  = np.std(flat)
+        post_std  = np.nanstd(flat)
         post_mad  = stats.median_abs_deviation(flat)
 
         # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
@@ -11355,13 +11363,13 @@ def flux_plots(flux_blob, burn_in, nwalkers, flux_norm, run_dir, verbose=True):
             p95 = compute_HDI(flat,0.95)
 
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
-            post_mean = np.mean(flat)
-            post_med  = np.median(flat)
+            post_mean = np.nanmean(flat)
+            post_med  = np.nanmedian(flat)
             low_68    = post_med - p68[0]
             upp_68    = p68[1] - post_med
             low_95    = post_med - p95[0]
             upp_95    = p95[1] - post_med
-            post_std  = np.std(flat)
+            post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
@@ -11452,13 +11460,13 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,verbose=True
             p95 = compute_HDI(flat,0.95)
 
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
-            post_mean = np.mean(flat)
-            post_med  = np.median(flat)
+            post_mean = np.nanmean(flat)
+            post_med  = np.nanmedian(flat)
             low_68    = post_med - p68[0]
             upp_68    = p68[1] - post_med
             low_95    = post_med - p95[0]
             upp_95    = p95[1] - post_med
-            post_std  = np.std(flat)
+            post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
@@ -11545,13 +11553,13 @@ def eqwidth_plots(eqwidth_blob, burn_in, nwalkers, run_dir,verbose=True):
             p95 = compute_HDI(flat,0.95)
 
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
-            post_mean = np.mean(flat)
-            post_med  = np.median(flat)
+            post_mean = np.nanmean(flat)
+            post_med  = np.nanmedian(flat)
             low_68    = post_med - p68[0]
             upp_68    = p68[1] - post_med
             low_95    = post_med - p95[0]
             upp_95    = p95[1] - post_med
-            post_std  = np.std(flat)
+            post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
@@ -11714,13 +11722,13 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,ve
             p95 = compute_HDI(flat,0.95)
 
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
-            post_mean = np.mean(flat)
-            post_med  = np.median(flat)
+            post_mean = np.nanmean(flat)
+            post_med  = np.nanmedian(flat)
             low_68    = post_med - p68[0]
             upp_68    = p68[1] - post_med
             low_95    = post_med - p95[0]
             upp_95    = p95[1] - post_med
-            post_std  = np.std(flat)
+            post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
@@ -11809,13 +11817,13 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
             p95 = compute_HDI(flat,0.95)
 
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
-            post_mean = np.mean(flat)
-            post_med  = np.median(flat)
+            post_mean = np.nanmean(flat)
+            post_med  = np.nanmedian(flat)
             low_68    = post_med - p68[0]
             upp_68    = p68[1] - post_med
             low_95    = post_med - p95[0]
             upp_95    = p95[1] - post_med
-            post_std  = np.std(flat)
+            post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
@@ -12162,11 +12170,11 @@ def plot_best_model(param_dict,
 
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(lam_gal)-10,np.max(lam_gal)+10)
-    # ax1.set_ylim(-0.5*np.median(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
+    # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
     ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict['DATA'][fit_mask]-comp_dict['MODEL'][fit_mask])
-    sigma_noise = np.median(comp_dict['NOISE'][fit_mask])
+    sigma_noise = np.nanmedian(comp_dict['NOISE'][fit_mask])
     ax2.plot(lam_gal,(comp_dict['NOISE']*3.0),linewidth=0.5,color="xkcd:bright orange",label='$\sigma_{\mathrm{noise}}=%0.4f$' % (sigma_noise))
     ax2.plot(lam_gal,(comp_dict['RESID']*3.0),linewidth=0.5,color="white",label='$\sigma_{\mathrm{resid}}=%0.4f$' % (sigma_resid))
     ax1.axhline(0.0,linewidth=1.0,color='white',linestyle='--')
