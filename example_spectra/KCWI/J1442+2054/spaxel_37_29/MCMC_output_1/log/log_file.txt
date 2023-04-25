@@ -1,0 +1,306 @@
+
+############################### BADASS 10.1.2 LOGFILE ####################################
+
+
+-----------------------------------------------------------------------------------------------------------------
+file:                         spaxel_37_29.fits             
+SDSS redshift:                0.04266                       
+fitting region:               (4400,5275) [A]               
+velocity scale:               30.41 [km/s/pixel]            
+Galactic E(B-V):              0.029                         
+
+Units:                        
+	- Note: SDSS Spectra are in units of [1.e-17 erg/s/cm2/Å]
+	- Velocity, dispersion, and FWHM have units of [km/s]
+	- Fluxes and Luminosities are in log-10
+
+Cosmology:                    
+	H0 = 70.0                    
+	Om0 = 0.30                   
+
+-----------------------------------------------------------------------------------------------------------------
+
+### User-Input Fitting Paramters & Options ###
+-----------------------------------------------------------------------------------------------------------------
+
+   fit_options:                                                                           
+                       fit_reg: (4400, 5500)                  
+                   good_thresh: 0.0                           
+                  mask_bad_pix: False                         
+                    n_basinhop: 10                            
+                    test_lines: False                         
+                max_like_niter: 0                             
+                   output_pars: False                         
+
+   mcmc_options:                                                                          
+                                MCMC fitting is turned off.   
+
+   comp_options:                                                                          
+                  fit_opt_feii: False                         
+                   fit_uv_iron: False                         
+                    fit_balmer: False                         
+                     fit_losvd: False                         
+                      fit_host: True                          
+                     fit_power: True                          
+                      fit_poly: True                          
+                    fit_narrow: True                          
+                     fit_broad: False                         
+                    fit_absorp: False                         
+                 tie_line_disp: False                         
+                 tie_line_voff: False                         
+
+   losvd_options:                                                                         
+                                Stellar LOSVD fitting is turned off.
+
+   host_options:                                                                          
+                           age: [1.0, 5.0, 10.0]              
+                     vel_const: {'bool': False, 'val': 0.0}   
+                    disp_const: {'bool': False, 'val': 150.0} 
+
+   power_options:                                                                         
+                          type: simple                        
+
+   poly_options:                                                                          
+                         apoly: bool: True, order: 3                                                                                
+                         mpoly: bool: False, order: 3                                                                               
+
+   opt_feii_options:                                                                      
+                                Optical FeII fitting is turned off.
+
+   uv_iron_options:                                                                       
+                                UV Iron fitting is turned off.
+
+   balmer_options:                                                                        
+                                Balmer pseudo-continuum fitting is turned off.
+
+   plot_options:                                                                          
+               plot_param_hist: False                         
+                      plot_pca: False                         
+   output_options:                                                                        
+                   write_chain: False                         
+                       verbose: False                         
+
+-----------------------------------------------------------------------------------------------------------------
+
+### PCA Options ###
+-----------------------------------------------------------------------------------------------------------------
+pca_options:                                                  
+
+                        do_pca: False                         
+
+-----------------------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------------------
+ Line List:
+----------------------------------------------------------------------------------------------------------------------------------------
+NA_H_BETA                                                                                 
+                              amp                           free                          
+                              center                        4862.691                      
+                              center_pix                    986.7544451760175             
+                              disp                          NA_OIII_5007_DISP             
+                              disp_res_ang                  0.5768638842682836            
+                              disp_res_kms                  35.56455505731626             
+                              label                         H$\beta$                      
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              ncomp                         1                             
+                              voff                          free                          
+NA_H_BETA_2                                                                               
+                              amp                           NA_H_BETA_AMP*NA_OIII_5007_2_AMP/NA_OIII_5007_AMP
+                              center                        4862.691                      
+                              center_pix                    986.7544451760175             
+                              disp                          NA_OIII_5007_2_DISP           
+                              disp_res_ang                  0.5768638842682836            
+                              disp_res_kms                  35.56455505731626             
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              ncomp                         2                             
+                              parent                        NA_H_BETA                     
+                              voff                          NA_OIII_5007_2_VOFF           
+NA_OIII_4960                                                                              
+                              amp                           (NA_OIII_5007_AMP/2.98)       
+                              center                        4960.295                      
+                              center_pix                    1182.686311007318             
+                              disp                          NA_OIII_5007_DISP             
+                              disp_res_ang                  0.5879473063866543            
+                              disp_res_kms                  35.53461400100885             
+                              label                         [O III]                       
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              ncomp                         1                             
+                              voff                          NA_OIII_5007_VOFF             
+NA_OIII_4960_2                                                                            
+                              amp                           (NA_OIII_5007_2_AMP/2.98)     
+                              center                        4960.295                      
+                              center_pix                    1182.686311007318             
+                              disp                          NA_OIII_5007_2_DISP           
+                              disp_res_ang                  0.5879473063866543            
+                              disp_res_kms                  35.53461400100885             
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              ncomp                         2                             
+                              parent                        NA_OIII_4960                  
+                              voff                          NA_OIII_5007_2_VOFF           
+NA_OIII_5007                                                                              
+                              amp                           free                          
+                              center                        5008.24                       
+                              center_pix                    1277.5242307093026            
+                              disp                          free                          
+                              disp_res_ang                  0.5933120728192378            
+                              disp_res_kms                  35.51556727943435             
+                              label                         [O III]                       
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              ncomp                         1                             
+                              voff                          free                          
+NA_OIII_5007_2                                                                            
+                              amp                           free                          
+                              center                        5008.24                       
+                              center_pix                    1277.5242307093026            
+                              disp                          free                          
+                              disp_res_ang                  0.5933120728192378            
+                              disp_res_kms                  35.51556727943435             
+                              line_profile                  gaussian                      
+                              line_type                     na                            
+                              ncomp                         2                             
+                              parent                        NA_OIII_5007                  
+                              voff                          free                          
+----------------------------------------------------------------------------------------------------------------------------------------
+ Soft Constraints:
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### Maximum Likelihood Fitting Results ###
+-----------------------------------------------------------------------------------------------------------------
+Parameter                     Max. Like. Value              +/- 1-sigma                   Flag                          
+-----------------------------------------------------------------------------------------------------------------
+APOLY_COEFF_1                 0.0000                        0.0000                        1.0                           
+APOLY_COEFF_2                 0.0000                        0.0000                        1.0                           
+APOLY_COEFF_3                 0.0000                        0.0000                        1.0                           
+HOST_TEMP_DISP                100.0000                      0.0000                        1.0                           
+HOST_TEMP_VEL                 0.0000                        0.0000                        1.0                           
+LOG_LIKE                      50648.0035                    0.0000                        0.0                           
+L_CONT_AGN_5100               39.0321                       0.0000                        1.0                           
+L_CONT_HOST_5100              39.0325                       0.0000                        1.0                           
+L_CONT_TOT_5100               39.3334                       0.0000                        1.0                           
+NA_H_BETA_2_AMP               0.0041                        0.0000                        3.0                           
+NA_H_BETA_2_DISP              50.0000                       0.0000                        1.0                           
+NA_H_BETA_2_DISP_CORR         35.1449                       0.0000                        1.0                           
+NA_H_BETA_2_DISP_RES          35.5646                       nan                           nan                           
+NA_H_BETA_2_EW                9.6353                        0.0000                        0.0                           
+NA_H_BETA_2_FLUX              -18.0812                      0.0000                        1.0                           
+NA_H_BETA_2_FWHM              85.4592                       0.0000                        0.0                           
+NA_H_BETA_2_FWHM_CORR         17.0189                       0.0000                        0.0                           
+NA_H_BETA_2_LUM               36.5482                       0.0000                        0.0                           
+NA_H_BETA_2_NPIX              9.0000                        0.0000                        0.0                           
+NA_H_BETA_2_SNR               77.2391                       0.0000                        0.0                           
+NA_H_BETA_2_VOFF              -107.1451                     0.0000                        1.0                           
+NA_H_BETA_2_W80               96.4328                       0.0000                        0.0                           
+NA_H_BETA_AMP                 0.0041                        0.0000                        1.0                           
+NA_H_BETA_COMB_DISP           35.2786                       0.0000                        0.0                           
+NA_H_BETA_COMB_DISP_CORR      0.0000                        0.0000                        0.0                           
+NA_H_BETA_COMB_DISP_RES       35.5646                       nan                           nan                           
+NA_H_BETA_COMB_EW             19.2554                       0.0000                        1.0                           
+NA_H_BETA_COMB_FLUX           -17.7802                      0.0000                        1.0                           
+NA_H_BETA_COMB_FWHM           84.0744                       0.0000                        0.0                           
+NA_H_BETA_COMB_FWHM_CORR      7.4078                        0.0000                        0.0                           
+NA_H_BETA_COMB_LUM            36.8493                       0.0000                        1.0                           
+NA_H_BETA_COMB_NPIX           10.0000                       0.0000                        0.0                           
+NA_H_BETA_COMB_SNR            40.7961                       0.0000                        0.0                           
+NA_H_BETA_COMB_VOFF           -110.6478                     0.0000                        0.0                           
+NA_H_BETA_COMB_W80            98.1412                       0.0000                        0.0                           
+NA_H_BETA_DISP                50.0000                       0.0000                        1.0                           
+NA_H_BETA_DISP_CORR           35.1449                       0.0000                        1.0                           
+NA_H_BETA_DISP_RES            35.5646                       nan                           nan                           
+NA_H_BETA_EW                  9.6202                        0.0000                        0.0                           
+NA_H_BETA_FLUX                -18.0812                      0.0000                        1.0                           
+NA_H_BETA_FWHM                82.7343                       0.0000                        0.0                           
+NA_H_BETA_FWHM_CORR           0.0000                        0.0000                        0.0                           
+NA_H_BETA_LUM                 36.5482                       0.0000                        0.0                           
+NA_H_BETA_NPIX                9.0000                        0.0000                        0.0                           
+NA_H_BETA_SNR                 78.0040                       0.0000                        0.0                           
+NA_H_BETA_VOFF                -114.1427                     0.0000                        1.0                           
+NA_H_BETA_W80                 98.4129                       0.0000                        0.0                           
+NA_OIII_4960_2_AMP            0.0043                        0.0000                        1.0                           
+NA_OIII_4960_2_DISP           50.0000                       0.0000                        1.0                           
+NA_OIII_4960_2_DISP_CORR      35.1752                       0.0000                        1.0                           
+NA_OIII_4960_2_DISP_RES       35.5346                       nan                           nan                           
+NA_OIII_4960_2_EW             8.6756                        0.0000                        0.0                           
+NA_OIII_4960_2_FLUX           -18.0503                      0.0000                        1.0                           
+NA_OIII_4960_2_FWHM           84.4251                       0.0000                        0.0                           
+NA_OIII_4960_2_FWHM_CORR      11.2145                       0.0000                        0.0                           
+NA_OIII_4960_2_LUM            36.5791                       0.0000                        0.0                           
+NA_OIII_4960_2_NPIX           9.0000                        0.0000                        0.0                           
+NA_OIII_4960_2_SNR            81.7094                       0.0000                        0.0                           
+NA_OIII_4960_2_VOFF           -107.1451                     0.0000                        1.0                           
+NA_OIII_4960_2_W80            97.3837                       0.0000                        0.0                           
+NA_OIII_4960_AMP              0.0043                        0.0000                        1.0                           
+NA_OIII_4960_COMB_DISP        35.1354                       0.0000                        0.0                           
+NA_OIII_4960_COMB_DISP_CORR   0.0000                        0.0000                        0.0                           
+NA_OIII_4960_COMB_DISP_RES    35.5346                       nan                           nan                           
+NA_OIII_4960_COMB_EW          17.3512                       0.0000                        1.0                           
+NA_OIII_4960_COMB_FLUX        -17.7492                      0.0000                        1.0                           
+NA_OIII_4960_COMB_FWHM        84.4251                       0.0000                        0.0                           
+NA_OIII_4960_COMB_FWHM_CORR   11.2145                       0.0000                        0.0                           
+NA_OIII_4960_COMB_LUM         36.8802                       0.0000                        1.0                           
+NA_OIII_4960_COMB_NPIX        10.0000                       0.0000                        0.0                           
+NA_OIII_4960_COMB_SNR         37.8527                       0.0000                        0.0                           
+NA_OIII_4960_COMB_VOFF        -107.1504                     0.0000                        0.0                           
+NA_OIII_4960_COMB_W80         97.3837                       0.0000                        0.0                           
+NA_OIII_4960_DISP             50.0000                       0.0000                        1.0                           
+NA_OIII_4960_DISP_CORR        35.1752                       0.0000                        1.0                           
+NA_OIII_4960_DISP_RES         35.5346                       nan                           nan                           
+NA_OIII_4960_EW               8.6756                        0.0000                        0.0                           
+NA_OIII_4960_FLUX             -18.0503                      0.0000                        1.0                           
+NA_OIII_4960_FWHM             84.4251                       0.0000                        0.0                           
+NA_OIII_4960_FWHM_CORR        11.2145                       0.0000                        0.0                           
+NA_OIII_4960_LUM              36.5791                       0.0000                        0.0                           
+NA_OIII_4960_NPIX             9.0000                        0.0000                        0.0                           
+NA_OIII_4960_SNR              81.7094                       0.0000                        0.0                           
+NA_OIII_4960_VOFF             -107.1451                     0.0000                        1.0                           
+NA_OIII_4960_W80              97.3837                       0.0000                        0.0                           
+NA_OIII_5007_2_AMP            0.0128                        0.0000                        1.0                           
+NA_OIII_5007_2_DISP           50.0000                       0.0000                        1.0                           
+NA_OIII_5007_2_DISP_CORR      35.1944                       0.0000                        1.0                           
+NA_OIII_5007_2_DISP_RES       35.5156                       nan                           nan                           
+NA_OIII_5007_2_EW             26.8678                       0.0000                        0.0                           
+NA_OIII_5007_2_FLUX           -17.5719                      0.0000                        0.0                           
+NA_OIII_5007_2_FWHM           82.8509                       0.0000                        0.0                           
+NA_OIII_5007_2_FWHM_CORR      0.0000                        0.0000                        0.0                           
+NA_OIII_5007_2_LUM            37.0576                       0.0000                        0.0                           
+NA_OIII_5007_2_NPIX           9.0000                        0.0000                        0.0                           
+NA_OIII_5007_2_SNR            244.6890                      0.0000                        0.0                           
+NA_OIII_5007_2_VOFF           -107.1451                     0.0000                        1.0                           
+NA_OIII_5007_2_W80            98.5502                       0.0000                        0.0                           
+NA_OIII_5007_AMP              0.0128                        0.0000                        1.0                           
+NA_OIII_5007_COMB_DISP        35.1914                       0.0000                        0.0                           
+NA_OIII_5007_COMB_DISP_CORR   0.0000                        0.0000                        0.0                           
+NA_OIII_5007_COMB_DISP_RES    35.5156                       nan                           nan                           
+NA_OIII_5007_COMB_EW          53.7357                       0.0000                        1.0                           
+NA_OIII_5007_COMB_FLUX        -17.2708                      0.0000                        1.0                           
+NA_OIII_5007_COMB_FWHM        82.8509                       0.0000                        0.0                           
+NA_OIII_5007_COMB_FWHM_CORR   0.0000                        0.0000                        0.0                           
+NA_OIII_5007_COMB_LUM         37.3586                       0.0000                        1.0                           
+NA_OIII_5007_COMB_NPIX        11.0000                       0.0000                        0.0                           
+NA_OIII_5007_COMB_SNR         46.7473                       0.0000                        0.0                           
+NA_OIII_5007_COMB_VOFF        -107.1451                     0.0000                        0.0                           
+NA_OIII_5007_COMB_W80         98.5502                       0.0000                        0.0                           
+NA_OIII_5007_DISP             50.0000                       0.0000                        1.0                           
+NA_OIII_5007_DISP_CORR        35.1944                       0.0000                        1.0                           
+NA_OIII_5007_DISP_RES         35.5156                       nan                           nan                           
+NA_OIII_5007_EW               26.8678                       0.0000                        0.0                           
+NA_OIII_5007_FLUX             -17.5719                      0.0000                        0.0                           
+NA_OIII_5007_FWHM             82.8509                       0.0000                        0.0                           
+NA_OIII_5007_FWHM_CORR        0.0000                        0.0000                        0.0                           
+NA_OIII_5007_LUM              37.0576                       0.0000                        0.0                           
+NA_OIII_5007_NPIX             9.0000                        0.0000                        0.0                           
+NA_OIII_5007_SNR              244.6890                      0.0000                        0.0                           
+NA_OIII_5007_VOFF             -107.1451                     0.0000                        1.0                           
+NA_OIII_5007_W80              98.5502                       0.0000                        0.0                           
+POWER_AMP                     0.0005                        0.0000                        1.0                           
+POWER_SLOPE                   -1.0000                       0.0000                        1.0                           
+RCHI_SQUARED                  48.3072                       0.0000                        0.0                           
+R_SQUARED                     0.9437                        0.0000                        0.0                           
+NOISE_STD.                    0.0000                        
+RESID_STD                     0.0004                        
+-----------------------------------------------------------------------------------------------------------------
