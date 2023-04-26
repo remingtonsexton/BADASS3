@@ -1082,7 +1082,7 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
         fig, ax = plt.subplots()
         data = imagehdu.data
         std = np.nanstd(data)
-        mad = stats.median_absolute_deviation(data[np.isfinite(data)])
+        mad = stats.median_abs_deviation(data[np.isfinite(data)])
         # data[np.abs(data - np.nanmedian(data)) > 10*std] = np.nan
         if "FLUX" in imagehdu.name and "SIGMA" not in imagehdu.name:
             mask = data >= 0
@@ -1108,7 +1108,7 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
             # datasum[np.abs(datasum) > 1e5] = np.nan
             dataavg = datasum / imagehdu.data.shape[0]
             std = np.nanstd(dataavg)
-            # mad = stats.median_absolute_deviation(dataavg.flatten()[np.isfinite(dataavg.flatten())])
+            # mad = stats.median_abs_deviation(dataavg.flatten()[np.isfinite(dataavg.flatten())])
             # dataavg[np.abs(dataavg - np.nanmedian(dataavg)) > 10*std] = np.nan
 
             fig, ax = plt.subplots()
@@ -1145,7 +1145,7 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
             datasum[datasum == 0] = np.nan
             # datasum[np.abs(datasum) > 1e5] = np.nan
             dataavg = datasum / imagehdu.data.shape[0]
-            # mad = stats.median_absolute_deviation(a[np.isfinite(a)])
+            # mad = stats.median_abs_deviation(a[np.isfinite(a)])
             # a[np.abs(a - np.nanmedian(a)) > 10*np.nanstd(a)] = np.nan
 
             im = ax1.imshow(a, origin='lower', cmap='cubehelix',

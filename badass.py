@@ -79,7 +79,7 @@ __author__	   = "Remington O. Sexton (USNO), Sara M. Doan (GMU), Michael A. Reef
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
-__version__	   = "10.1.2"
+__version__	   = "10.1.3"
 __maintainer__ = "Remington O. Sexton"
 __email__	   = "remington.o.sexton.civ@us.navy.mil"
 __status__	   = "Release"
@@ -339,7 +339,7 @@ def run_BADASS(data,
         # nprocesses = int(np.ceil(mp.cpu_count()/2))
         nprocesses = 1
 
-    if (nprocesses>1) and (nobj is not None) and ((nobj[1]-nobj[0])>1):
+    if (nprocesses>1) or ((nobj is not None) and ((nobj[1]-nobj[0])>1)):
         if output_options:
             output_options["verbose"] = False
         else:
@@ -1270,15 +1270,15 @@ def run_single_thread(fits_file,
                                             'flag'        : np.nan, 
                                             }
         disp_corr = np.nanmax([0.0,np.sqrt(combined_pdict[line+"_DISP"]["par_best"]**2-(disp_res)**2)])
-        # print(combined_pdict[line+"_DISP"]["par_best"])
-        # print(disp_res)
-        # print(disp_corr)
         fwhm_corr = np.nanmax([0.0,np.sqrt(combined_pdict[line+"_FWHM"]["par_best"]**2-(disp_res*2.3548)**2)]) 
+        w80_corr  = np.nanmax([0.0,np.sqrt(combined_pdict[line+"_W80"]["par_best"]**2-(2.567*disp_res)**2)]) 
         # Add entires for these corrected lines (uncertainties are the same)
         combined_pdict[line+"_DISP_CORR"] = copy.deepcopy(combined_pdict[line+"_DISP"])
         combined_pdict[line+"_DISP_CORR"]["par_best"] = disp_corr
         combined_pdict[line+"_FWHM_CORR"] = copy.deepcopy(combined_pdict[line+"_FWHM"])
         combined_pdict[line+"_FWHM_CORR"]["par_best"] = fwhm_corr
+        combined_pdict[line+"_W80_CORR"] = copy.deepcopy(combined_pdict[line+"_W80"])
+        combined_pdict[line+"_W80_CORR"]["par_best"] = w80_corr
 
     if verbose:
         print('\n > Saving Data...')
@@ -2503,11 +2503,10 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
         print('-----------------------------------------------------------')
     ################################################################################
     #
-    # Fit normalization
-    # The input spectrum needs to be normalized such that 
-    fit_norm = np.max(galaxy)
-    galaxy = galaxy/fit_norm
-    noise  = noise/fit_norm
+    # Normalization
+    fit_norm = 1./np.nanmax(galaxy)
+    galaxy = galaxy*fit_norm
+    noise  = noise*fit_norm
     #
     return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good
 
@@ -6858,7 +6857,7 @@ def calc_max_like_dispersions(lam_gal, comp_dict, line_list, combined_line_list,
             v_int = np.trapz(vel*norm_profile,vel)/simps(norm_profile,vel)
             # Calculate integrated dispersion and correct for instrumental dispersion
             d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/np.trapz(norm_profile,vel) - (v_int**2))
-            d_int = np.sqrt(d_int**2 - (line_list[line]["disp_res_kms"])**2)
+            # d_int = np.sqrt(d_int**2 - (line_list[line]["disp_res_kms"])**2)
             # 
             if ~np.isfinite(d_int): d_int = 0.0
             if ~np.isfinite(v_int): v_int = 0.0
@@ -7016,11 +7015,10 @@ def max_likelihood(param_dict,
     # Negative log-likelihood (to minimize the negative maximum)
     # nll = lambda *args: -lnlike(*args)
     nll = lambda *args: -lnprob(*args)
+
     # Perform global optimization using basin-hopping algorithm (superior to minimize(), but slower)
     # We will use minimize() for the monte carlo bootstrap iterations.
 
-    # basinhop_count = 0
-    # basinhop_value = np.inf
     lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
     if force_best:
         force_basinhop = copy.deepcopy(n_basinhop)
@@ -7110,19 +7108,23 @@ def max_likelihood(param_dict,
                     print("\n")
 
                 return False 
-                
-
-            
 
     if not force_best:
 
         callback_ftn=None
 
+    # Define a perturbation function for step sizes
+    def perturb(x, scale=0.025):
+        x_perturbed = np.copy(x)
+        for i, xi in enumerate(x):
+            x_perturbed[i] = xi + np.random.normal(0, scale*np.abs(xi))
+        return x_perturbed
+
     result = op.basinhopping(func = nll, 
                              x0 = params,
-                             # T = 0.0,
-                             stepsize=1.0,
-                             # interval=90,
+                             take_step=perturb,
+                             target_accept_rate = 0.5,
+                             interval=0.1,
                              niter = 2500, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
@@ -7625,6 +7627,7 @@ def max_likelihood(param_dict,
         pdict[line+"_DISP_RES"]  = {"med":disp_res,"std":np.nan,"flag":np.nan}
         disp_corr = np.nanmax([0.0,np.sqrt(pdict[line+"_DISP"]["med"]**2-(disp_res)**2)])
         fwhm_corr = np.nanmax([0.0,np.sqrt(pdict[line+"_FWHM"]["med"]**2-(disp_res*2.3548)**2)]) 
+        w80_corr  = np.nanmax([0.0,np.sqrt(pdict[line+"_W80"]["med"]**2-(2.567*disp_res)**2)])
         pdict[line+"_DISP_CORR"] = {"med":disp_corr,
                                     "std":pdict[line+"_DISP"]["std"],
                                     "flag":pdict[line+"_DISP"]["flag"]
@@ -7632,6 +7635,10 @@ def max_likelihood(param_dict,
         pdict[line+"_FWHM_CORR"] = {"med":fwhm_corr,
                                     "std":pdict[line+"_FWHM"]["std"],
                                     "flag":pdict[line+"_FWHM"]["flag"]
+                                    }
+        pdict[line+"_W80_CORR"]  = {"med":w80_corr,
+                                    "std":pdict[line+"_W80"]["std"],
+                                    "flag":pdict[line+"_W80"]["flag"]
                                     }
 
     #
@@ -8651,8 +8658,9 @@ def combined_fwhm(lam_gal, full_profile, disp_res, velscale ):
             return [0.0, 0.0]
 
     hmx = half_max_x(range(len(lam_gal)),full_profile)
-    fwhm = np.abs(hmx[1]-hmx[0])
-    # fwhm = np.sqrt((fwhm*velscale)**2 - (disp_res*2.3548)**2)
+    fwhm_pix = np.abs(hmx[1]-hmx[0])
+    fwhm = fwhm_pix*velscale
+    # fwhm = np.sqrt((fwhm_pix*velscale)**2 - (disp_res*2.3548)**2)
     if ~np.isfinite(fwhm):
         fwhm = 0.0
     #
@@ -9111,7 +9119,7 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
             v_int = np.trapz(vel*norm_profile,vel)/np.trapz(norm_profile,vel)
             # Calculate integrated dispersion and correct for instrumental dispersion
             d_int = np.sqrt(np.trapz(vel**2*norm_profile,vel)/np.trapz(norm_profile,vel) - (v_int**2))
-            d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
+            # d_int = np.sqrt(d_int**2 - (line_list[key]["disp_res_kms"])**2)
             if ~np.isfinite(d_int): d_int = 0.0
             if ~np.isfinite(v_int): v_int = 0.0
             int_vel_disp[key+"_DISP"] = d_int
