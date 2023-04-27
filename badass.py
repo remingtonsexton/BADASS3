@@ -79,7 +79,7 @@ __author__	   = "Remington O. Sexton (USNO), Sara M. Doan (GMU), Michael A. Reef
 __copyright__  = "Copyright (c) 2023 Remington Oliver Sexton"
 __credits__	   = ["Remington O. Sexton (GMU/USNO)", "Sara M. Doan (GMU)", "Michael A. Reefe (GMU)", "William Matzko (GMU)", "Nicholas Darden (UCR)"]
 __license__	   = "MIT"
-__version__	   = "10.1.3"
+__version__	   = "10.2.0"
 __maintainer__ = "Remington O. Sexton"
 __email__	   = "remington.o.sexton.civ@us.navy.mil"
 __status__	   = "Release"
@@ -276,7 +276,7 @@ __status__	   = "Release"
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
 
-# Version 10.0.0 - 10.1.2
+# Version 10.0.0 - 10.2.0
 # - New generalized line component option for easily adding n number of line components; deprecates 'outflow'
 #   components. 
 # - W80 now a standard line parameter
@@ -287,6 +287,7 @@ __status__	   = "Release"
 # - To avoid an excessive number of plots, we now limit plotting of histograms to free fitted parameters.
 # - Configuration testing 
 # - Removed astro-bifrost due to grpcio dependency problems; using old metal masking algorithm until fixed.
+# - BADASS now internally normalizes the spectrum for optimization reasons.
 # - Bug fixes and minor changes
 ##########################################################################################################
 
@@ -6041,7 +6042,7 @@ def config_test(param_dict,
     write_log(ptbl,'line_test',run_dir)
 
     # Save results to JSON files for all tests
-    write_line_test_results(fit_res_dict,test_results,run_dir,binnum,spaxelx,spaxely)
+    write_line_test_results(fit_res_dict,test_results,run_dir,type="config",binnum,spaxelx,spaxely)
 
     # print(rmse_thresholds)
     # print(np.min(rmse_thresholds))
@@ -6183,7 +6184,9 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(comp_dict_A['WAVE'])-10,np.max(comp_dict_A['WAVE'])+10)
     # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
-    ax1.set_ylabel(r'$f_\lambda$ ($10^{%d}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (np.log10(flux_norm)),fontsize=10)
+    # ax1.set_ylabel(r'$f_\lambda$ ($10^{%d}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (np.log10(flux_norm)),fontsize=10)
+    ax1.set_ylabel(r'Normalized Flux' % (np.log10(flux_norm)),fontsize=10)
+
     # Residuals
     sigma_resid = np.nanstd(comp_dict_A['DATA']-comp_dict_A['MODEL'])
     sigma_noise = np.nanmedian(comp_dict_A['NOISE'])
@@ -6287,7 +6290,8 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     ax3.set_xticklabels([])
     ax3.set_xlim(np.min(comp_dict_B['WAVE'])-10,np.max(comp_dict_B['WAVE'])+10)
     # ax3.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
-    ax3.set_ylabel(r'$f_\lambda$ ($10^{%d}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (np.log10(flux_norm)),fontsize=10)
+    # ax3.set_ylabel(r'$f_\lambda$ ($10^{%d}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (np.log10(flux_norm)),fontsize=10)
+    ax3.set_ylabel(r'Normalized Flux' % (np.log10(flux_norm)),fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_B['DATA']-comp_dict_B['MODEL'])
     sigma_noise = np.nanmedian(comp_dict_B['NOISE'])
@@ -6452,7 +6456,8 @@ def config_test_plot(n,ncomp_A,ncomp_B,
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(comp_dict_A['WAVE'])-10,np.max(comp_dict_A['WAVE'])+10)
     # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
-    ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
+    # ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
+    ax1.set_ylabel(r'Normalized Flux',fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_A['DATA']-comp_dict_A['MODEL'])
     sigma_noise = np.nanmedian(comp_dict_A['NOISE'])
@@ -6556,7 +6561,8 @@ def config_test_plot(n,ncomp_A,ncomp_B,
     ax3.set_xticklabels([])
     ax3.set_xlim(np.min(comp_dict_B['WAVE'])-10,np.max(comp_dict_B['WAVE'])+10)
     # ax3.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
-    ax3.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
+    # ax3.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
+    ax3.set_ylabel(r'Normalized Flux',fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_B['DATA']-comp_dict_B['MODEL'])
     sigma_noise = np.nanmedian(comp_dict_B['NOISE'])
@@ -6629,6 +6635,7 @@ def config_test_plot(n,ncomp_A,ncomp_B,
 def write_line_test_results(fit_res,
                             test_res,
                             run_dir,
+                            type="line",
                             binnum=None,
                             spaxelx=None,
                             spaxely=None):
@@ -6638,7 +6645,10 @@ def write_line_test_results(fit_res,
     and can be read as Python dictionaries.
     """
     #
-    test_plot_dir = run_dir.joinpath('line_test_results')
+    if type=="line":
+        test_plot_dir = run_dir.joinpath('line_test_results')
+    else:
+        test_plot_dir = run_dir.joinpath('config_test_results')
     test_plot_dir.mkdir(parents=True, exist_ok=True)
     # If IFU data, add BINNUM, spaxelx, spaxely to both dicts
     if binnum is not None:
@@ -6977,7 +6987,7 @@ def max_likelihood(param_dict,
                    fit_stat="ML",
                    output_model=False,
                    test_outflows=False,
-                   n_basinhop=5,
+                   n_basinhop=25,
                    max_like_niter=10,
                    force_best=False,
                    force_thresh=np.inf,
@@ -7023,21 +7033,18 @@ def max_likelihood(param_dict,
     lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
     if force_best:
         force_basinhop = copy.deepcopy(n_basinhop)
-        n_basinhop = 2500
-
-        # print(force_basinhop,n_basinhop)
+        n_basinhop = 500 # Set to arbitrarily high threshold 
 
         # global basinhop_value, basinhop_count
         basinhop_count = 0
         accepted_count = 0
         basinhop_value = np.inf
-        rmse_arr = []
 
         # Define a callback function for forcing a better fit to the B model 
         # if force_best=True;
         # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
         def callback_ftn(x,f, accepted):
-            nonlocal basinhop_value, basinhop_count, lowest_rmse, accepted_count, rmse_arr
+            nonlocal basinhop_value, basinhop_count, lowest_rmse, accepted_count
             # print(basinhop_value,basinhop_count)
             # print("at minimum %.4f accepted %d" % (f, int(accepted)))
             
@@ -7049,8 +7056,8 @@ def max_likelihood(param_dict,
             if (accepted==1):
                 accepted_count+=1
 
-            if basinhop_count>n_basinhop:
-                raise SystemExit(f"\n The global maximizer could not converge on a viable solution in {n_basinhop} steps.  Manually change the basinhopping step size to something reasonable.\n")
+            # if basinhop_count>n_basinhop:
+            #     raise SystemExit(f"\n The global maximizer could not converge on a viable solution in {n_basinhop} steps.  Manually change the basinhopping step size to something reasonable.\n")
 
             current_comps = fit_model(x,param_names,line_list,combined_line_list,lam_gal,galaxy,noise,
                                       comp_options,losvd_options,host_options,power_options,poly_options,
@@ -7059,28 +7066,21 @@ def max_likelihood(param_dict,
                                       stel_templates,blob_pars,disp_res,fit_mask,velscale,run_dir,"init",
                                       fit_stat,True)
             rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(current_comps["DATA"]),copy.deepcopy(current_comps["MODEL"]))
-            # if accepted (lowest_f), update accepted_rmse:
-            # also update number of accepted solututions (accepted count) to ensure
-            # that a viable solution was actually found.
-            # rmse_mad = stats.median_abs_deviation(rmse_arr,nan_policy="omit")
-            # rmse_std = np.nanstd(rmse_arr)
 
-            # Define an acceptance threshold as the median abs. deviation of the current RMSE array,
-            # and use a default value of 1.0 until it can be calculated reliably (len(rmse_arr)>5)
-            # if len(rmse_arr)>=5:
-            #    accept_thresh = rmse_mad
-            # else:
-            #    accept_thresh = 1.0
+            # Define an acceptance threshold
             accept_thresh = 0.001
             # Best/lowest achieved RMSE
             if (rmse<=lowest_rmse): #(rmse<=force_thresh) and  (accepted==1) and (accepted_count>1) and 
                 lowest_rmse = rmse
 
-            # If RMSE is less than the goal threshold within the tolerance of the acceptance threshold, add it to the array
-            if (rmse-accept_thresh)<=lowest_rmse: # and (accepted_count>1)
-                rmse_arr.append(rmse)
-            else:
-                rmse_arr.append(lowest_rmse+np.random.uniform())
+            # If basinhopping does get stuck in a local minimum, jump out by increasing the step size considerably
+            if ((basinhop_count>100) and (accepted_count>=1)) and (((lowest_rmse-accept_thresh)>force_thresh) or (lowest_rmse>force_thresh)):
+                print("\n Basinhopping stuck in local minimum.  Restarting basinhopping for this fit...")
+                return 2.0
+
+            if basinhop_count>n_basinhop:
+                print(f" \n Warning: basinhopping has exceeded {n_basinhop} attemps to find a new global maximum.  Terminating fit...\n")
+                return True
 
             # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
             # median within the median abs. deviation, terminate.
@@ -7114,19 +7114,10 @@ def max_likelihood(param_dict,
 
         callback_ftn=None
 
-    # # Define a perturbation function for step sizes
-    # def perturb(x, scale=0.025):
-    #     x_perturbed = np.copy(x)
-    #     for i, xi in enumerate(x):
-    #         x_perturbed[i] = xi + np.random.normal(0, scale*np.abs(xi))
-    #     return x_perturbed
-
     result = op.basinhopping(func = nll, 
                              x0 = params,
                              stepsize=1.0,
-                             # take_step=perturb,
-                             # target_accept_rate = 0.5,
-                             interval=2,
+                             interval=1,
                              niter = 2500, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,

@@ -1,12 +1,14 @@
 
 ![BADASS logo](https://github.com/remingtonsexton/BADASS3/blob/master/figures/BADASS2_logo.gif)
 
-## New in Version 10.1.2
+## New in Version 10.2.0
 * New line and configuration testing framework. See [Line Testing and Options](#line-testing-and-options).
 * Line component options.  See [Line Component Options](#line-component-options).
 * Improvements in autocorrelation calculations.
 * W80 now a standard output parameter for all lines.
 * Outputs line widths that are both corrected and uncorrected for input resolution
+* BADASS now normalizes the spectrum internally for fitting purposes.
+* Various improvements to global optimizer used in initial fit.
 * **Note**: The algorithm used for scaling the noise to achieve a $\Chi_\nu^2=1$ was found to be numerically unstable and users should use `fit_stat='ML'` instead.
 <hr>
 
@@ -902,7 +904,10 @@ By popular demand, we've included an additional example using a MUSE subcube in 
 
 The [BADASS3_ifu_LVS_Rodeo_Cube.ipynb](https://github.com/remingtonsexton/BADASS3/blob/master/example_notebooks/BADASS3_ifu_LVS_Rodeo_Cube.ipynb) notebook, similarly illustrates how to fit generic cube data, similar to how non-SDSS spectra are fit in BADASS.  The user must provide some basic information about the data, but BADASS handles the data as standard NumPy arrays.
 
-Here are some results of the Rodeo Cube (MUSE subcube of NGC 1386) from the [Large-Volume Spectroscopic Analyses of AGN and Star Forming Galaxies in the Era of JWST](https://www.stsci.edu/contents/events/stsci/2022/march/large-volume-spectroscopic-analyses-of-agn-and-star-forming-galaxies-in-the-era-of-jwst) workshop, during which BADASS and its new features were showcased:
+The LVS cube is a MUSE sub-cube of NGC 1386, which exhibits some complex line profiles, some of which are double-peaked.  In the provided example, we show how we can use BADASS' line testing functionality to *force* increasingly better fits with an increasing number of components to ensure that we fit the line in its entirety.  This is done by setting the largest number of lines for BADASS to include and setting all test metrics (except AON) to -1.  Since none of the test metrics can achieve values less than zero, BADASS will continue to add components until finished.  The result is a slow ramp-up in the number of components for a given fit to a line.  This stepwise fitting forces every additional fit with an extra component to be at least as good as the one before it, and *significantly increases the chances* (but never guaranteed) in obtaining the best possible fit.  This is particularly useful if the user doesn't care about how many components, and only if the best possible fit is needed.
+
+Below are some results of the Rodeo Cube (MUSE subcube of NGC 1386) from the [Large-Volume Spectroscopic Analyses of AGN and Star Forming Galaxies in the Era of JWST](https://www.stsci.edu/contents/events/stsci/2022/march/large-volume-spectroscopic-analyses-of-agn-and-star-forming-galaxies-in-the-era-of-jwst) workshop, during which BADASS and its new features were showcased:
+![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/LVS_double_peak.png)
 ![_](https://github.com/remingtonsexton/BADASS3/blob/master/figures/LVS_rodeo_example.png)
 
 
