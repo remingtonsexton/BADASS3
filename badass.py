@@ -246,14 +246,14 @@ __status__	   = "Release"
 
 # Version 9.1.7
 # - switched width parameter of all lines from FWHM to dispersion to accomodate more lines and 
-# -     avert problems with biased integrated velocities and dispersions.  As a result, 
-# -     integrated dispersions and velocities are only calculated for combined lines, and FWHM 
-# -     are calculated for ALL lines.
+# -  avert problems with biased integrated velocities and dispersions.  As a result, 
+# -  integrated dispersions and velocities are only calculated for combined lines, and FWHM 
+# -  are calculated for ALL lines.
 # - Added Laplace and Uniform line profiles from Sanders et al. (2020) 
-# -     (https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract; 
-# -      https://github.com/jls713/gh_alternative)
+# -  (https://ui.adsabs.harvard.edu/abs/2020MNRAS.499.5806S/abstract; 
+# -   https://github.com/jls713/gh_alternative)
 # - Changed instrumental fwhm keyword to instrumental dispersion "disp_res".  Input resolution for user
-# -     -input spectra is still a "fwhm_res" but changes to disp_res internally.
+# -  -input spectra is still a "fwhm_res" but changes to disp_res internally.
 
 # Version 9.2.0-9.2.2
 # - options for different priors on free parameters
@@ -268,7 +268,7 @@ __status__	   = "Release"
 
 # Version 9.3.1
 # - BADASS-IFU 
-#       -- S/R computed at 5100 angstroms (rest frame) by default for use when using Voronoi binning
+#      -- S/R computed at 5100 angstroms (rest frame) by default for use when using Voronoi binning
 # - Bug fixes, and edits to default line list
 # - Add explicit flat prior 
 # - Add flux normalization option (default is SDSS normalization of 1.E-17)
@@ -339,11 +339,11 @@ def run_BADASS(data,
         # nprocesses = int(np.ceil(mp.cpu_count()/2))
         nprocesses = 1
 
-    if (nprocesses>1) or ((nobj is not None) and ((nobj[1]-nobj[0])>1)):
-        if output_options:
-            output_options["verbose"] = False
-        else:
-            output_options = {"verbose": False}
+    # if (nprocesses>1) or ((nobj is not None) and ((nobj[1]-nobj[0])>1)):
+    #     if output_options:
+    #         output_options["verbose"] = False
+    #     else:
+    #         output_options = {"verbose": False}
 
 
     if os.path.isdir(data):
@@ -455,15 +455,15 @@ def run_single_thread(fits_file,
             if hasattr(options,"comp_options"):
                 comp_options		 = options.comp_options
             if hasattr(options,"narrow_options"):
-                narrow_options         = options.narrow_options
+                narrow_options     = options.narrow_options
             if hasattr(options,"broad_options"):
-                broad_options         = options.broad_options
+                broad_options       = options.broad_options
             if hasattr(options,"absorp_options"):
-                absorp_options         = options.absorp_options
+                absorp_options     = options.absorp_options
             if hasattr(options,"mcmc_options"):
                 mcmc_options		 = options.mcmc_options
             if hasattr(options,"pca_options"):
-                pca_options          = options.pca_options
+                pca_options    = options.pca_options
             if hasattr(options,"user_lines"):
                 user_lines			 = options.user_lines
             if hasattr(options,"user_constraints"):
@@ -493,7 +493,7 @@ def run_single_thread(fits_file,
             if hasattr(options,"soft_cons"):
                 user_constraints     = options.user_constraints
             if hasattr(options,"combined_lines"):
-                combined_lines	     = options.combined_lines
+                combined_lines	  = options.combined_lines
         except ImportError:
             print("\n Error in importing options file! Options file must be a .py file!\n ")
 
@@ -501,11 +501,11 @@ def run_single_thread(fits_file,
     fit_options			 = badass_check_input.check_fit_options(fit_options,comp_options)
     test_options         = badass_check_input.check_test_options(test_options)
     comp_options		 = badass_check_input.check_comp_options(comp_options)
-    narrow_options       = badass_check_input.check_narrow_options(narrow_options)
-    broad_options        = badass_check_input.check_broad_options(broad_options)
-    absorp_options       = badass_check_input.check_absorp_options(absorp_options)
+    narrow_options     = badass_check_input.check_narrow_options(narrow_options)
+    broad_options      = badass_check_input.check_broad_options(broad_options)
+    absorp_options     = badass_check_input.check_absorp_options(absorp_options)
     mcmc_options		 = badass_check_input.check_mcmc_options(mcmc_options)
-    pca_options          = badass_check_input.check_pca_options(pca_options)
+    pca_options    = badass_check_input.check_pca_options(pca_options)
     user_lines			 = badass_check_input.check_user_lines(user_lines)
     user_constraints	 = badass_check_input.check_user_constraints(user_constraints)
     user_mask			 = badass_check_input.check_user_mask(user_mask)
@@ -539,7 +539,7 @@ def run_single_thread(fits_file,
     test_lines			= fit_options["test_lines"]
     max_like_niter		= fit_options["max_like_niter"]
     output_pars			= fit_options["output_pars"]
-    cosmology		    = fit_options["cosmology"]
+    cosmology		 = fit_options["cosmology"]
     # mcmc_options
     mcmc_fit 			= mcmc_options["mcmc_fit"]
     nwalkers 			= mcmc_options["nwalkers"]
@@ -554,9 +554,9 @@ def run_single_thread(fits_file,
     min_iter			= mcmc_options["min_iter"]
     max_iter			= mcmc_options["max_iter"]
     # pca_options
-    do_pca              = pca_options['do_pca']
+    do_pca        = pca_options['do_pca']
     n_components        = pca_options['n_components']
-    pca_masks           = pca_options['pca_masks']
+    pca_masks         = pca_options['pca_masks']
     # comp_options
     fit_opt_feii		= comp_options["fit_opt_feii"]
     fit_uv_iron			= comp_options["fit_uv_iron"]
@@ -574,8 +574,8 @@ def run_single_thread(fits_file,
     plot_param_hist		= plot_options["plot_param_hist"]
     plot_HTML			= plot_options["plot_HTML"]
     plot_pca            = plot_options["plot_pca"]
-    plot_corner         = plot_options["plot_corner"]
-    corner_options      = plot_options["corner_options"]
+    plot_corner   = plot_options["plot_corner"]
+    corner_options    = plot_options["corner_options"]
 
 
     # Set up run ('MCMC_output_#') directory
@@ -595,7 +595,7 @@ def run_single_thread(fits_file,
 
     # output_options
     write_chain			= output_options["write_chain"]
-    write_options       = output_options["write_options"]
+    write_options      = output_options["write_options"]
     verbose				= output_options["verbose"]
     #
     # Start fitting process
@@ -681,11 +681,11 @@ def run_single_thread(fits_file,
     if (fit_host==True):# & (lam_gal[0]>1680.2):
         host_template = generate_host_template(lam_gal, host_options, disp_res,fit_mask, velscale, verbose=verbose)
     # elif (fit_host==True) & (lam_gal[0]<1680.2):
-    #     host_template = None
-    #     fit_host = False
-    #     comp_options["fit_host"]=False
-    #     if verbose:
-    #         print('\n - Host galaxy SSP template disabled because template is outside of fitting region.')
+    #    host_template = None
+    #    fit_host = False
+    #    comp_options["fit_host"]=False
+    #    if verbose:
+    #       print('\n - Host galaxy SSP template disabled because template is outside of fitting region.')
     elif (fit_host==False):
         host_template = None
     # Load stellar templates if fit_losvd=True 
@@ -780,7 +780,7 @@ def run_single_thread(fits_file,
         blob_pars = get_blob_pars(lam_gal, line_list, combined_line_list, velscale)
 
         # If ranges not specified, then use the whole fitting region by default
-        if (test_options["ranges"] is None):
+        if (test_options["ranges"] is None) or (len(test_options["ranges"])==0):
             test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
 
         # If test_options["lines"] is a single string
@@ -1059,7 +1059,7 @@ def run_single_thread(fits_file,
 
 
     # Peform the initial maximum likelihood fit (used for initial guesses for MCMC)
-    result_dict, comp_dict     = max_likelihood(param_dict,
+    result_dict, comp_dict   = max_likelihood(param_dict,
                                                 line_list,
                                                 combined_line_list,
                                                 soft_cons,
@@ -1226,7 +1226,7 @@ def run_single_thread(fits_file,
         print('\n > Fitting MCMC chains...')
     # These three functions produce parameter, flux, and luminosity histograms and chains from the MCMC sampling.
     # Free parameter values, uncertainties, and plots
-    param_dict = param_plots(param_dict,burn_in,run_dir,plot_param_hist=plot_param_hist,verbose=verbose)
+    param_dict = param_plots(param_dict,fit_norm,burn_in,run_dir,plot_param_hist=plot_param_hist,verbose=verbose)
     # Add tied parameters
     param_dict = add_tied_parameters(param_dict, line_list)
     # Log Like Function values plots
@@ -1236,7 +1236,7 @@ def run_single_thread(fits_file,
     # Luminosity values, uncertainties, and plots
     lum_dict = lum_plots(flux_dict, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],verbose=verbose)
     # Continuum luminosity 
-    cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],verbose=verbose)
+    cont_lum_dict = cont_lum_plots(cont_flux_blob, burn_in, nwalkers, z, flux_norm, fit_norm, run_dir, H0=cosmology["H0"],Om0=cosmology["Om0"],verbose=verbose)
     # Equivalent widths, uncertainties, and plots
     eqwidth_dict = eqwidth_plots(eqwidth_blob, z, burn_in, nwalkers, run_dir, verbose=verbose)
     # Auxiliary Line Dict (Combined FWHMs and Fluxes of MgII and CIV)
@@ -1261,18 +1261,18 @@ def run_single_thread(fits_file,
     all_lines = {**line_list,**combined_line_list}
     for line in all_lines:
         disp_res = all_lines[line]["disp_res_kms"]
-        combined_pdict[line+"_DISP_RES"] = {'par_best'    : disp_res, # maximum of posterior distribution
+        combined_pdict[line+"_DISP_RES"] = {'par_best'  : disp_res, # maximum of posterior distribution
                                             'ci_68_low'   : np.nan, # lower 68% confidence interval
                                             'ci_68_upp'   : np.nan, # upper 68% confidence interval
                                             'ci_95_low'   : np.nan, # lower 95% confidence interval
                                             'ci_95_upp'   : np.nan, # upper 95% confidence interval
-                                            'post_max'    : np.nan,
-                                            'mean'        : np.nan, # mean of posterior distribution
-                                            'std_dev'     : np.nan,   # standard deviation
+                                            'post_max'  : np.nan,
+                                            'mean'    : np.nan, # mean of posterior distribution
+                                            'std_dev'    : np.nan,   # standard deviation
                                             'median'      : np.nan, # median of posterior distribution
                                             'med_abs_dev' : np.nan,   # median absolute deviation
                                             'flat_chain'  : np.nan,   # flattened samples used for histogram.
-                                            'flag'        : np.nan, 
+                                            'flag'    : np.nan, 
                                             }
         disp_corr = np.nanmax([0.0,np.sqrt(combined_pdict[line+"_DISP"]["par_best"]**2-(disp_res)**2)])
         fwhm_corr = np.nanmax([0.0,np.sqrt(combined_pdict[line+"_FWHM"]["par_best"]**2-(disp_res*2.3548)**2)]) 
@@ -1324,6 +1324,8 @@ def run_single_thread(fits_file,
                     fit_mask,
                     fit_stat,
                     velscale,
+                    flux_norm,
+                    fit_norm,
                     run_dir)
 
     # Calculate some fit quality parameters which will be added to the dictionary
@@ -1337,6 +1339,8 @@ def run_single_thread(fits_file,
     header_dict["Z_SDSS"]	= z
     header_dict["MED_NOISE"] = np.nanmedian(noise)
     header_dict["VELSCALE"]  = velscale
+    header_dict["FLUX_NORM"]  = flux_norm
+    header_dict["FIT_NORM"]  = fit_norm
     #
     # param_dict = {**param_dict,**flux_dict,**lum_dict,**eqwidth_dict,**cont_lum_dict,**int_vel_disp_dict,**extra_dict}
     write_params(combined_pdict,header_dict,bounds,run_dir,binnum,spaxelx,spaxely)
@@ -1474,10 +1478,10 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
         post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
         post_mean = np.nanmean(flat)
         post_med  = np.nanmedian(flat)
-        low_68    = post_med - p68[0]
-        upp_68    = p68[1] - post_med
-        low_95    = post_med - p95[0]
-        upp_95    = p95[1] - post_med
+        low_68  = post_med - p68[0]
+        upp_68  = p68[1] - post_med
+        low_95  = post_med - p95[0]
+        upp_95  = p95[1] - post_med
         post_std  = np.nanstd(flat)
         post_mad  = stats.median_abs_deviation(flat)
 
@@ -1487,12 +1491,12 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
 
         z_dict = {}
         z_dict["z_sys"] = {}
-        z_dict["z_sys"]["par_best"]    = post_med
+        z_dict["z_sys"]["par_best"] = post_med
         z_dict["z_sys"]["ci_68_low"]   = low_68
         z_dict["z_sys"]["ci_68_upp"]   = upp_68
         z_dict["z_sys"]["ci_95_low"]   = low_95
         z_dict["z_sys"]["ci_95_upp"]   = upp_95
-        z_dict["z_sys"]['post_max']    = post_max 
+        z_dict["z_sys"]['post_max'] = post_max 
         z_dict["z_sys"]["mean"] 	   = post_mean
         z_dict["z_sys"]["std_dev"] 	   = post_std
         z_dict["z_sys"]["median"]	   = post_med
@@ -1502,12 +1506,12 @@ def systemic_vel_est(z,param_dict,burn_in,run_dir,plot_param_hist=True):
     else:
         z_dict = {}
         z_dict["z_sys"] = {}
-        z_dict["z_sys"]["par_best"]    = np.nan
+        z_dict["z_sys"]["par_best"] = np.nan
         z_dict["z_sys"]["ci_68_low"]   = np.nan
         z_dict["z_sys"]["ci_68_upp"]   = np.nan
         z_dict["z_sys"]["ci_95_low"]   = np.nan
         z_dict["z_sys"]["ci_95_upp"]   = np.nan
-        z_dict["z_sys"]['post_max']    = np.nan 
+        z_dict["z_sys"]['post_max'] = np.nan 
         z_dict["z_sys"]["mean"] 	   = np.nan
         z_dict["z_sys"]["std_dev"] 	   = np.nan
         z_dict["z_sys"]["median"]	   = np.nan
@@ -1974,7 +1978,7 @@ def emline_masker(wave,spec,noise):
                    fig_scale=8,fontsize=16,verbose=False)
     #
     signif = 3.0
-    pad    = 3 # pixels on each side 
+    pad = 3 # pixels on each side 
     mask_bad = np.unique(np.where(((galaxy_csub)>(signif*(noise))) | ((galaxy_csub)<(-signif*(noise)))))
     # Pad masked bad by pad pixels on each side
     padded_mask_bad = np.array([])
@@ -2003,7 +2007,7 @@ def metal_masker(wave,spec,noise):
                    fig_scale=8,fontsize=16,verbose=False)
     #
     signif = 3.0
-    pad    = 3 # pixels on each side 
+    pad = 3 # pixels on each side 
     mask_bad = np.unique(np.where(((galaxy_csub)>(signif*np.nanmean(noise))) | ((galaxy_csub)<(-signif*np.nanmean(noise)))))
     # Pad masked bad by pad pixels on each side
     padded_mask_bad = np.array([])
@@ -2023,54 +2027,54 @@ def metal_masker(wave,spec,noise):
 
 
 # def metal_masker_nn(wave,spec,noise,fits_file):
-#     """
-#     Runs a neural network using BIFROST
-#     to determine location of emission lines
-#     to generate an emission line mask for 
-#     continuum fitting.
-#     """    
-#     # Initialize the neural network
-#     line_name = ['metal_abs', 'generic_line']
-#     neuralnet = bifrost.NeuralNet()
+#    """
+#    Runs a neural network using BIFROST
+#    to determine location of emission lines
+#    to generate an emission line mask for 
+#    continuum fitting.
+#    """   
+#    # Initialize the neural network
+#    line_name = ['metal_abs', 'generic_line']
+#    neuralnet = bifrost.NeuralNet()
 
-#     # Set up file paths
-#     path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data', 'neural_network')
-#     if not os.path.exists(path):
-#         os.mkdir(path)
-#     _file = os.path.join(path, "metal.absorption.network.h5")
-#     _plot = os.path.join(os.path.abspath(os.path.dirname(fits_file)), "metal.nn.convolve.html")
+#    # Set up file paths
+#    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'badass_data', 'neural_network')
+#    if not os.path.exists(path):
+#       os.mkdir(path)
+#    _file = os.path.join(path, "metal.absorption.network.h5")
+#    _plot = os.path.join(os.path.abspath(os.path.dirname(fits_file)), "metal.nn.convolve.html")
 
-#     # If not already trained, it must be trained
-#     if not os.path.exists(_file):
-#         print("Training neural network to mask metal absorption...")
-#         neuralnet.train(line_name, target_line=0, size=100_000, epochs=11, save_path=_file)
-#     # Otherwise, just load in the already-trained neural network
-#     else:
-#         neuralnet.load(_file, line_name, target_line=0)
+#    # If not already trained, it must be trained
+#    if not os.path.exists(_file):
+#       print("Training neural network to mask metal absorption...")
+#       neuralnet.train(line_name, target_line=0, size=100_000, epochs=11, save_path=_file)
+#    # Otherwise, just load in the already-trained neural network
+#    else:
+#       neuralnet.load(_file, line_name, target_line=0)
     
-#     # Convert arrays to the native byte order
-#     l_wave = wave if wave.dtype.byteorder == '=' else wave.byteswap().newbyteorder('=')
-#     l_spec = spec if spec.dtype.byteorder == '=' else spec.byteswap().newbyteorder('=')
-#     l_noise = noise if noise.dtype.byteorder == '=' else noise.byteswap().newbyteorder('=')
-#     # (the noise isn't actually used)
+#    # Convert arrays to the native byte order
+#    l_wave = wave if wave.dtype.byteorder == '=' else wave.byteswap().newbyteorder('=')
+#    l_spec = spec if spec.dtype.byteorder == '=' else spec.byteswap().newbyteorder('=')
+#    l_noise = noise if noise.dtype.byteorder == '=' else noise.byteswap().newbyteorder('=')
+#    # (the noise isn't actually used)
 
-#     # Smooth and subtract spectrum to leave only narrow features
-#     l_spec = (l_spec - gaussian_filter1d(l_spec, 20)) / np.nanmedian(l_spec)
-#     l_noise = l_noise / np.nanmedian(l_spec)
+#    # Smooth and subtract spectrum to leave only narrow features
+#    l_spec = (l_spec - gaussian_filter1d(l_spec, 20)) / np.nanmedian(l_spec)
+#    l_noise = l_noise / np.nanmedian(l_spec)
     
-#     # Now the fun part, do a "convolution" (not really) of the neural network with a 100-angstrom wide window
-#     # to get the confidence that a metal absorption line exists at each wavelength
-#     cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
-#     # Additional challenge -- re-mapping cwave back onto the original wave array
-#     remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
-#     # Convolve the remap by a small kernel such that neighboring pixels are also masked
-#     conf = gaussian_filter1d(conf,3)
-#     # Normalize to 1
-#     conf = (conf-np.nanmin(conf))/(np.nanmax(conf)-np.nanmin(conf))
-#     # Mask all pixels where the confidence is over 50%
-#     mask_bad = remap[conf > 0.5]
+#    # Now the fun part, do a "convolution" (not really) of the neural network with a 100-angstrom wide window
+#    # to get the confidence that a metal absorption line exists at each wavelength
+#    cwave, conf = neuralnet.convolve(l_wave, l_spec, l_noise, out_path=_plot)
+#    # Additional challenge -- re-mapping cwave back onto the original wave array
+#    remap = np.array([np.abs(wave - cwi).argmin() for cwi in cwave])
+#    # Convolve the remap by a small kernel such that neighboring pixels are also masked
+#    conf = gaussian_filter1d(conf,3)
+#    # Normalize to 1
+#    conf = (conf-np.nanmin(conf))/(np.nanmax(conf)-np.nanmin(conf))
+#    # Mask all pixels where the confidence is over 50%
+#    mask_bad = remap[conf > 0.5]
 
-#     return mask_bad
+#    return mask_bad
 
 
 def window_filter(spec,size):
@@ -2294,7 +2298,7 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
     # algorithm.
     fit_norm = np.round(np.nanmax(galaxy),5)
     galaxy   = galaxy/fit_norm
-    noise    = noise /fit_norm
+    noise   = noise /fit_norm
 
     #######################################################################
 
@@ -2316,7 +2320,7 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
         print('{0:<30}{1:<30}'.format(' velocity scale:' , '%0.2f [km/s/pixel]' % velscale	  ))
         print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
         print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.0e' % (1.E-17)                ))
-        print('{0:<30}{1:<30}'.format(' Fit Normalization:', '%0.5f' % fit_norm                ))
+        print('{0:<30}{1:<30}'.format(' Fit Normalization:', '%0.5f' % fit_norm    ))
         print('-----------------------------------------------------------')
     ################################################################################
 
@@ -2423,7 +2427,7 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
         mask = np.isnan(spec)
         spec[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), spec[~mask])        
         mask = np.isnan(err)
-        err[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), err[~mask])      
+        err[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), err[~mask])    
         #
         wave = new_wave
 
@@ -2528,11 +2532,11 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
     # algorithm.
     fit_norm = np.round(np.nanmax(galaxy),5)
     galaxy   = galaxy/fit_norm
-    noise    = noise /fit_norm
+    noise   = noise /fit_norm
 
     #######################################################################
     # Write to log
-    write_log((fits_file,z,cosmology,fit_min,fit_max,velscale,ebv,flux_norm,fit_norm),'prepare_spec',run_dir)
+    write_log((fits_file,None,None,z,cosmology,fit_min,fit_max,velscale,ebv,flux_norm,fit_norm),'prepare_spec',run_dir)
 
     ################################################################################
 
@@ -2548,12 +2552,12 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
         print('{0:<30}{1:<30}'.format(' fitting region:' , '(%d,%d) [A]' % (fit_reg[0],fit_reg[1])  ))
         print('{0:<30}{1:<30}'.format(' velocity scale:' , '%0.2f [km/s/pixel]' % velscale	  ))
         print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
-        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.0e' % (flux_norm)                ))
-        print('{0:<30}{1:<30}'.format(' Fit Normalization:', '%0.5f' % (fit_norm)                ))
+        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.0e' % (flux_norm)    ))
+        print('{0:<30}{1:<30}'.format(' Fit Normalization:', '%0.5f' % (fit_norm)            ))
         print('-----------------------------------------------------------')
     ################################################################################
     #
-    return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good, fit_norm
+    return lam_gal,galaxy,noise,z,ebv,velscale,disp_res,fit_mask_good,fit_norm
 
 
 ##################################################################################
@@ -2724,7 +2728,7 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
     # algorithm.
     fit_norm = np.round(np.nanmax(galaxy),5)
     galaxy   = galaxy/fit_norm
-    noise    = noise /fit_norm
+    noise   = noise /fit_norm
 
     #######################################################################
     # Write to log
@@ -2743,8 +2747,8 @@ def prepare_ifu_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_m
         print('{0:<30}{1:<30}'.format(' fitting region' , '(%d,%d) [A]' % (fit_reg[0 ],fit_reg[1])  ))
         print('{0:<30}{1:<30}'.format(' velocity scale' , '%0.2f [km/s/pixel]' % velscale	  ))
         print('{0:<30}{1:<30}'.format(' Galactic E(B-V):', '%0.3f' % ebv						))
-        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.0e' % (flux_norm)                ))
-        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.5f' % (fit_norm)                ))
+        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.0e' % (flux_norm)    ))
+        print('{0:<30}{1:<30}'.format(' Flux Normalization:', '%0.5f' % (fit_norm)        ))
         print('-----------------------------------------------------------')
     ################################################################################
 
@@ -3210,9 +3214,9 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     # If user lines is defined, replace the default line list with the 
     # user-input line list
     # if ((user_lines is None) or (len(user_lines)==0)) & (remove_lines==False):
-    #     line_list = line_list_default()
+    #    line_list = line_list_default()
     # else:
-    #     line_list = user_lines
+    #    line_list = user_lines
 
     if (user_lines is None):
         line_list = line_list_default()
@@ -3221,21 +3225,21 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
 
     # # Remove lines
     # if remove_lines:
-    #     # if len(remove_lines)==1:
-    #     # 	line_list.pop(remove_lines,None)
-    #     # elif len(remove_lines)>1:
-    #     for l in remove_lines:
-    #         line_list.pop(l,None)
+    #    # if len(remove_lines)==1:
+    #    # 	line_list.pop(remove_lines,None)
+    #    # elif len(remove_lines)>1:
+    #    for l in remove_lines:
+    #       line_list.pop(l,None)
 
     # Check line component options for 
     line_list = check_line_comp_options(lam_gal,line_list,comp_options,narrow_options,broad_options,absorp_options,edge_pad=edge_pad,verbose=verbose)
 
 
     # for line in line_list:
-    #     print("\n")
-    #     print(line)
-    #     for hpar in line_list[line]:
-    #         print("\t",hpar,":",line_list[line][hpar])
+    #    print("\n")
+    #    print(line)
+    #    for hpar in line_list[line]:
+    #       print("\t",hpar,":",line_list[line][hpar])
     # print("\n") 
     # sys.exit()
 
@@ -3265,22 +3269,22 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                                           line_list,velscale,verbose=verbose)
 
     # for line in line_list:
-    #     print("\n")
-    #     print(line)
-    #     for hpar in line_list[line]:
-    #         print("\t",hpar,":",line_list[line][hpar])
+    #    print("\n")
+    #    print(line)
+    #    for hpar in line_list[line]:
+    #       print("\t",hpar,":",line_list[line][hpar])
     # print("\n") 
     # for n in ncomp_dict:
-    #     print(n)
-    #     for line in ncomp_dict[n]:
-    #         print("\t",line)
-    #         for hpar in ncomp_dict[n][line]:
-    #             print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
+    #    print(n)
+    #    for line in ncomp_dict[n]:
+    #       print("\t",line)
+    #       for hpar in ncomp_dict[n][line]:
+    #          print("\t\t",hpar,"=",ncomp_dict[n][line][hpar])
     # print("\n") 
     # for par in line_par_input:
-    #     print(par)
-    #     for hpar in line_par_input[par]:
-    #         print("\t",hpar,":",line_par_input[par][hpar])
+    #    print(par)
+    #    for hpar in line_par_input[par]:
+    #       print("\t",hpar,":",line_par_input[par][hpar])
     # print("-----------------------------------------------------------------------------------------------")
     # sys.exit()
 
@@ -3295,9 +3299,9 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     combined_line_list = generate_comb_line_list(line_list,ncomp_dict,combined_lines)
 
     # for c in combined_line_list:
-    #     print(c)
-    #     for hpar in combined_line_list[c]:
-    #         print("\t",hpar,combined_line_list[c][hpar])
+    #    print(c)
+    #    for hpar in combined_line_list[c]:
+    #       print("\t",hpar,combined_line_list[c][hpar])
     # sys.exit(0)
 
     ##############################################################################
@@ -3402,7 +3406,7 @@ def generate_comb_line_list(line_list,ncomp_dict,user_combined_lines):
                                                  "center":line_list[surrogate_lines[0]]["center"],
                                                  "center_pix":line_list[surrogate_lines[0]]["center_pix"],
                                                  "disp_res_kms":line_list[surrogate_lines[0]]["disp_res_kms"],
-                                                }        
+                                                }      
         except:
             pass
 
@@ -3465,7 +3469,7 @@ def line_list_default():
 
         "NA_H_BETA"	   :{"center":4862.691, "amp":"free"				   , "disp":"NA_OIII_5007_DISP", "voff":"free"			   ,"h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"H$\beta$"},
         "NA_OIII_4960" :{"center":4960.295, "amp":"(NA_OIII_5007_AMP/2.98)", "disp":"NA_OIII_5007_DISP", "voff":"NA_OIII_5007_VOFF","h3":"NA_OIII_5007_H3","h4":"NA_OIII_5007_H4", "line_type":"na" ,"label":r"[O III]"},
-        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"         	   ,"h3":"free"           ,"h4":"free"           , "line_type":"na" ,"label":r"[O III]"},
+        "NA_OIII_5007" :{"center":5008.240, "amp":"free"				   , "disp":"free"			   , "voff":"free"   	   ,"h3":"free"           ,"h4":"free"     , "line_type":"na" ,"label":r"[O III]"},
 
         # "na_unknown_1":{"center":4500., "line_type":"na", "line_profile":"gaussian"},
         ##############################################################################################################################################################################################################################################
@@ -3482,7 +3486,7 @@ def line_list_default():
         ### Region 3 (6200 Å - 6800 Å)
 
         "NA_OI_6302"   :{"center":6302.046, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
-        "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"free"             , "line_type":"na","label":r"[S III]"},
+        "NA_SIII_6312" :{"center":6312.060, "amp":"free"				, "disp":"NA_NII_6585_DISP" , "voff":"free"    , "line_type":"na","label":r"[S III]"},
         "NA_OI_6365"   :{"center":6365.535, "amp":"NA_OI_6302_AMP/3.0"	, "disp":"NA_NII_6585_DISP" , "voff":"NA_NII_6585_VOFF"	, "line_type":"na","label":r"[O I]"},
         "NA_FEX_6374"  :{"center":6374.510, "amp":"free"				, "disp":"NA_NII_6585_DISP"	, "voff":"free"				, "line_type":"na","label":r"[Fe X]"}, # Coronal Line
         #
@@ -3844,7 +3848,7 @@ def check_line_comp_options(lam_gal,line_list,comp_options,
     br_init_hmoments  = ["h"+str(m)+"_init" for m in range(3,3+(broad_options["n_moments"]-2),1)]
     br_plim_hmoments  = ["h"+str(m)+"_plim" for m in range(3,3+(broad_options["n_moments"]-2),1)]
     br_prior_hmoments = ["h"+str(m)+"_prior" for m in range(3,3+(broad_options["n_moments"]-2),1)]
-    br_hmoments       = ["h"+str(m) for m in range(3,3+(broad_options["n_moments"]-2),1)]
+    br_hmoments    = ["h"+str(m) for m in range(3,3+(broad_options["n_moments"]-2),1)]
     br_stuff = br_init_hmoments + br_plim_hmoments + br_prior_hmoments + br_hmoments
     abs_init_hmoments  = ["h"+str(m)+"_init" for m in range(3,3+(absorp_options["n_moments"]-2),1)]
     abs_plim_hmoments  = ["h"+str(m)+"_plim" for m in range(3,3+(absorp_options["n_moments"]-2),1)]
@@ -3920,7 +3924,7 @@ def add_line_clones(line_list):
         # Determine how many components (ncomp) each line has;
         # If not explicitly provided, assume ncomp is 1
         ncomp = line_list[line].get("ncomp",1)
-    #     print(ncomp)
+    #    print(ncomp)
         for n in np.arange(ncomp)+1:
             if n==1: # the first component is the "parent" line
                 if "NCOMP_1" not in ncomp_dict:
@@ -3945,8 +3949,8 @@ def add_line_clones(line_list):
                     if (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]) and (line_list[line][hpar]=="free"):
                         ncomp_dict["NCOMP_%d" % n][line+"_%d" % n][hpar] = line_list[line][hpar]
                     elif (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]) and (line_list[line][hpar]!="free"):
-    #                     print(hpar,line_list[line][hpar])
-    #                     print(line_list.keys())
+    #                print(hpar,line_list[line][hpar])
+    #                print(line_list.keys())
                         for key in line_list.keys():
                             if key in line_list[line][hpar]:
                                 new_hpar = line_list[line][hpar].replace(key,key+"_%d" % n)
@@ -4180,7 +4184,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         Assigns the user-defined or default line velocity offset (voff)
         initial guesses and limits.
         """
-        voff_default_init     = 0.0
+        voff_default_init    = 0.0
         na_voff_default_plim  = (-500,500)
         br_voff_default_plim  = (-1000,1000)
         abs_voff_default_plim = (-500,500)
@@ -4249,7 +4253,7 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
 
     line_par_input = {}
-    #    
+    #   
     # We start with standard lines and options. These are added one-by-one.  Then we check specific line options and then override any lines that have
     # been already added.  Params are added regardless of component options as long as the parameter is set to "free"
     for line in list(line_list):
@@ -4486,9 +4490,9 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
         
         
     # for line in line_par_input:
-    #     print(line)
-    #     for p in line_par_input[line]:
-    #         print("\t",p,":",line_par_input[line][p])
+    #    print(line)
+    #    for p in line_par_input[line]:
+    #       print("\t",p,":",line_par_input[line][p])
     # sys.exit()
 
     return line_par_input
@@ -4563,49 +4567,49 @@ def check_soft_cons(soft_cons,line_par_input,verbose=True):
     # lines = np.unique(["_".join(l.split('_')[0:3]) for l in line_par_input if l.split('_')[0] == 'OUT'])
     # n_comps = np.zeros(lines.shape, dtype=int)
     # for j, line in enumerate(lines):
-    #     i = 1
-    #     check_next = True
-    #     while check_next:
-    #         check_next = False
-    #         for key in line_par_input:
-    #             if f"{line}_{i}" in key:
-    #                 n_comps[j] += 1
-    #                 check_next = True
-    #                 i += 1
-    #                 break
-    #     if n_comps[j] == 0:
-    #         n_comps[j] = 1
+    #    i = 1
+    #    check_next = True
+    #    while check_next:
+    #       check_next = False
+    #       for key in line_par_input:
+    #          if f"{line}_{i}" in key:
+    #             n_comps[j] += 1
+    #             check_next = True
+    #             i += 1
+    #             break
+    #    if n_comps[j] == 0:
+    #       n_comps[j] = 1
 
     # # Check if any lines have multiple components
     # for k, nci in enumerate(n_comps):
-    #     if nci > 1:
-    #         # If so, add soft constraint on VOFF such that they are always ordered the same
-    #         for m in range(1, nci):
-    #             # For example:
-    #             # OUT_OIII_5007_2_VOFF > OUT_OIII_5007_1_VOFF
-    #             # OUT_OIII_5007_3_VOFF > OUT_OIII_5007_2_VOFF
-    #             # etc...
-    #             con1 = (f"{lines[k]}_{m+1}_FWHM", f"{lines[k]}_{m}_FWHM")
-    #             # Just in case the user already placed the soft con in question:
-    #             if con1 not in soft_cons:
-    #                 soft_cons.append(con1)
+    #    if nci > 1:
+    #       # If so, add soft constraint on VOFF such that they are always ordered the same
+    #       for m in range(1, nci):
+    #          # For example:
+    #          # OUT_OIII_5007_2_VOFF > OUT_OIII_5007_1_VOFF
+    #          # OUT_OIII_5007_3_VOFF > OUT_OIII_5007_2_VOFF
+    #          # etc...
+    #          con1 = (f"{lines[k]}_{m+1}_FWHM", f"{lines[k]}_{m}_FWHM")
+    #          # Just in case the user already placed the soft con in question:
+    #          if con1 not in soft_cons:
+    #             soft_cons.append(con1)
                 
-    #             con2 = (f"{lines[k]}_{m}_AMP", f"{lines[k]}_{m+1}_AMP")
-    #             if con2 not in soft_cons:
-    #                 soft_cons.append(con2)
+    #          con2 = (f"{lines[k]}_{m}_AMP", f"{lines[k]}_{m+1}_AMP")
+    #          if con2 not in soft_cons:
+    #             soft_cons.append(con2)
             
-    #         # Add additional constraints for narrow/broad components
-    #         if f"{lines[k].replace('OUT_', 'NA_')}_FWHM" in line_par_input:
-    #             con1 = (f"{lines[k]}_1_FWHM", f"{lines[k].replace('OUT_', 'NA_')}_FWHM")
-    #             if con1 not in soft_cons:
-    #                 soft_cons.append(con1)
-    #             con2 = (f"{lines[k].replace('OUT_', 'NA_')}_AMP", f"{lines[k]}_1_AMP")
-    #             if con2 not in soft_cons:
-    #                 soft_cons.append(con2)
-    #         if f"{lines[k].replace('OUT_', 'BR_')}_FWHM" in line_par_input:
-    #             con = (f"{lines[k].replace('OUT_', 'BR_')}_FWHM", f"{lines[k]}_{nci}_FWHM")
-    #             if con not in soft_cons:
-    #                 soft_cons.append(con)
+    #       # Add additional constraints for narrow/broad components
+    #       if f"{lines[k].replace('OUT_', 'NA_')}_FWHM" in line_par_input:
+    #          con1 = (f"{lines[k]}_1_FWHM", f"{lines[k].replace('OUT_', 'NA_')}_FWHM")
+    #          if con1 not in soft_cons:
+    #             soft_cons.append(con1)
+    #          con2 = (f"{lines[k].replace('OUT_', 'NA_')}_AMP", f"{lines[k]}_1_AMP")
+    #          if con2 not in soft_cons:
+    #             soft_cons.append(con2)
+    #       if f"{lines[k].replace('OUT_', 'BR_')}_FWHM" in line_par_input:
+    #          con = (f"{lines[k].replace('OUT_', 'BR_')}_FWHM", f"{lines[k]}_{nci}_FWHM")
+    #          if con not in soft_cons:
+    #             soft_cons.append(con)
 
 
     # Check that soft cons can be parsed; if not, convert to free parameter
@@ -4735,7 +4739,7 @@ def line_test(param_dict,
 
     # print("\n")
     # for opt in test_options:
-    #     print(opt,test_options[opt])
+    #    print(opt,test_options[opt])
 
     # Make a copy of the original line list for reference
     orig_line_list = copy.deepcopy(line_list)
@@ -4762,7 +4766,7 @@ def line_test(param_dict,
         #
         max_ncomp = np.max([line_list[l]["ncomp"] for l in line_list if ( (l in line) or (("parent" in line_list[l]) and (line_list[l]["parent"] in line)))])# the maximum ncomp to test
         # print(i,line,max_ncomp)
-        #    
+        #   
         fit_res_dict = {}
         if i not in fit_res_dict:
             fit_res_dict[i] = {}
@@ -4796,12 +4800,12 @@ def line_test(param_dict,
                         user_line_list.pop(member,None)
 
                     # for u in user_line_list:
-                    #     user_line_list[u]["ncomp"]=1
+                    #    user_line_list[u]["ncomp"]=1
 
                 # for u in user_line_list:
-                #     print(u)
-                #     for hpar in user_line_list[u]:
-                #         print("\t",hpar,"=",user_line_list[u][hpar])
+                #    print(u)
+                #    for hpar in user_line_list[u]:
+                #       print("\t",hpar,"=",user_line_list[u][hpar])
 
                 # Generate parameters without lines
                 _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
@@ -4916,7 +4920,7 @@ def line_test(param_dict,
                 # ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
                 # ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
                 # for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
-                #     ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+                #    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
                 # ax1.legend()
                 # ax2.legend()
                 # plt.suptitle("%s test: NCOMP %d" % (line,fit_A_ncomp))
@@ -4953,15 +4957,15 @@ def line_test(param_dict,
                                 user_line_list[l] = line_list[l]
 
                 # for u in user_line_list:
-                #     print(u)
-                #     for hpar in user_line_list[u]:
-                #         print("\t",hpar,"=",user_line_list[u][hpar])
+                #    print(u)
+                #    for hpar in user_line_list[u]:
+                #       print("\t",hpar,"=",user_line_list[u][hpar])
 
                 # print("\n")
                 # sys.exit()
 
                 # for u in user_line_list:
-                #     user_line_list[u]["ncomp"]=1
+                #    user_line_list[u]["ncomp"]=1
 
                 # Generate parameters without lines
                 _param_dict, _line_list, _combined_line_list, _soft_cons, _ncomp_dict = initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask,velscale,
@@ -5082,7 +5086,7 @@ def line_test(param_dict,
                 # ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
                 # ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
                 # for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
-                #     ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+                #    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
                 # ax1.legend()
                 # ax2.legend()
                 # plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
@@ -5174,6 +5178,7 @@ def line_test(param_dict,
                                 fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"],fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"],
                                 fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["line_list"],fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["line_list"],
                                 fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mcpars"],fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mcpars"],
+                                flux_norm, fit_norm,
                                 run_dir)
 
             # Check parameters if auto_stop=True; this automatically stops the testing of a line
@@ -5184,7 +5189,7 @@ def line_test(param_dict,
                 for  m,metric in enumerate(test_options["metrics"]):
                     if metric not in ["AON"]:
                         target_metrics[metric] = test_options["thresholds"][m]
-                        current_metrics[metric]     = test_results[metric][-1]
+                        current_metrics[metric]  = test_results[metric][-1]
 
 
                 checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics,verbose)
@@ -5210,7 +5215,7 @@ def line_test(param_dict,
     new_line_list = {}
     rmse_thresholds = []
     # for line in line_list:
-    #     print(line)
+    #    print(line)
     # sys.exit()
 
     # Get lines that are not being tested and are not associated and add them to the new line list.
@@ -5246,7 +5251,7 @@ def line_test(param_dict,
                     break
                 elif np.any(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-    #               print(max_ncomp)
+    #            print(max_ncomp)
                     for line in orig_line_list:
                         if (line in test) or ((orig_line_list[line]["ncomp"]<max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
@@ -5266,7 +5271,7 @@ def line_test(param_dict,
                     break
                 elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-    #               print(max_ncomp)
+    #            print(max_ncomp)
                     for line in orig_line_list:
                         if (line in test) or ((orig_line_list[line]["ncomp"]<max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
@@ -5328,9 +5333,9 @@ def line_test(param_dict,
     
     # import pickle
     # with open("fit_res_dict.pickle","wb") as handle:
-    #     pickle.dump(fit_res_dict,handle)
+    #    pickle.dump(fit_res_dict,handle)
     # with open("test_results.pickle","wb") as handle:
-    #     pickle.dump(test_results,handle)
+    #    pickle.dump(test_results,handle)
 
     # sys.exit()
     # Write to log
@@ -5402,7 +5407,7 @@ def config_test(param_dict,
 
     # print("\n")
     # for opt in test_options:
-    #     print(opt,test_options[opt])
+    #    print(opt,test_options[opt])
 
     # Make a copy of the original line list for reference
     orig_line_list = copy.deepcopy(line_list)
@@ -5562,7 +5567,7 @@ def config_test(param_dict,
             # ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
             # ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
             # for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
-            #     ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+            #    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
             # ax1.legend()
             # ax2.legend()
             # plt.suptitle("%s test: NCOMP %d" % (line,fit_A_ncomp))
@@ -5709,7 +5714,7 @@ def config_test(param_dict,
             # ax1.axhline(0.0,linestyle="--",color="xkcd:white",)
             # ax2.axhline(0.0,linestyle="--",color="xkcd:white",)
             # for comp in [c for c in mccomps if c not in ["WAVE","DATA","MODEL","NOISE","RESID"]]:
-            #     ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
+            #    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
             # ax1.legend()
             # ax2.legend()
             # plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
@@ -5803,7 +5808,7 @@ def config_test(param_dict,
             for  m,metric in enumerate(test_options["metrics"]):
                 if metric not in ["AON"]:
                     target_metrics[metric] = test_options["thresholds"][m]
-                    current_metrics[metric]     = test_results[metric][-1]
+                    current_metrics[metric]  = test_results[metric][-1]
 
 
             checked_metrics = badass_test_suite.check_test_stats(target_metrics,current_metrics,verbose)
@@ -5828,11 +5833,11 @@ def config_test(param_dict,
     
     # import pickle
     # with open("fit_res_dict.pickle","wb") as handle:
-    #     pickle.dump(fit_res_dict,handle)
+    #    pickle.dump(fit_res_dict,handle)
     # with open("test_results.pickle","wb") as handle:
-    #     pickle.dump(test_results,handle)
+    #    pickle.dump(test_results,handle)
     # with open("orig_line_list.pickle","wb") as handle:
-    #     pickle.dump(orig_line_list,handle)
+    #    pickle.dump(orig_line_list,handle)
 
     # print(test_results)
 
@@ -5842,7 +5847,7 @@ def config_test(param_dict,
     new_line_list = {}
     rmse_thresholds = []
     # for line in line_list:
-    #     print(line)
+    #    print(line)
     # sys.exit()
 
     # Get lines that are not being tested and are not associated and add them to the new line list.
@@ -5878,7 +5883,7 @@ def config_test(param_dict,
                     break
                 elif np.any(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-    #               print(max_ncomp)
+    #            print(max_ncomp)
                     for line in orig_line_list:
                         if (line in test) or ((orig_line_list[line]["ncomp"]<max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
@@ -5898,7 +5903,7 @@ def config_test(param_dict,
                     break
                 elif np.all(checked_metrics) and (i>0) and (i<=len(res["TEST"])-1):
                     max_ncomp = res["NCOMP_B"][i]
-    #               print(max_ncomp)
+    #            print(max_ncomp)
                     for line in orig_line_list:
                         if (line in test) or ((orig_line_list[line]["ncomp"]<max_ncomp) and (("parent" in orig_line_list[line]) and (orig_line_list[line]["parent"] in test))):
                             new_line_list[line] = orig_line_list[line]
@@ -5968,9 +5973,9 @@ def config_test(param_dict,
     
     # print("\n")
     # for line in new_line_list:
-    #     print(line)
-    #     for hpar in new_line_list[line]:
-    #         print("\t",hpar,":",new_line_list[line][hpar])            
+    #    print(line)
+    #    for hpar in new_line_list[line]:
+    #       print("\t",hpar,":",new_line_list[line][hpar])            
                 
     # check SNR (AON) level and prune any lines that don't satisfy the requirement
     remove_aon = []
@@ -6027,9 +6032,9 @@ def config_test(param_dict,
     
     # import pickle
     # with open("fit_res_dict.pickle","wb") as handle:
-    #     pickle.dump(fit_res_dict,handle)
+    #    pickle.dump(fit_res_dict,handle)
     # with open("test_results.pickle","wb") as handle:
-    #     pickle.dump(test_results,handle)
+    #    pickle.dump(test_results,handle)
 
     # sys.exit()
     # Write to log
@@ -6085,6 +6090,7 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
                    comp_dict_B,comp_dict_A,
                    line_list_B,line_list_A,
                    params_B,params_A,
+                   flux_norm,fit_norm,
                    run_dir):
     """
     The plotting function for test_line().  It plots both the outflow
@@ -6092,7 +6098,7 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     """
     # Reshape the component dictionary by extracting the 0th array
     comp_dict_A = {key:comp_dict_A[key][0] for key in comp_dict_A}
-    comp_dict_B = {key:comp_dict_B[key][0] for key in comp_dict_B}
+    comp_dict_B = {key:comp_dict_B[key][0] for key in comp_dict_B}  
 
     param_names_A = [p for p in params_A]
     param_names_B = [p for p in params_B]
@@ -6177,7 +6183,7 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(comp_dict_A['WAVE'])-10,np.max(comp_dict_A['WAVE'])+10)
     # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
-    ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
+    ax1.set_ylabel(r'$f_\lambda$ ($10^{%d}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (np.log10(flux_norm)),fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_A['DATA']-comp_dict_A['MODEL'])
     sigma_noise = np.nanmedian(comp_dict_A['NOISE'])
@@ -6281,7 +6287,7 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
     ax3.set_xticklabels([])
     ax3.set_xlim(np.min(comp_dict_B['WAVE'])-10,np.max(comp_dict_B['WAVE'])+10)
     # ax3.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
-    ax3.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
+    ax3.set_ylabel(r'$f_\lambda$ ($10^{%d}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (np.log10(flux_norm)),fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict_B['DATA']-comp_dict_B['MODEL'])
     sigma_noise = np.nanmedian(comp_dict_B['NOISE'])
@@ -6429,9 +6435,9 @@ def config_test_plot(n,ncomp_A,ncomp_B,
             elif key=='Z_OPT_FEII_TEMPLATE':
                 ax1.plot(comp_dict_A['WAVE'], comp_dict_A['Z_OPT_FEII_TEMPLATE'], color='xkcd:rust', linewidth=0.5, linestyle='-' , label='Z-transition FeII')
         elif (key=='UV_IRON_TEMPLATE'):
-            ax1.plot(comp_dict_A['WAVE'], comp_dict_A['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'    )
+            ax1.plot(comp_dict_A['WAVE'], comp_dict_A['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'   )
         elif (key=='BALMER_CONT'):
-            ax1.plot(comp_dict_A['WAVE'], comp_dict_A['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'    )
+            ax1.plot(comp_dict_A['WAVE'], comp_dict_A['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'   )
         # Plot emission lines by cross-referencing comp_dict with line_list
         if (key in line_list_A):
             if (line_list_A[key]["line_type"]=="na"):
@@ -6533,9 +6539,9 @@ def config_test_plot(n,ncomp_A,ncomp_B,
             elif key=='Z_OPT_FEII_TEMPLATE':
                 ax3.plot(comp_dict_B['WAVE'], comp_dict_B['Z_OPT_FEII_TEMPLATE'], color='xkcd:rust', linewidth=0.5, linestyle='-' , label='Z-transition FeII')
         elif (key=='UV_IRON_TEMPLATE'):
-            ax3.plot(comp_dict_B['WAVE'], comp_dict_B['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'    )
+            ax3.plot(comp_dict_B['WAVE'], comp_dict_B['UV_IRON_TEMPLATE'], color='xkcd:bright purple', linewidth=0.5, linestyle='-' , label='UV Iron'   )
         elif (key=='BALMER_CONT'):
-            ax3.plot(comp_dict_B['WAVE'], comp_dict_B['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'    )
+            ax3.plot(comp_dict_B['WAVE'], comp_dict_B['BALMER_CONT'], color='xkcd:bright green', linewidth=0.5, linestyle='--' , label='Balmer Continuum'   )
         # Plot emission lines by cross-referencing comp_dict with line_list
         if (key in line_list_B):
             if (line_list_B[key]["line_type"]=="na"):
@@ -6900,9 +6906,9 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
         npix = len(eval_ind)
         npix_dict[l+"_NPIX"] = int(npix)
         # if len(eval_ind)>0:
-        #     snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
+        #    snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
         # else: 
-        #     snr = 0
+        #    snr = 0
         snr = np.nanmax(np.abs(comp_dict[l]))/np.nanmean(_noise)
         snr_dict[l+"_SNR"] = snr
     # compute for combined lines
@@ -6992,7 +6998,7 @@ def max_likelihood(param_dict,
     # Extract parameters with priors; only non-uniform priors 
     # need to be added to the fit
     # for key in param_dict:
-    #     print(key, param_dict[key])
+    #    print(key, param_dict[key])
 
     prior_dict = {key:param_dict[key] for key in param_dict if ("prior" in param_dict[key])}
 
@@ -7017,7 +7023,7 @@ def max_likelihood(param_dict,
     lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
     if force_best:
         force_basinhop = copy.deepcopy(n_basinhop)
-        n_basinhop = 1000
+        n_basinhop = 2500
 
         # print(force_basinhop,n_basinhop)
 
@@ -7062,9 +7068,9 @@ def max_likelihood(param_dict,
             # Define an acceptance threshold as the median abs. deviation of the current RMSE array,
             # and use a default value of 1.0 until it can be calculated reliably (len(rmse_arr)>5)
             # if len(rmse_arr)>=5:
-            #     accept_thresh = rmse_mad
+            #    accept_thresh = rmse_mad
             # else:
-            #     accept_thresh = 1.0
+            #    accept_thresh = 1.0
             accept_thresh = 0.001
             # Best/lowest achieved RMSE
             if (rmse<=lowest_rmse): #(rmse<=force_thresh) and  (accepted==1) and (accepted_count>1) and 
@@ -7108,18 +7114,19 @@ def max_likelihood(param_dict,
 
         callback_ftn=None
 
-    # Define a perturbation function for step sizes
-    def perturb(x, scale=0.10):
-        x_perturbed = np.copy(x)
-        for i, xi in enumerate(x):
-            x_perturbed[i] = xi + np.random.normal(0, scale*np.abs(xi))
-        return x_perturbed
+    # # Define a perturbation function for step sizes
+    # def perturb(x, scale=0.025):
+    #     x_perturbed = np.copy(x)
+    #     for i, xi in enumerate(x):
+    #         x_perturbed[i] = xi + np.random.normal(0, scale*np.abs(xi))
+    #     return x_perturbed
 
     result = op.basinhopping(func = nll, 
                              x0 = params,
-                             take_step=perturb,
-                             target_accept_rate = 0.5,
-                             interval=0.1,
+                             stepsize=1.0,
+                             # take_step=perturb,
+                             # target_accept_rate = 0.5,
+                             interval=2,
                              niter = 2500, # Max # of iterations before stopping
                              minimizer_kwargs = {'args':(
                                                          param_names,
@@ -7206,34 +7213,34 @@ def max_likelihood(param_dict,
     mcpars  = {k:np.empty(max_like_niter+1) for k in param_names}
     # flux_dict
     flux_names = [key+"_FLUX" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","MPOLY"]]
-    mcflux     = {k:np.empty(max_like_niter+1) for k in flux_names}
+    mcflux   = {k:np.empty(max_like_niter+1) for k in flux_names}
     # lum dict
     lum_names = [key+"_LUM" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","MPOLY"]]
-    mclum     = {k:np.empty(max_like_niter+1) for k in lum_names}
+    mclum    = {k:np.empty(max_like_niter+1) for k in lum_names}
     # eqwidth dict
     # line_names = [key+"_EW" for key in {**line_list, **combined_line_list}]
     line_names = [key+"_EW" for key in comp_dict if key not in ["DATA","WAVE","MODEL","NOISE","RESID","POWER","HOST_GALAXY","BALMER_CONT","APOLY","MPOLY"]]
-    mceqw      = {k:np.empty(max_like_niter+1) for k in line_names}
+    mceqw     = {k:np.empty(max_like_niter+1) for k in line_names}
     # integrated dispersion & velocity dicts
     # Since dispersion is calculated for all lines, we only need to calculate the integrated
     # dispersions and velocities for combined lines, and FWHM for all lines
     line_names = [key+"_DISP" for key in combined_line_list]
-    mcdisp     = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcdisp   = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_FWHM" for key in {**line_list, **combined_line_list}]
-    mcfwhm     = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcfwhm   = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_VOFF" for key in combined_line_list]
-    mcvint     = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcvint   = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_W80" for key in {**line_list, **combined_line_list}]
-    mcw80     = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcw80    = {k:np.empty(max_like_niter+1) for k in line_names}
     # fit quality dictionaries (R_SQUARED, RCHI_SQUARED, NPIX, SNR)
     mcR2       = np.empty(max_like_niter+1)
-    mcRCHI2    = np.empty(max_like_niter+1)
+    mcRCHI2 = np.empty(max_like_niter+1)
     line_names = [key+"_NPIX" for key in {**line_list, **combined_line_list}]
-    mcnpix     = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcnpix   = {k:np.empty(max_like_niter+1) for k in line_names}
     line_names = [key+"_SNR" for key in {**line_list, **combined_line_list}]
-    mcsnr      = {k:np.empty(max_like_niter+1) for k in line_names}
+    mcsnr     = {k:np.empty(max_like_niter+1) for k in line_names}
     # model component dictionary
-    mccomps    = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
+    mccomps = {k:np.empty((max_like_niter+1,len(comp_dict[k]))) for k in comp_dict}
     # log-likelihood array
     mcLL       = np.empty(max_like_niter+1)
     # Monochromatic continuum luminosities array
@@ -7380,7 +7387,7 @@ def max_likelihood(param_dict,
             # Used for checking MC outputs
             # print("\n MC iteration: %d:" % n)
             # for p,pn in enumerate(param_names):
-            #     print(pn,resultmc["x"][p])
+            #    print(pn,resultmc["x"][p])
 
 
             # Get best-fit model components to calculate fluxes and equivalent widths
@@ -7589,7 +7596,7 @@ def max_likelihood(param_dict,
     mc_med = mcR2[0]#np.nanmedian(mcR2)
     mc_std = np.nanstd(mcR2)
     pdict["R_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
-#    Add RCHI2 values to pdict
+#   Add RCHI2 values to pdict
     mc_med = mcRCHI2[0]#np.nanmedian(mcRCHI2)
     mc_std = np.nanstd(mcRCHI2)
     pdict["RCHI_SQUARED"] = {'med':mc_med,'std':mc_std,'flag':0}
@@ -7769,21 +7776,21 @@ def add_tied_parameters(pdict,line_list):
     param_names = [key for key in pdict]
     # init_dict  = {key:pdict[key]["init"]  for key in pdict}
     # plim_dict  = {key:pdict[key]["plim"]  for key in pdict}
-    chain_dict	     = {key:pdict[key]["chain"] for key in pdict}
-    par_best_dict    = {key:pdict[key]["par_best"] for key in pdict}
+    chain_dict	  = {key:pdict[key]["chain"] for key in pdict}
+    par_best_dict   = {key:pdict[key]["par_best"] for key in pdict}
 
     ci_68_low_dict   = {key:pdict[key]["ci_68_low"] for key in pdict}
     ci_68_upp_dict   = {key:pdict[key]["ci_68_upp"] for key in pdict}
     ci_95_low_dict   = {key:pdict[key]["ci_95_low"] for key in pdict}
     ci_95_upp_dict   = {key:pdict[key]["ci_95_upp"] for key in pdict}
 
-    mean_dict        = {key:pdict[key]["mean"] for key in pdict}
+    mean_dict      = {key:pdict[key]["mean"] for key in pdict}
     std_dev_dict     = {key:pdict[key]["std_dev"] for key in pdict}
-    median_dict      = {key:pdict[key]["median"] for key in pdict}
+    median_dict   = {key:pdict[key]["median"] for key in pdict}
     med_abs_dev_dict = {key:pdict[key]["med_abs_dev"] for key in pdict}
 
     flat_samp_dict   = {key:pdict[key]["flat_chain"] for key in pdict}
-    flag_dict	     = {key:pdict[key]["flag"] for key in pdict}
+    flag_dict	   = {key:pdict[key]["flag"] for key in pdict}
     # print()
 
     for line in line_list:
@@ -7804,8 +7811,8 @@ def add_tied_parameters(pdict,line_list):
                 ci_95_upp  = np.sqrt(np.sum(np.array([ci_95_upp_dict[i] for i in expr_vars],dtype=float)**2))
 
                 mean        = np.sqrt(np.sum(np.array([mean_dict[i] for i in expr_vars],dtype=float)**2))
-                std_dev     = np.sqrt(np.sum(np.array([std_dev_dict[i] for i in expr_vars],dtype=float)**2))
-                median      = np.sqrt(np.sum(np.array([median_dict[i] for i in expr_vars],dtype=float)**2))
+                std_dev  = np.sqrt(np.sum(np.array([std_dev_dict[i] for i in expr_vars],dtype=float)**2))
+                median    = np.sqrt(np.sum(np.array([median_dict[i] for i in expr_vars],dtype=float)**2))
                 med_abs_dev = np.sqrt(np.sum(np.array([med_abs_dev_dict[i] for i in expr_vars],dtype=float)**2))
 
                 flag 	 = np.sum([flag_dict[i] for i in expr_vars])
@@ -7933,7 +7940,7 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,fit_no
         ax_low = np.nanmin([ax1.get_ylim()[0],ax2.get_ylim()[0]])
         ax_upp = np.nanmax(comp_dict['DATA'][fit_mask])+(3.0 * np.nanmedian(comp_dict['NOISE'][fit_mask])) #np.nanmax([ax1.get_ylim()[1], ax2.get_ylim()[1]])
         # if np.isfinite(sigma_resid):
-        #     ax_upp += 3.0 * sigma_resid
+        #    ax_upp += 3.0 * sigma_resid
 
         minimum = [np.nanmin(comp_dict[comp][np.where(np.isfinite(comp_dict[comp]))[0]]) for comp in comp_dict
                    if comp_dict[comp][np.isfinite(comp_dict[comp])[0]].size > 0]
@@ -8090,11 +8097,11 @@ def lnlike(params,
             l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
         # elif (fit_stat=="RCHI2"):
-        #     pdict = {p:params[i] for i,p in enumerate(param_names)}
-        #     noise_scale = pdict["NOISE_SCALE"]
-        #     # Calculate log-likelihood
-        #     sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
-        #     l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
+        #    pdict = {p:params[i] for i,p in enumerate(param_names)}
+        #    noise_scale = pdict["NOISE_SCALE"]
+        #    # Calculate log-likelihood
+        #    sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
+        #    l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
@@ -8145,11 +8152,11 @@ def lnlike(params,
             l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
         # elif (fit_stat=="RCHI2"):
-        #     pdict = {p:params[i] for i,p in enumerate(param_names)}
-        #     noise_scale = pdict["NOISE_SCALE"]
-        #     # Calculate log-likelihood
-        #     sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
-        #     l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
+        #    pdict = {p:params[i] for i,p in enumerate(param_names)}
+        #    noise_scale = pdict["NOISE_SCALE"]
+        #    # Calculate log-likelihood
+        #    sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
+        #    l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
         return l 
 
@@ -8775,7 +8782,7 @@ def fit_model(params,
         coeff[0] = 0.0
         apoly = np.polynomial.legendre.legval(nw, coeff)
         # if np.any(apoly)<0:
-        #     apoly += (-1*np.nanmin(apoly))
+        #    apoly += (-1*np.nanmin(apoly))
         host_model = host_model - apoly
         comp_dict["APOLY"] = apoly
         #
@@ -8788,7 +8795,7 @@ def fit_model(params,
         mpoly = np.polynomial.legendre.legval(nw, coeff)
         comp_dict["MPOLY"] = mpoly
         # if np.any(mpoly)<0:
-        #     mpoly += -np.nanmin(mpoly)
+        #    mpoly += -np.nanmin(mpoly)
         host_model = host_model * mpoly
         #
 
@@ -9076,10 +9083,10 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     # Get keys of any lines that were fit for which we will compute eq. widths for
     lines = [line for line in line_list] # list of all lines (individual lines and combined lines)
     # Storage dicts
-    fluxes        = {}
+    fluxes    = {}
     eqwidths      = {}
     int_vel_disp  = {}
-    npix_dict     = {}
+    npix_dict    = {}
     snr_dict      = {}
     fit_quality   = {}
     #
@@ -9106,9 +9113,9 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
             npix = len(eval_ind)
             npix_dict[key+"_NPIX"] = int(npix)
             # if len(eval_ind)>0:
-            #     snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(_noise[eval_ind])
+            #    snr = np.nanmax(comp_dict[key][eval_ind])/np.nanmean(_noise[eval_ind])
             # else: 
-            #     snr = 0
+            #    snr = 0
             snr = np.nanmax(np.abs(comp_dict[key]))/np.nanmean(_noise)
             snr_dict[key+"_SNR"] = snr
 
@@ -9152,7 +9159,7 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     if (lam_gal[0]<7000) & (lam_gal[-1]>7000):
         cont_fluxes["HOST_FRAC_7000"] = host_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
         cont_fluxes["AGN_FRAC_7000"]  = agn_cont[blob_pars["INDEX_7000"]]/total_cont[blob_pars["INDEX_7000"]]
-    #       
+    #      
 
     # compute a total chi-squared and r-squared
     fit_quality["R_SQUARED"] = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
@@ -11065,9 +11072,9 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,
     ax1.axvline(post_med-low_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20,label=r'$\textrm{95\% conf.}$')
     ax1.axvline(post_med+upp_95,linewidth=0.5,linestyle=":" ,color='xkcd:bright aqua',alpha=1.00,zorder=20)
     #
-    ax1.plot(xs,kde    ,linewidth=0.5,linestyle="-" ,color="xkcd:bright pink",alpha=1.00,zorder=15,label="KDE")
-    ax1.plot(xs,kde    ,linewidth=3.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.50,zorder=15)
-    ax1.plot(xs,kde    ,linewidth=6.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.20,zorder=15)
+    ax1.plot(xs,kde ,linewidth=0.5,linestyle="-" ,color="xkcd:bright pink",alpha=1.00,zorder=15,label="KDE")
+    ax1.plot(xs,kde ,linewidth=3.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.50,zorder=15)
+    ax1.plot(xs,kde ,linewidth=6.0,linestyle="-" ,color="xkcd:bright pink",alpha=0.20,zorder=15)
     #
     ax1.grid(visible=True,which="major",axis="both",alpha=0.15,color="xkcd:bright pink",linewidth=0.5,zorder=0)
     # ax1.plot(xvec,yvec,color='white')
@@ -11121,7 +11128,7 @@ def posterior_plots(key,flat,chain,burn_in,xs,kde,
 
     return
 
-def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
+def param_plots(param_dict,fit_norm,burn_in,run_dir,plot_param_hist=True,verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     free parameters from MCMC sample chains.
@@ -11139,6 +11146,11 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
         # Burned-in + Flattened (along walker axis) chain
         # If burn_in is larger than the size of the chain, then 
         # take 50% of the chain length instead.
+
+        # Rescale amplitudes
+        if key[-4:]=="_AMP":
+            chain*=fit_norm
+
         if (burn_in >= np.shape(chain)[1]):
             burn_in = int(0.5*np.shape(chain)[1])
         # Flatten the chains
@@ -11174,50 +11186,60 @@ def param_plots(param_dict,burn_in,run_dir,plot_param_hist=True,verbose=True):
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.nanmean(flat)
             post_med  = np.nanmedian(flat)
-            low_68    = post_med - p68[0]
-            upp_68    = p68[1] - post_med
-            low_95    = post_med - p95[0]
-            upp_95    = p95[1] - post_med
+            low_68  = post_med - p68[0]
+            upp_68  = p68[1] - post_med
+            low_95  = post_med - p95[0]
+            upp_95  = p95[1] - post_med
             post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
             # Quality flags; flag any parameter that violates parameter limits by 1.5 sigma
-            flag = 0  
-            if ( (post_med-1.5*low_68) <= (param_dict[key]['plim'][0]) ):
-                flag+=1
-            if ( (post_med+1.5*upp_68) >= (param_dict[key]['plim'][1]) ):
-                flag+=1
-            if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
-                flag+=1
+            flag = 0 
+            if key[-4:]=="_AMP":
+                if ( (post_med-1.5*low_68) <= (param_dict[key]['plim'][0]*fit_norm) ):
+                    flag+=1
+                if ( (post_med+1.5*upp_68) >= (param_dict[key]['plim'][1]*fit_norm) ):
+                    flag+=1
+                if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+                    flag+=1
+            else:
+                if ( (post_med-1.5*low_68) <= (param_dict[key]['plim'][0]) ):
+                    flag+=1
+                if ( (post_med+1.5*upp_68) >= (param_dict[key]['plim'][1]) ):
+                    flag+=1
+                if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
+                    flag+=1
 
-            param_dict[key]['par_best']    = post_med # maximum of posterior distribution
+            param_dict[key]['par_best'] = post_med # maximum of posterior distribution
             param_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             param_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             param_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             param_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
-            param_dict[key]['post_max']    = post_max # maximum of posterior distribution
-            param_dict[key]['mean']        = post_mean # mean of posterior distribution
-            param_dict[key]['std_dev']     = post_std	# standard deviation
-            param_dict[key]['median']      = post_med # median of posterior distribution
+            param_dict[key]['post_max'] = post_max # maximum of posterior distribution
+            param_dict[key]['mean']  = post_mean # mean of posterior distribution
+            param_dict[key]['std_dev']   = post_std	# standard deviation
+            param_dict[key]['median']     = post_med # median of posterior distribution
             param_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
             param_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
             param_dict[key]['flag']	       = flag 
 
             if (plot_param_hist==True):
+
                 posterior_plots(key,flat,chain,burn_in,xs,kde,
                                 low_68,upp_68,low_95,upp_95,post_mean,post_std,post_med,post_mad,
                                 run_dir
                                 )
+
         else:
-            param_dict[key]['par_best']    = np.nan # maximum of posterior distribution
+            param_dict[key]['par_best'] = np.nan # maximum of posterior distribution
             param_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
             param_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             param_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             param_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
-            param_dict[key]['post_max']    = np.nan # maximum of posterior distribution
-            param_dict[key]['mean']        = np.nan # mean of posterior distribution
-            param_dict[key]['std_dev']     = np.nan	# standard deviation
-            param_dict[key]['median']      = np.nan # median of posterior distribution
+            param_dict[key]['post_max'] = np.nan # maximum of posterior distribution
+            param_dict[key]['mean']  = np.nan # mean of posterior distribution
+            param_dict[key]['std_dev']   = np.nan	# standard deviation
+            param_dict[key]['median']     = np.nan # median of posterior distribution
             param_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
             param_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
             param_dict[key]['flag']	       = 1 
@@ -11278,10 +11300,10 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
         post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
         post_mean = np.nanmean(flat)
         post_med  = np.nanmedian(flat)
-        low_68    = post_med - p68[0]
-        upp_68    = p68[1] - post_med
-        low_95    = post_med - p95[0]
-        upp_95    = p95[1] - post_med
+        low_68  = post_med - p68[0]
+        upp_68  = p68[1] - post_med
+        low_95  = post_med - p95[0]
+        upp_95  = p95[1] - post_med
         post_std  = np.nanstd(flat)
         post_mad  = stats.median_abs_deviation(flat)
 
@@ -11291,18 +11313,18 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
             flag += 1
 
         ll_dict = {
-                    'par_best'    : post_med, # maximum of posterior distribution
+                    'par_best'  : post_med, # maximum of posterior distribution
                     'ci_68_low'   : low_68,	# lower 68% confidence interval
                     'ci_68_upp'   : upp_68,	# upper 68% confidence interval
                     'ci_95_low'   : low_95,	# lower 95% confidence interval
                     'ci_95_upp'   : upp_95,	# upper 95% confidence interval
-                    'post_max'    : post_max,
-                    'mean'        : post_mean, # mean of posterior distribution
-                    'std_dev'     : post_std,	# standard deviation
+                    'post_max'  : post_max,
+                    'mean'    : post_mean, # mean of posterior distribution
+                    'std_dev'    : post_std,	# standard deviation
                     'median'      : post_med, # median of posterior distribution
                     'med_abs_dev' : post_mad,	# median absolute deviation
                     'flat_chain'  : flat,   # flattened samples used for histogram.
-                    'flag'        : flag, 
+                    'flag'    : flag, 
         }
 
         if (plot_param_hist==True):
@@ -11311,18 +11333,18 @@ def log_like_plot(ll_blob, burn_in, nwalkers, run_dir, plot_param_hist=True,verb
                                 run_dir)
     else:
         ll_dict = {
-                'par_best'    : np.nan, # maximum of posterior distribution
+                'par_best'  : np.nan, # maximum of posterior distribution
                 'ci_68_low'   : np.nan,	# lower 68% confidence interval
                 'ci_68_upp'   : np.nan,	# upper 68% confidence interval
                 'ci_95_low'   : np.nan,	# lower 95% confidence interval
                 'ci_95_upp'   : np.nan,	# upper 95% confidence interval
-                'post_max'    : np.nan,
-                'mean'        : np.nan, # mean of posterior distribution
-                'std_dev'     : np.nan,	# standard deviation
+                'post_max'  : np.nan,
+                'mean'    : np.nan, # mean of posterior distribution
+                'std_dev'    : np.nan,	# standard deviation
                 'median'      : np.nan, # median of posterior distribution
                 'med_abs_dev' : np.nan,	# median absolute deviation
                 'flat_chain'  : flat,   # flattened samples used for histogram.
-                'flag'        : 1, 
+                'flag'    : 1, 
         }	
 
     return ll_dict
@@ -11378,10 +11400,10 @@ def flux_plots(flux_blob, z, burn_in, nwalkers, flux_norm, fit_norm, run_dir, ve
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.nanmean(flat)
             post_med  = np.nanmedian(flat)
-            low_68    = post_med - p68[0]
-            upp_68    = p68[1] - post_med
-            low_95    = post_med - p95[0]
-            upp_95    = p95[1] - post_med
+            low_68  = post_med - p68[0]
+            upp_68  = p68[1] - post_med
+            low_95  = post_med - p95[0]
+            upp_95  = p95[1] - post_med
             post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
@@ -11392,32 +11414,32 @@ def flux_plots(flux_blob, z, burn_in, nwalkers, flux_norm, fit_norm, run_dir, ve
             if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            flux_dict[key]['par_best']    = post_med # maximum of posterior distribution
+            flux_dict[key]['par_best']  = post_med # maximum of posterior distribution
             flux_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             flux_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             flux_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             flux_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
-            flux_dict[key]['post_max']    = post_max
-            flux_dict[key]['mean']        = post_mean # mean of posterior distribution
-            flux_dict[key]['std_dev']     = post_std	# standard deviation
+            flux_dict[key]['post_max']  = post_max
+            flux_dict[key]['mean']    = post_mean # mean of posterior distribution
+            flux_dict[key]['std_dev']    = post_std	# standard deviation
             flux_dict[key]['median']      = post_med # median of posterior distribution
             flux_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
             flux_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            flux_dict[key]['flag']	       = flag 
+            flux_dict[key]['flag']	    = flag 
 
         else:
-            flux_dict[key]['par_best']    = np.nan # maximum of posterior distribution
+            flux_dict[key]['par_best']  = np.nan # maximum of posterior distribution
             flux_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
             flux_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             flux_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             flux_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
-            flux_dict[key]['post_max']    = np.nan
-            flux_dict[key]['mean']        = np.nan # mean of posterior distribution
-            flux_dict[key]['std_dev']     = np.nan	# standard deviation
+            flux_dict[key]['post_max']  = np.nan
+            flux_dict[key]['mean']    = np.nan # mean of posterior distribution
+            flux_dict[key]['std_dev']    = np.nan	# standard deviation
             flux_dict[key]['median']      = np.nan # median of posterior distribution
             flux_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
             flux_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            flux_dict[key]['flag']	       = 1 
+            flux_dict[key]['flag']	    = 1 
 
     return flux_dict
 
@@ -11475,10 +11497,10 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,verbose=True
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.nanmean(flat)
             post_med  = np.nanmedian(flat)
-            low_68    = post_med - p68[0]
-            upp_68    = p68[1] - post_med
-            low_95    = post_med - p95[0]
-            upp_95    = p95[1] - post_med
+            low_68  = post_med - p68[0]
+            upp_68  = p68[1] - post_med
+            low_95  = post_med - p95[0]
+            upp_95  = p95[1] - post_med
             post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
@@ -11489,32 +11511,32 @@ def lum_plots(flux_dict,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,verbose=True
             if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            lum_dict[key]['par_best']    = post_med # maximum of posterior distribution
+            lum_dict[key]['par_best']   = post_med # maximum of posterior distribution
             lum_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             lum_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             lum_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             lum_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
-            lum_dict[key]['post_max']    = post_max
-            lum_dict[key]['mean']        = post_mean # mean of posterior distribution
+            lum_dict[key]['post_max']   = post_max
+            lum_dict[key]['mean']      = post_mean # mean of posterior distribution
             lum_dict[key]['std_dev']     = post_std	# standard deviation
-            lum_dict[key]['median']      = post_med # median of posterior distribution
+            lum_dict[key]['median']   = post_med # median of posterior distribution
             lum_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
             lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            lum_dict[key]['flag']	     = flag
+            lum_dict[key]['flag']	   = flag
 
         else:
-            lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
+            lum_dict[key]['par_best']   = np.nan # maximum of posterior distribution
             lum_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
             lum_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             lum_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             lum_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
-            lum_dict[key]['post_max']    = np.nan
-            lum_dict[key]['mean']        = np.nan # mean of posterior distribution
+            lum_dict[key]['post_max']   = np.nan
+            lum_dict[key]['mean']      = np.nan # mean of posterior distribution
             lum_dict[key]['std_dev']     = np.nan	# standard deviation
-            lum_dict[key]['median']      = np.nan # median of posterior distribution
+            lum_dict[key]['median']   = np.nan # median of posterior distribution
             lum_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
             lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            lum_dict[key]['flag']	     = 1 
+            lum_dict[key]['flag']	   = 1 
 
     return lum_dict
 
@@ -11568,10 +11590,10 @@ def eqwidth_plots(eqwidth_blob, z, burn_in, nwalkers, run_dir,verbose=True):
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.nanmean(flat)
             post_med  = np.nanmedian(flat)
-            low_68    = post_med - p68[0]
-            upp_68    = p68[1] - post_med
-            low_95    = post_med - p95[0]
-            upp_95    = p95[1] - post_med
+            low_68  = post_med - p68[0]
+            upp_68  = p68[1] - post_med
+            low_95  = post_med - p95[0]
+            upp_95  = p95[1] - post_med
             post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
@@ -11582,36 +11604,36 @@ def eqwidth_plots(eqwidth_blob, z, burn_in, nwalkers, run_dir,verbose=True):
             if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            eqwidth_dict[key]['par_best']    = post_med # maximum of posterior distribution
+            eqwidth_dict[key]['par_best']   = post_med # maximum of posterior distribution
             eqwidth_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             eqwidth_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             eqwidth_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             eqwidth_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
-            eqwidth_dict[key]['post_max']    = post_max
-            eqwidth_dict[key]['mean']        = post_mean # mean of posterior distribution
+            eqwidth_dict[key]['post_max']   = post_max
+            eqwidth_dict[key]['mean']      = post_mean # mean of posterior distribution
             eqwidth_dict[key]['std_dev']     = post_std	# standard deviation
-            eqwidth_dict[key]['median']      = post_med # median of posterior distribution
+            eqwidth_dict[key]['median']   = post_med # median of posterior distribution
             eqwidth_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
             eqwidth_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            eqwidth_dict[key]['flag']	       = flag
+            eqwidth_dict[key]['flag']	     = flag
 
         else:
-            eqwidth_dict[key]['par_best']    = np.nan # maximum of posterior distribution
+            eqwidth_dict[key]['par_best']   = np.nan # maximum of posterior distribution
             eqwidth_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
             eqwidth_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             eqwidth_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             eqwidth_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
-            eqwidth_dict[key]['post_max']    = np.nan
-            eqwidth_dict[key]['mean']        = np.nan # mean of posterior distribution
+            eqwidth_dict[key]['post_max']   = np.nan
+            eqwidth_dict[key]['mean']      = np.nan # mean of posterior distribution
             eqwidth_dict[key]['std_dev']     = np.nan	# standard deviation
-            eqwidth_dict[key]['median']      = np.nan # median of posterior distribution
+            eqwidth_dict[key]['median']   = np.nan # median of posterior distribution
             eqwidth_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
             eqwidth_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            eqwidth_dict[key]['flag']	     = 1 
+            eqwidth_dict[key]['flag']	   = 1 
 
     return eqwidth_dict
 
-def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,verbose=True):
+def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,flux_norm,fit_norm,run_dir,H0=70.0,Om0=0.30,verbose=True):
     """
     Generates best-fit values, uncertainties, and plots for 
     component luminosities from MCMC sample chains.
@@ -11639,57 +11661,57 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,ve
     for key in cont_flux_dict:
         # Total cont. lum.
         if (key=="F_CONT_TOT_1350"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_TOT_1350"]= {'chain':lum}
         if (key=="F_CONT_TOT_3000"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_TOT_3000"]= {'chain':lum}
         if (key=="F_CONT_TOT_5100"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_TOT_5100"]= {'chain':lum}
         # AGN cont. lum.
         if (key=="F_CONT_AGN_1350"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_AGN_1350"]= {'chain':lum}
         if (key=="F_CONT_AGN_3000"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_AGN_3000"]= {'chain':lum}
         if (key=="F_CONT_AGN_5100"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_AGN_5100"]= {'chain':lum}
         # Host cont. lum
         if (key=="F_CONT_HOST_1350"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 1350.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_HOST_1350"]= {'chain':lum}
         if (key=="F_CONT_HOST_3000"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 3000.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
             cont_lum_dict["L_CONT_HOST_3000"]= {'chain':lum}
         if (key=="F_CONT_HOST_5100"):
-            flux = (cont_flux_dict[key]['chain']) * 1.0E-17
+            flux = (cont_flux_dict[key]['chain']) * flux_norm * fit_norm
             # Convert fluxes to luminosities and normalize by 10^(+42) to avoid numerical issues 
             lum   = np.log10((flux * 4*np.pi * d_cm**2	) * 5100.0) #/ 1.0E+42
             lum[~np.isfinite(lum)] = 0
@@ -11737,10 +11759,10 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,ve
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.nanmean(flat)
             post_med  = np.nanmedian(flat)
-            low_68    = post_med - p68[0]
-            upp_68    = p68[1] - post_med
-            low_95    = post_med - p95[0]
-            upp_95    = p95[1] - post_med
+            low_68  = post_med - p68[0]
+            upp_68  = p68[1] - post_med
+            low_95  = post_med - p95[0]
+            upp_95  = p95[1] - post_med
             post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
@@ -11751,32 +11773,32 @@ def cont_lum_plots(cont_flux_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=0.30,ve
             if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            cont_lum_dict[key]['par_best']    = post_med # maximum of posterior distribution
+            cont_lum_dict[key]['par_best']  = post_med # maximum of posterior distribution
             cont_lum_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             cont_lum_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             cont_lum_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             cont_lum_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
-            cont_lum_dict[key]['post_max']    = post_max
-            cont_lum_dict[key]['mean']        = post_mean # mean of posterior distribution
-            cont_lum_dict[key]['std_dev']     = post_std	# standard deviation
+            cont_lum_dict[key]['post_max']  = post_max
+            cont_lum_dict[key]['mean']    = post_mean # mean of posterior distribution
+            cont_lum_dict[key]['std_dev']    = post_std	# standard deviation
             cont_lum_dict[key]['median']      = post_med # median of posterior distribution
             cont_lum_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
             cont_lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            cont_lum_dict[key]['flag']	      = flag 
+            cont_lum_dict[key]['flag']	   = flag 
 
         else:
-            cont_lum_dict[key]['par_best']    = np.nan # maximum of posterior distribution
+            cont_lum_dict[key]['par_best']  = np.nan # maximum of posterior distribution
             cont_lum_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
             cont_lum_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             cont_lum_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             cont_lum_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
-            cont_lum_dict[key]['post_max']    = np.nan
-            cont_lum_dict[key]['mean']        = np.nan # mean of posterior distribution
-            cont_lum_dict[key]['std_dev']     = np.nan	# standard deviation
+            cont_lum_dict[key]['post_max']  = np.nan
+            cont_lum_dict[key]['mean']    = np.nan # mean of posterior distribution
+            cont_lum_dict[key]['std_dev']    = np.nan	# standard deviation
             cont_lum_dict[key]['median']      = np.nan # median of posterior distribution
             cont_lum_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
             cont_lum_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            cont_lum_dict[key]['flag']	       = 1 
+            cont_lum_dict[key]['flag']	    = 1 
 
     return cont_lum_dict
 
@@ -11832,10 +11854,10 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
             post_max  = bin_edges[hist.argmax()] # posterior max estimated from KDE
             post_mean = np.nanmean(flat)
             post_med  = np.nanmedian(flat)
-            low_68    = post_med - p68[0]
-            upp_68    = p68[1] - post_med
-            low_95    = post_med - p95[0]
-            upp_95    = p95[1] - post_med
+            low_68  = post_med - p68[0]
+            upp_68  = p68[1] - post_med
+            low_95  = post_med - p95[0]
+            upp_95  = p95[1] - post_med
             post_std  = np.nanstd(flat)
             post_mad  = stats.median_abs_deviation(flat)
 
@@ -11846,32 +11868,32 @@ def int_vel_disp_plots(int_vel_disp_blob,burn_in,nwalkers,z,run_dir,H0=70.0,Om0=
             if ~np.isfinite(post_med) or ~np.isfinite(low_68) or ~np.isfinite(upp_68):
                 flag+=1
 
-            int_vel_disp_dict[key]['par_best']    = post_med # maximum of posterior distribution
+            int_vel_disp_dict[key]['par_best']  = post_med # maximum of posterior distribution
             int_vel_disp_dict[key]['ci_68_low']   = low_68	# lower 68% confidence interval
             int_vel_disp_dict[key]['ci_68_upp']   = upp_68	# upper 68% confidence interval
             int_vel_disp_dict[key]['ci_95_low']   = low_95	# lower 95% confidence interval
             int_vel_disp_dict[key]['ci_95_upp']   = upp_95	# upper 95% confidence interval
-            int_vel_disp_dict[key]['post_max']    = post_max
-            int_vel_disp_dict[key]['mean']        = post_mean # mean of posterior distribution
-            int_vel_disp_dict[key]['std_dev']     = post_std	# standard deviation
+            int_vel_disp_dict[key]['post_max']  = post_max
+            int_vel_disp_dict[key]['mean']    = post_mean # mean of posterior distribution
+            int_vel_disp_dict[key]['std_dev']    = post_std	# standard deviation
             int_vel_disp_dict[key]['median']      = post_med # median of posterior distribution
             int_vel_disp_dict[key]['med_abs_dev'] = post_mad	# median absolute deviation
             int_vel_disp_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            int_vel_disp_dict[key]['flag']	      = flag 
+            int_vel_disp_dict[key]['flag']	   = flag 
 
         else:
-            int_vel_disp_dict[key]['par_best']    = np.nan # maximum of posterior distribution
+            int_vel_disp_dict[key]['par_best']  = np.nan # maximum of posterior distribution
             int_vel_disp_dict[key]['ci_68_low']   = np.nan	# lower 68% confidence interval
             int_vel_disp_dict[key]['ci_68_upp']   = np.nan	# upper 68% confidence interval
             int_vel_disp_dict[key]['ci_95_low']   = np.nan	# lower 95% confidence interval
             int_vel_disp_dict[key]['ci_95_upp']   = np.nan	# upper 95% confidence interval
-            int_vel_disp_dict[key]['post_max']    = np.nan
-            int_vel_disp_dict[key]['mean']        = np.nan # mean of posterior distribution
-            int_vel_disp_dict[key]['std_dev']     = np.nan	# standard deviation
+            int_vel_disp_dict[key]['post_max']  = np.nan
+            int_vel_disp_dict[key]['mean']    = np.nan # mean of posterior distribution
+            int_vel_disp_dict[key]['std_dev']    = np.nan	# standard deviation
             int_vel_disp_dict[key]['median']      = np.nan # median of posterior distribution
             int_vel_disp_dict[key]['med_abs_dev'] = np.nan	# median absolute deviation
             int_vel_disp_dict[key]['flat_chain']  = flat   # flattened samples used for histogram.
-            int_vel_disp_dict[key]['flag']	       = 1 
+            int_vel_disp_dict[key]['flag']	    = 1 
 
     return int_vel_disp_dict
 
@@ -11889,10 +11911,10 @@ def write_params(param_dict,header_dict,bounds,run_dir,binnum=None,spaxelx=None,
     ci_95_low   = []
     ci_95_upp   = []
     mean        = []
-    std_dev     = []
-    median      = []
+    std_dev  = []
+    median    = []
     med_abs_dev = []
-    flags 	    = []
+    flags 	 = []
 
     # Param dict
     for key in param_dict:
@@ -11909,7 +11931,7 @@ def write_params(param_dict,header_dict,bounds,run_dir,binnum=None,spaxelx=None,
         flags.append(param_dict[key]['flag'])
 
     # Sort param_names alphabetically
-    i_sort	    = np.argsort(par_names)
+    i_sort	 = np.argsort(par_names)
     par_names   = np.array(par_names)[i_sort] 
     par_best    = np.array(par_best)[i_sort]  
     ci_68_low   = np.array(ci_68_low)[i_sort]   
@@ -11917,10 +11939,10 @@ def write_params(param_dict,header_dict,bounds,run_dir,binnum=None,spaxelx=None,
     ci_95_low   = np.array(ci_95_low)[i_sort]   
     ci_95_upp   = np.array(ci_95_upp)[i_sort]  
     mean        = np.array(mean)[i_sort]   
-    std_dev     = np.array(std_dev)[i_sort]
-    median      = np.array(median)[i_sort]   
+    std_dev  = np.array(std_dev)[i_sort]
+    median    = np.array(median)[i_sort]   
     med_abs_dev = np.array(med_abs_dev)[i_sort] 
-    flags	    = np.array(flags)[i_sort]	 
+    flags	  = np.array(flags)[i_sort]	 
 
     # Write best-fit parameters to FITS table
     col1  = fits.Column(name='parameter', format='30A', array=par_names)
@@ -11988,11 +12010,11 @@ def corner_plot(free_dict,param_dict,corner_options,run_dir):
     """
 
     # with open("free_dict.pickle","wb") as handle:
-    #     pickle.dump(free_dict,handle)
+    #    pickle.dump(free_dict,handle)
     # with open("param_dict.pickle","wb") as handle:
-    #     pickle.dump(param_dict,handle)
+    #    pickle.dump(param_dict,handle)
     # with open("corner_options.pickle","wb") as handle:
-    #     pickle.dump(corner_options,handle)
+    #    pickle.dump(corner_options,handle)
 
     # Extract the flattened chained from the dicts
     free_dict  = {i:free_dict[i]["flat_chain"] for i in free_dict}
@@ -12055,6 +12077,8 @@ def plot_best_model(param_dict,
                     fit_mask,
                     fit_stat,
                     velscale,
+                    flux_norm,
+                    fit_norm,
                     run_dir):
     """
     Plots the best fig model and outputs the components to a FITS file for reproduction.
@@ -12062,6 +12086,13 @@ def plot_best_model(param_dict,
 
     param_names  = [key for key in param_dict ]
     par_best     = [param_dict[key]['par_best'] for key in param_dict ]
+
+    # We already multiplied the amplitudes by fit_norm in param_plots(), 
+    # now we need to use the original amplitudes to generate the best fit model
+    for i in range(len(param_names)):
+        if param_names[i][-4:]=="_AMP":
+            par_best[i]/=fit_norm
+
 
     def poly_label(kind):
         if kind=="apoly":
@@ -12113,7 +12144,10 @@ def plot_best_model(param_dict,
                           fit_stat,
                           output_model)
 
-    
+    # Rescale all components by fit_norm
+    for key in comp_dict:
+        if key not in ["WAVE"]:
+            comp_dict[key] *= fit_norm
 
     # Put params in dictionary
     p = dict(zip(param_names,par_best))
@@ -12182,7 +12216,7 @@ def plot_best_model(param_dict,
     ax1.set_xticklabels([])
     ax1.set_xlim(np.min(lam_gal)-10,np.max(lam_gal)+10)
     # ax1.set_ylim(-0.5*np.nanmedian(comp_dict['MODEL']),np.max([comp_dict['DATA'],comp_dict['MODEL']]))
-    ax1.set_ylabel(r'$f_\lambda$ ($10^{-17}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)',fontsize=10)
+    ax1.set_ylabel(r'$f_\lambda$ ($10^{%d}$ erg cm$^{-2}$ s$^{-1}$ $\mathrm{\AA}^{-1}$)' % (np.log10(flux_norm)),fontsize=10)
     # Residuals
     sigma_resid = np.nanstd(comp_dict['DATA'][fit_mask]-comp_dict['MODEL'][fit_mask])
     sigma_noise = np.nanmedian(comp_dict['NOISE'][fit_mask])
@@ -12296,7 +12330,7 @@ def do_pca_fill(wave_input, flux_input, err_input, n_components = 20, pca_masks 
     err_nan_check = np.isnan(err_input).any()
     
     if flux_nan_check:
-        print('    nans detected in spectrum flux. Setting to spectrum mean and performing PCA.\n')
+        print(' nans detected in spectrum flux. Setting to spectrum mean and performing PCA.\n')
         flux_nan, flux_nan_func = nan_helper(flux_input)
         flux_nan_ind = flux_nan_func(flux_nan)
         for fni in flux_nan_ind:
@@ -12312,7 +12346,7 @@ def do_pca_fill(wave_input, flux_input, err_input, n_components = 20, pca_masks 
         flux_input[flux_nan_ind] = flux_mean*np.ones(len(flux_nan_ind))
         
     if err_nan_check:
-        print('    nans detected in spectrum flux error. Setting to 0.1*flux at corresponding wavelength.\n')
+        print(' nans detected in spectrum flux error. Setting to 0.1*flux at corresponding wavelength.\n')
         err_nan, err_nan_func = nan_helper(err_input)
         err_nan_ind = err_nan_func(err_nan)
         
@@ -12763,7 +12797,8 @@ def write_log(output_val,output_type,run_dir):
             logfile.write('\n')
             logfile.write('\n-----------------------------------------------------------------------------------------------------------------')
             logfile.write('\n{0:<30}{1:<30}'.format('file:'		   , fits_file.name			))
-            logfile.write('\n{0:<30}{1:<30}'.format('(RA, DEC):'	  , '(%0.6f,%0.6f)' % (ra,dec)	 ))
+            if (ra is not None) and (dec is not None):
+                logfile.write('\n{0:<30}{1:<30}'.format('(RA, DEC):'	  , '(%0.6f,%0.6f)' % (ra,dec)	 ))
             logfile.write('\n{0:<30}{1:<30}'.format('SDSS redshift:'  , '%0.5f' % z					))
             logfile.write('\n{0:<30}{1:<30}'.format('fitting region:' , '(%d,%d) [A]' % (fit_min,fit_max)  ))
             logfile.write('\n{0:<30}{1:<30}'.format('velocity scale:' , '%0.2f [km/s/pixel]' % velscale))
