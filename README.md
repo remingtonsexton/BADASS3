@@ -354,7 +354,6 @@ Here is a simple example of specifying testing options for testing for narrow co
 test_options = {
     "test_mode":"line",
     "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], 
-    "ranges":[(4900,5100)], 
     "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],
     "thresholds": [0.95, 0.95, 0.10, 3.0],
     "conv_mode": "any", 
@@ -370,10 +369,6 @@ Future releases of BADASS will have different testing methods; the only option a
 
 **`lines`**: (list; *Default=[]*)<br/>
 The lines (or group of lines) to test.  BADASS will perform these tests in the order the are defined in the list.
-
-**`ranges`**: (list; *Default=[]*)<br/>
-A list of ranges within the fitting region to test corresponding to the defined lines above.
-
 
 **`metrics`**: (list; *Default=["BADASS", "CHI2_RATIO", "AON"]*)<br/>
 The testing metrics used to determine when the appropriate number of components is reached. Options are "BADASS", "ANOVA", "CHI2_RATIO", "SSR_RATIO", "F_RATIO", "AON".  We describe these below:
@@ -411,7 +406,6 @@ We also test for different lines in the same fit.  Here we specify we want to fi
 test_options = {
 "test_mode":"line",
 "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA","NA_UNK_1"], # The lines to test
-"ranges":[(4900,5050),(4700,4940),(5100,5200)], # The range over which the test is performed must 
 "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the 
 "thresholds": [0.95, 0.95, 0.10, 3.0],
 "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter 

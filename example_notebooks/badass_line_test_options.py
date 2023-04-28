@@ -125,7 +125,6 @@ user_lines = {
 # test_options = {
 # "test_mode":"line",
 # "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], # The lines to test
-# # "ranges":[(4900,5200)], # The range over which the test is performed must include the tested line
 # # "groups": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],["BR_H_BETA"]], # groups of line associated lines including the lines being tested
 # "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],# Fitting metrics to use when determining the best model
 # "thresholds": [0.95, 0.95, 0.10, 3.0],
@@ -140,7 +139,6 @@ user_lines = {
 # test_options = {
 # "test_mode":"line",
 # "lines": "BR_H_BETA", # The lines to test
-# "ranges":(4700,4940), # The range over which the test is performed must include the tested line
 # "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 # "thresholds": [0.95, 0.95, 0.25, 3.0],
 # "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
@@ -154,7 +152,6 @@ user_lines = {
 test_options = {
 "test_mode":"line",
 "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
-# "ranges":[(4900,5050),(4700,4940),(5100,5200)], # The range over which the test is performed must include the tested line
 "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 "thresholds": [0.95, 0.95, 0.10, 3.0],
 "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
@@ -168,7 +165,6 @@ test_options = {
 # test_options = {
 # "test_mode":"line",
 # "lines":["BR_MGII_2799","NA_MGII_2799"], # The lines to test
-# "ranges":[(2600,3000),(2600,3000)], # The range over which the test is performed must include the tested line
 # "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 # "thresholds": [0.95, 0.95, 0.25, 5.0],
 # "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds

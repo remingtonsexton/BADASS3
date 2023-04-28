@@ -781,8 +781,9 @@ def run_single_thread(fits_file,
         blob_pars = get_blob_pars(lam_gal, line_list, combined_line_list, velscale)
 
         # If ranges not specified, then use the whole fitting region by default
-        if (test_options["ranges"] is None) or (len(test_options["ranges"])==0):
-            test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
+        # if (test_options["ranges"] is None) or (len(test_options["ranges"])==0):
+        #     test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
+        test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
 
         # If test_options["lines"] is a single string
         parent_lines = ncomp_dict["NCOMP_1"]
@@ -909,8 +910,9 @@ def run_single_thread(fits_file,
         blob_pars = get_blob_pars(lam_gal, line_list, combined_line_list, velscale)
 
         # If ranges not specified, then use the whole fitting region by default
-        if (test_options["ranges"] is None):
-            test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
+        # if (test_options["ranges"] is None):
+            # test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
+        test_options["ranges"] = [fit_reg for i in range(len(test_options["lines"]))]
 
         # If test_options["lines"] is a single string
         if len(test_options["lines"])<2: 
@@ -2535,6 +2537,10 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
     galaxy   = galaxy/fit_norm
     noise   = noise /fit_norm
 
+    # if noise vector is zero, set it to 10%
+    if np.nansum(noise)==0:
+        noise = np.full_like(galaxy,0.05)
+
     #######################################################################
     # Write to log
     write_log((fits_file,None,None,z,cosmology,fit_min,fit_max,velscale,ebv,flux_norm,fit_norm),'prepare_spec',run_dir)
@@ -2899,7 +2905,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
                     fit_opt_feii=True,fit_uv_iron=True,fit_balmer=True,
                     fit_losvd=False,fit_host=True,fit_power=True,fit_poly=False,
                     fit_narrow=True,fit_broad=True,fit_absorp=True,
-                    tie_line_disp=False,tie_line_voff=False,remove_lines=True,verbose=True):
+                    tie_line_disp=False,tie_line_voff=False,remove_lines=False,verbose=True):
     """
     Initializes all free parameters for the fit based on user input and options.
     """
@@ -3327,7 +3333,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             # Format: (Parameter value 1) > (Parameter value 2) == [Parameter value 1,Parameter value 2]
             #
             # Region 7 constraints
-            ("BR_MGII_2799_DISP","NA_MGII_2799_DISP"),
+            # ("BR_MGII_2799_DISP","NA_MGII_2799_DISP"),
             #
             # Region 5 soft constraints
             # ("BR_H_BETA_DISP","NA_OIII_5007_DISP"),
@@ -3339,7 +3345,7 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
             # ("NA_OIII_5007_AMP","NA_H_BETA_AMP"),
             #
             # Region 3 soft constraints
-            ("OUT_NII_6585_DISP","NA_NII_6585_DISP"),
+            # ("OUT_NII_6585_DISP","NA_NII_6585_DISP"),
             # ("",""),
             # ("",""),
             # ("",""),
@@ -4503,17 +4509,17 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 #### Check Line Hard Constraints #################################################
 
 def check_hard_cons(lam_gal,galaxy,noise,comp_options,narrow_options,broad_options,absorp_options,velscale,
-                    line_list,ncomp_dict,line_par_input,par_input,remove_lines=True,verbose=True):
+                    line_list,ncomp_dict,line_par_input,par_input,remove_lines=False,verbose=True):
 
     # Get list of all params
     # param_dict = {par:0 for par in line_par_input}
-    orig_line_list = copy.deepcopy(line_list)
+    new_line_list = copy.deepcopy(line_list)
     param_dict = {par:0 for par in {**par_input,**line_par_input}}
     for line in list(line_list):
         for hpar in line_list[line]:
             if (line_list[line][hpar]!="free") and (hpar in ["amp","disp","voff","h3","h4","h5","h6","h7","h8","h9","h10","shape"]):
                 if (isinstance(line_list[line][hpar],(int,float))):
-                    line_list[line][hpar] = float(line_list[line][hpar])
+                    new_line_list[line][hpar] = float(line_list[line][hpar])
                     pass
                 else:
                     try:
@@ -4522,7 +4528,7 @@ def check_hard_cons(lam_gal,galaxy,noise,comp_options,narrow_options,broad_optio
                         if remove_lines==True:
                             if verbose:
                                 print("\n WARNING: Hard-constraint %s not found in parameter list or could not be parsed; removing %s line from line list.\n" % (line_list[line][hpar],line))
-                            line_list.pop(line,"None")
+                            new_line_list.pop(line,"None")
                             for n in ncomp_dict:
                                 for l in ncomp_dict[n]:
                                     if l==line:
@@ -4533,13 +4539,13 @@ def check_hard_cons(lam_gal,galaxy,noise,comp_options,narrow_options,broad_optio
                             if verbose:
                                 print("Hard-constraint %s not found in parameter list or could not be parsed; converting to free parameter.\n" % line_list[line][hpar])
                             # _line_list = {line:line_list[line]}
-                            line_list[line][hpar]="free"
+                            new_line_list[line][hpar]="free"
                             for n in ncomp_dict:
                                 for l in ncomp_dict[n]:
                                     if l==line:
                                         ncomp_dict[n][l][hpar] = "free" 
 
-    return line_list, ncomp_dict
+    return new_line_list, ncomp_dict
 
 ##################################################################################
 
@@ -5343,7 +5349,7 @@ def line_test(param_dict,
     write_log(ptbl,'line_test',run_dir)
 
     # Save results to JSON files for all tests
-    write_line_test_results(fit_res_dict,test_results,run_dir,binnum,spaxelx,spaxely)
+    write_line_test_results(fit_res_dict,test_results,run_dir,"line",binnum,spaxelx,spaxely)
 
     # print(rmse_thresholds)
     # print(np.min(rmse_thresholds))
@@ -6042,7 +6048,7 @@ def config_test(param_dict,
     write_log(ptbl,'line_test',run_dir)
 
     # Save results to JSON files for all tests
-    write_line_test_results(fit_res_dict,test_results,run_dir,type="config",binnum,spaxelx,spaxely)
+    write_line_test_results(fit_res_dict,test_results,run_dir,"config",binnum,spaxelx,spaxely)
 
     # print(rmse_thresholds)
     # print(np.min(rmse_thresholds))
@@ -6635,7 +6641,7 @@ def config_test_plot(n,ncomp_A,ncomp_B,
 def write_line_test_results(fit_res,
                             test_res,
                             run_dir,
-                            type="line",
+                            test,
                             binnum=None,
                             spaxelx=None,
                             spaxely=None):
@@ -6645,9 +6651,9 @@ def write_line_test_results(fit_res,
     and can be read as Python dictionaries.
     """
     #
-    if type=="line":
+    if test=="line":
         test_plot_dir = run_dir.joinpath('line_test_results')
-    else:
+    if test=="config":
         test_plot_dir = run_dir.joinpath('config_test_results')
     test_plot_dir.mkdir(parents=True, exist_ok=True)
     # If IFU data, add BINNUM, spaxelx, spaxely to both dicts
@@ -7033,7 +7039,7 @@ def max_likelihood(param_dict,
     lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
     if force_best:
         force_basinhop = copy.deepcopy(n_basinhop)
-        n_basinhop = 500 # Set to arbitrarily high threshold 
+        n_basinhop = 250 # Set to arbitrarily high threshold 
 
         # global basinhop_value, basinhop_count
         basinhop_count = 0
@@ -7074,11 +7080,7 @@ def max_likelihood(param_dict,
                 lowest_rmse = rmse
 
             # If basinhopping does get stuck in a local minimum, jump out by increasing the step size considerably
-            if ((basinhop_count>100) and (accepted_count>=1)) and (((lowest_rmse-accept_thresh)>force_thresh) or (lowest_rmse>force_thresh)):
-                print("\n Basinhopping stuck in local minimum.  Restarting basinhopping for this fit...")
-                return 2.0
-
-            if basinhop_count>n_basinhop:
+            if ((basinhop_count>n_basinhop) and (accepted_count>=1)) and (((lowest_rmse-accept_thresh)>force_thresh) or (lowest_rmse>force_thresh)):
                 print(f" \n Warning: basinhopping has exceeded {n_basinhop} attemps to find a new global maximum.  Terminating fit...\n")
                 return True
 

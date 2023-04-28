@@ -369,7 +369,8 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
         sr = signal.ravel()
         nr = noise.ravel()
         good = np.where(np.isfinite(sr) & np.isfinite(nr) & (sr > 0) & (nr > 0))[0]
-            
+        
+
         # Target S/N ratio to bin for. If none, defaults to value such that the highest pixel isnt binned
         # In general this isn't a great choice.  Should want to maximize resolution without sacrificing too much
         # computation time.
@@ -527,6 +528,11 @@ def prepare_ifu(fits_file,z,format,aperture=None,voronoi_binning=True,fixed_binn
         binnum_i = 0 if (not voronoi_binning) and (not fixed_binning) else i   # Voronoi bin index that this pixel belongs to
 
         # Package into a FITS file -- but only if the SNR is high enough, otherwise throw out the data
+
+        # If user provides a negative snr_threshold, it will ignore snr
+        if snr_threshold<0: 
+            snr_thresh=True
+
         if snr_thresh:
             primaryhdu = fits.PrimaryHDU()
             primaryhdu.header.append(("FORMAT", format.upper(), "Data format"), end=True)
@@ -851,10 +857,19 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
 
 
     # Set the best model components
-    for param in bmcparams:
-        bmcvals[param][:, binnum] = copy.deepcopy(bdata[param])
+    # for param in bmcparams:
+    #     if param in bdata:
+    #         bmcvals[param][:, binnum] = copy.deepcopy(bdata[param])
+    #     else:
+    #         bmcvals[param][:, binnum] = np.zeros(len())
 
-    parsize = data1.size
+    for param in bmcparams:
+        if param in bdata.columns.names:
+            bmcvals[param][:, binnum] = copy.deepcopy(bdata[param])
+        else:
+            bmcvals[param][:, binnum] = np.full(shape=(bdata.size), fill_value=np.nan)
+
+    parsize = len(parameters)#data1.size
     # if tdata is not None:
     #     parsize += tdata.size
     bmcsize = bdata.size
@@ -906,6 +921,9 @@ def reconstruct_ifu(fits_file,mcmc_label=None):
         binnum = copy.deepcopy(hdr['binnum']) if voronoi else i
         xpixbin[binnum] = copy.deepcopy(data2['spaxelx'])
         ypixbin[binnum] = copy.deepcopy(data2['spaxely'])
+
+        # for key in parvals:
+        #     print(key)
 
         # Set the par table parameters
         mcmc = 'ci_68_low' in data1.names and 'ci_68_upp' in data1.names
