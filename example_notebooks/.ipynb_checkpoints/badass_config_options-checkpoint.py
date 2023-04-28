@@ -131,7 +131,6 @@ configs = [
 test_options = {
 "test_mode":"config",
 "lines": configs, # The lines to test
-# "ranges":[(4900,5050),(4700,4940),(5100,5200)], # The range over which the test is performed must include the tested line
 "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 "thresholds": [0.95, 0.95, 0.10, 3.0],
 "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
