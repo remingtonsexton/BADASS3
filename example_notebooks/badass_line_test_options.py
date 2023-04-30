@@ -10,6 +10,7 @@ fit_options={
 "mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 "fit_stat": "ML", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
 "n_basinhop": 25, # Number of consecutive basinhopping thresholds before solution achieved
+"reweighting":True, # re-weight the noise after initial fit to achieve RCHI2 = 1
 "test_lines": True,
 "max_like_niter": 25, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
@@ -120,27 +121,11 @@ user_lines = {
     "NA_UNK_1"       :{"center":5200,"line_type":"na"},
 
 }
-
-
 # test_options = {
 # "test_mode":"line",
-# "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], # The lines to test
-# # "groups": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],["BR_H_BETA"]], # groups of line associated lines including the lines being tested
-# "metrics": ["BADASS", "ANOVA", "CHI2_RATIO", "AON"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.10, 3.0],
-# "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
-# "auto_stop":True, # automatically stop testing once threshold is reached; False test all no matter what
-# "full_verbose":True, # prints out all test fitting to screen
-# "plot_tests":True, # plot the fit of each model comparison
-# "force_best":True, # this forces the more-complex model to have a fit better than the previous.
-# "continue_fit":True, # continue the fit with the best chosen model
-# }
-
-# test_options = {
-# "test_mode":"line",
-# "lines": "BR_H_BETA", # The lines to test
+# "lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
 # "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.25, 3.0],
+# "thresholds": [0.95, 0.95, 0.10, 3.0],
 # "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
 # "auto_stop":False, # automatically stop testing once threshold is reached; False test all no matter what
 # "full_verbose":True, # prints out all test fitting to screen
@@ -151,7 +136,7 @@ user_lines = {
 
 test_options = {
 "test_mode":"line",
-"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"],"BR_H_BETA"], # The lines to test
+"lines": [["NA_OIII_5007","NA_OIII_4960","NA_H_BETA"]], # The lines to test
 "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
 "thresholds": [0.95, 0.95, 0.10, 3.0],
 "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
@@ -164,9 +149,9 @@ test_options = {
 
 # test_options = {
 # "test_mode":"line",
-# "lines":["BR_MGII_2799","NA_MGII_2799"], # The lines to test
+# "lines": "BR_H_BETA", # The lines to test
 # "metrics": ["BADASS", "ANOVA", "CHI2_RATIO","AON"],# Fitting metrics to use when determining the best model
-# "thresholds": [0.95, 0.95, 0.25, 5.0],
+# "thresholds": [0.95, 0.95, 0.25, 3.0],
 # "conv_mode": "any", # "any" single threshold satisfies the solution, or "all" must satisfy thresholds
 # "auto_stop":False, # automatically stop testing once threshold is reached; False test all no matter what
 # "full_verbose":True, # prints out all test fitting to screen

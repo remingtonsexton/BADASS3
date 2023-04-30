@@ -66,6 +66,7 @@ def check_fit_options(input,comp_options,verbose=False):
 				"mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 				"fit_stat": "ML", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
 				"n_basinhop": 10, # Number of consecutive basinhopping thresholds before solution achieved
+				"reweighting":True, # re-weight the noise after initial fit to achieve RCHI2 = 1
 				"test_lines": False, # only test for outflows; "fit_outflows" must be set to True!
 				"max_like_niter": 10, # number of maximum likelihood iterations
 				"output_pars": False, # only output free parameters of fit and stop code (diagnostic)
@@ -129,6 +130,13 @@ def check_fit_options(input,comp_options,verbose=False):
 							   ],
 					 "default" : 5,
 					 "error_message" : "\n Number of consecutive successful basin-hopping iterations before maximum-likelihood fit is acheived must be an integer.\n",
+					},
+	"reweighting" : {
+					 "conds" : [
+								 lambda x: isinstance(x,(bool))
+								 ],
+					 "default" : True,
+					 "error_message" : "\n Reweighting noise to achieve RCHI2=1 (reweighting) must be either True or False.\n",
 					},
 	"test_lines" : {
 					 "conds" : [

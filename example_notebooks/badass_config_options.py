@@ -8,6 +8,7 @@ fit_options={
 "mask_metal": False, # interpolate over metal absorption lines for high-z spectra
 "fit_stat": "ML", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
 "n_basinhop": 25, # Number of consecutive basinhopping thresholds before solution achieved
+"reweighting":True, # re-weight the noise after initial fit to achieve RCHI2 = 1
 "test_lines": True,
 "max_like_niter": 25, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
@@ -35,7 +36,7 @@ mcmc_options={
 
 ############################ Fit component op dtions #############################
 comp_options={
-"fit_opt_feii"     : False, # optical FeII
+"fit_opt_feii"     : True, # optical FeII
 "fit_uv_iron"      : False, # UV Iron 
 "fit_balmer"       : False, # Balmer continuum (<4000 A)
 "fit_losvd"        : False, # stellar LOSVD
