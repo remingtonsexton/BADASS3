@@ -22,15 +22,11 @@ from scipy.ndimage import generic_filter,gaussian_filter1d
 
 ##################################################################################
 
-def r_squared(data,model,test_idx=None):
+def r_squared(data,model):
 	"""
 	Simple calculation of R-squared
 	statistic for a single fit.
 	"""
-
-	if test_idx is not None:
-		data  = data[test_idx]
-		model = model[test_idx]
 
 	# Calculate residual sum-of-squares (RSS)
 	rss = np.nansum((data-model)**2)
@@ -40,16 +36,11 @@ def r_squared(data,model,test_idx=None):
 
 ##################################################################################
 
-def r_chi_squared(data,model,noise,npar,test_idx=None):
+def r_chi_squared(data,model,noise,npar):
 	"""
 	Simple calculation of reduced Chi-squared
 	statistic for a single fit.
 	"""
-
-	if test_idx is not None:
-		data  = data[test_idx]
-		model = model[test_idx]
-		noise = noise[test_idx]
 
 	# Degrees of freedon (number of data minus free fitted parameters0)
 	nu = len(data)-npar
@@ -58,15 +49,11 @@ def r_chi_squared(data,model,noise,npar,test_idx=None):
 
 ##################################################################################
 
-def root_mean_squared_error(data,model,test_idx=None):
+def root_mean_squared_error(data,model):
 	"""
 	Simple calculation of root mean squared error (RMSE)
 	statistic for a single fit.
 	"""
-
-	if test_idx is not None:
-		data  = data[test_idx]
-		model = model[test_idx]
 
 	# Normalize by subtracting by the median of the data
 	data_med = np.nanmedian(data)
@@ -76,15 +63,11 @@ def root_mean_squared_error(data,model,test_idx=None):
 
 ##################################################################################
 
-def mean_abs_error(data,model,test_idx=None):
+def mean_abs_error(data,model):
 	"""
 	Simple calculation of mean absolute error (MAE)
 	statistic for a single fit.
 	"""
-
-	if test_idx is not None:
-		data  = data[test_idx]
-		model = model[test_idx]
 
 	# Normalize by subtracting by the median of the data
 	data_med = np.nanmedian(data)
@@ -94,41 +77,32 @@ def mean_abs_error(data,model,test_idx=None):
 
 ##################################################################################
 
-def stddev(data,model,test_idx=None):
+def stddev(data,model):
 	"""
 	Simple calculation of standard deviation (Std. Dev.)
 	statistic for a single fit.
 	"""
-	if test_idx is not None:
-		data  = data[test_idx]
-		model = model[test_idx]
 
 	return np.nanstd(data-model)
 
 ##################################################################################
 
-def med_abs_dev(data,model,test_idx=None):
+def med_abs_dev(data,model):
 	"""
 	Simple calculation of median absolute deviation (MAD)
 	statistic for a single fit.
 	"""
-	if test_idx is not None:
-		data  = data[test_idx]
-		model = model[test_idx]
 
 	return median_abs_deviation(data-model)
 
 
 ##################################################################################
 
-def ssr(data,model,test_idx=None):
+def ssr(data,model):
 	"""
 	Simple calculation of median absolute deviation (MAD)
 	statistic for a single fit.
 	"""
-	if test_idx is not None:
-		data  = data[test_idx]
-		model = model[test_idx]
 
 	return np.sum((data-model)**2)
 
@@ -458,7 +432,7 @@ def bayesian_AB_test(resid_B, resid_A, wave, noise, data, eval_ind, ddof, run_di
 ##################################################################################
 
 
-def calculate_aon(test,line_list,mccomps):
+def calculate_aon(test,line_list,mccomps,noise):
 	"""
 	Calculates the amplitude-over-noise for the maximum of 
 	all lines being tested for a given test.
@@ -469,7 +443,7 @@ def calculate_aon(test,line_list,mccomps):
 		if (l in test) or (("parent" in line_list[l]) and (line_list[l]["parent"] in test)):
 			full_profile+=mccomps[l][0]
 
-	avg_noise = np.nanmean(mccomps["NOISE"][0])
+	avg_noise = np.nanmean(noise)
 
 	aon = np.nanmax(full_profile)/avg_noise
 

@@ -143,11 +143,14 @@ Mask any significant absorption and emission features relative to the continuum.
 **`mask_metal`**: (*bool*; *Default: False*)<br/>
 Performs the same moving median filter algorithm as `mask_emline` but only to absorption features.  Works well for metal absorption features seen typically in high-redshift spectra.
 
-**`fit_stat`**: (*str*; *Default: : "RCHI2"*)<br/>
+**`fit_stat`**: (*str*; *Default: : "ML"*)<br/>
 The fit statistic used for the likelihood.  The default is "RCHI2" which converges on a reduced chi-squared of 1 by scaling the input noise by a `noise_scale` free parameter.  Other options include "ML" for standard maximum likelihood (pixels weighted by noise with no noise scaling), and "LS" for ordinary least-squares fitting (all pixels weighted by same amount).
 
-**`n_basinhop`**: (*int*; *Default: 10*)<br/>
+**`n_basinhop`**: (*int*; *Default: 25*)<br/>
 Number of successive `niter_success` times the basinhopping algorithm needs to achieve a solution.  The fit becomes much better with more success times, however this can increase the time to a solution significantly  Recommended 5-10. 
+
+**`reweighting`**: (*bool*; *Default: True*)<br/>
+If true, BADASS will reweight the noise vector to achieve a reduced chi-squared ~ 1.  This is done after the initial basinhopping fit, and applied to any bootstrapped uncertainties and MCMC fitting performed afterward.  This does not affect the chi-squared ratio metric used in line and configuration testing, but does effect the amplitude-over-noise and SNR calculations in BADASS.
 
 **`test_lines`**: (`bool`:*bool*; *Default: False*)<br/>
 Performs tests for lines with multiple components (parent-child pairs).  Options are specified in `test_options`.

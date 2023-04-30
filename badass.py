@@ -276,7 +276,7 @@ __status__	   = "Release"
 # - Constraint and initial value checking before fit takes place to prevent crashing.
 # - implemented restart file; saves all fitting options to restart fit
 
-# Version 10.0.0 - 10.2.0
+# Version 10.0.0 - 10.3.0
 # - New generalized line component option for easily adding n number of line components; deprecates 'outflow'
 #   components. 
 # - W80 now a standard line parameter
@@ -289,6 +289,8 @@ __status__	   = "Release"
 # - Removed astro-bifrost due to grpcio dependency problems; using old metal masking algorithm until fixed.
 # - BADASS now internally normalizes the spectrum for optimization reasons.
 # - Bug fixes and minor changes
+# - Reweighting noise to achieve RCHI2=1 now done prior to bootstrapping and MCMC as needed (no longer a
+#   free parameter, which made it numerically unstable)
 ##########################################################################################################
 
 
@@ -537,6 +539,7 @@ def run_single_thread(fits_file,
     mask_metal			= fit_options["mask_metal"]
     fit_stat		  	= fit_options["fit_stat"]
     n_basinhop	   		= fit_options["n_basinhop"]
+    reweighting         = fit_options["reweighting"]
     test_lines			= fit_options["test_lines"]
     max_like_niter		= fit_options["max_like_niter"]
     output_pars			= fit_options["output_pars"]
@@ -876,6 +879,7 @@ def run_single_thread(fits_file,
                                output_model=False,
                                test_outflows=False,
                                n_basinhop=n_basinhop,
+                               reweighting=reweighting,
                                max_like_niter=max_like_niter,
                                verbose=verbose,
                                binnum=binnum,
@@ -974,6 +978,7 @@ def run_single_thread(fits_file,
                                output_model=False,
                                test_outflows=False,
                                n_basinhop=n_basinhop,
+                               reweighting=reweighting,
                                max_like_niter=max_like_niter,
                                verbose=verbose,
                                binnum=binnum,
@@ -1097,6 +1102,7 @@ def run_single_thread(fits_file,
                                                 output_model=False,
                                                 test_outflows=False,
                                                 n_basinhop=n_basinhop,
+                                                reweighting=reweighting,
                                                 max_like_niter=max_like_niter,
                                                 force_best=force_best,
                                                 force_thresh=force_thresh,
@@ -1128,6 +1134,26 @@ def run_single_thread(fits_file,
 
     ####################################################################################################################################################################################
  
+    #### Reweighting ###################################################################
+
+    # If True, BADASS can reweight the noise to achieve a reduced chi-squared of 1.  It does this by multiplying the noise by the 
+    # square root of the resultant reduced chi-sqaured calculated from the basinhopping fit.  This is then passed to the bootstrapping 
+    # fitting so the uncertainties are calculated with the re-weighted noise.
+
+    if reweighting:
+        if verbose:
+            print("\n Reweighting noise to achieve a reduced chi-squared ~ 1.")
+        # Calculate current rchi2
+        cur_rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]),noise,len(param_dict))
+        if verbose:
+            print("\tCurrent reduced chi-squared = %0.5f" % cur_rchi2)
+        # Update noise
+        noise = noise*np.sqrt(cur_rchi2)
+        # Calculate new rchi2
+        new_rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]),noise,len(param_dict))
+        if verbose:
+            print("\tNew reduced chi-squared = %0.5f" % new_rchi2)
+
     # Initialize parameters for emcee
     if verbose:
         print('\n Initializing parameters for MCMC.')
@@ -1156,7 +1182,11 @@ def run_single_thread(fits_file,
     # unreasonable value.  We therefroe re-initializethe FeiI temp start value to 10,000 K.
     if 'feii_temp' in param_dict:
         param_dict['feii_temp']['init']=10000.0
-    
+        
+
+
+
+
     #######################################################################################################
 
 
@@ -2932,19 +2962,6 @@ def initialize_pars(lam_gal,galaxy,noise,fit_reg,disp_res,fit_mask_good,velscale
     par_input = {} # initialize an empty dictionary to store free parameter dicts
 
     #### Stellar component/Host Galaxy #############################################
-
-    # # Fit statistic: add noise_unexp if fit_stat = "RCHI2"
-    if (fit_stat=="RCHI2"):
-        if verbose: 
-            print('\t- Adding parameter for unexplained variance for reduced Chi-squared.')
-        par_input["NOISE_SCALE"] = ({'init':1.0,
-                                     'plim':(0.0001,100.0),
-                                     'prior':{"type":"jeffreys"},
-                                    })
-        # par_input["NOISE_SCALE"] = ({'init': 1.0,
-                                     # 'plim':(0.0001,100.0),
-                                     # 'prior':{"type":"gaussian"},
-                                    # })
 
     # Galaxy template amplitude
     if (fit_host==True):
@@ -4734,7 +4751,8 @@ def line_test(param_dict,
               fit_stat="ML",
               output_model=False,
               test_outflows=False,
-              n_basinhop=5,
+              n_basinhop=25,
+              reweighting=True,
               max_like_niter=10,
               verbose=True,
               binnum=None,
@@ -4791,8 +4809,6 @@ def line_test(param_dict,
             #
             fit_A_ncomp = n
             fit_B_ncomp = n+1
-            test_idx = ((lam_gal>=test_range[0]) & (lam_gal<=test_range[1]))
-            test_fit_mask = fit_mask[test_idx]-fit_mask[test_idx][0] # truncate the fit mask to the size of the test region
             print("\n Performing test of NCOMP %d versus NCOMP %d for %s...\n" % (fit_A_ncomp,fit_B_ncomp,line))
             
             # Check if A has been fit, if not, fit. Then check if B has been fit, if not, fit.
@@ -4876,7 +4892,7 @@ def line_test(param_dict,
                                                        stel_templates,
                                                        blob_pars,
                                                        disp_res,
-                                                       test_fit_mask,
+                                                       fit_mask,
                                                        velscale,
                                                        flux_norm,
                                                        fit_norm,
@@ -4886,6 +4902,7 @@ def line_test(param_dict,
                                                        output_model=False,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
+                                                       reweighting=reweighting,
                                                        max_like_niter=0,
                                                        full_verbose=test_options["full_verbose"],
                                                        verbose=test_options["full_verbose"])
@@ -4894,23 +4911,23 @@ def line_test(param_dict,
                     
                     print("\n")
                     # Calculate R-Squared statistic of best fit
-                    r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                     print(" R-Squared = %0.4f" % r2)
 
 
                     print("\n")
                     # Calculate rCHI2 statistic of best fit
-                    rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict),test_idx=test_idx)
+                    rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
                     print(" reduced Chi-Squared = %0.4f" % rchi2)
 
                     print("\n")
                     # Calculate RMSE statistic of best fit
-                    rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                     print(" Root Mean Squared Error = %0.4f" % rmse)
 
                     print("\n")
                     # Calculate MAE statistic of best fit
-                    mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                     print(" Mean Absolute Error = %0.4f" % mae)
 
                     print("\n")
@@ -4936,7 +4953,7 @@ def line_test(param_dict,
                 #
 
                 # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
-                dof = len(lam_gal[test_idx])-len(_param_dict)
+                dof = len(lam_gal)-len(_param_dict)
                 if dof<=0: 
                     if verbose:
                         print("\n WARNING: Degrees-of-Freedom in fit is <= 0.  One should increase the test range and/or decrease the number of free parameters of the model appropriately.\n")
@@ -4991,7 +5008,7 @@ def line_test(param_dict,
                     # for the complex model if force_best=True.  For now, the threshold is the RMSE of 
                     # the previous fit, and the complex model must achieive an RMSE lower than that of 
                     # the simpler model
-                    force_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+                    force_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]))
                     # print(force_thresh)
                 else: force_thresh=np.inf
 
@@ -5041,7 +5058,7 @@ def line_test(param_dict,
                                                        stel_templates,
                                                        blob_pars,
                                                        disp_res,
-                                                       test_fit_mask,
+                                                       fit_mask,
                                                        velscale,
                                                        flux_norm,
                                                        fit_norm,
@@ -5051,6 +5068,7 @@ def line_test(param_dict,
                                                        output_model=False,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
+                                                       reweighting=reweighting,
                                                        max_like_niter=0,
                                                        force_best=test_options["force_best"],
                                                        force_thresh=force_thresh,
@@ -5061,23 +5079,23 @@ def line_test(param_dict,
                     
                     print("\n")
                     # Calculate R-Squared statistic of best fit
-                    r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                     print(" R-Squared = %0.4f" % r2)
 
 
                     print("\n")
                     # Calculate rCHI2 statistic of best fit
-                    rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict),test_idx=test_idx)
+                    rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
                     print(" reduced Chi-Squared = %0.4f" % rchi2)
 
                     print("\n")
                     # Calculate RMSE statistic of best fit
-                    rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                     print(" Root Mean Squared Error = %0.4f" % rmse)
 
                     print("\n")
                     # Calculate MAE statistic of best fit
-                    mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                    mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                     print(" Mean Absolute Error = %0.4f" % mae)
 
                     print("\n")
@@ -5102,7 +5120,7 @@ def line_test(param_dict,
                 # sys.exit(0)
                 #
                 # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
-                dof = len(lam_gal[test_idx])-len(_param_dict)
+                dof = len(lam_gal)-len(_param_dict)
                 if dof<=0: 
                     if verbose:
                         print("\n WARNING: Degrees-of-Freedom in fit is <= 0.  One should increase the test range and/or decrease the number of free parameters of the model appropriately.\n")
@@ -5116,8 +5134,8 @@ def line_test(param_dict,
             # Now that both A and B have been fit, we can generate statistics from badass_test_suite functions
             # We evaluate over the entire test range for each line
             # storage arrays for residuals in [OIII] test region
-            resid_A = fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]['RESID'][0,:][test_fit_mask]
-            resid_B = fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]['RESID'][0,:][test_fit_mask]
+            resid_A = fit_res_dict[i]["NCOMP_%d" % (fit_A_ncomp)]["mccomps"]['RESID'][0,:][fit_mask]
+            resid_B = fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]['RESID'][0,:][fit_mask]
 
             # Plot for testing
             # fig = plt.figure(figsize=(10,3))
@@ -5134,7 +5152,7 @@ def line_test(param_dict,
 
             # Record the target threshold (RMSE) of the complex fit; this will be used to ensure the final maximum likelihood fit 
             # is at least as good as this
-            targ_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+            targ_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict[i]["NCOMP_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]))
             test_results["TARGET_RMSE"].append(targ_thresh)
             # Perform Bayesian A/B test
             # delta degrees of freedom between the two models A and B (dof A > dof B)
@@ -5173,7 +5191,11 @@ def line_test(param_dict,
             # For amplitude-over-noise statistic, we need to extract the AON for the NCOMP B measurement for the lines being tested;
             # if any  (at least one) line being tested has a AON over the user-specified threshold (ex. 3-sigma), then the line is kept
             # in the new line list; otheriwse it is removed
-            aon = badass_test_suite.calculate_aon(line,_line_list,mccomps_B)
+            if reweighting:
+                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
+                aon = badass_test_suite.calculate_aon(line,_line_list,mccomps_B,copy.deepcopy(noise)*np.sqrt(rchi2))
+            else:
+                aon = badass_test_suite.calculate_aon(line,_line_list,mccomps_B,copy.deepcopy(noise))
             test_results["AON"].append(aon)
 
 
@@ -5402,7 +5424,8 @@ def config_test(param_dict,
               fit_stat="ML",
               output_model=False,
               test_outflows=False,
-              n_basinhop=5,
+              n_basinhop=25,
+              reweighting=True,
               max_like_niter=10,
               verbose=True,
               binnum=None,
@@ -5451,8 +5474,6 @@ def config_test(param_dict,
         #
         fit_A_ncomp = i+1
         fit_B_ncomp = i+2
-        test_idx = ((lam_gal>=test_range[0]) & (lam_gal<=test_range[1]))
-        test_fit_mask = fit_mask[test_idx]-fit_mask[test_idx][0] # truncate the fit mask to the size of the test region
         print("\n Performing test of configuration %d versus configuration %d...\n" % (fit_A_ncomp,fit_B_ncomp))
         
         # Check if A has been fit, if not, fit. Then check if B has been fit, if not, fit.
@@ -5523,7 +5544,7 @@ def config_test(param_dict,
                                                    stel_templates,
                                                    blob_pars,
                                                    disp_res,
-                                                   test_fit_mask,
+                                                   fit_mask,
                                                    velscale,
                                                    flux_norm,
                                                    fit_norm,
@@ -5533,6 +5554,7 @@ def config_test(param_dict,
                                                    output_model=False,
                                                    test_outflows=True,
                                                    n_basinhop=n_basinhop,
+                                                   reweighting=reweighting,
                                                    max_like_niter=0,
                                                    full_verbose=test_options["full_verbose"],
                                                    verbose=test_options["full_verbose"])
@@ -5541,23 +5563,23 @@ def config_test(param_dict,
                 
                 print("\n")
                 # Calculate R-Squared statistic of best fit
-                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" R-Squared = %0.4f" % r2)
 
 
                 print("\n")
                 # Calculate rCHI2 statistic of best fit
-                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict),test_idx=test_idx)
+                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
                 print(" reduced Chi-Squared = %0.4f" % rchi2)
 
                 print("\n")
                 # Calculate RMSE statistic of best fit
-                rmse = lowest_rmse #badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                rmse = lowest_rmse #badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Root Mean Squared Error = %0.4f" % rmse)
 
                 print("\n")
                 # Calculate MAE statistic of best fit
-                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Mean Absolute Error = %0.4f" % mae)
 
                 print("\n")
@@ -5577,13 +5599,12 @@ def config_test(param_dict,
             #    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
             # ax1.legend()
             # ax2.legend()
-            # plt.suptitle("%s test: NCOMP %d" % (line,fit_A_ncomp))
             # plt.tight_layout() 
             # sys.exit()
             #
 
             # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
-            dof = len(lam_gal[test_idx])-len(_param_dict)
+            dof = len(lam_gal)-len(_param_dict)
             if dof<=0: 
                 if verbose:
                     print("\n WARNING: Degrees-of-Freedom in fit is <= 0.  One should increase the test range and/or decrease the number of free parameters of the model appropriately.\n")
@@ -5619,7 +5640,7 @@ def config_test(param_dict,
                 # for the complex model if force_best=True.  For now, the threshold is the RMSE of 
                 # the previous fit, and the complex model must achieive an RMSE lower than that of 
                 # the simpler model
-                force_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+                force_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]["MODEL"][0]))
                 # print(force_thresh)
             else: force_thresh=np.inf
 
@@ -5669,7 +5690,7 @@ def config_test(param_dict,
                                                    stel_templates,
                                                    blob_pars,
                                                    disp_res,
-                                                   test_fit_mask,
+                                                   fit_mask,
                                                    velscale,
                                                    flux_norm,
                                                    fit_norm,
@@ -5679,6 +5700,7 @@ def config_test(param_dict,
                                                    output_model=False,
                                                    test_outflows=True,
                                                    n_basinhop=n_basinhop,
+                                                   reweighting=reweighting,
                                                    max_like_niter=0,
                                                    force_best=test_options["force_best"],
                                                    force_thresh=force_thresh,
@@ -5689,23 +5711,23 @@ def config_test(param_dict,
                 
                 print("\n")
                 # Calculate R-Squared statistic of best fit
-                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                r2 = badass_test_suite.r_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" R-Squared = %0.4f" % r2)
 
 
                 print("\n")
                 # Calculate rCHI2 statistic of best fit
-                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict),test_idx=test_idx)
+                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),copy.deepcopy(mccomps["NOISE"][0]),len(_param_dict))
                 print(" reduced Chi-Squared = %0.4f" % rchi2)
 
                 print("\n")
                 # Calculate RMSE statistic of best fit
-                rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                rmse = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Root Mean Squared Error = %0.4f" % rmse)
 
                 print("\n")
                 # Calculate MAE statistic of best fit
-                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]),test_idx=test_idx)
+                mae = badass_test_suite.mean_abs_error(copy.deepcopy(mccomps["DATA"][0]),copy.deepcopy(mccomps["MODEL"][0]))
                 print(" Mean Absolute Error = %0.4f" % mae)
 
                 print("\n")
@@ -5724,13 +5746,12 @@ def config_test(param_dict,
             #    ax1.step(mccomps["WAVE"][0],mccomps[comp][0],label="%s" % (comp))
             # ax1.legend()
             # ax2.legend()
-            # plt.suptitle("%s test: NCOMP %d" % (line,fit_B_ncomp))
             # plt.tight_layout()
             #
             # sys.exit(0)
             #
             # Calculate degrees of freedom of fit; nu = n - m (n number of observations minus m degrees of freedom (free fitted parameters))
-            dof = len(lam_gal[test_idx])-len(_param_dict)
+            dof = len(lam_gal)-len(_param_dict)
             if dof<=0: 
                 if verbose:
                     print("\n WARNING: Degrees-of-Freedom in fit is <= 0.  One should increase the test range and/or decrease the number of free parameters of the model appropriately.\n")
@@ -5744,8 +5765,8 @@ def config_test(param_dict,
         # Now that both A and B have been fit, we can generate statistics from badass_test_suite functions
         # We evaluate over the entire test range for each line
         # storage arrays for residuals in [OIII] test region
-        resid_A = fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]['RESID'][0,:][test_fit_mask]
-        resid_B = fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]['RESID'][0,:][test_fit_mask]
+        resid_A = fit_res_dict["CONFIG_%d" % (fit_A_ncomp)]["mccomps"]['RESID'][0,:][fit_mask]
+        resid_B = fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]['RESID'][0,:][fit_mask]
 
         # Plot for testing
         # fig = plt.figure(figsize=(10,3))
@@ -5762,7 +5783,7 @@ def config_test(param_dict,
 
         # Record the target threshold (RMSE) of the complex fit; this will be used to ensure the final maximum likelihood fit 
         # is at least as good as this
-        targ_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]),test_idx=test_idx)
+        targ_thresh = lowest_rmse#badass_test_suite.root_mean_squared_error(copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["DATA"][0]),copy.deepcopy(fit_res_dict["CONFIG_%d" % (fit_B_ncomp)]["mccomps"]["MODEL"][0]))
         test_results["TARGET_RMSE"].append(targ_thresh)
         # Perform Bayesian A/B test
         # delta degrees of freedom between the two models A and B (dof A > dof B)
@@ -5983,7 +6004,7 @@ def config_test(param_dict,
     #    print(line)
     #    for hpar in new_line_list[line]:
     #       print("\t",hpar,":",new_line_list[line][hpar])            
-                
+
     # check SNR (AON) level and prune any lines that don't satisfy the requirement
     remove_aon = []
     if "AON" in test_options["metrics"]:
@@ -5997,7 +6018,16 @@ def config_test(param_dict,
                     if ("parent" in new_line_list[child]) and (new_line_list[child]["parent"]==line):
                         line_family.append(child)
             
-            avg_noise = np.nanmean(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["NOISE"][0])
+            if reweighting:
+                rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["DATA"][0]),
+                                                        copy.deepcopy(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["MODEL"][0]),
+                                                        copy.deepcopy(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["NOISE"][0]),
+                                                        fit_res_dict["CONFIG_%d" % config_final]["npar"]
+                                                        )
+
+                avg_noise = np.nanmean(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["NOISE"][0] * np.sqrt(rchi2))
+            else: 
+                avg_noise = np.nanmean(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["NOISE"][0])
             if len(line_family)>0:
                 # print(line_family)
                 comb_line = np.zeros(len(fit_res_dict["CONFIG_%d" % config_final]["mccomps"]["DATA"][0]))
@@ -6888,7 +6918,7 @@ def calc_max_like_dispersions(lam_gal, comp_dict, line_list, combined_line_list,
 
 ##################################################################################
 
-def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat):
+def calc_max_like_fit_quality(param_dict,noise,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type):
 
     # for p in param_dict:
         # print(p,param_dict[p])
@@ -6901,15 +6931,6 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     npix_dict = {}
     snr_dict  = {}
 
-    if fit_stat=="RCHI2":
-        # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"]*comp_dict["MODEL"])**2
-        # noise2 = (comp_dict["NOISE"])**2+(param_dict["NOISE_SCALE"])**2 # Additive constant noise factor
-        noise2 = (comp_dict["NOISE"]*param_dict["NOISE_SCALE"])**2 # multiplicative noise factor
-        _noise = noise2**0.5
-    elif fit_stat!="RCHI2":
-        _noise = comp_dict["NOISE"]
-        noise2 = _noise**2
-
     # compute number of pixels (NPIX) for each line in the line list;
     # this is done by determining the number of pixels of the line model
     # that are above the raw noise.
@@ -6918,23 +6939,23 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
     # this is done by calculating the maximum value of the line model 
     # above the MEAN value of the noise within the channels.
     for l in line_list:
-        eval_ind = np.where(np.abs(comp_dict[l])>_noise)[0]
+        eval_ind = np.where(np.abs(comp_dict[l])>noise)[0]
         npix = len(eval_ind)
         npix_dict[l+"_NPIX"] = int(npix)
         # if len(eval_ind)>0:
         #    snr = np.nanmax(comp_dict[l][eval_ind])/np.nanmean(_noise[eval_ind])
         # else: 
         #    snr = 0
-        snr = np.nanmax(np.abs(comp_dict[l]))/np.nanmean(_noise)
+        snr = np.nanmax(np.abs(comp_dict[l]))/np.nanmean(noise)
         snr_dict[l+"_SNR"] = snr
     # compute for combined lines
     if len(combined_line_list)>0:
         for c in combined_line_list:
-            eval_ind = np.where(comp_dict[c]>_noise)[0]
+            eval_ind = np.where(comp_dict[c]>noise)[0]
             npix = len(eval_ind)
             npix_dict[c+"_NPIX"] = int(npix)
             if len(eval_ind)>0:
-                snr = np.nanmax(comp_dict[c][eval_ind])/np.nanmean(_noise[eval_ind])
+                snr = np.nanmax(comp_dict[c][eval_ind])/np.nanmean(noise[eval_ind])
             else:
                 snr = 0
             snr_dict[c+"_SNR"] = snr
@@ -6946,11 +6967,10 @@ def calc_max_like_fit_quality(param_dict,n_free_pars,line_list,combined_line_lis
         # print(s,snr_dict[s])
 
     # compute a total chi-squared and r-squared
-    r_squared = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    r_squared = badass_test_suite.r_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]))
     # print(r_squared)
     #
-    nu = len(comp_dict["DATA"])-n_free_pars
-    rchi_squared = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+    rchi_squared = badass_test_suite.r_chi_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]),noise,n_free_pars)
     #
     return r_squared, rchi_squared, npix_dict, snr_dict
 
@@ -6994,6 +7014,7 @@ def max_likelihood(param_dict,
                    output_model=False,
                    test_outflows=False,
                    n_basinhop=25,
+                   reweighting=True,
                    max_like_niter=10,
                    force_best=False,
                    force_thresh=np.inf,
@@ -7199,7 +7220,27 @@ def max_likelihood(param_dict,
                           fit_stat,
                           output_model)
 
-    #### Maximum Likelihood Bootstrapping #################################################################
+    #### Reweighting ###################################################################
+
+    # If True, BADASS can reweight the noise to achieve a reduced chi-squared of 1.  It does this by multiplying the noise by the 
+    # square root of the resultant reduced chi-sqaured calculated from the basinhopping fit.  This is then passed to the bootstrapping 
+    # fitting so the uncertainties are calculated with the re-weighted noise.
+
+    if reweighting:
+        if verbose:
+            print("\n Reweighting noise to achieve a reduced chi-squared ~ 1.")
+        # Calculate current rchi2
+        cur_rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]),noise,len(par_best))
+        if verbose:
+            print("\tCurrent reduced chi-squared = %0.5f" % cur_rchi2)
+        # Update noise
+        noise = noise*np.sqrt(cur_rchi2)
+        # Calculate new rchi2
+        new_rchi2 = badass_test_suite.r_chi_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]),noise,len(par_best))
+        if verbose:
+            print("\tNew reduced chi-squared = %0.5f" % new_rchi2)    
+
+    #### Bootstrapping #################################################################
 
     mcnoise = np.array(noise)
     # Storage dictionaries for all calculated paramters at each iteration
@@ -7276,7 +7317,7 @@ def max_likelihood(param_dict,
     disp_dict, fwhm_dict, vint_dict, w80_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
 
     # Calculate fit quality parameters
-    r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
+    r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},noise,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type)
 
     # Add first iteration to arrays
     # Add to mcpars dict
@@ -7428,7 +7469,7 @@ def max_likelihood(param_dict,
             # Calculate integrated line dispersions
             disp_dict, fwhm_dict, vint_dict, w80_dict = calc_max_like_dispersions(lam_gal, comp_dict, {**line_list, **combined_line_list}, combined_line_list, blob_pars, velscale)
             # Calculate fit quality parameters
-            r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type,fit_stat)
+            r2, rchi2, npix_dict, snr_dict = calc_max_like_fit_quality({p:par_best[i] for i,p in enumerate(param_names)},noise,n_free_pars,line_list,combined_line_list,comp_dict,fit_mask,fit_type)
 
             # Add to mc storage dictionaries
             # Add to mcpars dict
@@ -8089,12 +8130,6 @@ def lnlike(params,
             # we multiply by negative.
             l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
-        # elif (fit_stat=="RCHI2"):
-        #    pdict = {p:params[i] for i,p in enumerate(param_names)}
-        #    noise_scale = pdict["NOISE_SCALE"]
-        #    # Calculate log-likelihood
-        #    sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
-        #    l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
 
         return l, flux_blob, eqwidth_blob, cont_flux_blob, int_vel_disp_blob
 
@@ -8144,12 +8179,6 @@ def lnlike(params,
         elif fit_stat=="OLS":
             l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
-        # elif (fit_stat=="RCHI2"):
-        #    pdict = {p:params[i] for i,p in enumerate(param_names)}
-        #    noise_scale = pdict["NOISE_SCALE"]
-        #    # Calculate log-likelihood
-        #    sn2 = (noise[fit_mask]*noise_scale/norm_factor)**2 # multiplicative noise factor is thus an intrinsic noise
-        #    l = -0.5*np.sum( (galaxy[fit_mask]/norm_factor-model[fit_mask]/norm_factor)**2/(sn2) + np.log(2*np.pi*sn2),axis=0)
         #
         return l 
 
@@ -9049,13 +9078,8 @@ def fit_model(params,
 
 def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line_list, blob_pars, fit_mask, fit_stat, velscale):
 
-    # If noise_scale is calculated (fit_stat="RCHI2"), rescale the noise appropriately
-    if fit_stat=="RCHI2":
-        noise2 = (comp_dict["NOISE"]*p["NOISE_SCALE"])**2 # multiplicative noise factor
-        _noise = noise2**0.5
-    elif fit_stat!="RCHI2":
-        _noise = comp_dict["NOISE"]
-        noise2 = _noise**2
+    _noise = comp_dict["NOISE"]
+    noise2 = _noise**2
 
     # Continuum luminosities
     # Create a single continuum component based on what was fit
@@ -9155,11 +9179,14 @@ def calc_mcmc_blob(p, lam_gal, comp_dict, comp_options, line_list, combined_line
     #      
 
     # compute a total chi-squared and r-squared
-    fit_quality["R_SQUARED"] = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    # fit_quality["R_SQUARED"] = 1-(np.sum((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2/np.sum(comp_dict["DATA"][fit_mask]**2)))
+    fit_quality["R_SQUARED"] = badass_test_suite.r_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]))
+
     # print(r_squared)
     #
-    nu = len(comp_dict["DATA"])-len(p)
-    fit_quality["RCHI_SQUARED"] = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+    # nu = len(comp_dict["DATA"])-len(p)
+    # fit_quality["RCHI_SQUARED"] = (np.sum(((comp_dict["DATA"][fit_mask]-comp_dict["MODEL"][fit_mask])**2)/((noise2[fit_mask])),axis=0))/nu
+    fit_quality["RCHI_SQUARED"] = badass_test_suite.r_chi_squared(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]),copy.deepcopy(comp_dict["NOISE"]),len(p))
 
 
     return fluxes, eqwidths, cont_fluxes, {**int_vel_disp, **npix_dict, **snr_dict, **fit_quality}
