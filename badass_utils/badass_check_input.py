@@ -118,7 +118,7 @@ def check_fit_options(input,comp_options,verbose=False):
 	"fit_stat" : {
 					 "conds" : [
 								lambda x: isinstance(x,(str)),
-								lambda x: x in ["ML","OLS"]
+								lambda x: x in ["ML","OLS","RMSE"]
 							   ],
 					 "default" : "ML",
 					 "error_message" : "\n Fit statistic can be either ML (Maximum Likelihood) or OLS (Ordinary Least Squares).\n",

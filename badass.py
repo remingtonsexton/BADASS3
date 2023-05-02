@@ -588,7 +588,7 @@ def run_single_thread(fits_file,
     run_dir = pathlib.Path(run_dir)
 
     # Do some sanity checks
-    if (not sdss_spec) and (fwhm_res==0.0) and (output_options["res_correct"]==True):
+    if (not sdss_spec) and (np.sum(fwhm_res)==0.0) and (output_options["res_correct"]==True):
         print("\n WARNING: User-input FWHM resolution (in Angstroms) is zero or not provided, but you also asked BADASS to correct for resolution effects.  No correction will be applied...\n")
 
     # Check to make sure plotly is installed for HTML interactive plots:
@@ -2329,7 +2329,8 @@ def prepare_sdss_spec(fits_file,fit_reg,mask_bad_pix,mask_emline,user_mask,mask_
     # We renormalize the spectrum and noise such that the maximum value of the spectrum is 1.
     # This is done such that all spectra are treated the same with the scipy optimization 
     # algorithm.
-    fit_norm = np.round(np.nanmax(galaxy),5)
+    # fit_norm = np.round(np.nanmax(galaxy),5)
+    fit_norm = np.round(np.nanmedian(galaxy),5)
     galaxy   = galaxy/fit_norm
     noise   = noise /fit_norm
 
@@ -2563,7 +2564,8 @@ def prepare_user_spec(fits_file,spec,wave,err,fwhm_res,z,ebv,flux_norm,fit_reg,m
     # We renormalize the spectrum and noise such that the maximum value of the spectrum is 1.
     # This is done such that all spectra are treated the same with the scipy optimization 
     # algorithm.
-    fit_norm = np.round(np.nanmax(galaxy),5)
+    # fit_norm = np.round(np.nanmax(galaxy),5)
+    fit_norm = np.round(np.nanmedian(galaxy),5)
     galaxy   = galaxy/fit_norm
     noise   = noise /fit_norm
 
@@ -4867,6 +4869,9 @@ def line_test(param_dict,
                     for s in _soft_cons:
                         print(s)
 
+                init_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
+
+
                 mcpars, mccomps, mcLL, lowest_rmse = max_likelihood(_param_dict,
                                                        _line_list,
                                                        _combined_line_list,
@@ -4902,8 +4907,10 @@ def line_test(param_dict,
                                                        output_model=False,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
-                                                       reweighting=reweighting,
+                                                       reweighting=False,
                                                        max_like_niter=0,
+                                                       force_best=test_options["force_best"],
+                                                       force_thresh=init_rmse,
                                                        full_verbose=test_options["full_verbose"],
                                                        verbose=test_options["full_verbose"])
 
@@ -5068,7 +5075,7 @@ def line_test(param_dict,
                                                        output_model=False,
                                                        test_outflows=True,
                                                        n_basinhop=n_basinhop,
-                                                       reweighting=reweighting,
+                                                       reweighting=False,
                                                        max_like_niter=0,
                                                        force_best=test_options["force_best"],
                                                        force_thresh=force_thresh,
@@ -7057,132 +7064,237 @@ def max_likelihood(param_dict,
     # Perform global optimization using basin-hopping algorithm (superior to minimize(), but slower)
     # We will use minimize() for the monte carlo bootstrap iterations.
 
-    lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
-    if force_best:
-        force_basinhop = copy.deepcopy(n_basinhop)
-        n_basinhop = 250 # Set to arbitrarily high threshold 
+    # lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
+    # if force_best:
+    #     force_basinhop = copy.deepcopy(n_basinhop)
+    #     n_basinhop = 250 # Set to arbitrarily high threshold 
 
-        # global basinhop_value, basinhop_count
-        basinhop_count = 0
-        accepted_count = 0
-        basinhop_value = np.inf
+    #     # global basinhop_value, basinhop_count
+    #     basinhop_count = 0
+    #     accepted_count = 0
+    #     basinhop_value = np.inf
+
+    #     # Define a callback function for forcing a better fit to the B model 
+    #     # if force_best=True;
+    #     # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
+    #     def callback_ftn(x,f, accepted):
+    #         nonlocal basinhop_value, basinhop_count, lowest_rmse, accepted_count
+    #         # print(basinhop_value,basinhop_count)
+    #         # print("at minimum %.4f accepted %d" % (f, int(accepted)))
+            
+    #         if f<=basinhop_value:
+    #             basinhop_value=f 
+    #             basinhop_count=0 # reset counter
+    #         elif f>basinhop_value:
+    #             basinhop_count+=1
+    #         if (accepted==1):
+    #             accepted_count+=1
+
+    #         # if basinhop_count>n_basinhop:
+    #         #     raise SystemExit(f"\n The global maximizer could not converge on a viable solution in {n_basinhop} steps.  Manually change the basinhopping step size to something reasonable.\n")
+
+    #         current_comps = fit_model(x,param_names,line_list,combined_line_list,lam_gal,galaxy,noise,
+    #                                   comp_options,losvd_options,host_options,power_options,poly_options,
+    #                                   opt_feii_options,uv_iron_options,balmer_options,outflow_test_options,
+    #                                   host_template,opt_feii_templates,uv_iron_template,balmer_template,
+    #                                   stel_templates,blob_pars,disp_res,fit_mask,velscale,run_dir,"init",
+    #                                   fit_stat,True)
+    #         rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(current_comps["DATA"]),copy.deepcopy(current_comps["MODEL"]))
+
+    #         # Define an acceptance threshold
+    #         accept_thresh = 0.001
+    #         # Best/lowest achieved RMSE
+    #         if (rmse<=lowest_rmse): #(rmse<=force_thresh) and  (accepted==1) and (accepted_count>1) and 
+    #             lowest_rmse = rmse
+
+    #         # If basinhopping does get stuck in a local minimum, jump out by increasing the step size considerably
+    #         if ((basinhop_count>n_basinhop) and (accepted_count>=1)) and (((lowest_rmse-accept_thresh)>force_thresh) or (lowest_rmse>force_thresh)):
+    #             print(f" \n Warning: basinhopping has exceeded {n_basinhop} attemps to find a new global maximum.  Terminating fit...\n")
+    #             return True
+
+    #         # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
+    #         # median within the median abs. deviation, terminate.
+    #         if (accepted_count>1) and (basinhop_count>=force_basinhop) and (((lowest_rmse-accept_thresh)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
+
+    #             if full_verbose:
+    #                 print(" Fit Status: True")
+    #                 print(" Force threshold: %0.4f" % force_thresh)
+    #                 print(" Lowest RMSE: %0.4f" % lowest_rmse)
+    #                 print(" Current RMSE: %0.4f" % rmse)
+    #                 print(" Accepted count: %d" % accepted_count)
+    #                 print(" Basinhop count: %d" % basinhop_count)
+    #                 print("\n")
+
+    #             return True 
+                
+    #         else:
+
+    #             if full_verbose:
+    #                 print(" Fit Status: False")
+    #                 print(" Force threshold: %0.4f" % force_thresh)
+    #                 print(" Lowest RMSE: %0.4f" % lowest_rmse)
+    #                 print(" Current RMSE: %0.4f" % rmse)
+    #                 print(" Accepted count: %d" % accepted_count)
+    #                 print(" Basinhop count: %d" % basinhop_count)
+    #                 print("\n")
+
+    #             return False 
+
+    # if not force_best:
+
+    #     callback_ftn=None
+
+    # result = op.basinhopping(func = nll, 
+    #                          x0 = params,
+    #                          stepsize=10.0,
+    #                          interval=1,
+    #                          niter = 2500, # Max # of iterations before stopping
+    #                          minimizer_kwargs = {'args':(
+    #                                                      param_names,
+    #                                                      prior_dict,
+    #                                                      line_list,
+    #                                                      combined_line_list,
+    #                                                      bounds,
+    #                                                      soft_cons,
+    #                                                      lam_gal,
+    #                                                      galaxy,
+    #                                                      noise,
+    #                                                      comp_options,
+    #                                                      losvd_options,
+    #                                                      host_options,
+    #                                                      power_options,
+    #                                                      poly_options,
+    #                                                      opt_feii_options,
+    #                                                      uv_iron_options,
+    #                                                      balmer_options,
+    #                                                      outflow_test_options,
+    #                                                      host_template,
+    #                                                      opt_feii_templates,
+    #                                                      uv_iron_template,
+    #                                                      balmer_template,
+    #                                                      stel_templates,
+    #                                                      blob_pars,
+    #                                                      disp_res,
+    #                                                      fit_mask,
+    #                                                      velscale,
+    #                                                      fit_type,
+    #                                                      fit_stat,
+    #                                                      output_model,
+    #                                                      run_dir
+    #                                                     ),
+    #                           'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
+    #                           # "method":"Nelder-Mead","bounds":param_bounds,
+    #                           "options":{"disp":False,}},# "adaptive":True, }},
+    #                            disp=verbose,
+    #                            niter_success=n_basinhop, # Max # of successive search iterations
+    #                            callback=callback_ftn,
+    #                            )
+
+    #### Differential Evolution Global Optimization ##############################################################
+    
+    # Initial RMSE (just the data)
+    lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(galaxy),np.zeros(len(galaxy)))
+
+    if force_best:
 
         # Define a callback function for forcing a better fit to the B model 
         # if force_best=True;
-        # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.basinhopping.html
-        def callback_ftn(x,f, accepted):
-            nonlocal basinhop_value, basinhop_count, lowest_rmse, accepted_count
-            # print(basinhop_value,basinhop_count)
-            # print("at minimum %.4f accepted %d" % (f, int(accepted)))
-            
-            if f<=basinhop_value:
-                basinhop_value=f 
-                basinhop_count=0 # reset counter
-            elif f>basinhop_value:
-                basinhop_count+=1
-            if (accepted==1):
-                accepted_count+=1
+        # see: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html
+        def callback_ftn(x, convergence):
+            nonlocal lowest_rmse
 
-            # if basinhop_count>n_basinhop:
-            #     raise SystemExit(f"\n The global maximizer could not converge on a viable solution in {n_basinhop} steps.  Manually change the basinhopping step size to something reasonable.\n")
-
+            # Generate model from current fit
             current_comps = fit_model(x,param_names,line_list,combined_line_list,lam_gal,galaxy,noise,
                                       comp_options,losvd_options,host_options,power_options,poly_options,
                                       opt_feii_options,uv_iron_options,balmer_options,outflow_test_options,
                                       host_template,opt_feii_templates,uv_iron_template,balmer_template,
                                       stel_templates,blob_pars,disp_res,fit_mask,velscale,run_dir,"init",
                                       fit_stat,True)
+            # Calculate current RMSE
             rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(current_comps["DATA"]),copy.deepcopy(current_comps["MODEL"]))
 
-            # Define an acceptance threshold
-            accept_thresh = 0.001
             # Best/lowest achieved RMSE
             if (rmse<=lowest_rmse): #(rmse<=force_thresh) and  (accepted==1) and (accepted_count>1) and 
                 lowest_rmse = rmse
 
-            # If basinhopping does get stuck in a local minimum, jump out by increasing the step size considerably
-            if ((basinhop_count>n_basinhop) and (accepted_count>=1)) and (((lowest_rmse-accept_thresh)>force_thresh) or (lowest_rmse>force_thresh)):
-                print(f" \n Warning: basinhopping has exceeded {n_basinhop} attemps to find a new global maximum.  Terminating fit...\n")
-                return True
-
             # If number of required basinhopping iterations have been achieved, and the best rmse is less than the current 
             # median within the median abs. deviation, terminate.
-            if (accepted_count>1) and (basinhop_count>=force_basinhop) and (((lowest_rmse-accept_thresh)<=force_thresh) or (lowest_rmse<=force_thresh)): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
+            if (lowest_rmse<=force_thresh) and (convergence >= 1): # and (accepted_count>1) (basinhop_count)>=n_basinhop) and 
 
                 if full_verbose:
                     print(" Fit Status: True")
-                    print(" Force threshold: %0.4f" % force_thresh)
-                    print(" Lowest RMSE: %0.4f" % lowest_rmse)
-                    print(" Current RMSE: %0.4f" % rmse)
-                    print(" Accepted count: %d" % accepted_count)
-                    print(" Basinhop count: %d" % basinhop_count)
+                    print(" Force threshold: %0.10f" % force_thresh)
+                    print(" Lowest RMSE: %0.10f" % lowest_rmse)
+                    print(" Current RMSE: %0.10f" % rmse)
+                    print(" Convergence: %0.10f" % convergence)
                     print("\n")
 
                 return True 
                 
             else:
 
-                if full_verbose:
+                if full_verbose:# & (rmse<=lowest_rmse):
                     print(" Fit Status: False")
-                    print(" Force threshold: %0.4f" % force_thresh)
-                    print(" Lowest RMSE: %0.4f" % lowest_rmse)
-                    print(" Current RMSE: %0.4f" % rmse)
-                    print(" Accepted count: %d" % accepted_count)
-                    print(" Basinhop count: %d" % basinhop_count)
+                    print(" Force threshold: %0.10f" % force_thresh)
+                    print(" Lowest RMSE: %0.10f" % lowest_rmse)
+                    print(" Current RMSE: %0.10f" % rmse)
+                    print(" Convergence: %0.10f" % convergence)
                     print("\n")
 
                 return False 
 
     if not force_best:
-
         callback_ftn=None
 
-    result = op.basinhopping(func = nll, 
-                             x0 = params,
-                             stepsize=1.0,
-                             interval=1,
-                             niter = 2500, # Max # of iterations before stopping
-                             minimizer_kwargs = {'args':(
-                                                         param_names,
-                                                         prior_dict,
-                                                         line_list,
-                                                         combined_line_list,
-                                                         bounds,
-                                                         soft_cons,
-                                                         lam_gal,
-                                                         galaxy,
-                                                         noise,
-                                                         comp_options,
-                                                         losvd_options,
-                                                         host_options,
-                                                         power_options,
-                                                         poly_options,
-                                                         opt_feii_options,
-                                                         uv_iron_options,
-                                                         balmer_options,
-                                                         outflow_test_options,
-                                                         host_template,
-                                                         opt_feii_templates,
-                                                         uv_iron_template,
-                                                         balmer_template,
-                                                         stel_templates,
-                                                         blob_pars,
-                                                         disp_res,
-                                                         fit_mask,
-                                                         velscale,
-                                                         fit_type,
-                                                         fit_stat,
-                                                         output_model,
-                                                         run_dir
-                                                        ),
-                              'method':'SLSQP', 'bounds':param_bounds, 'constraints':cons, 
-                              # "method":"Nelder-Mead","bounds":param_bounds,
-                              "options":{"disp":False,}},# "adaptive":True, }},
-                               disp=verbose,
-                               niter_success=n_basinhop, # Max # of successive search iterations
-                               callback=callback_ftn,
-                               )
     
+    result = op.differential_evolution(
+                             func = nll, 
+                             x0 = params,
+                             tol=0.001,
+                             atol=1.e-10,#1.e-8,
+                             maxiter = 1000, # Max # of iterations before stopping
+                             init='sobol',#'latinhypercube,
+                             args = (
+                                     param_names,
+                                     prior_dict,
+                                     line_list,
+                                     combined_line_list,
+                                     bounds,
+                                     soft_cons,
+                                     lam_gal,
+                                     galaxy,
+                                     noise,
+                                     comp_options,
+                                     losvd_options,
+                                     host_options,
+                                     power_options,
+                                     poly_options,
+                                     opt_feii_options,
+                                     uv_iron_options,
+                                     balmer_options,
+                                     outflow_test_options,
+                                     host_template,
+                                     opt_feii_templates,
+                                     uv_iron_template,
+                                     balmer_template,
+                                     stel_templates,
+                                     blob_pars,
+                                     disp_res,
+                                     fit_mask,
+                                     velscale,
+                                     fit_type,
+                                     fit_stat,
+                                     output_model,
+                                     run_dir
+                                     ),
+                              bounds = param_bounds,
+                              constraints = cons, 
+                              disp=verbose,
+                              callback=callback_ftn,
+                               )
+
+    ##############################################################
+
     # Get elapsed time
     elap_time = (time.time() - start_time)
 
@@ -7219,6 +7331,8 @@ def max_likelihood(param_dict,
                           fit_type,
                           fit_stat,
                           output_model)
+
+    lowest_rmse = badass_test_suite.root_mean_squared_error(copy.deepcopy(comp_dict["DATA"]),copy.deepcopy(comp_dict["MODEL"]))
 
     #### Reweighting ###################################################################
 
@@ -8118,8 +8232,6 @@ def lnlike(params,
                                                                                   fit_type,
                                                                                   fit_stat,
                                                                                   output_model)
-        # Normalization factor
-        # norm_factor = np.nanmedian(galaxy[fit_mask])
 
         if fit_stat=="ML":
             # Calculate log-likelihood
@@ -8166,10 +8278,6 @@ def lnlike(params,
                                      fit_type,
                                      fit_stat,
                                      output_model)
-        # Normalization factor
-        # norm_factor = np.nanmedian(galaxy[fit_mask])
-        # norm_factor = np.nanmax(galaxy[fit_mask])
-        # norm_factor = 1
 
         if fit_stat=="ML":
             # Calculate log-likelihood
@@ -8179,6 +8287,8 @@ def lnlike(params,
         elif fit_stat=="OLS":
             l = (galaxy[fit_mask]-model[fit_mask])**2
             l = -np.sum(l,axis=0)
+        elif fit_stat=="RMSE":
+            l = -np.sqrt((np.sum((galaxy[fit_mask]-model[fit_mask])**2,axis=0))/len(galaxy[fit_mask]))
         #
         return l 
 

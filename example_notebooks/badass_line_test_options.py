@@ -2,17 +2,15 @@
 # Fitting Parameters
 fit_options={
 "fit_reg"    : (4400,5500),# Fitting region; Note: Indo-US Library=(3460,9464)
-# "fit_reg"    : (2000,3000),# Fitting region; Note: Indo-US Library=(3460,9464)
-
 "good_thresh": 0.0, # percentage of "good" pixels required in fig_reg for fit.
 "mask_bad_pix": False, # mask pixels SDSS flagged as 'bad' (careful!)
 "mask_emline" : False, # automatically mask lines for continuum fitting.
 "mask_metal": False, # interpolate over metal absorption lines for high-z spectra
-"fit_stat": "ML", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
+"fit_stat": "RMSE",#"ML", # fit statistic; ML = Max. Like. , OLS = Ordinary Least Squares
 "n_basinhop": 25, # Number of consecutive basinhopping thresholds before solution achieved
 "reweighting":True, # re-weight the noise after initial fit to achieve RCHI2 = 1
 "test_lines": True,
-"max_like_niter": 25, # number of maximum likelihood iterations
+"max_like_niter": 0, # number of maximum likelihood iterations
 "output_pars": False, # only output free parameters of fit and stop code (diagnostic)
 "cosmology": {"H0":70.0, "Om0": 0.30}, # Flat Lam-CDM Cosmology
 }
@@ -57,13 +55,13 @@ narrow_options = {
 #     "amp_plim": (0,1), # line amplitude parameter limits; default (0,)
     "disp_plim": (0,1000), # line dispersion parameter limits; default (0,)
     "voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
-    "line_profile": "gaussian", # line profile shape*
+    "line_profile": "gaussian", # line profile shape
     "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
 }
 
 broad_options ={
 #     "amp_plim": (0,40), # line amplitude parameter limits; default (0,)
-    "disp_plim": (300,3000), # line dispersion parameter limits; default (0,)
+    "disp_plim": (500,3000), # line dispersion parameter limits; default (0,)
     "voff_plim": (-1000,1000), # line velocity offset parameter limits; default (0,)
     "line_profile": "gaussian", # line profile shape*
     "n_moments": 4, # number of higher order Gauss-Hermite moments (if line profile is gauss-hermite, laplace, or uniform)
@@ -95,28 +93,28 @@ user_lines = {
     # "NA_H_BETA_4"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"na","ncomp":4,"parent":"NA_H_BETA"}, 
     # "NA_H_BETA_5"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"na","ncomp":5,"parent":"NA_H_BETA"}, 
 
-    "NA_H_BETA"      :{"center":4862.691,"amp":"free","disp":"NA_OIII_5007_DISP","voff":"free","line_type":"na","label":r"H$\beta$","ncomp":1,},
+    "NA_H_BETA"      :{"center":4862.691,"amp":"free"                                               ,"disp":"NA_OIII_5007_DISP"  ,"voff":"free"               ,"line_type":"na","label":r"H$\beta$","ncomp":1,},
     "NA_H_BETA_2"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*(NA_OIII_5007_2_AMP/NA_OIII_5007_AMP)","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","line_type":"na","ncomp":2,"parent":"NA_H_BETA"},
     "NA_H_BETA_3"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*(NA_OIII_5007_3_AMP/NA_OIII_5007_AMP)","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","line_type":"na","ncomp":3,"parent":"NA_H_BETA"}, 
     "NA_H_BETA_4"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*(NA_OIII_5007_4_AMP/NA_OIII_5007_AMP)","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","line_type":"na","ncomp":4,"parent":"NA_H_BETA"}, 
     "NA_H_BETA_5"    :{"center":4862.691,"amp":"NA_H_BETA_AMP*(NA_OIII_5007_5_AMP/NA_OIII_5007_AMP)","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","line_type":"na","ncomp":5,"parent":"NA_H_BETA"}, 
 
 
-    "NA_OIII_4960"   :{"center":4960.295,"amp":"(NA_OIII_5007_AMP/2.98)","disp":"NA_OIII_5007_DISP","voff":"NA_OIII_5007_VOFF","line_type":"na","label":r"[O III]","ncomp":1,},
+    "NA_OIII_4960"   :{"center":4960.295,"amp":"(NA_OIII_5007_AMP/2.98)"  ,"disp":"NA_OIII_5007_DISP"  ,"voff":"NA_OIII_5007_VOFF"  ,"line_type":"na","label":r"[O III]","ncomp":1,},
     "NA_OIII_4960_2" :{"center":4960.295,"amp":"(NA_OIII_5007_2_AMP/2.98)","disp":"NA_OIII_5007_2_DISP","voff":"NA_OIII_5007_2_VOFF","line_type":"na","ncomp":2,"parent":"NA_OIII_4960"},
     "NA_OIII_4960_3" :{"center":4960.295,"amp":"(NA_OIII_5007_3_AMP/2.98)","disp":"NA_OIII_5007_3_DISP","voff":"NA_OIII_5007_3_VOFF","line_type":"na","ncomp":3,"parent":"NA_OIII_4960"},
     "NA_OIII_4960_4" :{"center":4960.295,"amp":"(NA_OIII_5007_4_AMP/2.98)","disp":"NA_OIII_5007_4_DISP","voff":"NA_OIII_5007_4_VOFF","line_type":"na","ncomp":4,"parent":"NA_OIII_4960"},
     "NA_OIII_4960_5" :{"center":4960.295,"amp":"(NA_OIII_5007_5_AMP/2.98)","disp":"NA_OIII_5007_5_DISP","voff":"NA_OIII_5007_5_VOFF","line_type":"na","ncomp":5,"parent":"NA_OIII_4960"},
 
-    "NA_OIII_5007"   :{"center":5008.240,"amp":"free","disp":"free","voff":"free","line_type":"na","label":r"[O III]","ncomp":1,},
-    "NA_OIII_5007_2" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","line_type":"na","ncomp":2,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_3" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","line_type":"na","ncomp":3,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_4" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","line_type":"na","ncomp":4,"parent":"NA_OIII_5007"},
-    "NA_OIII_5007_5" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","line_type":"na","ncomp":5,"parent":"NA_OIII_5007"},
+    "NA_OIII_5007"   :{"center":5008.240,"amp":"free","disp":"free","voff":"free","voff_prior":{"type":"flat"},"line_type":"na","label":r"[O III]","ncomp":1,},
+    "NA_OIII_5007_2" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","voff_prior":{"type":"flat"},"line_type":"na","ncomp":2,"parent":"NA_OIII_5007"},
+    "NA_OIII_5007_3" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","voff_prior":{"type":"flat"},"line_type":"na","ncomp":3,"parent":"NA_OIII_5007"},
+    "NA_OIII_5007_4" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","voff_prior":{"type":"flat"},"line_type":"na","ncomp":4,"parent":"NA_OIII_5007"},
+    "NA_OIII_5007_5" :{"center":5008.240,"amp":"free","disp":"free","voff":"free","voff_prior":{"type":"flat"},"line_type":"na","ncomp":5,"parent":"NA_OIII_5007"},
     
     "BR_H_BETA"      :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":1,},
-    "BR_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":2,"parent":"BR_H_BETA"},
-    "BR_H_BETA_3"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":3,"parent":"BR_H_BETA"},
+#     "BR_H_BETA_2"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":2,"parent":"BR_H_BETA"},
+#     "BR_H_BETA_3"    :{"center":4862.691,"amp":"free","disp":"free","voff":"free","line_type":"br","ncomp":3,"parent":"BR_H_BETA"},
 
     "NA_UNK_1"       :{"center":5200,"line_type":"na"},
 
