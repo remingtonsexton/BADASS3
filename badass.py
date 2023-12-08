@@ -6380,8 +6380,8 @@ def line_test_plot(n,test,ncomp_A,ncomp_B,
         color='xkcd:white',fontsize=6,
         )
     # Title
-    ax1.set_title(r"$\textrm{TEST %s: NCOMP %d}$" % (test,ncomp_A),fontsize=16)
-    ax3.set_title(r"$\textrm{TEST %s: NCOMP %d}$" % (test,ncomp_B),fontsize=16)
+    ax1.set_title(r"$\textrm{TEST %s: NCOMP %d}$" % (str(test).replace('_', '\\_'),ncomp_A),fontsize=16)
+    ax3.set_title(r"$\textrm{TEST %s: NCOMP %d}$" % (str(test).replace('_', '\\_'),ncomp_B),fontsize=16)
     #
     fig.tight_layout()
     # Save the figure
@@ -8017,7 +8017,7 @@ def max_like_plot(lam_gal,comp_dict,line_list,params,param_names,fit_mask,fit_no
             color='xkcd:white',fontsize=6,
             )
         # Title
-        ax1.set_title(str(run_dir.name),fontsize=12)
+        ax1.set_title(r'%s'%run_dir.name.replace('_', '\\_'),fontsize=12)
 
         # Save figure
         plt.savefig(run_dir.joinpath('max_likelihood_fit.pdf'))

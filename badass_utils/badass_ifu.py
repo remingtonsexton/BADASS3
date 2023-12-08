@@ -1110,8 +1110,8 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
                   vmin=np.nanpercentile(data, 1),
                   vmax=np.nanpercentile(data, 99),
                   extent=[ox-.5, ox+imagehdu.data.shape[1]-.5, oy-.5, oy+imagehdu.data.shape[0]-.5])
-        plt.colorbar(map_, ax=ax, label=imagehdu.name)
-        ax.set_title(mcmc_output_dir.split(os.sep)[-1])
+        plt.colorbar(map_, ax=ax, label=imagehdu.name.replace('_', '\\_'))
+        ax.set_title(mcmc_output_dir.split(os.sep)[-1].replace('_', '\\_'))
         plt.savefig(os.path.join(mcmc_output_dir, 'partable_plots', f'{imagehdu.name}.pdf'), bbox_inches='tight', dpi=300)
         plt.close()
 
@@ -1134,8 +1134,8 @@ def plot_reconstructed_cube(mcmc_output_dir, partable_to_plot=None, bmc_to_plot=
                              vmin=np.nanpercentile(dataavg, 1),
                              vmax=np.nanpercentile(dataavg, 99),
                              extent=[ox-.5, ox+imagehdu.data.shape[2]-.5, oy-.5, oy+imagehdu.data.shape[1]-.5])
-            plt.colorbar(map_, ax=ax, label=imagehdu.name)
-            ax.set_title(mcmc_output_dir.split(os.sep)[-1])
+            plt.colorbar(map_, ax=ax, label=imagehdu.name.replace('_', '\\_'))
+            ax.set_title(mcmc_output_dir.split(os.sep)[-1].replace('_', '\\_'))
             plt.savefig(os.path.join(mcmc_output_dir, 'best_model_components_plots', f'{imagehdu.name}.pdf'), bbox_inches='tight', dpi=300)
             plt.close()
     else:
