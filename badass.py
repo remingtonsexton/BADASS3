@@ -4797,6 +4797,7 @@ def line_test(param_dict,
             fit_res_dict[i] = {}
         #
         for n in range(0,max_ncomp):
+            line = test_options["lines"][i] # Somehow variable "line" is rewritten and causes issues with n>1 line testing. Resetting it here.
             test_results["TEST"].append(line)
             test_range = test_options["ranges"][i]
             test_results["RANGE"].append(test_range)
