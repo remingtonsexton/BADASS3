@@ -4284,7 +4284,13 @@ def initialize_line_pars(lam_gal,galaxy,noise,comp_options,
 
         # Velocity offsets determine both the intial guess in line velocity as well as amplitude, so it makes sense to perform the voff for each line first.
         if (("voff" in line_list[line]) and (line_list[line]["voff"]=="free")):
-            voff_default = voff_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
+           if "voff_init" in line_list[line] and "voff_plim" in line_list[line]:
+               # If user has provided an initial guess, use that
+               voff_default = (line_list[line]["voff_init"],line_list[line]["voff_plim"])
+           else:
+               # If user has not provided an initial guess, use the hyperparameters
+               voff_default = voff_hyperpars(line_list[line]["line_type"],line_list[line]["center"])
+
             line_par_input[line+"_VOFF"] = {"init": line_list[line].get("voff_init",voff_default[0]), 
                                             "plim":line_list[line].get("voff_plim",voff_default[1]),
                                             "prior":line_list[line].get("voff_prior",{"type":"gaussian"})
