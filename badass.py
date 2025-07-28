@@ -353,7 +353,12 @@ def run_BADASS(data,
         # Get locations of sub-directories for each fit within the parent data directory
         spec_loc = natsort.natsorted(glob.glob(os.path.join(data, '*')))
         if nobj is not None:
-            spec_loc = spec_loc[nobj[0]:nobj[1]]
+            if type(nobj) is tuple:
+                spec_loc = spec_loc[nobj[0]:nobj[1]]
+            elif type(nobj) is list:
+                spec_loc = [spec_loc[i] for i in nobj]
+            else:
+                raise ValueError("nobj must be a tuple or list of indices to select spectra from the data directory.")
         work_dirs = [si + os.sep for si in spec_loc]
         print(f"Fitting {len(spec_loc)} 1D spectra")
 
